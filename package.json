@@ -13,7 +13,7 @@
     }
   },
   "bin": {
-    "opencode-android-orchestrator": "./dist/cli.js"
+    "opencode-android-orchestrator": "dist/cli.js"
   },
   "files": [
     "dist/",
