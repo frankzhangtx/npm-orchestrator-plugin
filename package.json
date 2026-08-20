@@ -1,0 +1,50 @@
+{
+  "name": "@frankzhang2026/opencode-android-orchestrator",
+  "version": "0.1.0",
+  "description": "Reusable OpenCode orchestration for Android projects",
+  "license": "MIT",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "bin": {
+    "opencode-android-orchestrator": "./dist/cli.js"
+  },
+  "files": [
+    "dist/",
+    "templates/",
+    "README.md",
+    "CHANGELOG.md"
+  ],
+  "publishConfig": {
+    "access": "public",
+    "registry": "https://registry.npmjs.org/"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "npm run build && node --test tests/*.test.mjs",
+    "pack:check": "npm pack --dry-run",
+    "prepack": "npm run build"
+  },
+  "keywords": [
+    "opencode",
+    "android",
+    "automation",
+    "orchestration"
+  ],
+  "author": "",
+  "peerDependencies": {
+    "@opencode-ai/plugin": ">=1.14.22 <1.16.0"
+  },
+  "devDependencies": {
+    "@opencode-ai/plugin": "1.14.22",
+    "@types/node": "22.13.9",
+    "typescript": "5.8.2"
+  }
+}
