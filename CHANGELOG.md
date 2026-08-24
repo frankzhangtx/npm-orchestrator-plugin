@@ -9,7 +9,7 @@
   and Gradle Wrapper discovery.
 - Add Kotlin DSL, Groovy DSL, compatibility, and doctor tests.
 - Migrate the audited V3 agents, commands, and scheduled-quality skills as
-  byte-preserved installation templates.
+  project-independent installation templates.
 - Migrate all 28 audited V3 automation Shell files while preserving their
   executable modes and nested test-runner path.
 - Migrate the remaining V3 configuration, Schemas, task example, and plan guide,
@@ -19,6 +19,13 @@
 - Pin the installed Superpowers and orchestrator references, and reject
   ambiguous files, symbolic links, malformed configuration, duplicates, and
   managed-plugin version conflicts.
+- Add a read-only adaptive template planner that derives the project name,
+  modules, namespaces/application IDs, protected Gradle files, source-set
+  paths, and focused-test placeholder without writing the target repository.
+- Make agent permissions and deterministic scope gates work with detected
+  Android module directories, including custom `projectDir` mappings.
+- Remove the legacy Scheduler dependency, project-specific identifiers, and
+  local absolute paths from all shipped templates.
 
 ## 0.1.0 - 2026-08-20
 

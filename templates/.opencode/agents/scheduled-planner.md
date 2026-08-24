@@ -16,7 +16,7 @@ permission:
     "*": deny
     "docs/plans/**": allow
     "automation/tasks/**": allow
-    "app/**": deny
+    "**/src/**": deny
     ".opencode/**": deny
     "scripts/automation/**": deny
     "automation/config.json": deny

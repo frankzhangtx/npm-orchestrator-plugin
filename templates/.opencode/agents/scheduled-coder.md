@@ -14,9 +14,12 @@ permission:
     "**/*.keystore": deny
   edit:
     "*": deny
-    "app/src/main/**": allow
-    "app/src/test/**": allow
-    "app/src/androidTest/**": allow
+    "src/main/**": allow
+    "src/test/**": allow
+    "src/androidTest/**": allow
+    "**/src/main/**": allow
+    "**/src/test/**": allow
+    "**/src/androidTest/**": allow
     ".opencode/**": deny
     ".opencode/skills/**": deny
     "automation/**": deny
@@ -26,9 +29,12 @@ permission:
     "gradle/**": deny
     "gradlew": deny
     "gradlew.bat": deny
+    "settings.gradle": deny
     "settings.gradle.kts": deny
+    "build.gradle": deny
     "build.gradle.kts": deny
-    "app/build.gradle.kts": deny
+    "**/build.gradle": deny
+    "**/build.gradle.kts": deny
   bash:
     "*": deny
     "git status": allow

@@ -17,7 +17,6 @@
     "abort": "中止任务，封存修改并恢复原分支。"
   },
   "plugins": {
-    "scheduler": "opencode-scheduler@1.3.0",
     "superpowers": "superpowers@git+https://github.com/obra/superpowers.git#v6.2.0"
   },
   "requiredSkills": [
@@ -32,15 +31,20 @@
   ],
   "protectedPaths": [
     ".opencode/",
+    ".automation-plugin/",
     "automation/",
     "scripts/automation/",
     "opencode.json",
+    "opencode.jsonc",
     "AGENTS.md",
     "gradle/",
     "gradlew",
     "gradlew.bat",
+    "settings.gradle",
     "settings.gradle.kts",
+    "build.gradle",
     "build.gradle.kts",
-    "app/build.gradle.kts"
+    "**/build.gradle",
+    "**/build.gradle.kts"
   ]
 }

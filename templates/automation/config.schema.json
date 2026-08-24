@@ -1,9 +1,20 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://example.local/cctest/automation-config.schema.json",
+  "$id": "urn:frankzhang2026:opencode-android-orchestrator:automation-config:v3",
   "title": "OpenCode task orchestration configuration",
   "type": "object",
   "additionalProperties": false,
+  "$defs": {
+    "repositoryPath": {
+      "type": "string",
+      "minLength": 1,
+      "pattern": "^(?!/)(?!\\.\\.(?:/|$))(?![A-Za-z]:[\\\\/]).+"
+    },
+    "nullableIdentifier": {
+      "type": ["string", "null"],
+      "minLength": 1
+    }
+  },
   "required": [
     "schemaVersion",
     "enabled",
@@ -19,6 +30,7 @@
     "approvalPhrases",
     "plugins",
     "requiredSkills",
+    "androidProject",
     "protectedPaths"
   ],
   "properties": {
@@ -49,9 +61,8 @@
     "plugins": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["scheduler", "superpowers"],
+      "required": ["superpowers"],
       "properties": {
-        "scheduler": { "type": "string", "minLength": 1 },
         "superpowers": { "type": "string", "minLength": 1 }
       }
     },
@@ -61,11 +72,92 @@
       "uniqueItems": true,
       "items": { "type": "string", "minLength": 1 }
     },
+    "androidProject": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "name",
+        "gradleDsl",
+        "settingsFile",
+        "primaryModule",
+        "modules",
+        "productionPaths",
+        "testPaths"
+      ],
+      "properties": {
+        "name": { "type": "string", "minLength": 1 },
+        "gradleDsl": { "enum": ["kotlin", "groovy", "mixed"] },
+        "settingsFile": { "$ref": "#/$defs/repositoryPath" },
+        "primaryModule": {
+          "type": "string",
+          "pattern": "^:(?:[A-Za-z0-9_.-]+(?::[A-Za-z0-9_.-]+)*)?$"
+        },
+        "modules": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "gradlePath",
+              "directory",
+              "buildFile",
+              "dsl",
+              "type",
+              "namespace",
+              "applicationId"
+            ],
+            "properties": {
+              "gradlePath": {
+                "type": "string",
+                "pattern": "^:(?:[A-Za-z0-9_.-]+(?::[A-Za-z0-9_.-]+)*)?$"
+              },
+              "directory": { "$ref": "#/$defs/repositoryPath" },
+              "buildFile": { "$ref": "#/$defs/repositoryPath" },
+              "dsl": { "enum": ["kotlin", "groovy"] },
+              "type": {
+                "enum": [
+                  "application",
+                  "library",
+                  "dynamic-feature",
+                  "test",
+                  "asset-pack"
+                ]
+              },
+              "namespace": { "$ref": "#/$defs/nullableIdentifier" },
+              "applicationId": { "$ref": "#/$defs/nullableIdentifier" }
+            }
+          }
+        },
+        "productionPaths": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "allOf": [
+              { "$ref": "#/$defs/repositoryPath" },
+              { "pattern": "(^|/)src/main/\\*\\*$" }
+            ]
+          }
+        },
+        "testPaths": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "allOf": [
+              { "$ref": "#/$defs/repositoryPath" },
+              { "pattern": "(^|/)src/(?:test|androidTest)/\\*\\*$" }
+            ]
+          }
+        }
+      }
+    },
     "protectedPaths": {
       "type": "array",
       "minItems": 1,
       "uniqueItems": true,
-      "items": { "type": "string", "minLength": 1 }
+      "items": { "$ref": "#/$defs/repositoryPath" }
     }
   }
 }

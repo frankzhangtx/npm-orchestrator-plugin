@@ -11,11 +11,11 @@ const opencodeTemplateRoot = join(templatesRoot, ".opencode");
 const expectedHashes = new Map([
   [
     ".opencode/agents/scheduled-coder.md",
-    "f0702afa8cb17cd820a6a4c099d01af231189dbf5be0c2a9b9ed68bbdd2d1a03",
+    "9baa967ee91ace5c3f217dae5efdbc931eb2220a0bd0568c372f86ceb0b1a6c2",
   ],
   [
     ".opencode/agents/scheduled-planner.md",
-    "21130ae53d081268922654bf0039bed2a6fca0825fb7f937e6b5b4bec379a2eb",
+    "1296184096eff58420f83d16f6293eaa62309fea1e9e96fa7568fd69eb929f92",
   ],
   [
     ".opencode/agents/scheduled-reviewer.md",

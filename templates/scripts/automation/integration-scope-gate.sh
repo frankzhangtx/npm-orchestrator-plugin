@@ -58,21 +58,37 @@ while IFS= read -r path; do
         automation_die "integration path is outside allowedPaths: $path"
         exit 40
     fi
-    case "$path" in
-        app/src/main/*) production_changed=1 ;;
-        app/src/test/*|app/src/androidTest/*) test_changed=1 ;;
-    esac
+    if automation_array_matches_path "$AUTOMATION_CONFIG" '.androidProject.productionPaths' "$path"; then
+        production_changed=1
+    fi
+    if automation_array_matches_path "$AUTOMATION_CONFIG" '.androidProject.testPaths' "$path"; then
+        test_changed=1
+    fi
 done <<< "$changed_file_list"
 
-deleted_tests="$(git -C "$AUTOMATION_ROOT" diff --name-only --diff-filter=D "$base" "$head" -- app/src/test app/src/androidTest)"
+deleted_tests="$(
+    git -C "$AUTOMATION_ROOT" diff --name-only --diff-filter=D "$base" "$head" -- \
+        | while IFS= read -r path; do
+            if automation_array_matches_path "$AUTOMATION_CONFIG" '.androidProject.testPaths' "$path"; then
+                printf '%s\n' "$path"
+            fi
+        done
+)"
 [[ -z "$deleted_tests" ]] || { automation_die "test deletion is forbidden: $deleted_tests"; exit 40; }
 if [[ "$production_changed" == "1" && "$(jq -r '.testPolicy' "$contract")" == "required" && "$test_changed" != "1" ]]; then
     automation_die "production code changed without a test change"
     exit 40
 fi
 
-added_test_lines="$(git -C "$AUTOMATION_ROOT" diff --unified=0 "$base" "$head" -- app/src/test app/src/androidTest \
-    | awk '/^\+\+\+/ { next } /^\+/ { sub(/^\+/, ""); print }')"
+added_test_lines="$(
+    while IFS= read -r path; do
+        [[ -n "$path" ]] || continue
+        if automation_array_matches_path "$AUTOMATION_CONFIG" '.androidProject.testPaths' "$path"; then
+            git -C "$AUTOMATION_ROOT" diff --unified=0 "$base" "$head" -- "$path"
+        fi
+    done <<< "$changed_file_list" \
+        | awk '/^\+\+\+/ { next } /^\+/ { sub(/^\+/, ""); print }'
+)"
 weakening_pattern='@Ignore|@Disabled|assumeTrue\(false\)|assertTrue\(true\)|assertFalse\(false\)'
 if printf '%s\n' "$added_test_lines" | rg -n "$weakening_pattern" >/dev/null; then
     automation_die "potential test weakening detected in integration candidate"

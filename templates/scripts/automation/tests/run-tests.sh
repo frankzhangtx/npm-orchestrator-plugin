@@ -83,13 +83,13 @@ mkdir -p \
     "$fixture/automation/tasks" \
     "$fixture/docs/plans" \
     "$fixture/scripts/automation" \
-    "$fixture/app/src/main/java/com/example/cctest" \
-    "$fixture/app/src/test/java/com/example/cctest"
+    "$fixture/mobile-client/src/main/java/dev/example/orchestratorfixture" \
+    "$fixture/mobile-client/src/test/java/dev/example/orchestratorfixture"
 
 cp "$SOURCE_SCRIPT_DIR"/*.sh "$fixture/scripts/automation/"
 chmod +x "$fixture/scripts/automation/"*.sh
 printf '%s\n' '# Approved test plan' > "$fixture/docs/plans/TASK-TEST-001.md"
-printf '%s\n' 'class ExistingFeature' > "$fixture/app/src/main/java/com/example/cctest/ExistingFeature.kt"
+printf '%s\n' 'class ExistingFeature' > "$fixture/mobile-client/src/main/java/dev/example/orchestratorfixture/ExistingFeature.kt"
 
 printf '%s\n' \
     '#!/usr/bin/env bash' \
@@ -125,7 +125,6 @@ jq -n '{
         abort: "中止任务，封存修改并恢复原分支。"
     },
     plugins: {
-        scheduler: "opencode-scheduler@1.3.0",
         superpowers: "superpowers@git+https://github.com/obra/superpowers.git#v6.2.0"
     },
     requiredSkills: [
@@ -138,18 +137,44 @@ jq -n '{
         "systematic-debugging",
         "verification-before-completion"
     ],
+    androidProject: {
+        name: "automation-shell-fixture",
+        gradleDsl: "kotlin",
+        settingsFile: "settings.gradle.kts",
+        primaryModule: ":mobile-client",
+        modules: [{
+            gradlePath: ":mobile-client",
+            directory: "mobile-client",
+            buildFile: "mobile-client/build.gradle.kts",
+            dsl: "kotlin",
+            type: "application",
+            namespace: "dev.example.orchestratorfixture",
+            applicationId: "dev.example.orchestratorfixture"
+        }],
+        productionPaths: ["mobile-client/src/main/**"],
+        testPaths: [
+            "mobile-client/src/test/**",
+            "mobile-client/src/androidTest/**"
+        ]
+    },
     protectedPaths: [
         ".opencode/",
+        ".automation-plugin/",
         "automation/",
         "scripts/automation/",
         "opencode.json",
+        "opencode.jsonc",
         "AGENTS.md",
         "gradle/",
         "gradlew",
         "gradlew.bat",
+        "settings.gradle",
         "settings.gradle.kts",
+        "build.gradle",
         "build.gradle.kts",
-        "app/build.gradle.kts"
+        "**/build.gradle",
+        "**/build.gradle.kts",
+        "mobile-client/build.gradle.kts"
     ]
 }' > "$fixture/automation/config.json"
 
@@ -163,21 +188,27 @@ jq -n '{
     maxFixLoops: 1,
     maxChangedFiles: 4,
     allowedPaths: [
-        "app/src/main/java/com/example/cctest/**",
-        "app/src/test/java/com/example/cctest/**"
+        "mobile-client/src/main/java/dev/example/orchestratorfixture/**",
+        "mobile-client/src/test/java/dev/example/orchestratorfixture/**"
     ],
     forbiddenPaths: [
         ".opencode/**",
+        ".automation-plugin/**",
         "automation/**",
         "scripts/automation/**",
         "opencode.json",
+        "opencode.jsonc",
         "AGENTS.md",
         "gradle/**",
         "gradlew",
         "gradlew.bat",
+        "settings.gradle",
         "settings.gradle.kts",
+        "build.gradle",
         "build.gradle.kts",
-        "app/build.gradle.kts"
+        "**/build.gradle",
+        "**/build.gradle.kts",
+        "mobile-client/build.gradle.kts"
     ],
     allowedSuperpowers: [
         "test-driven-development",
@@ -186,7 +217,7 @@ jq -n '{
     ],
     acceptanceCriteria: ["Greeting returns the approved value"],
     nonGoals: ["No unrelated refactoring"],
-    targetTests: ["com.example.cctest.GreetingTest"],
+    targetTests: ["dev.example.orchestratorfixture.GreetingTest"],
     deviceTestsRequired: false,
     testPolicy: "required",
     testPolicyReason: "The behavior requires a focused regression test"
@@ -244,8 +275,8 @@ run_fixture ./scripts/automation/claim-task.sh TASK-TEST-001 >/dev/null
 [[ -f "$runtime_root/evidence/TASK-TEST-001/baseline.json" ]] || fail 'baseline metadata missing'
 pass 'claim verifies workspace identity and records a green baseline'
 
-printf '%s\n' 'class GreetingTest { fun expectedBehavior() = Unit }' > "$fixture/app/src/test/java/com/example/cctest/GreetingTest.kt"
-run_fixture ./scripts/automation/record-red.sh TASK-TEST-001 'expected missing behavior' -- com.example.cctest.GreetingTest >/dev/null
+printf '%s\n' 'class GreetingTest { fun expectedBehavior() = Unit }' > "$fixture/mobile-client/src/test/java/dev/example/orchestratorfixture/GreetingTest.kt"
+run_fixture ./scripts/automation/record-red.sh TASK-TEST-001 'expected missing behavior' -- dev.example.orchestratorfixture.GreetingTest >/dev/null
 [[ "$(jq -r '.exitCode' "$runtime_root/evidence/TASK-TEST-001/red.json")" -ne 0 ]] || fail 'RED evidence exit code was not captured'
 pass 'focused failing test records genuine RED evidence'
 
@@ -256,14 +287,14 @@ fi
 rm "$fixture/automation/forbidden-change.txt"
 pass 'scope gate rejects protected path changes'
 
-printf '%s\n' 'class GreetingTest { fun expectedBehavior() { assertTrue(true) } }' > "$fixture/app/src/test/java/com/example/cctest/GreetingTest.kt"
-printf '%s\n' 'class Greeting { fun value() = "hello" }' > "$fixture/app/src/main/java/com/example/cctest/Greeting.kt"
+printf '%s\n' 'class GreetingTest { fun expectedBehavior() { assertTrue(true) } }' > "$fixture/mobile-client/src/test/java/dev/example/orchestratorfixture/GreetingTest.kt"
+printf '%s\n' 'class Greeting { fun value() = "hello" }' > "$fixture/mobile-client/src/main/java/dev/example/orchestratorfixture/Greeting.kt"
 if run_fixture ./scripts/automation/scope-gate.sh TASK-TEST-001 >/dev/null 2>&1; then
     fail 'scope gate accepted weakened test'
 fi
 pass 'scope gate rejects obvious test weakening'
 
-printf '%s\n' 'class GreetingTest { fun expectedBehavior() { check(Greeting().value() == "hello") } }' > "$fixture/app/src/test/java/com/example/cctest/GreetingTest.kt"
+printf '%s\n' 'class GreetingTest { fun expectedBehavior() { check(Greeting().value() == "hello") } }' > "$fixture/mobile-client/src/test/java/dev/example/orchestratorfixture/GreetingTest.kt"
 run_fixture env AUTOMATION_FAKE_GREEN=1 ./scripts/automation/quality-gate.sh TASK-TEST-001 >/dev/null
 [[ "$(jq -r '.state' "$runtime_root/state/TASK-TEST-001.json")" == "READY_FOR_REVIEW" ]] || fail 'quality gate did not create READY_FOR_REVIEW state'
 pass 'G1-G6 seal all tracked and untracked product changes'
@@ -298,7 +329,7 @@ pass 'append-only transition audit contains the complete gated lifecycle'
 
 (
     cd "$fixture"
-    git add app
+    git add mobile-client
     git commit -qm 'Preserve first fixture task'
 )
 
@@ -307,7 +338,7 @@ jq \
     '.id = "TASK-TEST-002" |
      .title = "Exercise the bounded verification failure loop" |
      .planPath = "docs/plans/TASK-TEST-002.md" |
-     .targetTests = ["com.example.cctest.FailureLoopTest"]' \
+     .targetTests = ["dev.example.orchestratorfixture.FailureLoopTest"]' \
     "$fixture/automation/tasks/TASK-TEST-001.json" \
     > "$fixture/automation/tasks/TASK-TEST-002.json"
 (
@@ -318,9 +349,9 @@ jq \
 run_fixture env AUTOMATION_HUMAN_APPROVED=1 ./scripts/automation/queue-task.sh TASK-TEST-002 >/dev/null
 write_workspace TASK-TEST-002
 run_fixture ./scripts/automation/claim-task.sh TASK-TEST-002 >/dev/null
-printf '%s\n' 'class FailureLoopTest { fun expectedBehavior() = Unit }' > "$fixture/app/src/test/java/com/example/cctest/FailureLoopTest.kt"
-run_fixture ./scripts/automation/record-red.sh TASK-TEST-002 'expected missing behavior' -- com.example.cctest.FailureLoopTest >/dev/null
-printf '%s\n' 'class FailureLoop { fun value() = "still failing" }' > "$fixture/app/src/main/java/com/example/cctest/FailureLoop.kt"
+printf '%s\n' 'class FailureLoopTest { fun expectedBehavior() = Unit }' > "$fixture/mobile-client/src/test/java/dev/example/orchestratorfixture/FailureLoopTest.kt"
+run_fixture ./scripts/automation/record-red.sh TASK-TEST-002 'expected missing behavior' -- dev.example.orchestratorfixture.FailureLoopTest >/dev/null
+printf '%s\n' 'class FailureLoop { fun value() = "still failing" }' > "$fixture/mobile-client/src/main/java/dev/example/orchestratorfixture/FailureLoop.kt"
 
 if run_fixture ./scripts/automation/quality-gate.sh TASK-TEST-002 >/dev/null 2>&1; then
     fail 'first failing gate attempt unexpectedly passed'
@@ -336,7 +367,7 @@ pass 'second verification failure deterministically stops in TEST_FAILED'
 
 (
     cd "$fixture"
-    git add app
+    git add mobile-client
     git commit -qm 'Preserve second fixture outcome'
 )
 printf '%s\n' '# Approved preflight-block plan' > "$fixture/docs/plans/TASK-TEST-003.md"
@@ -344,7 +375,7 @@ jq \
     '.id = "TASK-TEST-003" |
      .title = "Verify dirty worktree preflight blocking" |
      .planPath = "docs/plans/TASK-TEST-003.md" |
-     .targetTests = ["com.example.cctest.PreflightBlockTest"]' \
+     .targetTests = ["dev.example.orchestratorfixture.PreflightBlockTest"]' \
     "$fixture/automation/tasks/TASK-TEST-001.json" \
     > "$fixture/automation/tasks/TASK-TEST-003.json"
 (
@@ -371,7 +402,7 @@ jq \
     '.id = "TASK-TEST-005" |
      .title = "Exercise the bounded reviewer repair cycle" |
      .planPath = "docs/plans/TASK-TEST-005.md" |
-     .targetTests = ["com.example.cctest.ReviewerFixTest"]' \
+     .targetTests = ["dev.example.orchestratorfixture.ReviewerFixTest"]' \
     "$fixture/automation/tasks/TASK-TEST-001.json" \
     > "$fixture/automation/tasks/TASK-TEST-005.json"
 (
@@ -382,9 +413,9 @@ jq \
 run_fixture env AUTOMATION_HUMAN_APPROVED=1 ./scripts/automation/queue-task.sh TASK-TEST-005 >/dev/null
 write_workspace TASK-TEST-005
 run_fixture ./scripts/automation/claim-task.sh TASK-TEST-005 >/dev/null
-printf '%s\n' 'class ReviewerFixTest { fun expectedBehavior() = Unit }' > "$fixture/app/src/test/java/com/example/cctest/ReviewerFixTest.kt"
-run_fixture ./scripts/automation/record-red.sh TASK-TEST-005 'expected missing behavior' -- com.example.cctest.ReviewerFixTest >/dev/null
-printf '%s\n' 'class ReviewerFix { fun value() = "first pass" }' > "$fixture/app/src/main/java/com/example/cctest/ReviewerFix.kt"
+printf '%s\n' 'class ReviewerFixTest { fun expectedBehavior() = Unit }' > "$fixture/mobile-client/src/test/java/dev/example/orchestratorfixture/ReviewerFixTest.kt"
+run_fixture ./scripts/automation/record-red.sh TASK-TEST-005 'expected missing behavior' -- dev.example.orchestratorfixture.ReviewerFixTest >/dev/null
+printf '%s\n' 'class ReviewerFix { fun value() = "first pass" }' > "$fixture/mobile-client/src/main/java/dev/example/orchestratorfixture/ReviewerFix.kt"
 run_fixture env AUTOMATION_FAKE_GREEN=1 ./scripts/automation/quality-gate.sh TASK-TEST-005 >/dev/null
 run_fixture ./scripts/automation/begin-review.sh TASK-TEST-005 >/dev/null
 if run_fixture ./scripts/automation/submit-review.sh TASK-TEST-005 CHANGES_REQUESTED 'Reviewer found one material in-contract behavior issue.' >/dev/null 2>&1; then
@@ -398,7 +429,7 @@ run_fixture ./scripts/automation/resume-review-fix.sh TASK-TEST-005 >/dev/null
 [[ "$(jq -r '.codingCycle' "$runtime_root/workspaces/TASK-TEST-005.json")" -eq 1 ]] || fail 'repair did not create a fresh gate cycle'
 pass 'one configured reviewer repair gets a fresh quality-gate cycle'
 
-printf '%s\n' 'class ReviewerFix { fun value() = "second pass" }' > "$fixture/app/src/main/java/com/example/cctest/ReviewerFix.kt"
+printf '%s\n' 'class ReviewerFix { fun value() = "second pass" }' > "$fixture/mobile-client/src/main/java/dev/example/orchestratorfixture/ReviewerFix.kt"
 run_fixture env AUTOMATION_FAKE_GREEN=1 ./scripts/automation/quality-gate.sh TASK-TEST-005 >/dev/null
 run_fixture ./scripts/automation/begin-review.sh TASK-TEST-005 >/dev/null
 if run_fixture ./scripts/automation/submit-review.sh TASK-TEST-005 CHANGES_REQUESTED 'Fresh reviewer still found a material behavior issue.' >/dev/null 2>&1; then
@@ -412,7 +443,7 @@ pass 'reviewer repair limit prevents an unbounded agent loop'
 
 (
     cd "$fixture"
-    git add app
+    git add mobile-client
     git commit -qm 'Preserve reviewer-fix fixture outcome'
 )
 
@@ -421,7 +452,7 @@ jq \
     '.id = "TASK-TEST-004" |
      .title = "Exercise in-place transactional integration" |
      .planPath = "docs/plans/TASK-TEST-004.md" |
-     .targetTests = ["com.example.cctest.OrchestratedFlowTest"]' \
+     .targetTests = ["dev.example.orchestratorfixture.OrchestratedFlowTest"]' \
     "$fixture/automation/tasks/TASK-TEST-001.json" \
     > "$fixture/automation/tasks/TASK-TEST-004.json"
 
@@ -461,9 +492,9 @@ pass 'persistent repository lease rejects a concurrent automation task'
 pass 'contract approval switches to a leased task branch while deferring the sealed plan and contract to the product commit'
 
 run_task "$task_root" ./scripts/automation/claim-task.sh TASK-TEST-004 >/dev/null
-printf '%s\n' 'class OrchestratedFlowTest { fun expectedBehavior() = Unit }' > "$task_root/app/src/test/java/com/example/cctest/OrchestratedFlowTest.kt"
-run_task "$task_root" ./scripts/automation/record-red.sh TASK-TEST-004 'expected missing behavior' -- com.example.cctest.OrchestratedFlowTest >/dev/null
-printf '%s\n' 'class OrchestratedFlow { fun value() = "integrated" }' > "$task_root/app/src/main/java/com/example/cctest/OrchestratedFlow.kt"
+printf '%s\n' 'class OrchestratedFlowTest { fun expectedBehavior() = Unit }' > "$task_root/mobile-client/src/test/java/dev/example/orchestratorfixture/OrchestratedFlowTest.kt"
+run_task "$task_root" ./scripts/automation/record-red.sh TASK-TEST-004 'expected missing behavior' -- dev.example.orchestratorfixture.OrchestratedFlowTest >/dev/null
+printf '%s\n' 'class OrchestratedFlow { fun value() = "integrated" }' > "$task_root/mobile-client/src/main/java/dev/example/orchestratorfixture/OrchestratedFlow.kt"
 run_task "$task_root" env AUTOMATION_FAKE_GREEN=1 ./scripts/automation/quality-gate.sh TASK-TEST-004 >/dev/null
 run_task "$task_root" ./scripts/automation/begin-review.sh TASK-TEST-004 >/dev/null
 run_task "$task_root" env AUTOMATION_FAKE_GREEN=1 ./scripts/automation/submit-review.sh TASK-TEST-004 APPROVED 'Fresh review confirms the sealed behavior and scope.' >/dev/null
@@ -478,11 +509,11 @@ acceptance_card="$(run_fixture ./scripts/automation/show-acceptance-review.sh TA
 [[ "$acceptance_card" == *"成功集成后自动删除；失败或阻塞时保留"* ]] || fail 'acceptance review omitted task branch cleanup policy'
 pass 'automated evidence becomes one focused, SHA-verified human acceptance card'
 
-printf '%s\n' 'class OrchestratedFlow { fun value() = "tampered after review" }' > "$task_root/app/src/main/java/com/example/cctest/OrchestratedFlow.kt"
+printf '%s\n' 'class OrchestratedFlow { fun value() = "tampered after review" }' > "$task_root/mobile-client/src/main/java/dev/example/orchestratorfixture/OrchestratedFlow.kt"
 if run_fixture ./scripts/automation/show-acceptance-review.sh TASK-TEST-004 >/dev/null 2>&1; then
     fail 'acceptance review displayed a diff changed after sealing'
 fi
-printf '%s\n' 'class OrchestratedFlow { fun value() = "integrated" }' > "$task_root/app/src/main/java/com/example/cctest/OrchestratedFlow.kt"
+printf '%s\n' 'class OrchestratedFlow { fun value() = "integrated" }' > "$task_root/mobile-client/src/main/java/dev/example/orchestratorfixture/OrchestratedFlow.kt"
 [[ "$(jq -r '.state' "$runtime_root/state/TASK-TEST-004.json")" == "AWAITING_HUMAN" ]] || fail 'read-only acceptance display changed task state'
 pass 'acceptance display rejects a changed diff and never advances state'
 
@@ -496,13 +527,13 @@ run_fixture env AUTOMATION_FAKE_GREEN=1 ./scripts/automation/accept-and-integrat
 combined_commit="$(jq -er '.productCommit' "$runtime_root/workspaces/TASK-TEST-004.json")"
 [[ "$(jq -r '.state' "$runtime_root/state/TASK-TEST-004.json")" == "COMPLETED" ]] || fail 'final integration did not reach COMPLETED'
 [[ "$(git -C "$fixture" symbolic-ref --short HEAD)" == "$original_branch" ]] || fail 'integrator changed the original branch identity'
-[[ -f "$fixture/app/src/main/java/com/example/cctest/OrchestratedFlow.kt" ]] || fail 'product change was not integrated into original branch'
+[[ -f "$fixture/mobile-client/src/main/java/dev/example/orchestratorfixture/OrchestratedFlow.kt" ]] || fail 'product change was not integrated into original branch'
 [[ "$(git -C "$fixture" rev-list --count "$approved_baseline..$combined_commit")" -eq 1 ]] || fail 'final integration created more than one task commit'
 for combined_path in \
     docs/plans/TASK-TEST-004.md \
     automation/tasks/TASK-TEST-004.json \
-    app/src/main/java/com/example/cctest/OrchestratedFlow.kt \
-    app/src/test/java/com/example/cctest/OrchestratedFlowTest.kt; do
+    mobile-client/src/main/java/dev/example/orchestratorfixture/OrchestratedFlow.kt \
+    mobile-client/src/test/java/dev/example/orchestratorfixture/OrchestratedFlowTest.kt; do
     git -C "$fixture" diff-tree --no-commit-id --name-only -r "$combined_commit" | \
         awk -v expected="$combined_path" '$0 == expected { found = 1 } END { exit !found }' || \
         fail "combined task commit omitted $combined_path"
@@ -526,12 +557,12 @@ jq \
     '.id = "TASK-TEST-008" |
      .title = "Archive an interrupted in-place task" |
      .planPath = "docs/plans/TASK-TEST-008.md" |
-     .targetTests = ["com.example.cctest.AbortArchiveTest"]' \
+     .targetTests = ["dev.example.orchestratorfixture.AbortArchiveTest"]' \
     "$fixture/automation/tasks/TASK-TEST-001.json" \
     > "$fixture/automation/tasks/TASK-TEST-008.json"
 run_fixture ./scripts/automation/prepare-contract-review.sh TASK-TEST-008 '批准方案，生成计划和任务合同。' >/dev/null
 run_fixture env AUTOMATION_SKIP_AGENT_RUN=1 ./scripts/automation/approve-and-run.sh TASK-TEST-008 '合同已复核，批准自动执行到人工验收阶段。' >/dev/null
-printf '%s\n' 'class AbortArchive { fun value() = "preserved" }' > "$fixture/app/src/main/java/com/example/cctest/AbortArchive.kt"
+printf '%s\n' 'class AbortArchive { fun value() = "preserved" }' > "$fixture/mobile-client/src/main/java/dev/example/orchestratorfixture/AbortArchive.kt"
 printf '%s\n' 'must not be archived automatically' > "$fixture/out-of-contract.txt"
 if run_fixture ./scripts/automation/abort-task.sh TASK-TEST-008 '中止任务，封存修改并恢复原分支。' >/dev/null 2>&1; then
     fail 'abort archived an out-of-contract path'
@@ -541,10 +572,10 @@ fi
 rm "$fixture/out-of-contract.txt"
 run_fixture ./scripts/automation/abort-task.sh TASK-TEST-008 '中止任务，封存修改并恢复原分支。' >/dev/null
 abort_recovery_commit="$(jq -er '.recoveryCommit' "$runtime_root/evidence/TASK-TEST-008/abort.json")"
-git -C "$fixture" cat-file -e "$abort_recovery_commit:app/src/main/java/com/example/cctest/AbortArchive.kt" || fail 'abort recovery commit omitted the allowed change'
+git -C "$fixture" cat-file -e "$abort_recovery_commit:mobile-client/src/main/java/dev/example/orchestratorfixture/AbortArchive.kt" || fail 'abort recovery commit omitted the allowed change'
 git -C "$fixture" cat-file -e "$abort_recovery_commit:docs/plans/TASK-TEST-008.md" || fail 'abort recovery commit omitted the sealed plan'
 git -C "$fixture" cat-file -e "$abort_recovery_commit:automation/tasks/TASK-TEST-008.json" || fail 'abort recovery commit omitted the sealed contract'
-[[ ! -f "$fixture/app/src/main/java/com/example/cctest/AbortArchive.kt" ]] || fail 'abort left archived code on the original branch'
+[[ ! -f "$fixture/mobile-client/src/main/java/dev/example/orchestratorfixture/AbortArchive.kt" ]] || fail 'abort left archived code on the original branch'
 [[ "$(jq -r '.state' "$runtime_root/state/TASK-TEST-008.json")" == "ABORTED" ]] || fail 'allowed abort did not reach ABORTED'
 [[ ! -d "$runtime_root/locks/repository.workspace.lease" ]] || fail 'allowed abort did not release the repository lease'
 pass 'abort refuses unrelated files and archives allowed uncommitted changes in a recovery commit'
@@ -555,7 +586,7 @@ jq \
     '.id = "TASK-TEST-009" |
      .title = "Abort before product editing" |
      .planPath = "docs/plans/TASK-TEST-009.md" |
-     .targetTests = ["com.example.cctest.PlanningOnlyAbortTest"]' \
+     .targetTests = ["dev.example.orchestratorfixture.PlanningOnlyAbortTest"]' \
     "$fixture/automation/tasks/TASK-TEST-001.json" \
     > "$fixture/automation/tasks/TASK-TEST-009.json"
 run_fixture ./scripts/automation/prepare-contract-review.sh TASK-TEST-009 '批准方案，生成计划和任务合同。' >/dev/null
@@ -580,7 +611,7 @@ jq \
     '.id = "TASK-TEST-007" |
      .title = "Keep optional isolated workspace support" |
      .planPath = "docs/plans/TASK-TEST-007.md" |
-     .targetTests = ["com.example.cctest.IsolatedFlowTest"]' \
+     .targetTests = ["dev.example.orchestratorfixture.IsolatedFlowTest"]' \
     "$fixture/automation/tasks/TASK-TEST-001.json" \
     > "$fixture/automation/tasks/TASK-TEST-007.json"
 run_fixture ./scripts/automation/prepare-contract-review.sh TASK-TEST-007 '批准方案，生成计划和任务合同。' >/dev/null
@@ -591,9 +622,9 @@ isolated_task_root="$(jq -er '.taskRoot' "$runtime_root/workspaces/TASK-TEST-007
 [[ ! -e "$fixture/docs/plans/TASK-TEST-007.md" && ! -e "$fixture/automation/tasks/TASK-TEST-007.json" ]] || fail 'isolated preparation left duplicate planning artifacts in the source root'
 [[ "$(git -C "$fixture" worktree list --porcelain | awk '/^worktree / { count++ } END { print count + 0 }')" -eq 2 ]] || fail 'isolated strategy created more than one additional worktree'
 run_task "$isolated_task_root" ./scripts/automation/claim-task.sh TASK-TEST-007 >/dev/null
-printf '%s\n' 'class IsolatedFlowTest { fun expectedBehavior() = Unit }' > "$isolated_task_root/app/src/test/java/com/example/cctest/IsolatedFlowTest.kt"
-run_task "$isolated_task_root" ./scripts/automation/record-red.sh TASK-TEST-007 'expected missing behavior' -- com.example.cctest.IsolatedFlowTest >/dev/null
-printf '%s\n' 'class IsolatedFlow { fun value() = "integrated" }' > "$isolated_task_root/app/src/main/java/com/example/cctest/IsolatedFlow.kt"
+printf '%s\n' 'class IsolatedFlowTest { fun expectedBehavior() = Unit }' > "$isolated_task_root/mobile-client/src/test/java/dev/example/orchestratorfixture/IsolatedFlowTest.kt"
+run_task "$isolated_task_root" ./scripts/automation/record-red.sh TASK-TEST-007 'expected missing behavior' -- dev.example.orchestratorfixture.IsolatedFlowTest >/dev/null
+printf '%s\n' 'class IsolatedFlow { fun value() = "integrated" }' > "$isolated_task_root/mobile-client/src/main/java/dev/example/orchestratorfixture/IsolatedFlow.kt"
 run_task "$isolated_task_root" env AUTOMATION_FAKE_GREEN=1 ./scripts/automation/quality-gate.sh TASK-TEST-007 >/dev/null
 run_task "$isolated_task_root" ./scripts/automation/begin-review.sh TASK-TEST-007 >/dev/null
 run_task "$isolated_task_root" env AUTOMATION_FAKE_GREEN=1 ./scripts/automation/submit-review.sh TASK-TEST-007 APPROVED 'Independent review approves the isolated fixture.' >/dev/null
@@ -606,7 +637,7 @@ if git -C "$fixture" show-ref --verify --quiet refs/heads/automation/task-test-0
     fail 'successful isolated integration left the local task branch behind'
 fi
 [[ "$(jq -r '.taskBranchDeleted' "$runtime_root/evidence/TASK-TEST-007/integration.json")" == "true" ]] || fail 'isolated integration did not record task branch deletion'
-[[ -f "$fixture/app/src/main/java/com/example/cctest/IsolatedFlow.kt" ]] || fail 'isolated product change was not integrated'
+[[ -f "$fixture/mobile-client/src/main/java/dev/example/orchestratorfixture/IsolatedFlow.kt" ]] || fail 'isolated product change was not integrated'
 pass 'optional isolation removes its task worktree and integrated local task branch without a second candidate'
 
 in_place_config_tmp="$(mktemp "$fixture/automation/.config.XXXXXX")"
@@ -623,16 +654,16 @@ jq \
     '.id = "TASK-TEST-006" |
      .title = "Block an advanced original branch" |
      .planPath = "docs/plans/TASK-TEST-006.md" |
-     .targetTests = ["com.example.cctest.AdvancedOriginalTest"]' \
+     .targetTests = ["dev.example.orchestratorfixture.AdvancedOriginalTest"]' \
     "$fixture/automation/tasks/TASK-TEST-001.json" \
     > "$fixture/automation/tasks/TASK-TEST-006.json"
 run_fixture ./scripts/automation/prepare-contract-review.sh TASK-TEST-006 '批准方案，生成计划和任务合同。' >/dev/null
 run_fixture env AUTOMATION_SKIP_AGENT_RUN=1 ./scripts/automation/approve-and-run.sh TASK-TEST-006 '合同已复核，批准自动执行到人工验收阶段。' >/dev/null
 advanced_task_root="$(jq -er '.taskRoot' "$runtime_root/workspaces/TASK-TEST-006.json")"
 run_task "$advanced_task_root" ./scripts/automation/claim-task.sh TASK-TEST-006 >/dev/null
-printf '%s\n' 'class AdvancedOriginalTest { fun expectedBehavior() = Unit }' > "$advanced_task_root/app/src/test/java/com/example/cctest/AdvancedOriginalTest.kt"
-run_task "$advanced_task_root" ./scripts/automation/record-red.sh TASK-TEST-006 'expected missing behavior' -- com.example.cctest.AdvancedOriginalTest >/dev/null
-printf '%s\n' 'class AdvancedOriginal { fun value() = "must not integrate after drift" }' > "$advanced_task_root/app/src/main/java/com/example/cctest/AdvancedOriginal.kt"
+printf '%s\n' 'class AdvancedOriginalTest { fun expectedBehavior() = Unit }' > "$advanced_task_root/mobile-client/src/test/java/dev/example/orchestratorfixture/AdvancedOriginalTest.kt"
+run_task "$advanced_task_root" ./scripts/automation/record-red.sh TASK-TEST-006 'expected missing behavior' -- dev.example.orchestratorfixture.AdvancedOriginalTest >/dev/null
+printf '%s\n' 'class AdvancedOriginal { fun value() = "must not integrate after drift" }' > "$advanced_task_root/mobile-client/src/main/java/dev/example/orchestratorfixture/AdvancedOriginal.kt"
 run_task "$advanced_task_root" env AUTOMATION_FAKE_GREEN=1 ./scripts/automation/quality-gate.sh TASK-TEST-006 >/dev/null
 run_task "$advanced_task_root" ./scripts/automation/begin-review.sh TASK-TEST-006 >/dev/null
 run_task "$advanced_task_root" env AUTOMATION_FAKE_GREEN=1 ./scripts/automation/submit-review.sh TASK-TEST-006 APPROVED 'Independent review approves the advanced-branch fixture.' >/dev/null
@@ -661,7 +692,7 @@ run_fixture ./scripts/automation/abort-task.sh TASK-TEST-006 '中止任务，封
 [[ "$(git -C "$fixture" symbolic-ref --short HEAD)" == "$advanced_original_branch" ]] || fail 'abort did not restore the source directory to the original branch'
 [[ "$(git -C "$fixture" rev-parse HEAD)" == "$advanced_original_commit" ]] || fail 'abort changed the advanced original branch ref'
 [[ "$(jq -r '.recoveryCommit' "$runtime_root/evidence/TASK-TEST-006/abort.json")" == "$(jq -r '.productCommit' "$runtime_root/workspaces/TASK-TEST-006.json")" ]] || fail 'abort did not preserve the product commit as recovery evidence'
-[[ ! -f "$fixture/app/src/main/java/com/example/cctest/AdvancedOriginal.kt" ]] || fail 'aborted product code remained in the restored original working tree'
+[[ ! -f "$fixture/mobile-client/src/main/java/dev/example/orchestratorfixture/AdvancedOriginal.kt" ]] || fail 'aborted product code remained in the restored original working tree'
 [[ ! -d "$runtime_root/locks/repository.workspace.lease" ]] || fail 'abort did not release the repository lease'
 pass 'explicit abort preserves recovery evidence and restores the original branch without changing its ref'
 

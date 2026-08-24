@@ -55,13 +55,22 @@ while IFS= read -r path; do
         exit 40
     fi
 
-    case "$path" in
-        app/src/main/*) production_changed=1 ;;
-        app/src/test/*|app/src/androidTest/*) test_changed=1 ;;
-    esac
+    if automation_array_matches_path "$AUTOMATION_CONFIG" '.androidProject.productionPaths' "$path"; then
+        production_changed=1
+    fi
+    if automation_array_matches_path "$AUTOMATION_CONFIG" '.androidProject.testPaths' "$path"; then
+        test_changed=1
+    fi
 done <<< "$changed_file_list"
 
-deleted_tests="$(git -C "$AUTOMATION_ROOT" diff --name-only --diff-filter=D HEAD -- app/src/test app/src/androidTest)"
+deleted_tests="$(
+    git -C "$AUTOMATION_ROOT" diff --name-only --diff-filter=D HEAD -- \
+        | while IFS= read -r path; do
+            if automation_array_matches_path "$AUTOMATION_CONFIG" '.androidProject.testPaths' "$path"; then
+                printf '%s\n' "$path"
+            fi
+        done
+)"
 [[ -z "$deleted_tests" ]] || { automation_die "test deletion is forbidden: $deleted_tests"; exit 40; }
 
 test_policy="$(jq -r '.testPolicy' "$contract")"
@@ -70,8 +79,15 @@ if [[ "$production_changed" == "1" && "$test_policy" == "required" && "$test_cha
     exit 40
 fi
 
-added_test_lines="$(git -C "$AUTOMATION_ROOT" diff --unified=0 HEAD -- app/src/test app/src/androidTest \
-    | awk '/^\+\+\+/ { next } /^\+/ { sub(/^\+/, ""); print }')"
+added_test_lines="$(
+    while IFS= read -r path; do
+        [[ -n "$path" ]] || continue
+        if automation_array_matches_path "$AUTOMATION_CONFIG" '.androidProject.testPaths' "$path"; then
+            git -C "$AUTOMATION_ROOT" diff --unified=0 HEAD -- "$path"
+        fi
+    done <<< "$changed_file_list" \
+        | awk '/^\+\+\+/ { next } /^\+/ { sub(/^\+/, ""); print }'
+)"
 weakening_pattern='@Ignore|@Disabled|assumeTrue\(false\)|assertTrue\(true\)|assertFalse\(false\)'
 if printf '%s\n' "$added_test_lines" | rg -n "$weakening_pattern" >/dev/null; then
     automation_die "potential test weakening detected in added lines"
@@ -79,15 +95,12 @@ if printf '%s\n' "$added_test_lines" | rg -n "$weakening_pattern" >/dev/null; th
 fi
 
 while IFS= read -r untracked_test; do
-    case "$untracked_test" in
-        app/src/test/*|app/src/androidTest/*)
-            if rg -n "$weakening_pattern" "$AUTOMATION_ROOT/$untracked_test" >/dev/null; then
-                automation_die "potential test weakening detected in new test: $untracked_test"
-                exit 40
-            fi
-            ;;
-    esac
-done < <(git -C "$AUTOMATION_ROOT" ls-files --others --exclude-standard -- app/src/test app/src/androidTest)
+    if automation_array_matches_path "$AUTOMATION_CONFIG" '.androidProject.testPaths' "$untracked_test" && \
+        rg -n "$weakening_pattern" "$AUTOMATION_ROOT/$untracked_test" >/dev/null; then
+        automation_die "potential test weakening detected in new test: $untracked_test"
+        exit 40
+    fi
+done < <(git -C "$AUTOMATION_ROOT" ls-files --others --exclude-standard)
 
 if [[ "$planning_commit_policy" == "withProductChanges" ]]; then
     automation_info "scope gate passed ($changed_count product files; sealed planning artifacts excluded from the contract limit)"

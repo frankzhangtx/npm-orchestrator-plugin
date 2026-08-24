@@ -40,6 +40,17 @@ export {
   type DoctorReport,
 } from "./doctor/index.js";
 export {
+  AdaptiveProjectTemplateError,
+  planAdaptiveProjectTemplates,
+  type AdaptiveAndroidModuleConfiguration,
+  type AdaptiveAndroidProjectConfiguration,
+  type AdaptiveAutomationConfiguration,
+  type AdaptiveProjectTemplateErrorCode,
+  type AdaptiveProjectTemplateOptions,
+  type AdaptiveProjectTemplatePlan,
+  type AdaptiveTaskContractExample,
+} from "./installer/adaptive-templates.js";
+export {
   detectAndroidProject,
   type AndroidModuleDetection,
   type AndroidModuleType,

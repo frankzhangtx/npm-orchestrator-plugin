@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://example.local/cctest/scheduled-task-contract.schema.json",
+  "$id": "urn:frankzhang2026:opencode-android-orchestrator:task-contract:v1",
   "title": "Scheduled coding task contract",
   "type": "object",
   "additionalProperties": false,

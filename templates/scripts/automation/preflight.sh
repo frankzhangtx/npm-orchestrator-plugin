@@ -49,7 +49,7 @@ mode="$(automation_config_value '.mode')"
 [[ "$mode" == "orchestrated" ]] || fail_or_warn "automation mode is $mode, not orchestrated"
 
 if [[ "${AUTOMATION_TEST_MODE:-0}" != "1" ]]; then
-    [[ -n "${ANDROID_HOME:-}" ]] || fail_or_warn "ANDROID_HOME is not set; export ANDROID_HOME=/Users/zhanglong/Library/Android/sdk before running OpenCode"
+    [[ -n "${ANDROID_HOME:-}" ]] || fail_or_warn "ANDROID_HOME is not set; configure the Android SDK environment before running OpenCode"
     if [[ -n "${ANDROID_HOME:-}" ]]; then
         [[ -d "$ANDROID_HOME" ]] || fail_or_warn "ANDROID_HOME does not exist: $ANDROID_HOME"
     fi
@@ -121,15 +121,13 @@ fi
 if [[ "${AUTOMATION_TEST_MODE:-0}" == "1" ]]; then
     automation_info "test mode: OpenCode discovery checks skipped"
 else
-    discovery_dir="$(mktemp -d "${TMPDIR:-/tmp}/cctest-preflight.XXXXXX")"
+    discovery_dir="$(mktemp -d "${TMPDIR:-/tmp}/opencode-android-orchestrator-preflight.XXXXXX")"
     trap 'rm -rf "$discovery_dir"' EXIT
 
     if ! opencode debug config > "$discovery_dir/config.json" 2> "$discovery_dir/config.err"; then
         automation_die "OpenCode resolved config failed; see $discovery_dir/config.err"
     fi
-    scheduler_pin="$(jq -r '.plugins.scheduler' "$AUTOMATION_CONFIG")"
     superpowers_pin="$(jq -r '.plugins.superpowers' "$AUTOMATION_CONFIG")"
-    rg -F "$scheduler_pin" "$discovery_dir/config.json" >/dev/null || automation_die "resolved OpenCode config is missing $scheduler_pin"
     rg -F "$superpowers_pin" "$discovery_dir/config.json" >/dev/null || automation_die "resolved OpenCode config is missing pinned Superpowers"
 
     if ! opencode debug skill > "$discovery_dir/skills.txt" 2> "$discovery_dir/skills.err"; then
@@ -154,7 +152,7 @@ else
         (last_rule("*"; "*") == "deny") and
         (last_rule("edit"; "docs/plans/**") == "allow") and
         (last_rule("edit"; "automation/tasks/**") == "allow") and
-        (last_rule("edit"; "app/**") == "deny") and
+        (last_rule("edit"; "**/src/**") == "deny") and
         (last_rule("bash"; "./scripts/automation/prepare-contract-review.sh *") == "allow") and
         (last_rule("bash"; "./scripts/automation/approve-and-run.sh *") == "allow") and
         (last_rule("bash"; "./scripts/automation/resume-review.sh *") == "allow") and
@@ -171,7 +169,7 @@ else
         def last_rule($permission; $pattern):
             [.permission[] | select(.permission == $permission and .pattern == $pattern) | .action][-1];
         (last_rule("*"; "*") == "deny") and
-        (last_rule("edit"; "app/src/main/**") == "allow") and
+        (last_rule("edit"; "**/src/main/**") == "allow") and
         (last_rule("edit"; ".opencode/skills/**") == "deny") and
         (last_rule("schedule_job"; "*") == "deny") and
         (last_rule("task"; "*") == "deny") and

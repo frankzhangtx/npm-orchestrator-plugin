@@ -37,12 +37,12 @@ function createKotlinFixture() {
   writeFixtureFile(
     root,
     "app/build.gradle.kts",
-    "plugins { alias(libs.plugins.android.application) }\n",
+    'plugins { alias(libs.plugins.android.application) }\nandroid {\n    namespace = "dev.fixture.application"\n    defaultConfig { applicationId = "dev.fixture.application" }\n}\n',
   );
   writeFixtureFile(
     root,
     "feature/profile/build.gradle.kts",
-    'plugins { id("com.android.library") }\n',
+    'plugins { id("com.android.library") }\nandroid { namespace = "dev.fixture.profile" }\n',
   );
   writeFixtureFile(root, "gradlew", "#!/bin/sh\n", 0o755);
   writeFixtureFile(
@@ -60,6 +60,7 @@ test("detects a Kotlin DSL multi-module Android project from a module directory"
 
     assert.equal(detection.gitRoot, root);
     assert.equal(detection.projectRoot, root);
+    assert.equal(detection.projectName, "fixture");
     assert.equal(detection.dsl, "kotlin");
     assert.equal(detection.isGitRepository, true);
     assert.equal(detection.isAndroidProject, true);
@@ -72,6 +73,13 @@ test("detects a Kotlin DSL multi-module Android project from a module directory"
         { gradlePath: ":feature:profile", type: "library" },
       ],
     );
+    assert.equal(detection.modules[0].namespace, "dev.fixture.application");
+    assert.equal(
+      detection.modules[0].applicationId,
+      "dev.fixture.application",
+    );
+    assert.equal(detection.modules[1].namespace, "dev.fixture.profile");
+    assert.equal(detection.modules[1].applicationId, null);
   } finally {
     rmSync(root, { recursive: true, force: true });
   }
@@ -84,17 +92,17 @@ test("detects Groovy DSL modules with a custom projectDir mapping", () => {
     writeFixtureFile(
       root,
       "settings.gradle",
-      "include ':mobile', ':shared'\nproject(':mobile').projectDir = file('android-app')\n",
+      "rootProject.name = 'groovy-fixture'\ninclude ':mobile', ':shared'\nproject(':mobile').projectDir = file('android-app')\n",
     );
     writeFixtureFile(
       root,
       "android-app/build.gradle",
-      "apply plugin: 'com.android.application'\n",
+      "apply plugin: 'com.android.application'\nandroid {\n    namespace 'dev.fixture.mobile'\n    defaultConfig { applicationId 'dev.fixture.mobile' }\n}\n",
     );
     writeFixtureFile(
       root,
       "shared/build.gradle",
-      "plugins { id 'com.android.library' }\n",
+      "plugins { id 'com.android.library' }\nandroid { namespace 'dev.fixture.shared' }\n",
     );
     writeFixtureFile(root, "gradlew", "#!/bin/sh\n", 0o755);
     writeFixtureFile(
@@ -104,6 +112,7 @@ test("detects Groovy DSL modules with a custom projectDir mapping", () => {
     );
 
     const detection = detectAndroidProject(root);
+    assert.equal(detection.projectName, "groovy-fixture");
     assert.equal(detection.dsl, "groovy");
     assert.equal(detection.isAndroidProject, true);
     assert.equal(detection.modules[0].directory, join(root, "android-app"));
@@ -111,6 +120,8 @@ test("detects Groovy DSL modules with a custom projectDir mapping", () => {
       detection.modules.map((module) => module.type),
       ["application", "library"],
     );
+    assert.equal(detection.modules[0].namespace, "dev.fixture.mobile");
+    assert.equal(detection.modules[0].applicationId, "dev.fixture.mobile");
   } finally {
     rmSync(root, { recursive: true, force: true });
   }
@@ -128,7 +139,7 @@ test("detects an Android plugin applied directly to the Gradle root project", ()
     writeFixtureFile(
       root,
       "build.gradle.kts",
-      'plugins { id("com.android.application") }\n',
+      'plugins { id("com.android.application") }\nandroid { namespace = "dev.fixture.root" }\n',
     );
     writeFixtureFile(root, "gradlew", "#!/bin/sh\n", 0o755);
     writeFixtureFile(
@@ -139,6 +150,7 @@ test("detects an Android plugin applied directly to the Gradle root project", ()
 
     const detection = detectAndroidProject(root);
     assert.equal(detection.isAndroidProject, true);
+    assert.equal(detection.projectName, "root-app");
     assert.deepEqual(
       detection.modules.map(({ gradlePath, type }) => ({ gradlePath, type })),
       [{ gradlePath: ":", type: "application" }],

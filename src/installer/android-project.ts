@@ -4,6 +4,7 @@ import {
   statSync,
 } from "node:fs";
 import {
+  basename,
   dirname,
   join,
   resolve,
@@ -24,6 +25,8 @@ export interface AndroidModuleDetection {
   dsl: Exclude<GradleDsl, "mixed" | "unknown">;
   type: AndroidModuleType;
   pluginIds: readonly string[];
+  namespace: string | null;
+  applicationId: string | null;
 }
 
 export interface GradleWrapperDetection {
@@ -39,6 +42,7 @@ export interface AndroidProjectDetection {
   requestedDirectory: string;
   gitRoot: string | null;
   projectRoot: string | null;
+  projectName: string | null;
   settingsFile: string | null;
   dsl: GradleDsl;
   gradleWrapper: GradleWrapperDetection | null;
@@ -224,6 +228,15 @@ function parseIncludedModules(settingsSource: string): readonly string[] {
   return [...modules].sort();
 }
 
+function parseProjectName(settingsSource: string): string | null {
+  const source = stripComments(settingsSource);
+  const projectName =
+    /\brootProject\s*\.\s*name\s*=\s*["']([^"']+)["']/.exec(source)?.[1]?.trim();
+  return projectName === undefined || projectName.length === 0
+    ? null
+    : projectName;
+}
+
 function parseProjectDirectoryMappings(
   settingsSource: string,
   projectRoot: string,
@@ -339,6 +352,18 @@ function moduleType(pluginIds: readonly AndroidPluginId[]): AndroidModuleType {
     : androidPluginTypes[selectedPlugin];
 }
 
+function parseAndroidStringProperty(
+  buildSource: string,
+  propertyName: "namespace" | "applicationId",
+): string | null {
+  const source = stripComments(buildSource);
+  const pattern = new RegExp(
+    `\\b${propertyName}\\s*(?:=\\s*)?["']([^"']+)["']`,
+  );
+  const value = pattern.exec(source)?.[1]?.trim();
+  return value === undefined || value.length === 0 ? null : value;
+}
+
 function detectGradleWrapper(projectRoot: string): GradleWrapperDetection {
   const script = join(projectRoot, "gradlew");
   const properties = join(
@@ -396,6 +421,7 @@ export function detectAndroidProject(
       requestedDirectory,
       gitRoot: null,
       projectRoot: null,
+      projectName: null,
       settingsFile: null,
       dsl: "unknown",
       gradleWrapper: null,
@@ -425,6 +451,7 @@ export function detectAndroidProject(
       requestedDirectory,
       gitRoot,
       projectRoot: null,
+      projectName: null,
       settingsFile: null,
       dsl: "unknown",
       gradleWrapper: null,
@@ -444,6 +471,7 @@ export function detectAndroidProject(
       requestedDirectory,
       gitRoot,
       projectRoot,
+      projectName: null,
       settingsFile,
       dsl: settingsFile.endsWith(".kts") ? "kotlin" : "groovy",
       gradleWrapper: detectGradleWrapper(projectRoot),
@@ -514,6 +542,11 @@ export function detectAndroidProject(
       dsl: buildFile.endsWith(".kts") ? "kotlin" : "groovy",
       type: moduleType(pluginIds),
       pluginIds,
+      namespace: parseAndroidStringProperty(buildSource, "namespace"),
+      applicationId: parseAndroidStringProperty(
+        buildSource,
+        "applicationId",
+      ),
     });
   }
 
@@ -536,6 +569,7 @@ export function detectAndroidProject(
     requestedDirectory,
     gitRoot,
     projectRoot,
+    projectName: parseProjectName(settingsSource) ?? basename(projectRoot),
     settingsFile,
     dsl: detectDsl(settingsFile, modules),
     gradleWrapper,

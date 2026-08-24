@@ -77,6 +77,12 @@ automation_require_layout() {
 automation_validate_config() {
     automation_require_layout
     jq -e '
+        def repository_path:
+            type == "string" and
+            length > 0 and
+            (startswith("/") | not) and
+            (test("^[A-Za-z]:[/\\\\]") | not) and
+            (test("(^|/)\\.\\.(/|$)") | not);
         .schemaVersion == 3 and
         (.enabled | type == "boolean") and
         (.mode == "shadow" or .mode == "orchestrated") and
@@ -92,10 +98,29 @@ automation_validate_config() {
         (.approvalPhrases.contract | type == "string" and length >= 4) and
         (.approvalPhrases.acceptance | type == "string" and length >= 4) and
         (.approvalPhrases.abort | type == "string" and length >= 4) and
-        (.plugins.scheduler | type == "string" and length > 0) and
+        (.plugins | type == "object" and keys == ["superpowers"]) and
         (.plugins.superpowers | type == "string" and length > 0) and
         (.requiredSkills | type == "array" and length >= 6) and
-        (.protectedPaths | type == "array" and length > 0)
+        (.androidProject as $project |
+            ($project | type == "object") and
+            ($project.name | type == "string" and length > 0) and
+            ($project.gradleDsl == "kotlin" or $project.gradleDsl == "groovy" or $project.gradleDsl == "mixed") and
+            ($project.settingsFile | repository_path) and
+            ($project.primaryModule | type == "string" and test("^:(?:[A-Za-z0-9_.-]+(?::[A-Za-z0-9_.-]+)*)?$")) and
+            ($project.modules | type == "array" and length > 0 and all(.[];
+                (.gradlePath | type == "string" and test("^:(?:[A-Za-z0-9_.-]+(?::[A-Za-z0-9_.-]+)*)?$")) and
+                (.directory | repository_path) and
+                (.buildFile | repository_path) and
+                (.dsl == "kotlin" or .dsl == "groovy") and
+                (.type == "application" or .type == "library" or .type == "dynamic-feature" or .type == "test" or .type == "asset-pack") and
+                (.namespace == null or (.namespace | type == "string" and length > 0)) and
+                (.applicationId == null or (.applicationId | type == "string" and length > 0)))) and
+            any($project.modules[]; .gradlePath == $project.primaryModule) and
+            ($project.productionPaths | type == "array" and length > 0 and all(.[];
+                repository_path and test("(^|/)src/main/\\*\\*$"))) and
+            ($project.testPaths | type == "array" and length > 0 and all(.[];
+                repository_path and test("(^|/)src/(?:test|androidTest)/\\*\\*$")))) and
+        (.protectedPaths | type == "array" and length > 0 and all(.[]; repository_path))
     ' "$AUTOMATION_CONFIG" >/dev/null || automation_die "automation/config.json is invalid"
 }
 

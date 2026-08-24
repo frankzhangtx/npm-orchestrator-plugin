@@ -6,6 +6,18 @@ export interface InstallerRequest {
 }
 
 export {
+  AdaptiveProjectTemplateError,
+  planAdaptiveProjectTemplates,
+  type AdaptiveAndroidModuleConfiguration,
+  type AdaptiveAndroidProjectConfiguration,
+  type AdaptiveAutomationConfiguration,
+  type AdaptiveProjectTemplateErrorCode,
+  type AdaptiveProjectTemplateOptions,
+  type AdaptiveProjectTemplatePlan,
+  type AdaptiveTaskContractExample,
+} from "./adaptive-templates.js";
+
+export {
   detectAndroidProject,
   type AndroidModuleDetection,
   type AndroidModuleType,

@@ -10,19 +10,19 @@ const templatesRoot = fileURLToPath(new URL("../templates/", import.meta.url));
 const expectedBaselineHashes = new Map([
   [
     "automation/config.json",
-    "9416995a9d14dae024027e3d7a3af38cc42e30ab834e0cd88500a247d743d95f",
+    "af0edec723043c8664ea6960fcdf9aec0e05e32491cfe56a5cbd87ecd429fcb4",
   ],
   [
     "automation/config.schema.json",
-    "0e8d61abe192a6279b9edbe8f7b11c20a90fa3cd92a61c2268d205b08707d509",
+    "98a3acfe3a5a263dac779424abe5c65251c58d2777194b929876379640a422fc",
   ],
   [
     "automation/task-contract.schema.json",
-    "5df882808ba09209d056ebe57f8accd54f06314cd9783bee6c11f4ce0af0cdfa",
+    "52812feca6c7de0a87e731d9306e889f3af4eaee9c954a80fd166b3adcba161c",
   ],
   [
     "automation/tasks/TASK-TEMPLATE.json.example",
-    "779af3a69b53fe5c89a8fd6af26dc2b8f7c550e2714ad3d41154bb0eb7814341",
+    "4a160d51aad027b2500acd488e364cce291bfcaacaa870a1a6f93d21df3378da",
   ],
   [
     "docs/plans/README.md",
@@ -71,7 +71,7 @@ test("ships the complete non-historical infrastructure template inventory", () =
   assert.deepEqual(actualPaths, expectedPaths);
 });
 
-test("preserves audited V3 infrastructure resources and file modes", () => {
+test("locks the portable V3 infrastructure resources and file modes", () => {
   for (const [relativePath, expectedHash] of expectedBaselineHashes) {
     const absolutePath = join(templatesRoot, relativePath);
     assert.equal(sha256(relativePath), expectedHash, relativePath);
@@ -106,9 +106,12 @@ test("keeps configuration, schemas, and contract example structurally aligned", 
     "docs/plans/TASK-EXAMPLE-001.md",
   );
   assert.ok(contractExample.forbiddenPaths.includes("AGENTS.md"));
+  assert.ok(configSchema.required.includes("androidProject"));
+  assert.equal(Object.hasOwn(config, "androidProject"), false);
+  assert.deepEqual(configSchema.properties.plugins.required, ["superpowers"]);
 });
 
-test("tracks baseline-specific values that block init until adaptation", () => {
+test("keeps the render sources project-independent and Scheduler-free", () => {
   const config = parseJson("automation/config.json");
   const configSchema = parseJson("automation/config.schema.json");
   const contractSchema = parseJson("automation/task-contract.schema.json");
@@ -123,15 +126,28 @@ test("tracks baseline-specific values that block init until adaptation", () => {
     )
     .join("\n");
 
-  assert.equal(config.plugins.scheduler, "opencode-scheduler@1.3.0");
-  assert.match(configSchema.$id, /cctest/);
-  assert.match(contractSchema.$id, /cctest/);
-  assert.ok(
-    contractExample.allowedPaths.some((value) =>
-      value.includes("com/example/cctest"),
-    ),
+  assert.deepEqual(config.plugins, {
+    superpowers:
+      "superpowers@git+https://github.com/obra/superpowers.git#v6.2.0",
+  });
+  assert.equal(
+    configSchema.$id,
+    "urn:frankzhang2026:opencode-android-orchestrator:automation-config:v3",
   );
-  assert.doesNotMatch(combinedResources, /\/Users\//);
+  assert.equal(
+    contractSchema.$id,
+    "urn:frankzhang2026:opencode-android-orchestrator:task-contract:v1",
+  );
+  assert.deepEqual(contractExample.allowedPaths, [
+    "**/src/main/**",
+    "**/src/test/**",
+    "**/src/androidTest/**",
+  ]);
+  assert.deepEqual(contractExample.targetTests, ["*ReplaceWithFocusedTest"]);
+  assert.doesNotMatch(
+    combinedResources,
+    /\/Users\/|zhanglong|cctest|opencode-scheduler/i,
+  );
 });
 
 test("provides one portable and bounded AGENTS managed block", () => {

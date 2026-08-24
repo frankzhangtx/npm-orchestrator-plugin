@@ -40,11 +40,11 @@ const expectedHashes = new Map([
   ],
   [
     "scripts/automation/integration-scope-gate.sh",
-    "65098fb87d5a3ee523015c4f4e0b3a98fc4d12e46d969d809e761d14487e2c78",
+    "1ba0d1cf566ff1015ce3070296cc83202aa26f4c4a17c483c3cdc7e1f56b5b50",
   ],
   [
     "scripts/automation/lib.sh",
-    "81fc99f90930bf876559538d32d7026c5f07c4c040375f93d7a8ec7343131500",
+    "0f3e3184cb4871198d116dad48193f6f8c21dd299548665e0b1e9ecf9d43ea58",
   ],
   [
     "scripts/automation/orchestrate-task.sh",
@@ -52,7 +52,7 @@ const expectedHashes = new Map([
   ],
   [
     "scripts/automation/preflight.sh",
-    "0d4f83f4ffb3ece628cd22bdf34ba2ec6952ed7188826c5d106ae04c306f5ff6",
+    "2d89f888c709ef5e365c3038fe729ec0b320769357a6345981055aafe43ea949",
   ],
   [
     "scripts/automation/prepare-contract-review.sh",
@@ -80,7 +80,7 @@ const expectedHashes = new Map([
   ],
   [
     "scripts/automation/scope-gate.sh",
-    "0ef815779fd5378e7a91b310bd6d1910db6dd20027406ea97d655c455c0833f9",
+    "9dbebfa969bf19acc748b367dba8355e6e658c003651f4add95db1142ddf6ddd",
   ],
   [
     "scripts/automation/select-task.sh",
@@ -104,7 +104,7 @@ const expectedHashes = new Map([
   ],
   [
     "scripts/automation/tests/run-tests.sh",
-    "12c102d37c9e6ab5612a094e8c79c41d0e715373ddc125f1a95c0798413e0df2",
+    "1afc99abe485a2dc73b9486a4e6dfb1790c768611db2c91de5c454dbc5bc10be",
   ],
   [
     "scripts/automation/transition-state.sh",
@@ -170,6 +170,11 @@ test("all migrated automation files are valid Bash scripts", () => {
     assert.doesNotMatch(
       contents,
       /\b(?:launchctl|launchd|npm publish|git push)\b/,
+      path,
+    );
+    assert.doesNotMatch(
+      contents,
+      /\/Users\/|zhanglong|cctest|opencode-scheduler/i,
       path,
     );
   }

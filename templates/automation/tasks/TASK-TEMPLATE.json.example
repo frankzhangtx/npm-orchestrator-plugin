@@ -8,21 +8,27 @@
   "maxFixLoops": 1,
   "maxChangedFiles": 4,
   "allowedPaths": [
-    "app/src/main/java/com/example/cctest/**",
-    "app/src/test/java/com/example/cctest/**"
+    "**/src/main/**",
+    "**/src/test/**",
+    "**/src/androidTest/**"
   ],
   "forbiddenPaths": [
     ".opencode/**",
+    ".automation-plugin/**",
     "automation/**",
     "scripts/automation/**",
     "opencode.json",
+    "opencode.jsonc",
     "AGENTS.md",
     "gradle/**",
     "gradlew",
     "gradlew.bat",
+    "settings.gradle",
     "settings.gradle.kts",
+    "build.gradle",
     "build.gradle.kts",
-    "app/build.gradle.kts"
+    "**/build.gradle",
+    "**/build.gradle.kts"
   ],
   "allowedSuperpowers": [
     "test-driven-development",
@@ -39,7 +45,7 @@
     "Do not upgrade dependencies or Gradle configuration"
   ],
   "targetTests": [
-    "com.example.cctest.ReplaceWithFocusedTest"
+    "*ReplaceWithFocusedTest"
   ],
   "deviceTestsRequired": false,
   "testPolicy": "required",

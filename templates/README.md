@@ -1,8 +1,9 @@
 # Installation templates
 
-The project-local OpenCode agents, commands, and skills in `.opencode/` are
-byte-for-byte copies of the verified Android orchestration V3 baseline at
-source commit `829693652e3737ad94c7cc75214b09fb2b58715b`.
+The project-local OpenCode agents, commands, and skills in `.opencode/` derive
+from the verified Android orchestration V3 baseline at source commit
+`829693652e3737ad94c7cc75214b09fb2b58715b`. Project-dependent agent permissions
+are generalized to Android source sets and remain bounded by each task contract.
 
 Migrated template roots:
 
@@ -13,36 +14,36 @@ Migrated template roots:
 - `.opencode/skills`: the three `scheduled-quality-*` skills
 - `scripts/automation`: all 28 deterministic V3 Bash transactions and their
   test runner, preserved as executable files
-- `automation`: the V3 configuration, both JSON Schemas, and the task contract
-  example
+- `automation`: the portable V3 configuration render source, both JSON Schemas,
+  and the task contract example
 - `docs/plans/README.md`: the human-approved plan authoring contract
 - `AGENTS.md.fragment`: a bounded managed block for later non-destructive
   merging into an existing project `AGENTS.md`
 
-Still planned:
+`automation/config.json` is an input to the adaptive renderer, not a directly
+installable configuration. `planAdaptiveProjectTemplates` injects the required
+`androidProject` metadata, repository-relative build files, protected paths,
+all detected production/test source sets, and primary-module task paths. The
+renderer rejects ambiguous primary modules unless the caller selects one.
 
-- adapt the baseline configuration, schema identifiers, module paths, and test
-  filters to the detected Android project
-- remove the legacy Scheduler field while keeping Superpowers pinned
-- implement conflict-safe merging of the managed AGENTS block
+The legacy Scheduler field has been removed while Superpowers remains pinned.
+The scope gates consume generated source-set arrays, and the Shell test fixture
+uses a neutral custom module and package. No shipped template contains a local
+absolute path or project-specific package name.
+
+Still planned: conflict-safe merging of the managed AGENTS block as part of the
+write-capable installation lifecycle.
 
 Historical tasks, runtime evidence, backups, and Android product code are not
 included.
 
-`tests/template-migration.test.mjs` locks the migrated inventory, source
+`tests/template-migration.test.mjs` locks the migrated inventory, current
 SHA-256 values, file modes, and portability constraints.
 
 `tests/shell-template-migration.test.mjs` additionally locks the Shell file
-inventory, source SHA-256 values, `0755` modes, Bash syntax, and no-push/no-
-publish/no-launchd constraints. The scripts remain byte-identical in this
-stage, so `preflight.sh` still contains the original local Android SDK example
-and the test runner still uses its `cctest` fixture namespace. Both are tracked
-for parameterization in the configuration step that immediately follows this
-migration; `init` and release remain blocked until that work is complete.
+inventory, current SHA-256 values, `0755` modes, Bash syntax, portability, and
+no-push/no-publish/no-launchd constraints.
 
-`tests/resource-template-migration.test.mjs` locks the five byte-identical V3
+`tests/resource-template-migration.test.mjs` locks the five portable
 infrastructure resources, validates their structural alignment, and verifies
-that the AGENTS fragment has exactly one portable managed block. The baseline
-configuration still declares Scheduler, and the Schema identifiers and task
-example still contain `cctest`; these are explicit adaptation blockers rather
-than release-ready defaults.
+that the AGENTS fragment has exactly one portable managed block.
