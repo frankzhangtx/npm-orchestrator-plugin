@@ -1,0 +1,47 @@
+{
+  "schemaVersion": 1,
+  "id": "TASK-EXAMPLE-001",
+  "title": "Replace with one small, observable behavior change",
+  "designApproved": true,
+  "planPath": "docs/plans/TASK-EXAMPLE-001.md",
+  "ambiguityPolicy": "BLOCKED",
+  "maxFixLoops": 1,
+  "maxChangedFiles": 4,
+  "allowedPaths": [
+    "app/src/main/java/com/example/cctest/**",
+    "app/src/test/java/com/example/cctest/**"
+  ],
+  "forbiddenPaths": [
+    ".opencode/**",
+    "automation/**",
+    "scripts/automation/**",
+    "opencode.json",
+    "AGENTS.md",
+    "gradle/**",
+    "gradlew",
+    "gradlew.bat",
+    "settings.gradle.kts",
+    "build.gradle.kts",
+    "app/build.gradle.kts"
+  ],
+  "allowedSuperpowers": [
+    "test-driven-development",
+    "systematic-debugging",
+    "verification-before-completion"
+  ],
+  "acceptanceCriteria": [
+    "Replace with an observable input/output or UI behavior",
+    "A focused test demonstrates the behavior and is captured RED before implementation",
+    "Unit tests, debug build, and lint all pass"
+  ],
+  "nonGoals": [
+    "Do not refactor unrelated screens",
+    "Do not upgrade dependencies or Gradle configuration"
+  ],
+  "targetTests": [
+    "com.example.cctest.ReplaceWithFocusedTest"
+  ],
+  "deviceTestsRequired": false,
+  "testPolicy": "required",
+  "testPolicyReason": "Behavior changes require a focused regression test"
+}

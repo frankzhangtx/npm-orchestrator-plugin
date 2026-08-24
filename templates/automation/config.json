@@ -1,0 +1,46 @@
+{
+  "schemaVersion": 3,
+  "enabled": true,
+  "mode": "orchestrated",
+  "workspaceStrategy": "inPlaceExclusive",
+  "originalBranchDriftPolicy": "block",
+  "worktreeBase": "",
+  "maxFixLoops": 1,
+  "maxReviewCycles": 1,
+  "maxReviewerRestarts": 2,
+  "autoCleanupWorktrees": true,
+  "pushAfterAcceptance": false,
+  "approvalPhrases": {
+    "proposal": "批准方案，生成计划和任务合同。",
+    "contract": "合同已复核，批准自动执行到人工验收阶段。",
+    "acceptance": "验收通过，提交到原分支。",
+    "abort": "中止任务，封存修改并恢复原分支。"
+  },
+  "plugins": {
+    "scheduler": "opencode-scheduler@1.3.0",
+    "superpowers": "superpowers@git+https://github.com/obra/superpowers.git#v6.2.0"
+  },
+  "requiredSkills": [
+    "brainstorming",
+    "writing-plans",
+    "scheduled-quality-orchestrator",
+    "scheduled-quality-coder",
+    "scheduled-quality-reviewer",
+    "test-driven-development",
+    "systematic-debugging",
+    "verification-before-completion"
+  ],
+  "protectedPaths": [
+    ".opencode/",
+    "automation/",
+    "scripts/automation/",
+    "opencode.json",
+    "AGENTS.md",
+    "gradle/",
+    "gradlew",
+    "gradlew.bat",
+    "settings.gradle.kts",
+    "build.gradle.kts",
+    "app/build.gradle.kts"
+  ]
+}

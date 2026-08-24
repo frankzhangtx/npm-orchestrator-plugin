@@ -12,6 +12,8 @@
   byte-preserved installation templates.
 - Migrate all 28 audited V3 automation Shell files while preserving their
   executable modes and nested test-runner path.
+- Migrate the remaining V3 configuration, Schemas, task example, and plan guide,
+  and add a bounded AGENTS managed-block template.
 - Add a safe, idempotent OpenCode JSON/JSONC configuration merge planner that
   retains comments, formatting, existing fields, plugin order, and options.
 - Pin the installed Superpowers and orchestrator references, and reject

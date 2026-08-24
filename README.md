@@ -10,9 +10,11 @@ until the installer lifecycle and release gates are complete.
 
 The cross-version plugin entry, OpenCode version doctor, Android/Gradle project
 discovery, audited V3 Agent/Command/Skill templates, and all deterministic V3
-Shell transactions are implemented. Safe, comment-preserving OpenCode JSON/JSONC
-configuration merge planning is also implemented. The installer lifecycle and
-adaptive automation configuration have not been implemented yet.
+Shell transactions are implemented. The remaining V3 configuration, Schema,
+task-example, plan-guide, and managed AGENTS-fragment resources are packaged as
+audited templates. Safe, comment-preserving OpenCode JSON/JSONC configuration
+merge planning is also implemented. The installer lifecycle and adaptive
+automation configuration have not been implemented yet.
 
 Implemented checks include:
 
@@ -27,6 +29,8 @@ Implemented checks include:
 - byte-preserved templates for the three V3 agents, four commands, and three
   scheduled-quality skills
 - all 28 byte-preserved automation Bash files with their `0755` modes
+- the byte-preserved V3 automation configuration, both Schemas, contract
+  example, and plan guide, plus a bounded AGENTS managed block
 - read-only `opencode.json`/`opencode.jsonc` merge planning that preserves
   existing fields, comments, plugin order, and plugin options while adding
   fixed Superpowers and orchestrator references

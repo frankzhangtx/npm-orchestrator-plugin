@@ -1,0 +1,71 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.local/cctest/scheduled-task-contract.schema.json",
+  "title": "Scheduled coding task contract",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "id",
+    "title",
+    "designApproved",
+    "planPath",
+    "ambiguityPolicy",
+    "maxFixLoops",
+    "maxChangedFiles",
+    "allowedPaths",
+    "forbiddenPaths",
+    "allowedSuperpowers",
+    "acceptanceCriteria",
+    "nonGoals",
+    "targetTests",
+    "deviceTestsRequired",
+    "testPolicy"
+  ],
+  "properties": {
+    "schemaVersion": { "const": 1 },
+    "id": { "type": "string", "pattern": "^TASK-[A-Z0-9-]+$" },
+    "title": { "type": "string", "minLength": 1 },
+    "designApproved": { "const": true },
+    "planPath": { "type": "string", "minLength": 1 },
+    "ambiguityPolicy": { "const": "BLOCKED" },
+    "maxFixLoops": { "type": "integer", "minimum": 0, "maximum": 1 },
+    "maxChangedFiles": { "type": "integer", "minimum": 1, "maximum": 12 },
+    "allowedPaths": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "type": "string", "minLength": 1 }
+    },
+    "forbiddenPaths": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "type": "string", "minLength": 1 }
+    },
+    "allowedSuperpowers": {
+      "type": "array",
+      "const": [
+        "test-driven-development",
+        "systematic-debugging",
+        "verification-before-completion"
+      ]
+    },
+    "acceptanceCriteria": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "type": "string", "minLength": 1 }
+    },
+    "nonGoals": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "type": "string", "minLength": 1 }
+    },
+    "targetTests": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "type": "string", "minLength": 1 }
+    },
+    "deviceTestsRequired": { "type": "boolean" },
+    "testPolicy": { "enum": ["required", "not-required"] },
+    "testPolicyReason": { "type": "string" }
+  }
+}

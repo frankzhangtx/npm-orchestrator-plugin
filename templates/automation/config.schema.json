@@ -1,0 +1,71 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.local/cctest/automation-config.schema.json",
+  "title": "OpenCode task orchestration configuration",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "enabled",
+    "mode",
+    "workspaceStrategy",
+    "originalBranchDriftPolicy",
+    "worktreeBase",
+    "maxFixLoops",
+    "maxReviewCycles",
+    "maxReviewerRestarts",
+    "autoCleanupWorktrees",
+    "pushAfterAcceptance",
+    "approvalPhrases",
+    "plugins",
+    "requiredSkills",
+    "protectedPaths"
+  ],
+  "properties": {
+    "schemaVersion": { "const": 3 },
+    "enabled": { "type": "boolean" },
+    "mode": { "enum": ["shadow", "orchestrated"] },
+    "workspaceStrategy": {
+      "enum": ["inPlaceExclusive", "isolatedWorktree"]
+    },
+    "originalBranchDriftPolicy": { "const": "block" },
+    "worktreeBase": { "type": "string" },
+    "maxFixLoops": { "type": "integer", "minimum": 0, "maximum": 1 },
+    "maxReviewCycles": { "type": "integer", "minimum": 0, "maximum": 2 },
+    "maxReviewerRestarts": { "type": "integer", "minimum": 0, "maximum": 3 },
+    "autoCleanupWorktrees": { "type": "boolean" },
+    "pushAfterAcceptance": { "const": false },
+    "approvalPhrases": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["proposal", "contract", "acceptance", "abort"],
+      "properties": {
+        "proposal": { "type": "string", "minLength": 4 },
+        "contract": { "type": "string", "minLength": 4 },
+        "acceptance": { "type": "string", "minLength": 4 },
+        "abort": { "type": "string", "minLength": 4 }
+      }
+    },
+    "plugins": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["scheduler", "superpowers"],
+      "properties": {
+        "scheduler": { "type": "string", "minLength": 1 },
+        "superpowers": { "type": "string", "minLength": 1 }
+      }
+    },
+    "requiredSkills": {
+      "type": "array",
+      "minItems": 6,
+      "uniqueItems": true,
+      "items": { "type": "string", "minLength": 1 }
+    },
+    "protectedPaths": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": { "type": "string", "minLength": 1 }
+    }
+  }
+}
