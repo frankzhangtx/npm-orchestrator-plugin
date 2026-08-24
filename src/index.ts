@@ -1,6 +1,64 @@
-export { AndroidOrchestratorPlugin, default } from "./plugin/index.js";
+export {
+  AndroidOrchestratorPlugin,
+  ORCHESTRATOR_DIRECTORY_ENV,
+  ORCHESTRATOR_WORKTREE_ENV,
+  createCompatiblePlugin,
+  default,
+} from "./plugin/index.js";
+export {
+  COMMON_HOOK_NAMES,
+  COMMON_PLUGIN_INPUT_KEYS,
+  defineCompatibleHooks,
+  toCompatiblePluginInput,
+  type CommonHookName,
+  type CommonPluginInputKey,
+  type CompatibleHooks,
+  type CompatiblePlugin,
+  type CompatiblePluginInput,
+} from "./compatibility/hooks.js";
 export {
   CERTIFIED_OPENCODE_VERSIONS,
   MAXIMUM_OPENCODE_VERSION,
   MINIMUM_OPENCODE_VERSION,
+  checkOpenCodeVersion,
+  compareSemanticVersions,
+  parseOpenCodeVersion,
+  type OpenCodeVersionCheck,
+  type OpenCodeVersionSupport,
+  type ParsedSemanticVersion,
 } from "./compatibility/versions.js";
+export {
+  formatDoctorReport,
+  inspectOpenCode,
+  runCommand,
+  runDoctor,
+  type CommandResult,
+  type CommandRunner,
+  type DoctorCheck,
+  type DoctorCheckStatus,
+  type DoctorOptions,
+  type DoctorReport,
+} from "./doctor/index.js";
+export {
+  detectAndroidProject,
+  type AndroidModuleDetection,
+  type AndroidModuleType,
+  type AndroidProjectDetection,
+  type GradleDsl,
+  type GradleWrapperDetection,
+} from "./installer/android-project.js";
+export {
+  ORCHESTRATOR_PACKAGE_NAME,
+  ORCHESTRATOR_PACKAGE_VERSION,
+  ORCHESTRATOR_PLUGIN_REFERENCE,
+  REQUIRED_PLUGIN_REFERENCES,
+  SUPERPOWERS_PLUGIN_REFERENCE,
+  OpenCodeConfigMergeError,
+  mergeOpenCodeConfigText,
+  planOpenCodeConfigMerge,
+  pluginPackageIdentity,
+  type OpenCodeConfigMergeErrorCode,
+  type OpenCodeConfigMergeOptions,
+  type OpenCodeConfigMergePlan,
+  type OpenCodeConfigMergeResult,
+} from "./installer/opencode-config.js";

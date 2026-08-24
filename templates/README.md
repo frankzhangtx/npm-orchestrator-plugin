@@ -1,14 +1,34 @@
 # Installation templates
 
-This directory will contain the project-local OpenCode resources extracted
-from the verified Android orchestration V3 baseline.
+The project-local OpenCode agents, commands, and skills in `.opencode/` are
+byte-for-byte copies of the verified Android orchestration V3 baseline at
+source commit `829693652e3737ad94c7cc75214b09fb2b58715b`.
 
-Planned template roots:
+Migrated template roots:
 
-- `.opencode/agents`, `.opencode/commands`, and `.opencode/skills`
+- `.opencode/agents`: `scheduled-planner`, `scheduled-coder`, and
+  `scheduled-reviewer`
+- `.opencode/commands`: `change`, `acceptance`, `resume-review`, and
+  `abort-task`
+- `.opencode/skills`: the three `scheduled-quality-*` skills
+- `scripts/automation`: all 28 deterministic V3 Bash transactions and their
+  test runner, preserved as executable files
+
+Still planned:
+
 - `automation` configuration, schemas, and the task contract example
-- `scripts/automation` deterministic shell transactions
 - `docs/plans/README.md`
 
-Historical tasks, runtime evidence, backups, Android product code, and local
-absolute paths must never be included.
+Historical tasks, runtime evidence, backups, and Android product code are not
+included.
+
+`tests/template-migration.test.mjs` locks the migrated inventory, source
+SHA-256 values, file modes, and portability constraints.
+
+`tests/shell-template-migration.test.mjs` additionally locks the Shell file
+inventory, source SHA-256 values, `0755` modes, Bash syntax, and no-push/no-
+publish/no-launchd constraints. The scripts remain byte-identical in this
+stage, so `preflight.sh` still contains the original local Android SDK example
+and the test runner still uses its `cctest` fixture namespace. Both are tracked
+for parameterization in the configuration step that immediately follows this
+migration; `init` and release remain blocked until that work is complete.
