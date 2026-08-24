@@ -18,8 +18,10 @@ backups and a versioned SHA-256 manifest. Read-only conflict analysis and the
 installation-plan conflict gate are also implemented. The `init` command now
 installs and verifies the complete project-local resource set. The read-only
 `doctor` command now verifies the installed toolchain, manifest, resources,
-permissions, backups, and configuration. Version `0.2.0` is still local-only
-and has not passed the release gates.
+permissions, backups, and configuration. The `upgrade` command now replaces
+only unchanged managed resources, carries original pre-install backups
+forward, and restores the complete previous installation if verification
+fails. Version `0.2.0` is still local-only and has not passed the release gates.
 
 Implemented checks include:
 
@@ -67,13 +69,18 @@ Implemented checks include:
   inventory against packaged templates, separates content and permission
   drift, verifies original-file backups, and semantically checks the OpenCode,
   AGENTS, adaptive Android, and task-example configuration
+- a fail-closed `upgrade` transaction that rejects managed-file or original
+  backup drift, preserves the first installation's recovery state, records an
+  immediate pre-upgrade snapshot and history, restores obsolete user files,
+  reruns both post-write verifiers, and rolls the whole old version back on
+  failure
 
 Both planners deliberately avoid filesystem writes. The adaptive planner also
 blocks ambiguous primary modules, paths outside the Git root, and nested Gradle
 roots that the current root-relative transaction scripts cannot safely run.
-The transaction layer writes only installer control state and backups; it does
-not write planned managed files until `init` explicitly applies a conflict-free
-plan. Upgrade and uninstall remain separate development stages.
+The transaction layer writes only installer control state and backups until
+`init` or `upgrade` explicitly applies a conflict-free plan. Safe uninstall
+remains a separate development stage.
 
 ## Adaptive template planning
 
@@ -185,6 +192,42 @@ Human output and `--json` expose the same checks. Exit code `0` means there are
 no failures (`warn` is allowed), `1` means at least one check failed, and `2`
 means the CLI arguments were invalid. Doctor reports drift but never repairs or
 rewrites the project.
+
+## Upgrade
+
+```sh
+opencode-android-orchestrator upgrade /path/to/android-project
+opencode-android-orchestrator upgrade . --primary-module :mobile --json
+```
+
+`upgrade` accepts either the Git root or a directory below it. It first validates
+the installed manifest, every managed file, and every original-file backup. It
+refuses downgrades, user-modified managed resources, damaged backups, ambiguous
+Android modules, same-version resource rewrites, and an unfinished upgrade
+marker before creating recovery state.
+
+For an older healthy installation, the command:
+
+1. reconstructs merged AGENTS and OpenCode configuration from the original
+   pre-install files rather than layering new output over an older merge;
+2. saves the exact old manifest and immediate pre-upgrade file snapshots below
+   `.automation-plugin/upgrades/<upgrade-id>/`;
+3. carries the first installation's original backups into a new verified
+   backup set;
+4. writes only changed managed resources and restores or removes resources no
+   longer managed by the new version;
+5. runs the 38 automation tests and a mutation-free shadow run before swapping
+   the active manifest;
+6. records upgrade history below `.automation-plugin/history/`.
+
+A verification failure automatically restores the old manifest and all old
+managed resources. Recovery evidence remains available for inspection. Running
+the command again on the current, unchanged version is byte-idempotent: it
+rechecks prerequisites and post-install verification without creating upgrade
+history or recovery state.
+
+Version `0.2.0` has not been published. These commands document the intended
+post-release lifecycle and are not instructions to upgrade a live project yet.
 
 ## Development
 

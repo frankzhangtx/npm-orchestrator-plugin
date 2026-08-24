@@ -34,5 +34,13 @@ template authentication, managed content and executable modes, backups,
 OpenCode/AGENTS/adaptive configuration, fail-closed missing-manifest behavior,
 and JSON CLI failure exit codes. It also distinguishes file-content drift from
 permission drift and detects unsafe configuration or a self-consistent
-manifest rewrite. Only the later upgrade/uninstall flows and full real OpenCode
-compatibility matrix remain outside this suite.
+manifest rewrite.
+
+The upgrade suite covers read-only planning from a module directory, safe
+older-version replacement, reconstruction of AGENTS and OpenCode merges from
+their first-install originals, preserved recovery lineage, obsolete user-file
+restoration, same-version byte idempotence, managed-file and original-backup
+drift refusal, downgrade refusal, tampered-plan refusal, and complete
+old-version restoration after post-upgrade verification failure. Only safe
+uninstall and the full real OpenCode compatibility matrix remain outside this
+suite.

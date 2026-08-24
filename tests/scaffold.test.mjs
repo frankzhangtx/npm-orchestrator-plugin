@@ -78,3 +78,24 @@ test("CLI exposes init options and rejects an incomplete module selection", () =
   assert.equal(invalid.status, 2);
   assert.match(invalid.stderr, /Unexpected init argument/);
 });
+
+test("CLI exposes upgrade options and rejects an incomplete module selection", () => {
+  const help = spawnSync(
+    process.execPath,
+    ["dist/cli.js", "upgrade", "--help"],
+    { encoding: "utf8" },
+  );
+
+  assert.equal(help.status, 0);
+  assert.match(help.stdout, /upgrade \[directory\]/);
+  assert.match(help.stdout, /--primary-module <gradle-path>/);
+  assert.match(help.stdout, /--json/);
+
+  const invalid = spawnSync(
+    process.execPath,
+    ["dist/cli.js", "upgrade", "--primary-module"],
+    { encoding: "utf8" },
+  );
+  assert.equal(invalid.status, 2);
+  assert.match(invalid.stderr, /Unexpected upgrade argument/);
+});

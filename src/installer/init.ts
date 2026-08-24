@@ -110,6 +110,12 @@ export interface ProjectInitializationPlan {
   installation: InstallationPreparationPlan;
 }
 
+export interface ProjectResourceInputPlan {
+  targetDirectory: string;
+  adaptiveTemplates: AdaptiveProjectTemplatePlan;
+  inputs: readonly InstallationFileInput[];
+}
+
 export type InitVerificationStatus = "pass" | "fail";
 
 export interface InitVerificationCheck {
@@ -279,11 +285,8 @@ function installationPreparationOptions(
   return result;
 }
 
-function installationInputs(
-  targetDirectory: string,
+function baseInstallationInputs(
   adaptive: AdaptiveProjectTemplatePlan,
-  agentsMerge: AgentsConfigMergePlan,
-  openCodeConfigMerge: OpenCodeConfigMergePlan,
 ): readonly InstallationFileInput[] {
   const templatesDirectory = templateRoot();
   const copied = [
@@ -308,15 +311,40 @@ function installationInputs(
       strategy: "generate",
       content: adaptive.taskContractExampleContent,
     },
+  ];
+}
+
+export function planProjectResourceInputs(
+  directory: string,
+  options: AdaptiveProjectTemplateOptions = {},
+): ProjectResourceInputPlan {
+  const adaptiveTemplates = planAdaptiveProjectTemplates(directory, options);
+  return {
+    targetDirectory: adaptiveTemplates.projectRoot,
+    adaptiveTemplates,
+    inputs: baseInstallationInputs(adaptiveTemplates),
+  };
+}
+
+function mergedInstallationInputs(
+  resources: ProjectResourceInputPlan,
+  agentsMerge: AgentsConfigMergePlan,
+  openCodeConfigMerge: OpenCodeConfigMergePlan,
+): readonly InstallationFileInput[] {
+  return [
+    ...resources.inputs,
     {
-      path: repositoryRelativePath(targetDirectory, agentsMerge.agentsPath),
+      path: repositoryRelativePath(
+        resources.targetDirectory,
+        agentsMerge.agentsPath,
+      ),
       source: "generated/agents-managed-block-merge",
       strategy: "merge",
       content: agentsMerge.content,
     },
     {
       path: repositoryRelativePath(
-        targetDirectory,
+        resources.targetDirectory,
         openCodeConfigMerge.configPath,
       ),
       source: "generated/opencode-config-merge",
@@ -334,18 +362,14 @@ export function planProjectInitialization(
   if (options.primaryModule !== undefined) {
     adaptiveOptions.primaryModule = options.primaryModule;
   }
-  const adaptiveTemplates = planAdaptiveProjectTemplates(
-    directory,
-    adaptiveOptions,
-  );
-  const targetDirectory = adaptiveTemplates.projectRoot;
+  const resources = planProjectResourceInputs(directory, adaptiveOptions);
+  const { adaptiveTemplates, targetDirectory } = resources;
   const agentsMerge = planAgentsConfigMerge(targetDirectory);
   const openCodeConfigMerge = planOpenCodeConfigMerge(targetDirectory);
   const installation = planInstallationPreparation(
     targetDirectory,
-    installationInputs(
-      targetDirectory,
-      adaptiveTemplates,
+    mergedInstallationInputs(
+      resources,
       agentsMerge,
       openCodeConfigMerge,
     ),

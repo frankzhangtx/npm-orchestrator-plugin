@@ -44,6 +44,12 @@
   authentication, separate managed-content and permission checks, backup
   integrity, semantic configuration checks, JSON output, and failure exit
   codes.
+- Implement `upgrade` with semantic-version and same-version guards, immutable
+  managed-file and original-backup checks, reconstruction of merged files from
+  first-install originals, immediate recovery snapshots, preserved recovery
+  lineage, obsolete-resource restoration, transactional manifest replacement,
+  upgrade history, idempotence, and automatic whole-version rollback when the
+  automation or shadow verification fails.
 
 ## 0.1.0 - 2026-08-20
 

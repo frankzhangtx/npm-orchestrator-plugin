@@ -47,6 +47,7 @@ export {
   AGENTS_MANAGED_BLOCK_BEGIN,
   AGENTS_MANAGED_BLOCK_END,
   AgentsConfigMergeError,
+  mergeAgentsConfigText,
   planAgentsConfigMerge,
   type AgentsConfigMergeErrorCode,
   type AgentsConfigMergePlan,
@@ -74,6 +75,7 @@ export {
   ProjectInitializationError,
   formatProjectInitializationResult,
   planProjectInitialization,
+  planProjectResourceInputs,
   runInitProcess,
   runProjectInitialization,
   verifyInitializedProject,
@@ -86,6 +88,7 @@ export {
   type ProjectInitializationOptions,
   type ProjectInitializationPlan,
   type ProjectInitializationResult,
+  type ProjectResourceInputPlan,
 } from "./installer/init.js";
 export {
   INSTALLATION_BACKUPS_DIRECTORY,
@@ -124,6 +127,23 @@ export {
   type PreparedInstallation,
   type PreviousInstallationFile,
 } from "./installer/install-manifest.js";
+export {
+  UPGRADE_MARKER_RELATIVE_PATH,
+  UPGRADE_RECOVERY_DIRECTORY,
+  ProjectUpgradeError,
+  applyProjectUpgrade,
+  formatProjectUpgradeResult,
+  planProjectUpgrade,
+  runProjectUpgrade,
+  type AppliedProjectUpgrade,
+  type PlannedUpgradeFile,
+  type PlannedUpgradeRemoval,
+  type ProjectUpgradeErrorCode,
+  type ProjectUpgradeOptions,
+  type ProjectUpgradePlan,
+  type ProjectUpgradeResult,
+  type UpgradeFileSnapshot,
+} from "./installer/upgrade.js";
 export {
   ORCHESTRATOR_PACKAGE_NAME,
   ORCHESTRATOR_PACKAGE_VERSION,

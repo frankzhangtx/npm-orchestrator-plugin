@@ -165,6 +165,10 @@ function mergeAgentsContent(original: string, fragment: string): string {
   return original;
 }
 
+export function mergeAgentsConfigText(source: string): string {
+  return mergeAgentsContent(source, packagedFragment());
+}
+
 export function planAgentsConfigMerge(
   directory: string,
 ): AgentsConfigMergePlan {
@@ -220,7 +224,7 @@ export function planAgentsConfigMerge(
     }
   }
 
-  const content = mergeAgentsContent(originalContent, packagedFragment());
+  const content = mergeAgentsConfigText(originalContent);
   return {
     targetDirectory,
     agentsPath,
