@@ -28,8 +28,12 @@ export {
   type ParsedSemanticVersion,
 } from "./compatibility/versions.js";
 export {
+  EXPECTED_MANAGED_FILE_COUNT,
   formatDoctorReport,
+  inspectAndroidSdk,
   inspectOpenCode,
+  inspectRequiredCommands,
+  installationDoctorChecks,
   runCommand,
   runDoctor,
   type CommandResult,

@@ -39,6 +39,11 @@
 - Add pre-write OpenCode, Android, Gradle Wrapper, toolchain, Java, and SDK
   gates, then require the 38 automation tests and a mutation-free shadow run
   before completing the manifest; verification failures roll back originals.
+- Complete the read-only installed-state `doctor` with command and SDK
+  discovery, exact manifest/package inventory validation, packaged-template
+  authentication, separate managed-content and permission checks, backup
+  integrity, semantic configuration checks, JSON output, and failure exit
+  codes.
 
 ## 0.1.0 - 2026-08-20
 

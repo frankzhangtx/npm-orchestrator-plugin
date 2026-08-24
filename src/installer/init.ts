@@ -11,14 +11,12 @@ import {
   resolve,
   sep,
 } from "node:path";
-import process from "node:process";
 import { fileURLToPath } from "node:url";
 
 import {
   formatDoctorReport,
   runDoctor,
   type CommandResult,
-  type DoctorCheck,
   type DoctorReport,
 } from "../doctor/index.js";
 import {
@@ -447,6 +445,10 @@ function doctorForInitialization(
   runner: InitProcessRunner,
 ): DoctorReport {
   const baseReport = runDoctor({
+    ...(options.androidSdkDirectory === undefined
+      ? {}
+      : { androidSdkDirectory: options.androidSdkDirectory }),
+    checkDependencies: true,
     targetDirectory: directory,
     ...(options.opencodeExecutable === undefined
       ? {}
@@ -454,84 +456,7 @@ function doctorForInitialization(
     runCommand: (executable, args) =>
       runner(executable, args, { cwd: resolve(directory), timeoutMs: 10_000 }),
   });
-  const targetDirectory = resolve(directory);
-  const executablePrerequisites: readonly [
-    id: string,
-    label: string,
-    executable: string,
-    args: readonly string[],
-  ][] = [
-    ["git-command", "Git command", "git", ["--version"]],
-    ["jq-command", "jq command", "jq", ["--version"]],
-    ["rg-command", "ripgrep command", "rg", ["--version"]],
-    ["shasum-command", "shasum command", "shasum", ["--version"]],
-    ["java-command", "Java command", "java", ["-version"]],
-  ];
-  const executableChecks = executablePrerequisites.map<DoctorCheck>(
-    ([id, label, executable, args]) => {
-      const result = runner(executable, args, {
-        cwd: targetDirectory,
-        timeoutMs: 10_000,
-      });
-      const passed = result.error === null && result.status === 0;
-      const versionLine = `${result.stdout}\n${result.stderr}`
-        .split(/\r?\n/)
-        .map((line) => line.trim())
-        .find((line) => line.length > 0);
-      return {
-        id,
-        label,
-        status: passed ? "pass" : "fail",
-        summary: passed
-          ? `${executable} is available.`
-          : `${executable} could not be executed successfully.`,
-        details: passed
-          ? versionLine === undefined
-            ? []
-            : [versionLine]
-          : commandDetails(result),
-      };
-    },
-  );
-  const sdkCandidate =
-    options.androidSdkDirectory ??
-    process.env.ANDROID_HOME ??
-    process.env.ANDROID_SDK_ROOT;
-  let sdkCheck: DoctorCheck;
-  if (sdkCandidate === undefined || sdkCandidate.trim().length === 0) {
-    sdkCheck = {
-      id: "android-sdk",
-      label: "Android SDK",
-      status: "fail",
-      summary: "ANDROID_HOME or ANDROID_SDK_ROOT is required.",
-      details: [],
-    };
-  } else {
-    const sdkDirectory = resolve(sdkCandidate.trim());
-    let available = false;
-    try {
-      const stats = lstatSync(sdkDirectory);
-      available = !stats.isSymbolicLink() && stats.isDirectory();
-    } catch {
-      available = false;
-    }
-    sdkCheck = {
-      id: "android-sdk",
-      label: "Android SDK",
-      status: available ? "pass" : "fail",
-      summary: available
-        ? `Found ${sdkDirectory}.`
-        : `Android SDK directory is unavailable: ${sdkDirectory}`,
-      details: [],
-    };
-  }
-  const report: DoctorReport = {
-    ok:
-      baseReport.ok &&
-      executableChecks.every((check) => check.status !== "fail") &&
-      sdkCheck.status !== "fail",
-    checks: [...baseReport.checks, ...executableChecks, sdkCheck],
-  };
+  const report: DoctorReport = baseReport;
   if (!report.ok) {
     throw new ProjectInitializationError(
       "DOCTOR_FAILED",

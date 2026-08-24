@@ -155,6 +155,8 @@ if (command === undefined || command === "--help" || command === "-h") {
       process.exitCode = 2;
     } else {
       const report = runDoctor({
+        checkDependencies: true,
+        checkInstallation: true,
         targetDirectory: targetDirectories[0] ?? process.cwd(),
       });
       if (commandArguments.includes("--json")) {

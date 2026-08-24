@@ -27,5 +27,12 @@ and Groovy Android fixtures. It covers dynamic rendering, JSONC and AGENTS
 merges, executable modes, write-before-complete verification, dependency
 failure before control-state creation, repeated-init idempotence, conflict
 abort, and automatic restoration after post-install verification failure.
-Only the later upgrade/uninstall flows and full real OpenCode compatibility
-matrix remain outside this suite.
+
+The installed-doctor suite verifies a healthy installation from a module
+directory, command and SDK discovery, the exact versioned inventory, packaged
+template authentication, managed content and executable modes, backups,
+OpenCode/AGENTS/adaptive configuration, fail-closed missing-manifest behavior,
+and JSON CLI failure exit codes. It also distinguishes file-content drift from
+permission drift and detects unsafe configuration or a self-consistent
+manifest rewrite. Only the later upgrade/uninstall flows and full real OpenCode
+compatibility matrix remain outside this suite.

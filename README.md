@@ -16,8 +16,10 @@ Safe, comment-preserving OpenCode JSON/JSONC merge planning is also implemented.
 The installation transaction foundation now creates verified pre-install
 backups and a versioned SHA-256 manifest. Read-only conflict analysis and the
 installation-plan conflict gate are also implemented. The `init` command now
-installs and verifies the complete project-local resource set. Version `0.2.0`
-is still local-only and has not passed the release gates.
+installs and verifies the complete project-local resource set. The read-only
+`doctor` command now verifies the installed toolchain, manifest, resources,
+permissions, backups, and configuration. Version `0.2.0` is still local-only
+and has not passed the release gates.
 
 Implemented checks include:
 
@@ -61,14 +63,17 @@ Implemented checks include:
 - write-before-complete verification using the 38-case automation suite and a
   read-only shadow run; any failure restores original files before reporting
   the error
+- an installation-aware, read-only doctor that authenticates the 45-file
+  inventory against packaged templates, separates content and permission
+  drift, verifies original-file backups, and semantically checks the OpenCode,
+  AGENTS, adaptive Android, and task-example configuration
 
 Both planners deliberately avoid filesystem writes. The adaptive planner also
 blocks ambiguous primary modules, paths outside the Git root, and nested Gradle
 roots that the current root-relative transaction scripts cannot safely run.
 The transaction layer writes only installer control state and backups; it does
 not write planned managed files until `init` explicitly applies a conflict-free
-plan. Upgrade, uninstall, and installation-aware doctor checks remain separate
-development stages.
+plan. Upgrade and uninstall remain separate development stages.
 
 ## Adaptive template planning
 
@@ -159,7 +164,27 @@ opencode-android-orchestrator doctor /path/to/android-project --json
 ```
 
 The command exits unsuccessfully when OpenCode is missing or incompatible,
-the target is not a Git Android project, or the Gradle Wrapper is incomplete.
+the target is not a Git Android project, the Gradle Wrapper or a required
+command is unavailable, the SDK cannot be resolved, or any installed state is
+unhealthy. SDK lookup uses an explicit API option, `ANDROID_HOME`,
+`ANDROID_SDK_ROOT`, then `local.properties` `sdk.dir`; an existing SDK root
+without detectable `platforms` or `build-tools` is reported as a warning.
+
+Installation checks are deliberately read-only and cover:
+
+- manifest schema, installed state, fixed package version, `0600` mode, exact
+  45-file inventory, sources, strategies, and packaged-template hashes;
+- each managed file's SHA-256, size, and mode, including all 28 executable
+  automation scripts;
+- every original-file backup required for future recovery;
+- pinned OpenCode and Superpowers references, the exact bounded AGENTS block,
+  and adaptive automation/task configuration against the currently detected
+  Android modules.
+
+Human output and `--json` expose the same checks. Exit code `0` means there are
+no failures (`warn` is allowed), `1` means at least one check failed, and `2`
+means the CLI arguments were invalid. Doctor reports drift but never repairs or
+rewrites the project.
 
 ## Development
 
