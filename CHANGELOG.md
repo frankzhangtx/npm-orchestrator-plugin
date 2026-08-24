@@ -26,6 +26,10 @@
   Android module directories, including custom `projectDir` mappings.
 - Remove the legacy Scheduler dependency, project-specific identifiers, and
   local absolute paths from all shipped templates.
+- Add the installation transaction foundation with verified pre-install
+  backups, a portable versioned manifest Schema, per-file SHA-256/size/mode and
+  recovery metadata, fail-closed plan validation, integrity reporting,
+  installed-state completion, and guarded prepared-state rollback.
 
 ## 0.1.0 - 2026-08-20
 

@@ -13,7 +13,9 @@ discovery, audited V3 resources, and all deterministic V3 Shell transactions
 are implemented. Read-only planning now renders project-relative automation
 configuration and a focused task example from the detected Android modules.
 Safe, comment-preserving OpenCode JSON/JSONC merge planning is also implemented.
-The write-capable installer lifecycle has not been implemented yet.
+The installation transaction foundation now creates verified pre-install
+backups and a versioned SHA-256 manifest. It does not yet install the managed
+resources or expose `init`.
 
 Implemented checks include:
 
@@ -42,12 +44,19 @@ Implemented checks include:
   fixed Superpowers and orchestrator references
 - conflict guards for malformed or ambiguous configuration, duplicate plugin
   packages, different managed-plugin references, and symbolic links
+- a fail-closed installation preparation transaction that records package
+  version, source, strategy, desired SHA-256/size/mode, and original-file
+  backup metadata in `.automation-plugin/manifest.json`
+- backup-before-manifest publication, stale/tampered plan rejection, backup and
+  installed-file integrity reporting, installed-state completion, and guarded
+  rollback of a prepared transaction
 
 Both planners deliberately avoid filesystem writes. The adaptive planner also
 blocks ambiguous primary modules, paths outside the Git root, and nested Gradle
 roots that the current root-relative transaction scripts cannot safely run.
-Backup, manifest, conflict-safe file installation, and rollback support are
-added in the following installer stages before `init` can apply either plan.
+The transaction layer writes only installer control state and backups; it does
+not write planned managed files. Conflict policy and atomic file installation
+remain the next installer stage before `init` can apply either plan.
 
 ## Adaptive template planning
 
@@ -66,6 +75,19 @@ console.log(plan.taskContractExampleContent);
 
 The returned JSON contains repository-relative paths only. This API plans
 content in memory; it does not create or modify target-project files.
+
+## Installation preparation transaction
+
+`planInstallationPreparation` snapshots every managed path in memory.
+`prepareInstallationBackup` then verifies that the plan is unchanged, writes
+original files below `.automation-plugin/backups/<installation-id>/`, verifies
+their hashes and modes, and only then publishes a `prepared` manifest. A caller
+may mark it `installed` only after every desired file matches the manifest.
+`rollbackPreparedInstallation` restores originals and removes newly created
+files only when their hashes still match a safe prepared state.
+
+This API is the transaction foundation for the future `init` command. Callers
+must not treat preparation as resource installation.
 
 ## Planned usage
 

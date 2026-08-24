@@ -15,5 +15,11 @@ source, Schemas, task example, plan guide, and bounded AGENTS managed block. The
 38-case Shell transaction suite runs against a non-default module path and
 verifies dynamic production/test scope classification.
 
-Installer lifecycle and full two-version OpenCode integration tests will be
-added with the remaining implementation stages.
+The installation transaction suite covers read-only SHA-256 planning,
+backup-before-manifest ordering, stale and tampered plans, unsafe and symbolic
+paths, backup integrity, installed-state completion, partial-install rollback,
+user-modification guards, and the portable manifest Schema.
+
+Managed-file conflict/application tests, the remaining lifecycle commands, and
+full two-version OpenCode integration tests will be added with the remaining
+implementation stages.
