@@ -33,6 +33,12 @@
 - Add read-only, structured managed-file conflict reporting and make
   installation planning reject differing `copy`/`generate` content and all
   requested changes to existing file modes before writing control state.
+- Implement `init` with the complete 45-file project resource plan, adaptive
+  Kotlin/Groovy output, lossless OpenCode JSON/JSONC and bounded AGENTS merges,
+  executable-mode preservation, and unchanged-installation idempotence.
+- Add pre-write OpenCode, Android, Gradle Wrapper, toolchain, Java, and SDK
+  gates, then require the 38 automation tests and a mutation-free shadow run
+  before completing the manifest; verification failures roll back originals.
 
 ## 0.1.0 - 2026-08-20
 

@@ -40,6 +40,14 @@ export {
   type DoctorReport,
 } from "./doctor/index.js";
 export {
+  AGENTS_MANAGED_BLOCK_BEGIN,
+  AGENTS_MANAGED_BLOCK_END,
+  AgentsConfigMergeError,
+  planAgentsConfigMerge,
+  type AgentsConfigMergeErrorCode,
+  type AgentsConfigMergePlan,
+} from "./installer/agents-config.js";
+export {
   AdaptiveProjectTemplateError,
   planAdaptiveProjectTemplates,
   type AdaptiveAndroidModuleConfiguration,
@@ -59,12 +67,30 @@ export {
   type GradleWrapperDetection,
 } from "./installer/android-project.js";
 export {
+  ProjectInitializationError,
+  formatProjectInitializationResult,
+  planProjectInitialization,
+  runInitProcess,
+  runProjectInitialization,
+  verifyInitializedProject,
+  type InitProcessOptions,
+  type InitProcessRunner,
+  type InitVerificationCheck,
+  type InitVerificationReport,
+  type InitVerificationStatus,
+  type ProjectInitializationErrorCode,
+  type ProjectInitializationOptions,
+  type ProjectInitializationPlan,
+  type ProjectInitializationResult,
+} from "./installer/init.js";
+export {
   INSTALLATION_BACKUPS_DIRECTORY,
   INSTALLATION_CONTROL_DIRECTORY,
   INSTALLATION_HISTORY_DIRECTORY,
   INSTALLATION_MANIFEST_RELATIVE_PATH,
   INSTALLATION_MANIFEST_SCHEMA_VERSION,
   InstallationManifestError,
+  applyInstallationPlan,
   completeInstallationManifest,
   detectInstallationConflicts,
   planInstallationPreparation,
@@ -72,6 +98,8 @@ export {
   readInstallationManifest,
   rollbackPreparedInstallation,
   verifyInstallationIntegrity,
+  type AppliedInstallation,
+  type InstallationApplyOptions,
   type InstallationCompletionOptions,
   type InstallationConflictKind,
   type InstallationConflictReport,

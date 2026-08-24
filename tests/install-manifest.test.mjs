@@ -21,6 +21,7 @@ import {
   ORCHESTRATOR_PACKAGE_NAME,
   ORCHESTRATOR_PACKAGE_VERSION,
   InstallationManifestError,
+  applyInstallationPlan,
   completeInstallationManifest,
   detectInstallationConflicts,
   planInstallationPreparation,
@@ -493,6 +494,83 @@ test("marks a manifest installed only after every file and backup verifies", () 
     assert.ok(report.checks.every((check) => check.installed === "match"));
     assertManifestError("MANIFEST_STATE", () =>
       completeInstallationManifest(directory, { installedAt }),
+    );
+  });
+});
+
+test("applies managed files and completes the manifest after verification", () => {
+  withTemporaryDirectory("orchestrator-manifest-apply-", (directory) => {
+    writeFixtureFile(directory, "opencode.json", "before\n", 0o600);
+    const plan = fixedPlan(directory);
+    let verificationCount = 0;
+
+    const applied = applyInstallationPlan(plan, {
+      installedAt,
+      verify: () => {
+        verificationCount += 1;
+        assert.equal(
+          readInstallationManifest(directory).installation.state,
+          "prepared",
+        );
+        assert.equal(
+          readFileSync(join(directory, "opencode.json"), "utf8"),
+          inputs()[1].content,
+        );
+      },
+    });
+
+    assert.equal(verificationCount, 1);
+    assert.equal(applied.manifest.installation.state, "installed");
+    assert.equal(applied.writtenFileCount, 2);
+    assert.equal(applied.reusedFileCount, 0);
+    assert.equal(
+      lstatSync(join(directory, "scripts/automation/preflight.sh")).mode & 0o777,
+      0o755,
+    );
+    assert.equal(verifyInstallationIntegrity(directory).ok, true);
+  });
+});
+
+test("automatically rolls managed files back when verification fails", () => {
+  withTemporaryDirectory("orchestrator-manifest-apply-rollback-", (directory) => {
+    const original = "before\n";
+    writeFixtureFile(directory, "opencode.json", original, 0o600);
+    const plan = fixedPlan(directory);
+    const verificationFailure = new Error("verification fixture failed");
+
+    assert.throws(
+      () =>
+        applyInstallationPlan(plan, {
+          verify: () => {
+            throw verificationFailure;
+          },
+        }),
+      (error) => error === verificationFailure,
+    );
+
+    assert.equal(readFileSync(join(directory, "opencode.json"), "utf8"), original);
+    assert.equal(existsSync(join(directory, "scripts")), false);
+    assert.equal(
+      existsSync(join(directory, INSTALLATION_MANIFEST_RELATIVE_PATH)),
+      false,
+    );
+    assert.equal(
+      existsSync(
+        join(
+          directory,
+          ".automation-plugin/history/install-test-001.rolled-back.json",
+        ),
+      ),
+      true,
+    );
+    assert.equal(
+      existsSync(
+        join(
+          directory,
+          ".automation-plugin/backups/install-test-001/opencode.json",
+        ),
+      ),
+      true,
     );
   });
 });

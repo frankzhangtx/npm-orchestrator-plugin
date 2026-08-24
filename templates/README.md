@@ -17,7 +17,7 @@ Migrated template roots:
 - `automation`: the portable V3 configuration render source, both JSON Schemas,
   and the task contract example
 - `docs/plans/README.md`: the human-approved plan authoring contract
-- `AGENTS.md.fragment`: a bounded managed block for later non-destructive
+- `AGENTS.md.fragment`: a bounded managed block for non-destructive
   merging into an existing project `AGENTS.md`
 - `installation-manifest.schema.json`: the portable JSON Schema for installer
   control manifests stored at `.automation-plugin/manifest.json`
@@ -33,8 +33,10 @@ The scope gates consume generated source-set arrays, and the Shell test fixture
 uses a neutral custom module and package. No shipped template contains a local
 absolute path or project-specific package name.
 
-Still planned: conflict-safe merging of the managed AGENTS block as part of the
-write-capable installation lifecycle.
+`planAgentsConfigMerge` appends this block without replacing existing project
+instructions, preserves LF/CRLF style, is byte-idempotent, and rejects partial,
+duplicate, or modified managed markers. `init` applies the result through the
+same backup and manifest transaction as every other managed file.
 
 Historical tasks, runtime evidence, backups, and Android product code are not
 included.

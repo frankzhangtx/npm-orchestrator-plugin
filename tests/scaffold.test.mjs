@@ -57,3 +57,24 @@ test("CLI exposes doctor-specific help", () => {
   assert.equal(result.status, 0);
   assert.match(result.stdout, /doctor \[directory\] \[--json\]/);
 });
+
+test("CLI exposes init options and rejects an incomplete module selection", () => {
+  const help = spawnSync(
+    process.execPath,
+    ["dist/cli.js", "init", "--help"],
+    { encoding: "utf8" },
+  );
+
+  assert.equal(help.status, 0);
+  assert.match(help.stdout, /init \[directory\]/);
+  assert.match(help.stdout, /--primary-module <gradle-path>/);
+  assert.match(help.stdout, /--json/);
+
+  const invalid = spawnSync(
+    process.execPath,
+    ["dist/cli.js", "init", "--primary-module"],
+    { encoding: "utf8" },
+  );
+  assert.equal(invalid.status, 2);
+  assert.match(invalid.stderr, /Unexpected init argument/);
+});

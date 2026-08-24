@@ -52,6 +52,8 @@ export type InstallationManifestErrorCode =
   | "FILE_NOT_REGULAR"
   | "FILE_SYMLINK"
   | "INSTALLATION_INCOMPLETE"
+  | "INSTALLATION_ROLLBACK_FAILED"
+  | "INSTALLATION_WRITE_FAILED"
   | "INVALID_FILE_PATH"
   | "INVALID_INSTALLATION_ID"
   | "INVALID_TIMESTAMP"
@@ -172,6 +174,18 @@ export interface PreparedInstallation {
   manifestSha256: string;
   backedUpFileCount: number;
   manifest: InstallationManifest;
+}
+
+export interface InstallationApplyOptions {
+  installedAt?: string;
+  verify?: () => void;
+}
+
+export interface AppliedInstallation {
+  prepared: PreparedInstallation;
+  manifest: InstallationManifest;
+  writtenFileCount: number;
+  reusedFileCount: number;
 }
 
 export type InstallationIntegrityStatus =
@@ -652,7 +666,11 @@ function assertPathMissing(path: string, code: InstallationManifestErrorCode): v
   }
 }
 
-function publishNewFile(path: string, content: string, mode: number): void {
+function publishNewFile(
+  path: string,
+  content: string | Uint8Array,
+  mode: number,
+): void {
   const temporaryPath = `${path}.${process.pid}.${randomUUID()}.tmp`;
   let published = false;
   try {
@@ -702,6 +720,61 @@ function safeRemoveDirectory(path: string): void {
     ) {
       throw error;
     }
+  }
+}
+
+function createManagedParentDirectories(
+  targetDirectory: string,
+  relativePath: string,
+  createdDirectories: string[],
+): void {
+  const segments = relativePath.split("/").slice(0, -1);
+  let currentPath = targetDirectory;
+  for (const segment of segments) {
+    currentPath = join(currentPath, segment);
+    try {
+      const stats = lstatSync(currentPath);
+      if (stats.isSymbolicLink()) {
+        throw new InstallationManifestError(
+          "FILE_SYMLINK",
+          `Installation path has a symbolic-link ancestor: ${currentPath}`,
+        );
+      }
+      if (!stats.isDirectory()) {
+        throw new InstallationManifestError(
+          "FILE_NOT_REGULAR",
+          `Installation path parent is not a directory: ${currentPath}`,
+        );
+      }
+    } catch (error) {
+      if (error instanceof InstallationManifestError) {
+        throw error;
+      }
+      if (filesystemErrorCode(error) !== "ENOENT") {
+        throw error;
+      }
+      try {
+        mkdirSync(currentPath, { mode: 0o755 });
+        createdDirectories.push(currentPath);
+      } catch (mkdirError) {
+        if (filesystemErrorCode(mkdirError) !== "EEXIST") {
+          throw mkdirError;
+        }
+        const stats = lstatSync(currentPath);
+        if (stats.isSymbolicLink() || !stats.isDirectory()) {
+          throw new InstallationManifestError(
+            stats.isSymbolicLink() ? "FILE_SYMLINK" : "FILE_NOT_REGULAR",
+            `Installation path parent changed while it was created: ${currentPath}`,
+          );
+        }
+      }
+    }
+  }
+}
+
+function cleanupCreatedDirectories(createdDirectories: readonly string[]): void {
+  for (const directory of [...createdDirectories].reverse()) {
+    safeRemoveDirectory(directory);
   }
 }
 
@@ -1295,6 +1368,141 @@ export function prepareInstallationBackup(
     ).length,
     manifest: plan.manifest,
   };
+}
+
+export function applyInstallationPlan(
+  plan: InstallationPreparationPlan,
+  options: InstallationApplyOptions = {},
+): AppliedInstallation {
+  const targetDirectory = resolveTargetDirectory(plan.targetDirectory);
+  const prepared = prepareInstallationBackup(plan);
+  const createdDirectories: string[] = [];
+  let writtenFileCount = 0;
+  let reusedFileCount = 0;
+  let phase: "write" | "verify" | "complete" = "write";
+
+  try {
+    assertPreparationPlanConsistent(plan, targetDirectory);
+    const loaded = loadInstallationManifest(targetDirectory);
+    if (
+      loaded.manifest.installation.state !== "prepared" ||
+      loaded.sha256 !== prepared.manifestSha256
+    ) {
+      throw new InstallationManifestError(
+        "PLAN_STALE",
+        "Prepared installation manifest no longer matches the installation plan.",
+      );
+    }
+    assertBackupIntegrity(targetDirectory, loaded.manifest);
+
+    for (const file of plan.files) {
+      const current = snapshotFile(targetDirectory, file.manifest.path);
+      if (!snapshotsMatch(current, file.manifest.previous)) {
+        throw new InstallationManifestError(
+          "PLAN_STALE",
+          `Managed file changed after backup preparation: ${file.manifest.path}`,
+        );
+      }
+    }
+
+    for (const file of plan.files) {
+      assertManifestUnchanged(targetDirectory, prepared.manifestSha256);
+      const current = snapshotFile(targetDirectory, file.manifest.path);
+      if (snapshotMatchesManifestFile(current, file.manifest)) {
+        reusedFileCount += 1;
+        continue;
+      }
+      if (!snapshotsMatch(current, file.manifest.previous)) {
+        throw new InstallationManifestError(
+          "PLAN_STALE",
+          `Managed file changed before installation write: ${file.manifest.path}`,
+        );
+      }
+
+      createManagedParentDirectories(
+        targetDirectory,
+        file.manifest.path,
+        createdDirectories,
+      );
+      try {
+        if (file.manifest.previous.existed) {
+          atomicReplaceFile(
+            file.absolutePath,
+            file.content,
+            file.manifest.mode,
+          );
+        } else {
+          publishNewFile(
+            file.absolutePath,
+            file.content,
+            file.manifest.mode,
+          );
+        }
+      } catch (error) {
+        if (error instanceof InstallationManifestError) {
+          throw error;
+        }
+        throw new InstallationManifestError(
+          "INSTALLATION_WRITE_FAILED",
+          `Unable to install managed file: ${file.manifest.path}`,
+          [error instanceof Error ? error.message : String(error)],
+        );
+      }
+
+      const installed = snapshotFile(targetDirectory, file.manifest.path);
+      if (!snapshotMatchesManifestFile(installed, file.manifest)) {
+        throw new InstallationManifestError(
+          "INSTALLATION_WRITE_FAILED",
+          `Installed file failed SHA-256, size, or mode verification: ${file.manifest.path}`,
+        );
+      }
+      writtenFileCount += 1;
+    }
+
+    phase = "verify";
+    options.verify?.();
+    phase = "complete";
+    const manifest = completeInstallationManifest(
+      targetDirectory,
+      options.installedAt === undefined
+        ? {}
+        : { installedAt: options.installedAt },
+    );
+    return {
+      prepared,
+      manifest,
+      writtenFileCount,
+      reusedFileCount,
+    };
+  } catch (error) {
+    let rollbackError: unknown = null;
+    try {
+      rollbackPreparedInstallation(targetDirectory);
+      cleanupCreatedDirectories(createdDirectories);
+    } catch (caughtRollbackError) {
+      rollbackError = caughtRollbackError;
+    }
+
+    if (rollbackError !== null) {
+      throw new InstallationManifestError(
+        "INSTALLATION_ROLLBACK_FAILED",
+        "Installation failed and automatic rollback could not complete safely.",
+        [
+          `Original ${phase} failure: ${error instanceof Error ? error.message : String(error)}`,
+          `Rollback failure: ${rollbackError instanceof Error ? rollbackError.message : String(rollbackError)}`,
+          `Backups remain at ${prepared.backupDirectory}.`,
+        ],
+      );
+    }
+    if (error instanceof Error) {
+      throw error;
+    }
+    throw new InstallationManifestError(
+      "INSTALLATION_WRITE_FAILED",
+      `Installation ${phase} failed and was rolled back.`,
+      [String(error)],
+    );
+  }
 }
 
 export function readInstallationManifest(

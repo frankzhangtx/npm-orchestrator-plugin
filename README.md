@@ -15,8 +15,9 @@ configuration and a focused task example from the detected Android modules.
 Safe, comment-preserving OpenCode JSON/JSONC merge planning is also implemented.
 The installation transaction foundation now creates verified pre-install
 backups and a versioned SHA-256 manifest. Read-only conflict analysis and the
-installation-plan conflict gate are also implemented. The package does not yet
-install the managed resources or expose `init`.
+installation-plan conflict gate are also implemented. The `init` command now
+installs and verifies the complete project-local resource set. Version `0.2.0`
+is still local-only and has not passed the release gates.
 
 Implemented checks include:
 
@@ -54,13 +55,20 @@ Implemented checks include:
 - read-only conflict reports with existing and desired hashes, sizes, modes,
   source, and strategy; installation planning fails closed before any write
   when `copy`/`generate` content or an existing file mode would be changed
+- a write-capable `init` transaction that installs 45 managed files, preserves
+  Shell executable modes, merges OpenCode JSON/JSONC and one bounded AGENTS
+  block, and is byte-idempotent for an unchanged installed version
+- write-before-complete verification using the 38-case automation suite and a
+  read-only shadow run; any failure restores original files before reporting
+  the error
 
 Both planners deliberately avoid filesystem writes. The adaptive planner also
 blocks ambiguous primary modules, paths outside the Git root, and nested Gradle
 roots that the current root-relative transaction scripts cannot safely run.
 The transaction layer writes only installer control state and backups; it does
-not write planned managed files. Safe managed-file application remains the next
-installer stage before `init` can apply either plan.
+not write planned managed files until `init` explicitly applies a conflict-free
+plan. Upgrade, uninstall, and installation-aware doctor checks remain separate
+development stages.
 
 ## Adaptive template planning
 
@@ -106,18 +114,42 @@ may mark it `installed` only after every desired file matches the manifest.
 `rollbackPreparedInstallation` restores originals and removes newly created
 files only when their hashes still match a safe prepared state.
 
-This API is the transaction foundation for the future `init` command. Callers
-must not treat preparation as resource installation.
+This API is the transaction foundation used by `init`. Callers must not treat
+preparation alone as resource installation;
+`applyInstallationPlan` performs the guarded write and completion transaction.
 
-## Planned usage
+## Init
 
 ```sh
 npx @frankzhang2026/opencode-android-orchestrator@0.2.0 init .
 opencode --agent scheduled-planner .
 ```
 
-Version `0.2.0` has not been published. `init` remains intentionally unavailable
-until the safe installation lifecycle is complete.
+For a multi-application project, select the primary module explicitly:
+
+```sh
+opencode-android-orchestrator init . --primary-module :mobile
+```
+
+Before writing, `init` requires a compatible OpenCode version, a Git-backed
+Android Gradle project, an executable Gradle Wrapper, `git`, `jq`, `rg`,
+`shasum`, Java, and an Android SDK directory from `ANDROID_HOME` or
+`ANDROID_SDK_ROOT`. It then:
+
+1. renders project-specific configuration and plans both safe merges;
+2. rejects all unresolved content or mode conflicts;
+3. backs up every existing managed path and publishes a `prepared` manifest;
+4. writes missing or approved merged files with verified hashes and modes;
+5. runs the 38 automation tests and `shadow-run.sh`;
+6. marks the manifest `installed` only after both checks pass.
+
+Verification failure automatically restores originals and records rollback
+history; recovery backups remain below `.automation-plugin/backups/`. Repeating
+`init` on an unchanged, healthy installation performs no managed-file writes.
+
+Version `0.2.0` has not been published, so the `npx` example is the intended
+post-release command rather than an instruction to publish or switch a live
+project now.
 
 ## Doctor
 

@@ -22,6 +22,10 @@ user-modification guards, the portable manifest Schema, sorted read-only
 conflict reports, content and mode conflicts, identical-file reuse, explicit
 merge handling, and no-write conflict failures.
 
-Managed-file application tests, the remaining lifecycle commands, and full
-two-version OpenCode integration tests will be added with the remaining
-implementation stages.
+The init suite installs the complete 45-file inventory into temporary Kotlin
+and Groovy Android fixtures. It covers dynamic rendering, JSONC and AGENTS
+merges, executable modes, write-before-complete verification, dependency
+failure before control-state creation, repeated-init idempotence, conflict
+abort, and automatic restoration after post-install verification failure.
+Only the later upgrade/uninstall flows and full real OpenCode compatibility
+matrix remain outside this suite.
