@@ -14,8 +14,9 @@ are implemented. Read-only planning now renders project-relative automation
 configuration and a focused task example from the detected Android modules.
 Safe, comment-preserving OpenCode JSON/JSONC merge planning is also implemented.
 The installation transaction foundation now creates verified pre-install
-backups and a versioned SHA-256 manifest. It does not yet install the managed
-resources or expose `init`.
+backups and a versioned SHA-256 manifest. Read-only conflict analysis and the
+installation-plan conflict gate are also implemented. The package does not yet
+install the managed resources or expose `init`.
 
 Implemented checks include:
 
@@ -50,13 +51,16 @@ Implemented checks include:
 - backup-before-manifest publication, stale/tampered plan rejection, backup and
   installed-file integrity reporting, installed-state completion, and guarded
   rollback of a prepared transaction
+- read-only conflict reports with existing and desired hashes, sizes, modes,
+  source, and strategy; installation planning fails closed before any write
+  when `copy`/`generate` content or an existing file mode would be changed
 
 Both planners deliberately avoid filesystem writes. The adaptive planner also
 blocks ambiguous primary modules, paths outside the Git root, and nested Gradle
 roots that the current root-relative transaction scripts cannot safely run.
 The transaction layer writes only installer control state and backups; it does
-not write planned managed files. Conflict policy and atomic file installation
-remain the next installer stage before `init` can apply either plan.
+not write planned managed files. Safe managed-file application remains the next
+installer stage before `init` can apply either plan.
 
 ## Adaptive template planning
 
@@ -75,6 +79,22 @@ console.log(plan.taskContractExampleContent);
 
 The returned JSON contains repository-relative paths only. This API plans
 content in memory; it does not create or modify target-project files.
+
+## Conflict policy
+
+`detectInstallationConflicts` is read-only and returns conflicts sorted by
+target path. Missing files and files whose content and effective mode already
+match are safe. Existing `copy`/`generate` files with different content are
+conflicts, as is any requested mode change. `planInstallationPreparation`
+enforces the same policy and throws `FILE_CONFLICT` before creating installer
+control state; there is no silent-overwrite option.
+
+The `merge` strategy permits a content difference only when the caller has
+already produced the desired content with a structure-aware merge planner,
+such as the OpenCode JSON/JSONC merger. It preserves the existing mode by
+default, and an explicit mode change still conflicts. Backup preparation then
+rechecks the planned original hash, size, and mode to close the gap between
+conflict analysis and the first write.
 
 ## Installation preparation transaction
 

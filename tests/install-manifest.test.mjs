@@ -22,6 +22,7 @@ import {
   ORCHESTRATOR_PACKAGE_VERSION,
   InstallationManifestError,
   completeInstallationManifest,
+  detectInstallationConflicts,
   planInstallationPreparation,
   prepareInstallationBackup,
   readInstallationManifest,
@@ -141,6 +142,157 @@ test("plans sorted SHA-256 manifest entries without writing the target", () => {
     assert.equal(script.previous.existed, false);
     assert.doesNotMatch(plan.manifestContent, new RegExp(directory));
     assert.equal(plan.manifestContent, `${JSON.stringify(plan.manifest, null, 2)}\n`);
+  });
+});
+
+test("reports sorted copy and generate content conflicts without writing", () => {
+  withTemporaryDirectory("orchestrator-install-conflicts-", (directory) => {
+    const alphaOriginal = "user alpha\n";
+    const zetaOriginal = "user zeta\n";
+    writeFixtureFile(directory, "alpha.txt", alphaOriginal, 0o600);
+    writeFixtureFile(directory, "zeta.txt", zetaOriginal, 0o644);
+    const conflictInputs = [
+      {
+        path: "zeta.txt",
+        source: "generated/zeta",
+        strategy: "generate",
+        content: "generated zeta\n",
+        mode: 0o755,
+      },
+      {
+        path: "alpha.txt",
+        source: "templates/alpha.txt",
+        strategy: "copy",
+        content: "template alpha\n",
+        mode: 0o600,
+      },
+    ];
+
+    const report = detectInstallationConflicts(directory, conflictInputs);
+
+    assert.equal(report.ok, false);
+    assert.equal(report.targetDirectory, directory);
+    assert.deepEqual(
+      report.conflicts.map((conflict) => conflict.path),
+      ["alpha.txt", "zeta.txt"],
+    );
+    assert.deepEqual(report.conflicts[0], {
+      path: "alpha.txt",
+      source: "templates/alpha.txt",
+      strategy: "copy",
+      kind: "content",
+      existingSha256: sha256(alphaOriginal),
+      desiredSha256: sha256("template alpha\n"),
+      existingSize: Buffer.byteLength(alphaOriginal),
+      desiredSize: Buffer.byteLength("template alpha\n"),
+      existingMode: 0o600,
+      desiredMode: 0o600,
+    });
+    assert.equal(report.conflicts[1].kind, "content-and-mode");
+    assert.equal(report.conflicts[1].existingMode, 0o644);
+    assert.equal(report.conflicts[1].desiredMode, 0o755);
+
+    assert.throws(
+      () => planInstallationPreparation(directory, conflictInputs),
+      (error) => {
+        assert.ok(error instanceof InstallationManifestError);
+        assert.equal(error.code, "FILE_CONFLICT");
+        assert.equal(error.details.length, 2);
+        assert.match(error.details[0], /^alpha\.txt: content conflict /);
+        return true;
+      },
+    );
+    assert.equal(readFileSync(join(directory, "alpha.txt"), "utf8"), alphaOriginal);
+    assert.equal(readFileSync(join(directory, "zeta.txt"), "utf8"), zetaOriginal);
+    assert.equal(existsSync(join(directory, INSTALLATION_CONTROL_DIRECTORY)), false);
+  });
+});
+
+test("accepts an identical existing file without changing it", () => {
+  withTemporaryDirectory("orchestrator-install-identical-", (directory) => {
+    const content = "already installed\n";
+    writeFixtureFile(directory, "managed.txt", content, 0o600);
+    const identicalInput = [{
+      path: "managed.txt",
+      source: "templates/managed.txt",
+      strategy: "copy",
+      content,
+    }];
+
+    const report = detectInstallationConflicts(directory, identicalInput);
+    const plan = planInstallationPreparation(directory, identicalInput, {
+      installationId: "identical-test-001",
+      preparedAt,
+    });
+
+    assert.equal(report.ok, true);
+    assert.deepEqual(report.conflicts, []);
+    assert.equal(plan.manifest.files[0].previous.sha256, sha256(content));
+    assert.equal(plan.manifest.files[0].mode, 0o600);
+    assert.equal(readFileSync(join(directory, "managed.txt"), "utf8"), content);
+    assert.equal(existsSync(join(directory, INSTALLATION_CONTROL_DIRECTORY)), false);
+  });
+});
+
+test("treats an existing-file mode change as a conflict", () => {
+  withTemporaryDirectory("orchestrator-install-mode-conflict-", (directory) => {
+    const content = "#!/usr/bin/env bash\n";
+    const scriptPath = writeFixtureFile(directory, "script.sh", content, 0o644);
+    const modeInput = [{
+      path: "script.sh",
+      source: "templates/script.sh",
+      strategy: "copy",
+      content,
+      mode: 0o755,
+    }];
+
+    const report = detectInstallationConflicts(directory, modeInput);
+
+    assert.equal(report.ok, false);
+    assert.equal(report.conflicts[0].kind, "mode");
+    assert.equal(report.conflicts[0].existingSha256, report.conflicts[0].desiredSha256);
+    assert.equal(report.conflicts[0].existingMode, 0o644);
+    assert.equal(report.conflicts[0].desiredMode, 0o755);
+    assertManifestError("FILE_CONFLICT", () =>
+      planInstallationPreparation(directory, modeInput),
+    );
+    assert.equal(lstatSync(scriptPath).mode & 0o777, 0o644);
+    assert.equal(existsSync(join(directory, INSTALLATION_CONTROL_DIRECTORY)), false);
+  });
+});
+
+test("allows explicit merged content but still blocks a merged-file mode change", () => {
+  withTemporaryDirectory("orchestrator-install-merge-conflict-", (directory) => {
+    const original = '{\n  "theme": "existing"\n}\n';
+    writeFixtureFile(directory, "opencode.json", original, 0o600);
+    const mergeInput = [{
+      path: "opencode.json",
+      source: "generated/opencode-config-merge",
+      strategy: "merge",
+      content: '{\n  "theme": "existing",\n  "plugin": ["fixed"]\n}\n',
+    }];
+
+    assert.deepEqual(
+      detectInstallationConflicts(directory, mergeInput).conflicts,
+      [],
+    );
+    const plan = planInstallationPreparation(directory, mergeInput, {
+      installationId: "merge-test-001",
+      preparedAt,
+    });
+    assert.equal(plan.manifest.files[0].previous.sha256, sha256(original));
+    assert.equal(plan.manifest.files[0].mode, 0o600);
+
+    const modeChangingMerge = [{ ...mergeInput[0], mode: 0o644 }];
+    const report = detectInstallationConflicts(directory, modeChangingMerge);
+    assert.equal(report.ok, false);
+    assert.equal(report.conflicts[0].kind, "mode");
+    assertManifestError("FILE_CONFLICT", () =>
+      planInstallationPreparation(directory, modeChangingMerge),
+    );
+    assert.equal(lstatSync(join(directory, "opencode.json")).mode & 0o777, 0o600);
+    assert.equal(readFileSync(join(directory, "opencode.json"), "utf8"), original);
+    assert.equal(existsSync(join(directory, INSTALLATION_CONTROL_DIRECTORY)), false);
   });
 });
 

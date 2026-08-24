@@ -37,6 +37,10 @@ export type InstallationManifestState =
   | "installed"
   | "rolledBack";
 export type InstallationFileStrategy = "copy" | "generate" | "merge";
+export type InstallationConflictKind =
+  | "content"
+  | "mode"
+  | "content-and-mode";
 
 export type InstallationManifestErrorCode =
   | "BACKUP_EXISTS"
@@ -44,6 +48,7 @@ export type InstallationManifestErrorCode =
   | "BACKUP_WRITE_FAILED"
   | "CONTROL_PATH_CONFLICT"
   | "DUPLICATE_FILE"
+  | "FILE_CONFLICT"
   | "FILE_NOT_REGULAR"
   | "FILE_SYMLINK"
   | "INSTALLATION_INCOMPLETE"
@@ -83,6 +88,25 @@ export interface InstallationFileInput {
   strategy: InstallationFileStrategy;
   content: string | Uint8Array;
   mode?: number;
+}
+
+export interface InstallationFileConflict {
+  path: string;
+  source: string;
+  strategy: InstallationFileStrategy;
+  kind: InstallationConflictKind;
+  existingSha256: string;
+  desiredSha256: string;
+  existingSize: number;
+  desiredSize: number;
+  existingMode: number;
+  desiredMode: number;
+}
+
+export interface InstallationConflictReport {
+  ok: boolean;
+  targetDirectory: string;
+  conflicts: readonly InstallationFileConflict[];
 }
 
 export interface PreviousInstallationFile {
@@ -183,6 +207,17 @@ interface FileSnapshot {
   sha256: string | null;
   size: number | null;
   mode: number | null;
+}
+
+interface AnalyzedInstallationFile {
+  path: string;
+  source: string;
+  strategy: InstallationFileStrategy;
+  content: Uint8Array;
+  sha256: string;
+  size: number;
+  mode: number;
+  previous: FileSnapshot;
 }
 
 interface LoadedManifest {
@@ -414,6 +449,143 @@ function snapshotFile(
       [error instanceof Error ? error.message : String(error)],
     );
   }
+}
+
+function analyzeInstallationInputs(
+  targetDirectory: string,
+  inputs: readonly InstallationFileInput[],
+): readonly AnalyzedInstallationFile[] {
+  if (inputs.length === 0) {
+    throw new InstallationManifestError(
+      "MANIFEST_INVALID",
+      "Installation plan must contain at least one managed file.",
+    );
+  }
+
+  const seen = new Set<string>();
+  return inputs
+    .map<AnalyzedInstallationFile>((input) => {
+      const relativePath = validateRelativePath(input.path);
+      const source = validateRelativePath(input.source, true);
+      if (seen.has(relativePath)) {
+        throw new InstallationManifestError(
+          "DUPLICATE_FILE",
+          `Installation plan contains a duplicate path: ${relativePath}`,
+        );
+      }
+      seen.add(relativePath);
+
+      if (
+        !("copy" === input.strategy ||
+          "generate" === input.strategy ||
+          "merge" === input.strategy)
+      ) {
+        throw new InstallationManifestError(
+          "MANIFEST_INVALID",
+          `Installation strategy is invalid for ${relativePath}: ${String(input.strategy)}`,
+        );
+      }
+
+      const content = contentBytes(input.content);
+      const previous = snapshotFile(targetDirectory, relativePath);
+      const mode = validateMode(input.mode ?? previous.mode ?? 0o644);
+      return {
+        path: relativePath,
+        source,
+        strategy: input.strategy,
+        content,
+        sha256: sha256(content),
+        size: content.byteLength,
+        mode,
+        previous,
+      };
+    })
+    .sort((left, right) =>
+      left.path < right.path ? -1 : left.path > right.path ? 1 : 0,
+    );
+}
+
+function installationFileConflict(
+  file: AnalyzedInstallationFile,
+): InstallationFileConflict | null {
+  if (!file.previous.existed) {
+    return null;
+  }
+  const {
+    sha256: existingSha256,
+    size: existingSize,
+    mode: existingMode,
+  } = file.previous;
+  if (
+    existingSha256 === null ||
+    existingSize === null ||
+    existingMode === null
+  ) {
+    throw new InstallationManifestError(
+      "MANIFEST_INVALID",
+      `Existing-file snapshot is incomplete: ${file.path}`,
+    );
+  }
+
+  const contentDiffers =
+    existingSha256 !== file.sha256 || existingSize !== file.size;
+  const contentConflict = contentDiffers && file.strategy !== "merge";
+  const modeConflict = existingMode !== file.mode;
+  if (!contentConflict && !modeConflict) {
+    return null;
+  }
+
+  const kind: InstallationConflictKind =
+    contentConflict && modeConflict
+      ? "content-and-mode"
+      : contentConflict
+        ? "content"
+        : "mode";
+  return {
+    path: file.path,
+    source: file.source,
+    strategy: file.strategy,
+    kind,
+    existingSha256,
+    desiredSha256: file.sha256,
+    existingSize,
+    desiredSize: file.size,
+    existingMode,
+    desiredMode: file.mode,
+  };
+}
+
+function installationConflicts(
+  files: readonly AnalyzedInstallationFile[],
+): readonly InstallationFileConflict[] {
+  return files
+    .map(installationFileConflict)
+    .filter(
+      (conflict): conflict is InstallationFileConflict => conflict !== null,
+    );
+}
+
+function formatMode(mode: number): string {
+  return `0o${mode.toString(8).padStart(3, "0")}`;
+}
+
+function assertNoInstallationConflicts(
+  conflicts: readonly InstallationFileConflict[],
+): void {
+  if (conflicts.length === 0) {
+    return;
+  }
+  throw new InstallationManifestError(
+    "FILE_CONFLICT",
+    "Installation stopped because existing files differ; no user file was overwritten.",
+    conflicts.map(
+      (conflict) =>
+        `${conflict.path}: ${conflict.kind} conflict ` +
+        `(existing ${conflict.existingSha256}, ` +
+        `${formatMode(conflict.existingMode)}; ` +
+        `desired ${conflict.desiredSha256}, ${formatMode(conflict.desiredMode)})`,
+    ),
+  );
 }
 
 function snapshotsMatch(
@@ -864,18 +1036,28 @@ function assertManifestUnchanged(
   }
 }
 
+export function detectInstallationConflicts(
+  directory: string,
+  inputs: readonly InstallationFileInput[],
+): InstallationConflictReport {
+  const targetDirectory = resolveTargetDirectory(directory);
+  const files = analyzeInstallationInputs(targetDirectory, inputs);
+  const conflicts = installationConflicts(files);
+  return {
+    ok: conflicts.length === 0,
+    targetDirectory,
+    conflicts,
+  };
+}
+
 export function planInstallationPreparation(
   directory: string,
   inputs: readonly InstallationFileInput[],
   options: InstallationPreparationOptions = {},
 ): InstallationPreparationPlan {
   const targetDirectory = resolveTargetDirectory(directory);
-  if (inputs.length === 0) {
-    throw new InstallationManifestError(
-      "MANIFEST_INVALID",
-      "Installation plan must contain at least one managed file.",
-    );
-  }
+  const analyzedFiles = analyzeInstallationInputs(targetDirectory, inputs);
+  assertNoInstallationConflicts(installationConflicts(analyzedFiles));
 
   const preparedAt = validateTimestamp(
     options.preparedAt ?? new Date().toISOString(),
@@ -885,62 +1067,39 @@ export function planInstallationPreparation(
   );
   const backupRelativeDirectory =
     `${INSTALLATION_BACKUPS_DIRECTORY}/${installationId}`;
-  const seen = new Set<string>();
 
-  const files = inputs
-    .map<PlannedInstallationFile>((input) => {
-      const relativePath = validateRelativePath(input.path);
-      const source = validateRelativePath(input.source, true);
-      if (seen.has(relativePath)) {
-        throw new InstallationManifestError(
-          "DUPLICATE_FILE",
-          `Installation plan contains a duplicate path: ${relativePath}`,
-        );
-      }
-      seen.add(relativePath);
+  const files = analyzedFiles.map<PlannedInstallationFile>((file) => {
+    const previousManifest: PreviousInstallationFile = file.previous.existed
+      ? {
+          existed: true,
+          sha256: file.previous.sha256,
+          size: file.previous.size,
+          mode: file.previous.mode,
+          backupPath: `${backupRelativeDirectory}/${file.path}`,
+        }
+      : {
+          existed: false,
+          sha256: null,
+          size: null,
+          mode: null,
+          backupPath: null,
+        };
 
-      if (!(["copy", "generate", "merge"] as readonly string[]).includes(input.strategy)) {
-        throw new InstallationManifestError(
-          "MANIFEST_INVALID",
-          `Installation strategy is invalid for ${relativePath}: ${String(input.strategy)}`,
-        );
-      }
-
-      const desiredContent = contentBytes(input.content);
-      const previous = snapshotFile(targetDirectory, relativePath);
-      const mode = validateMode(input.mode ?? previous.mode ?? 0o644);
-      const previousManifest: PreviousInstallationFile = previous.existed
-        ? {
-            existed: true,
-            sha256: previous.sha256,
-            size: previous.size,
-            mode: previous.mode,
-            backupPath: `${backupRelativeDirectory}/${relativePath}`,
-          }
-        : {
-            existed: false,
-            sha256: null,
-            size: null,
-            mode: null,
-            backupPath: null,
-          };
-
-      return {
-        absolutePath: join(targetDirectory, ...relativePath.split("/")),
-        content: desiredContent,
-        previousContent: previous.content,
-        manifest: {
-          path: relativePath,
-          source,
-          strategy: input.strategy,
-          sha256: sha256(desiredContent),
-          size: desiredContent.byteLength,
-          mode,
-          previous: previousManifest,
-        },
-      };
-    })
-    .sort((left, right) => left.manifest.path.localeCompare(right.manifest.path));
+    return {
+      absolutePath: join(targetDirectory, ...file.path.split("/")),
+      content: file.content,
+      previousContent: file.previous.content,
+      manifest: {
+        path: file.path,
+        source: file.source,
+        strategy: file.strategy,
+        sha256: file.sha256,
+        size: file.size,
+        mode: file.mode,
+        previous: previousManifest,
+      },
+    };
+  });
 
   const manifest: InstallationManifest = {
     schemaVersion: INSTALLATION_MANIFEST_SCHEMA_VERSION,

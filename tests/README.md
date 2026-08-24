@@ -18,8 +18,10 @@ verifies dynamic production/test scope classification.
 The installation transaction suite covers read-only SHA-256 planning,
 backup-before-manifest ordering, stale and tampered plans, unsafe and symbolic
 paths, backup integrity, installed-state completion, partial-install rollback,
-user-modification guards, and the portable manifest Schema.
+user-modification guards, the portable manifest Schema, sorted read-only
+conflict reports, content and mode conflicts, identical-file reuse, explicit
+merge handling, and no-write conflict failures.
 
-Managed-file conflict/application tests, the remaining lifecycle commands, and
-full two-version OpenCode integration tests will be added with the remaining
+Managed-file application tests, the remaining lifecycle commands, and full
+two-version OpenCode integration tests will be added with the remaining
 implementation stages.

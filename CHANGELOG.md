@@ -30,6 +30,9 @@
   backups, a portable versioned manifest Schema, per-file SHA-256/size/mode and
   recovery metadata, fail-closed plan validation, integrity reporting,
   installed-state completion, and guarded prepared-state rollback.
+- Add read-only, structured managed-file conflict reporting and make
+  installation planning reject differing `copy`/`generate` content and all
+  requested changes to existing file modes before writing control state.
 
 ## 0.1.0 - 2026-08-20
 
