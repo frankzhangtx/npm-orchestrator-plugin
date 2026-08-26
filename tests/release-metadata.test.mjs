@@ -77,13 +77,30 @@ test("keeps release authorization fail-closed and outside the package files", ()
   const releaseNotes = read("release/0.2.0-release-notes.md");
 
   assert.doesNotMatch(packageJson.files.join("\n"), /release\//);
+  assert.doesNotMatch(packageJson.files.join("\n"), /tests\//);
   assert.match(authorization, /Status: NOT AUTHORIZED/);
-  assert.match(authorization, /npm whoami.*E401 Unauthorized/s);
+  assert.match(
+    authorization,
+    /npm whoami[\s\S]*returned\s+`frankzhang2026`/,
+  );
+  assert.match(
+    authorization,
+    /Registry version list still contains only `0\.1\.0`/i,
+  );
+  assert.match(authorization, /Human tarball review \| PENDING/);
+  assert.match(
+    authorization,
+    /- \[ \] The exact interactive 2FA, trusted-publishing, or staged-publishing method/,
+  );
+  assert.match(
+    authorization,
+    /- \[ \] The user has issued a new, explicit authorization/,
+  );
   assert.match(authorization, /npm publish <approved-0\.2\.0-tarball\.tgz>/);
   assert.match(authorization, /does not authorize any of\s+them/);
   assert.match(
     authorization,
-    /3c80aa6b72ccd14bfd15d0ecf4de13e92f8661c356d1659b3737e2b37b8a8d94/,
+    /9c1b326bc2ecf9f28d1a4a9d723ee1b44acdb912f101f17b21dc07449c916bdc/,
   );
   assert.doesNotMatch(authorization, /PENDING REBUILD AFTER LICENSE CHANGES/);
   assert.match(releaseNotes, /Status: draft/);
