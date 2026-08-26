@@ -1,7 +1,18 @@
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
 import { createHash } from "node:crypto";
-import { readdirSync, readFileSync, statSync } from "node:fs";
+import {
+  chmodSync,
+  copyFileSync,
+  mkdirSync,
+  mkdtempSync,
+  readdirSync,
+  readFileSync,
+  rmSync,
+  statSync,
+  writeFileSync,
+} from "node:fs";
+import { tmpdir } from "node:os";
 import { join, relative, sep } from "node:path";
 import test from "node:test";
 import { fileURLToPath } from "node:url";
@@ -52,7 +63,7 @@ const expectedHashes = new Map([
   ],
   [
     "scripts/automation/preflight.sh",
-    "2d89f888c709ef5e365c3038fe729ec0b320769357a6345981055aafe43ea949",
+    "3fc7e6b60fd0995b7a9b7caa655b3068a8f83fd2f8dce02fc872af21db3200ef",
   ],
   [
     "scripts/automation/prepare-contract-review.sh",
@@ -88,7 +99,7 @@ const expectedHashes = new Map([
   ],
   [
     "scripts/automation/shadow-run.sh",
-    "69cb91662e034d789eb40f4d7c73c03c6e9b56fd0ef069027031965ac9c5c2fe",
+    "6810d5d1425d0f7c52e8a8b667539171945fdbbef864609324a557201c6b7d4b",
   ],
   [
     "scripts/automation/show-acceptance-review.sh",
@@ -177,5 +188,50 @@ test("all migrated automation files are valid Bash scripts", () => {
       /\/Users\/|zhanglong|cctest|opencode-scheduler/i,
       path,
     );
+  }
+});
+
+test("shadow run reserves stdout for one machine-readable JSON document", () => {
+  const root = mkdtempSync(join(tmpdir(), "orchestrator-shadow-output-"));
+  const scripts = join(root, "scripts");
+  const tasks = join(root, "tasks");
+  const state = join(root, "state");
+  mkdirSync(scripts, { recursive: true });
+  mkdirSync(tasks, { recursive: true });
+  mkdirSync(state, { recursive: true });
+
+  try {
+    copyFileSync(join(automationRoot, "shadow-run.sh"), join(scripts, "shadow-run.sh"));
+    writeFileSync(
+      join(scripts, "lib.sh"),
+      `AUTOMATION_ROOT="$SHADOW_TEST_ROOT"\n` +
+        `AUTOMATION_TASKS_DIR="$SHADOW_TEST_ROOT/tasks"\n` +
+        `AUTOMATION_STATE_DIR="$SHADOW_TEST_ROOT/state"\n` +
+        'automation_info() { printf "[automation] %s\\n" "$*"; }\n' +
+        "automation_ensure_runtime_layout() { mkdir -p \"$AUTOMATION_STATE_DIR\"; }\n" +
+        'automation_now() { printf "2026-08-25T00:00:00Z\\n"; }\n' +
+        'automation_config_value() { case "$1" in .enabled) printf "true\\n" ;; .mode) printf "orchestrated\\n" ;; esac; }\n',
+    );
+    writeFileSync(
+      join(scripts, "preflight.sh"),
+      '#!/usr/bin/env bash\nprintf "[automation] preflight completed\\n"\n',
+    );
+    chmodSync(join(scripts, "shadow-run.sh"), 0o755);
+    chmodSync(join(scripts, "preflight.sh"), 0o755);
+
+    const result = spawnSync(join(scripts, "shadow-run.sh"), [], {
+      encoding: "utf8",
+      env: { ...process.env, SHADOW_TEST_ROOT: root },
+      shell: false,
+    });
+
+    assert.equal(result.status, 0, result.stderr);
+    assert.equal(JSON.parse(result.stdout).mutationPerformed, false);
+    assert.doesNotMatch(result.stdout, /\[automation\]/);
+    assert.match(result.stderr, /starting read-only shadow preflight/);
+    assert.match(result.stderr, /preflight completed/);
+    assert.match(result.stderr, /shadow run complete/);
+  } finally {
+    rmSync(root, { recursive: true, force: true });
   }
 });

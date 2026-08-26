@@ -17,6 +17,22 @@ export {
   type CompatiblePluginInput,
 } from "./compatibility/hooks.js";
 export {
+  ORCHESTRATOR_DOCTOR_TOOL_NAME,
+  ORCHESTRATOR_STATUS_TOOL_NAME,
+  READ_ONLY_TOOL_NAMES,
+  ReadOnlyToolError,
+  createReadOnlyTools,
+  type DoctorRunner,
+  type InstallationCheckRunner,
+  type ReadOnlyToolErrorCode,
+  type ReadOnlyToolName,
+  type ReadOnlyTools,
+  type ReadOnlyToolsOptions,
+  type StatusRunner,
+  type StatusRunnerInput,
+  type StatusRunnerResult,
+} from "./tools/index.js";
+export {
   CERTIFIED_OPENCODE_VERSIONS,
   MAXIMUM_OPENCODE_VERSION,
   MINIMUM_OPENCODE_VERSION,
@@ -144,6 +160,23 @@ export {
   type ProjectUpgradeResult,
   type UpgradeFileSnapshot,
 } from "./installer/upgrade.js";
+export {
+  UNINSTALL_MARKER_RELATIVE_PATH,
+  UNINSTALL_RECOVERY_DIRECTORY,
+  ProjectUninstallError,
+  applyProjectUninstall,
+  formatProjectUninstallResult,
+  planProjectUninstall,
+  runProjectUninstall,
+  type AppliedProjectUninstall,
+  type PlannedUninstallFile,
+  type ProjectUninstallErrorCode,
+  type ProjectUninstallOptions,
+  type ProjectUninstallPlan,
+  type ProjectUninstallResult,
+  type UninstallFileDisposition,
+  type UninstallFileSnapshot,
+} from "./installer/uninstall.js";
 export {
   ORCHESTRATOR_PACKAGE_NAME,
   ORCHESTRATOR_PACKAGE_VERSION,

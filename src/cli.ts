@@ -14,6 +14,10 @@ import {
   runProjectUpgrade,
   type ProjectUpgradeOptions,
 } from "./installer/upgrade.js";
+import {
+  formatProjectUninstallResult,
+  runProjectUninstall,
+} from "./installer/uninstall.js";
 
 function printHelp(): void {
   process.stdout.write(`OpenCode Android Orchestrator\n\n`);
@@ -47,6 +51,14 @@ function printUpgradeHelp(): void {
   process.stdout.write(`Usage:\n`);
   process.stdout.write(
     `  opencode-android-orchestrator upgrade [directory] [--primary-module <gradle-path>] [--json]\n`,
+  );
+}
+
+function printUninstallHelp(): void {
+  process.stdout.write(`OpenCode Android Orchestrator uninstall\n\n`);
+  process.stdout.write(`Usage:\n`);
+  process.stdout.write(
+    `  opencode-android-orchestrator uninstall [directory] [--json]\n`,
   );
 }
 
@@ -204,6 +216,42 @@ if (command === undefined || command === "--help" || command === "-h") {
           json
             ? `${JSON.stringify(result, null, 2)}\n`
             : formatProjectUpgradeResult(result),
+        );
+        process.exitCode = 0;
+      } catch (error) {
+        printCommandError(error);
+        process.exitCode = 1;
+      }
+    }
+  }
+} else if (command === "uninstall") {
+  if (commandArguments.includes("--help") || commandArguments.includes("-h")) {
+    printUninstallHelp();
+    process.exitCode = 0;
+  } else {
+    const unknownOptions = commandArguments.filter(
+      (argument) => argument.startsWith("-") && argument !== "--json",
+    );
+    const targetDirectories = commandArguments.filter(
+      (argument) => !argument.startsWith("-"),
+    );
+    if (unknownOptions.length > 0 || targetDirectories.length > 1) {
+      process.stderr.write(
+        `Unexpected uninstall argument(s): ${[
+          ...unknownOptions,
+          ...targetDirectories.slice(1),
+        ].join(", ")}\n`,
+      );
+      process.exitCode = 2;
+    } else {
+      try {
+        const result = runProjectUninstall(
+          targetDirectories[0] ?? process.cwd(),
+        );
+        process.stdout.write(
+          commandArguments.includes("--json")
+            ? `${JSON.stringify(result, null, 2)}\n`
+            : formatProjectUninstallResult(result),
         );
         process.exitCode = 0;
       } catch (error) {

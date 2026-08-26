@@ -6,17 +6,41 @@ import plugin, {
   CERTIFIED_OPENCODE_VERSIONS,
   COMMON_HOOK_NAMES,
   ORCHESTRATOR_DIRECTORY_ENV,
+  ORCHESTRATOR_DOCTOR_TOOL_NAME,
+  ORCHESTRATOR_STATUS_TOOL_NAME,
   ORCHESTRATOR_WORKTREE_ENV,
   defineCompatibleHooks,
 } from "../dist/index.js";
+
+test("keeps the package root plugin-only for the OpenCode loader", async () => {
+  const entry = await import(
+    "@frankzhang2026/opencode-android-orchestrator"
+  );
+  const api = await import(
+    "@frankzhang2026/opencode-android-orchestrator/api"
+  );
+
+  assert.deepEqual(Object.keys(entry), ["default"]);
+  assert.equal(typeof entry.default, "function");
+  assert.equal(typeof api.runDoctor, "function");
+  assert.equal(typeof api.runProjectInitialization, "function");
+});
 
 test("exports a loadable OpenCode plugin using only common hooks", async () => {
   const hooks = await plugin({
     directory: process.cwd(),
     worktree: process.cwd(),
+    $: () => {
+      throw new Error("status shell should not run during plugin loading");
+    },
   });
 
-  assert.deepEqual(Object.keys(hooks), ["shell.env"]);
+  assert.deepEqual(Object.keys(hooks), ["tool", "shell.env"]);
+  assert.deepEqual(Object.keys(hooks.tool), [
+    ORCHESTRATOR_STATUS_TOOL_NAME,
+    ORCHESTRATOR_DOCTOR_TOOL_NAME,
+  ]);
+  assert.ok(COMMON_HOOK_NAMES.includes("tool"));
   assert.ok(COMMON_HOOK_NAMES.includes("shell.env"));
   assert.ok(Object.keys(hooks).every((name) => COMMON_HOOK_NAMES.includes(name)));
 
@@ -98,4 +122,23 @@ test("CLI exposes upgrade options and rejects an incomplete module selection", (
   );
   assert.equal(invalid.status, 2);
   assert.match(invalid.stderr, /Unexpected upgrade argument/);
+});
+
+test("CLI exposes uninstall options and rejects unknown flags", () => {
+  const help = spawnSync(
+    process.execPath,
+    ["dist/cli.js", "uninstall", "--help"],
+    { encoding: "utf8" },
+  );
+
+  assert.equal(help.status, 0);
+  assert.match(help.stdout, /uninstall \[directory\] \[--json\]/);
+
+  const invalid = spawnSync(
+    process.execPath,
+    ["dist/cli.js", "uninstall", "--force"],
+    { encoding: "utf8" },
+  );
+  assert.equal(invalid.status, 2);
+  assert.match(invalid.stderr, /Unexpected uninstall argument/);
 });

@@ -158,9 +158,13 @@ else
         (last_rule("bash"; "./scripts/automation/resume-review.sh *") == "allow") and
         (last_rule("bash"; "./scripts/automation/accept-and-integrate.sh *") == "allow") and
         (last_rule("bash"; "./scripts/automation/abort-task.sh *") == "allow") and
+        (last_rule("android_orchestrator_status"; "*") == "allow") and
+        (last_rule("android_orchestrator_doctor"; "*") == "allow") and
         (last_rule("schedule_job"; "*") == "deny") and
         (last_rule("task"; "*") == "deny") and
         (.tools.question == true) and
+        (.tools.android_orchestrator_status == true) and
+        (.tools.android_orchestrator_doctor == true) and
         (.tools.schedule_job == false) and
         (.tools.task == false)
     ' "$discovery_dir/planner-agent.json" >/dev/null || automation_die "scheduled-planner resolved permissions are unsafe"
@@ -171,8 +175,12 @@ else
         (last_rule("*"; "*") == "deny") and
         (last_rule("edit"; "**/src/main/**") == "allow") and
         (last_rule("edit"; ".opencode/skills/**") == "deny") and
+        (last_rule("android_orchestrator_status"; "*") == "allow") and
+        (last_rule("android_orchestrator_doctor"; "*") == "allow") and
         (last_rule("schedule_job"; "*") == "deny") and
         (last_rule("task"; "*") == "deny") and
+        (.tools.android_orchestrator_status == true) and
+        (.tools.android_orchestrator_doctor == true) and
         (.tools.schedule_job == false) and
         (.tools.delete_job == false) and
         (.tools.task == false)
@@ -183,8 +191,12 @@ else
             [.permission[] | select(.permission == $permission and .pattern == $pattern) | .action][-1];
         (last_rule("*"; "*") == "deny") and
         (last_rule("edit"; "*") == "deny") and
+        (last_rule("android_orchestrator_status"; "*") == "allow") and
+        (last_rule("android_orchestrator_doctor"; "*") == "allow") and
         (last_rule("schedule_job"; "*") == "deny") and
         (last_rule("task"; "*") == "deny") and
+        (.tools.android_orchestrator_status == true) and
+        (.tools.android_orchestrator_doctor == true) and
         (.tools.schedule_job == false) and
         (.tools.delete_job == false) and
         (.tools.task == false)

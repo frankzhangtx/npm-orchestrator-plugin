@@ -3,11 +3,24 @@
   "version": "0.2.0",
   "description": "Reusable OpenCode orchestration for Android projects",
   "license": "MIT",
+  "author": "frankzhang2026",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/frankzhangtx/npm-orchestrator-plugin.git"
+  },
+  "homepage": "https://github.com/frankzhangtx/npm-orchestrator-plugin#readme",
+  "bugs": {
+    "url": "https://github.com/frankzhangtx/npm-orchestrator-plugin/issues"
+  },
   "type": "module",
-  "main": "./dist/index.js",
-  "types": "./dist/index.d.ts",
+  "main": "./dist/opencode-plugin.js",
+  "types": "./dist/opencode-plugin.d.ts",
   "exports": {
     ".": {
+      "types": "./dist/opencode-plugin.d.ts",
+      "import": "./dist/opencode-plugin.js"
+    },
+    "./api": {
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js"
     }
@@ -17,9 +30,12 @@
   },
   "files": [
     "dist/",
+    "docs/",
     "templates/",
     "README.md",
-    "CHANGELOG.md"
+    "CHANGELOG.md",
+    "LICENSE",
+    "THIRD_PARTY_NOTICES.md"
   ],
   "publishConfig": {
     "access": "public",
@@ -38,7 +54,6 @@
     "automation",
     "orchestration"
   ],
-  "author": "",
   "peerDependencies": {
     "@opencode-ai/plugin": ">=1.14.22 <1.16.0"
   },

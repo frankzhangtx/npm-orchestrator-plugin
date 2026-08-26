@@ -109,6 +109,23 @@ export {
   type UpgradeFileSnapshot,
 } from "./upgrade.js";
 export {
+  UNINSTALL_MARKER_RELATIVE_PATH,
+  UNINSTALL_RECOVERY_DIRECTORY,
+  ProjectUninstallError,
+  applyProjectUninstall,
+  formatProjectUninstallResult,
+  planProjectUninstall,
+  runProjectUninstall,
+  type AppliedProjectUninstall,
+  type PlannedUninstallFile,
+  type ProjectUninstallErrorCode,
+  type ProjectUninstallOptions,
+  type ProjectUninstallPlan,
+  type ProjectUninstallResult,
+  type UninstallFileDisposition,
+  type UninstallFileSnapshot,
+} from "./uninstall.js";
+export {
   ORCHESTRATOR_PACKAGE_NAME,
   ORCHESTRATOR_PACKAGE_VERSION,
   ORCHESTRATOR_PLUGIN_REFERENCE,

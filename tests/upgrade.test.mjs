@@ -21,6 +21,7 @@ import {
   ORCHESTRATOR_PLUGIN_REFERENCE,
   ProjectUpgradeError,
   SUPERPOWERS_PLUGIN_REFERENCE,
+  UNINSTALL_MARKER_RELATIVE_PATH,
   UPGRADE_MARKER_RELATIVE_PATH,
   applyProjectUpgrade,
   formatProjectUpgradeResult,
@@ -398,6 +399,37 @@ test("upgrade refuses an unfinished transaction marker before planning writes", 
     );
     assert.equal(
       existsSync(join(root, ".automation-plugin/upgrades/upgrade-marker-001")),
+      false,
+    );
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
+});
+
+test("upgrade refuses an unfinished uninstall marker before planning writes", () => {
+  const { root, sdk } = createInstalledFixture();
+  try {
+    simulateOlderInstallation(root);
+    writeFixtureFile(
+      root,
+      UNINSTALL_MARKER_RELATIVE_PATH,
+      '{"state":"prepared"}\n',
+      0o600,
+    );
+
+    assert.throws(
+      () =>
+        planProjectUpgrade(
+          root,
+          upgradeOptions(sdk, successfulRunner(), "upgrade-uninstall-marker-001"),
+        ),
+      (error) =>
+        error instanceof ProjectUpgradeError &&
+        error.code === "UPGRADE_IN_PROGRESS" &&
+        error.details.some((detail) => detail.endsWith("uninstall.json")),
+    );
+    assert.equal(
+      existsSync(join(root, ".automation-plugin/upgrades/upgrade-uninstall-marker-001")),
       false,
     );
   } finally {

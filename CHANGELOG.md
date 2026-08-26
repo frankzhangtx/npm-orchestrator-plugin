@@ -2,6 +2,12 @@
 
 ## 0.2.0 - Unreleased
 
+- Add the complete MIT license, packaged third-party notices, public repository
+  metadata, draft release notes, and a fail-closed `0.2.0` authorization record.
+- Keep the package root plugin-only for OpenCode's loader and expose lifecycle
+  and diagnostic APIs from the explicit `./api` subpath.
+- Keep shadow-run diagnostics on stderr so stdout remains one strict JSON
+  document for installer verification and automation consumers.
 - Restrict the plugin implementation to OpenCode APIs shared by `1.14.22` and
   `1.15.13`.
 - Add certified OpenCode version detection and a functional `doctor` command.
@@ -50,6 +56,19 @@
   lineage, obsolete-resource restoration, transactional manifest replacement,
   upgrade history, idempotence, and automatic whole-version rollback when the
   automation or shadow verification fails.
+- Implement `uninstall` with read-only planning, exact content/size/mode guards,
+  verified restoration of first-install originals, removal of unchanged
+  plugin-created files, retention and reporting of user drift, cross-transaction
+  markers, recovery/history evidence, JSON output, and automatic pre-commit
+  rollback.
+- Add project-bounded `android_orchestrator_status` and
+  `android_orchestrator_doctor` custom tools with strict task IDs, authenticated
+  fixed-script execution, bounded and validated JSON output, default-deny agent
+  permissions, and preflight discovery checks.
+- Add packaged migration, troubleshooting, and security guides; expand the
+  README with fixed-version prerequisites, a post-release quick start, the
+  exact 45-resource installation inventory, workflow entry points, and links to
+  operational recovery guidance.
 
 ## 0.1.0 - 2026-08-20
 

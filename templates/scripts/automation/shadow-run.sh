@@ -5,8 +5,8 @@ SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 # shellcheck source=lib.sh
 source "$SCRIPT_DIR/lib.sh"
 
-automation_info "starting read-only shadow preflight"
-"$SCRIPT_DIR/preflight.sh" --shadow
+automation_info "starting read-only shadow preflight" >&2
+"$SCRIPT_DIR/preflight.sh" --shadow >&2
 
 task_count="$(find "$AUTOMATION_TASKS_DIR" -maxdepth 1 -type f -name 'TASK-*.json' | wc -l | tr -d ' ')"
 automation_ensure_runtime_layout
@@ -21,4 +21,4 @@ jq -n \
     --argjson stateCount "$state_count" \
     '{checkedAt: $checkedAt, root: $root, enabled: ($enabled == "true"), mode: $mode, activeContracts: $taskCount, runtimeStates: $stateCount, mutationPerformed: false}'
 
-automation_info "shadow run complete; no repository mutation performed"
+automation_info "shadow run complete; no repository mutation performed" >&2

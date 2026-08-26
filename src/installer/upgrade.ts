@@ -60,6 +60,9 @@ export const UPGRADE_MARKER_RELATIVE_PATH =
 export const UPGRADE_RECOVERY_DIRECTORY =
   `${INSTALLATION_CONTROL_DIRECTORY}/upgrades`;
 
+const UNINSTALL_MARKER_RELATIVE_PATH =
+  `${INSTALLATION_CONTROL_DIRECTORY}/uninstall.json`;
+
 export type ProjectUpgradeErrorCode =
   | "DOCTOR_FAILED"
   | "INSTALLED_FILES_MODIFIED"
@@ -515,17 +518,18 @@ function readStableManifest(targetDirectory: string): {
 }
 
 function assertNoUpgradeMarker(targetDirectory: string): void {
-  const marker = snapshotFile(
-    targetDirectory,
+  const markers = [
     UPGRADE_MARKER_RELATIVE_PATH,
-    true,
+    UNINSTALL_MARKER_RELATIVE_PATH,
+  ].filter(
+    (path) => snapshotFile(targetDirectory, path, true).existed,
   );
-  if (marker.existed) {
+  if (markers.length > 0) {
     throw new ProjectUpgradeError(
       "UPGRADE_IN_PROGRESS",
-      "An unfinished upgrade marker already exists.",
+      "An unfinished installer transaction marker already exists.",
       [
-        join(targetDirectory, ...UPGRADE_MARKER_RELATIVE_PATH.split("/")),
+        ...markers.map((path) => join(targetDirectory, ...path.split("/"))),
         `Inspect recovery evidence below ${join(targetDirectory, UPGRADE_RECOVERY_DIRECTORY)}.`,
       ],
     );

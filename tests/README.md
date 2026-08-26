@@ -41,6 +41,26 @@ older-version replacement, reconstruction of AGENTS and OpenCode merges from
 their first-install originals, preserved recovery lineage, obsolete user-file
 restoration, same-version byte idempotence, managed-file and original-backup
 drift refusal, downgrade refusal, tampered-plan refusal, and complete
-old-version restoration after post-upgrade verification failure. Only safe
-uninstall and the full real OpenCode compatibility matrix remain outside this
-suite.
+old-version restoration after post-upgrade verification failure.
+
+The uninstall suite covers read-only planning from a module directory,
+verified restoration of original merged files, removal of unchanged
+plugin-created files, retention and reporting of content, permission, and
+deletion drift, corrupted-backup refusal, upgrade/uninstall marker exclusion,
+tampered-plan refusal, recovery and history evidence, JSON CLI output, and
+complete installed-state rollback after a post-write failure. Only the full
+real OpenCode compatibility matrix remains outside this suite.
+
+The custom-tool suite verifies exact tool registration, task-ID schema and
+runtime validation, worktree and abort boundaries, structured doctor output,
+installation authentication before status execution, separate shell
+expressions for the fixed script and task ID, fail-closed command and JSON
+handling, the 1 MiB output bound, and unchanged filesystem state when an
+installation is untrusted. Template tests also require explicit access to both
+read-only tools for every scheduled agent.
+
+The documentation suite locks the packaged migration, troubleshooting, and
+security inventory; verifies every local Markdown link; requires fixed-version
+migration paths, safe transaction-marker guidance, CLI exit-code and custom-tool
+diagnostics, explicit trust limitations, and dual-version release gates; and
+rejects local machine identifiers or floating `@latest` references.

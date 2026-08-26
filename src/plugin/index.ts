@@ -7,6 +7,7 @@ import {
   toCompatiblePluginInput,
   type CompatiblePlugin,
 } from "../compatibility/hooks.js";
+import { createReadOnlyTools } from "../tools/index.js";
 
 export const ORCHESTRATOR_DIRECTORY_ENV =
   "OPENCODE_ANDROID_ORCHESTRATOR_DIRECTORY";
@@ -20,11 +21,17 @@ export const ORCHESTRATOR_WORKTREE_ENV =
 export const createCompatiblePlugin: CompatiblePlugin = async ({
   directory,
   worktree,
+  $,
 }) => {
   const projectDirectory = resolve(directory);
   const projectWorktree = resolve(worktree);
 
   return defineCompatibleHooks({
+    tool: createReadOnlyTools({
+      directory: projectDirectory,
+      worktree: projectWorktree,
+      shell: $,
+    }),
     "shell.env": async (_input, output) => {
       output.env[ORCHESTRATOR_DIRECTORY_ENV] = projectDirectory;
       output.env[ORCHESTRATOR_WORKTREE_ENV] = projectWorktree;

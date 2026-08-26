@@ -5,6 +5,8 @@ temperature: 0.1
 steps: 32
 permission:
   "*": deny
+  android_orchestrator_status: allow
+  android_orchestrator_doctor: allow
   read:
     "*": allow
     ".env": deny
