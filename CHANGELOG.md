@@ -32,6 +32,8 @@
   Android module directories, including custom `projectDir` mappings.
 - Remove the legacy Scheduler dependency, project-specific identifiers, and
   local absolute paths from all shipped templates.
+- Treat absent legacy Scheduler tools as disabled during OpenCode discovery
+  while retaining explicit deny rules and rejecting any enabled tool.
 - Add the installation transaction foundation with verified pre-install
   backups, a portable versioned manifest Schema, per-file SHA-256/size/mode and
   recovery metadata, fail-closed plan validation, integrity reporting,

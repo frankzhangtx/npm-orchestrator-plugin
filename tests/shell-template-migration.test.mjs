@@ -63,7 +63,7 @@ const expectedHashes = new Map([
   ],
   [
     "scripts/automation/preflight.sh",
-    "3fc7e6b60fd0995b7a9b7caa655b3068a8f83fd2f8dce02fc872af21db3200ef",
+    "7a3aea76607b2695c305a196b97e5ddf963f0099d55c094aa0157af9c45ea836",
   ],
   [
     "scripts/automation/prepare-contract-review.sh",
@@ -188,6 +188,91 @@ test("all migrated automation files are valid Bash scripts", () => {
       /\/Users\/|zhanglong|cctest|opencode-scheduler/i,
       path,
     );
+  }
+});
+
+test("preflight accepts absent legacy Scheduler tools but rejects enabled ones", () => {
+  const contents = readFileSync(join(automationRoot, "preflight.sh"), "utf8");
+  const commonPermissions = [
+    { permission: "*", pattern: "*", action: "deny" },
+    { permission: "android_orchestrator_status", pattern: "*", action: "allow" },
+    { permission: "android_orchestrator_doctor", pattern: "*", action: "allow" },
+    { permission: "schedule_job", pattern: "*", action: "deny" },
+    { permission: "task", pattern: "*", action: "deny" },
+  ];
+  const commonTools = {
+    android_orchestrator_status: true,
+    android_orchestrator_doctor: true,
+    task: false,
+  };
+  const cases = [
+    {
+      file: "planner-agent.json",
+      tools: { ...commonTools, question: true },
+      permissions: [
+        ...commonPermissions,
+        { permission: "edit", pattern: "docs/plans/**", action: "allow" },
+        { permission: "edit", pattern: "automation/tasks/**", action: "allow" },
+        { permission: "edit", pattern: "**/src/**", action: "deny" },
+        ...[
+          "prepare-contract-review.sh",
+          "approve-and-run.sh",
+          "resume-review.sh",
+          "accept-and-integrate.sh",
+          "abort-task.sh",
+        ].map((script) => ({
+          permission: "bash",
+          pattern: `./scripts/automation/${script} *`,
+          action: "allow",
+        })),
+      ],
+    },
+    {
+      file: "coder-agent.json",
+      tools: commonTools,
+      permissions: [
+        ...commonPermissions,
+        { permission: "edit", pattern: "**/src/main/**", action: "allow" },
+        { permission: "edit", pattern: ".opencode/skills/**", action: "deny" },
+      ],
+    },
+    {
+      file: "reviewer-agent.json",
+      tools: commonTools,
+      permissions: [
+        ...commonPermissions,
+        { permission: "edit", pattern: "*", action: "deny" },
+      ],
+    },
+  ];
+
+  for (const fixture of cases) {
+    const marker = `' "$discovery_dir/${fixture.file}"`;
+    const filterEnd = contents.indexOf(marker);
+    const filterStart = contents.lastIndexOf("    jq -e '", filterEnd);
+    assert.notEqual(filterEnd, -1, `missing jq target for ${fixture.file}`);
+    assert.notEqual(filterStart, -1, `missing jq filter for ${fixture.file}`);
+    const filter = contents.slice(filterStart + "    jq -e '".length, filterEnd);
+
+    const safeResult = spawnSync("jq", ["-e", filter], {
+      encoding: "utf8",
+      input: JSON.stringify({
+        tools: fixture.tools,
+        permission: fixture.permissions,
+      }),
+      shell: false,
+    });
+    assert.equal(safeResult.status, 0, `${fixture.file}: ${safeResult.stderr}`);
+
+    const unsafeResult = spawnSync("jq", ["-e", filter], {
+      encoding: "utf8",
+      input: JSON.stringify({
+        tools: { ...fixture.tools, schedule_job: true },
+        permission: fixture.permissions,
+      }),
+      shell: false,
+    });
+    assert.notEqual(unsafeResult.status, 0, fixture.file);
   }
 });
 

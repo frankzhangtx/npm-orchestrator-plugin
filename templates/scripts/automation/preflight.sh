@@ -165,8 +165,8 @@ else
         (.tools.question == true) and
         (.tools.android_orchestrator_status == true) and
         (.tools.android_orchestrator_doctor == true) and
-        (.tools.schedule_job == false) and
-        (.tools.task == false)
+        ((.tools.schedule_job // false) == false) and
+        ((.tools.task // false) == false)
     ' "$discovery_dir/planner-agent.json" >/dev/null || automation_die "scheduled-planner resolved permissions are unsafe"
 
     jq -e '
@@ -181,9 +181,9 @@ else
         (last_rule("task"; "*") == "deny") and
         (.tools.android_orchestrator_status == true) and
         (.tools.android_orchestrator_doctor == true) and
-        (.tools.schedule_job == false) and
-        (.tools.delete_job == false) and
-        (.tools.task == false)
+        ((.tools.schedule_job // false) == false) and
+        ((.tools.delete_job // false) == false) and
+        ((.tools.task // false) == false)
     ' "$discovery_dir/coder-agent.json" >/dev/null || automation_die "scheduled-coder resolved permissions are unsafe"
 
     jq -e '
@@ -197,9 +197,9 @@ else
         (last_rule("task"; "*") == "deny") and
         (.tools.android_orchestrator_status == true) and
         (.tools.android_orchestrator_doctor == true) and
-        (.tools.schedule_job == false) and
-        (.tools.delete_job == false) and
-        (.tools.task == false)
+        ((.tools.schedule_job // false) == false) and
+        ((.tools.delete_job // false) == false) and
+        ((.tools.task // false) == false)
     ' "$discovery_dir/reviewer-agent.json" >/dev/null || automation_die "scheduled-reviewer resolved permissions are unsafe"
 fi
 
