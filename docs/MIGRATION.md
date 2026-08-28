@@ -1,16 +1,17 @@
 # Migration guide
 
 This guide covers migration to
-`@frankzhang2026/opencode-android-orchestrator@0.2.0` after that exact version
-has been released and accepted. Version `0.2.0` is currently unpublished; do
-not use these commands to switch a live project yet.
+`@frankzhang2026/opencode-android-orchestrator@0.3.0`. Pin the exact version and
+prove the migration in a disposable clone before changing a long-lived
+repository.
 
 ## Choose the migration path
 
 | Current state | Correct command after release | Important distinction |
 | --- | --- | --- |
-| No orchestrator files or manifest | `npx @frankzhang2026/opencode-android-orchestrator@0.2.0 init .` | Normal new installation. |
+| No orchestrator files or manifest | `npx @frankzhang2026/opencode-android-orchestrator@0.3.0 init .` | Normal new installation; all detected Android modules are enabled by default. |
 | Published `0.1.0` scaffold only | Remove any project-local `@0.1.0` plugin reference after review, then run `init`. | `0.1.0` did not create a usable managed installation and cannot be upgraded. |
+| Healthy `0.2.0` manifest-managed installation | Run the fixed `0.3.0` doctor, then `upgrade`. | The missing module-scope field is treated as `primary` unless the upgrade explicitly selects `all`. |
 | Manually copied V3 files, no `.automation-plugin/manifest.json` | Finish active tasks, preserve historical evidence separately, then run `init`. | Exact files can be reused; differing managed files fail as conflicts. |
 | Healthy older manifest-managed installation | Run `doctor`, then the fixed target version's `upgrade`. | `upgrade` requires a valid installed manifest and intact original backups. |
 | Healthy current-version manifest | Run `doctor`; repeated `init` or same-version `upgrade` is verification-only and byte-idempotent. | Do not reinstall or delete the manifest. |
@@ -35,7 +36,7 @@ removes unchanged plugin-created files, and retains drift for manual review.
 5. If a managed manifest already exists, run:
 
    ```sh
-   npx @frankzhang2026/opencode-android-orchestrator@0.2.0 doctor . --json
+   npx @frankzhang2026/opencode-android-orchestrator@0.3.0 doctor . --json
    ```
 
    Do not proceed with `upgrade` unless the installation checks pass.
@@ -51,14 +52,14 @@ scaffold, not as an older managed installation.
 If the project OpenCode configuration contains an exact
 `@frankzhang2026/opencode-android-orchestrator@0.1.0` entry, save the file and
 remove only that obsolete entry in a reviewed Git change before running
-`0.2.0 init`. The merger deliberately rejects a different version of the same
+`0.3.0 init`. The merger deliberately rejects a different version of the same
 managed package; it will not silently replace the reference. A global npm
 installation of `0.1.0` alone does not require project-file cleanup.
 
 After release, initialize with the fixed version:
 
 ```sh
-npx @frankzhang2026/opencode-android-orchestrator@0.2.0 init .
+npx @frankzhang2026/opencode-android-orchestrator@0.3.0 init .
 ```
 
 New installations default to all-module scope, so multiple application modules
@@ -104,8 +105,8 @@ installer to guess which customization should survive.
 Use the lifecycle command selected by the active manifest:
 
 ```sh
-npx @frankzhang2026/opencode-android-orchestrator@0.2.0 doctor . --json
-npx @frankzhang2026/opencode-android-orchestrator@0.2.0 upgrade . --json
+npx @frankzhang2026/opencode-android-orchestrator@0.3.0 doctor . --json
+npx @frankzhang2026/opencode-android-orchestrator@0.3.0 upgrade . --json
 ```
 
 `upgrade` verifies the installed manifest, every managed file, and every
@@ -137,7 +138,7 @@ the source of drift and use the recorded recovery data.
 Run all checks from the detected Git root:
 
 ```sh
-npx @frankzhang2026/opencode-android-orchestrator@0.2.0 doctor .
+npx @frankzhang2026/opencode-android-orchestrator@0.3.0 doctor .
 opencode debug config
 opencode debug agent scheduled-planner
 opencode debug agent scheduled-coder

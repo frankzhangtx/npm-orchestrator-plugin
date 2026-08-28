@@ -1,9 +1,7 @@
 # Troubleshooting
 
 Use this guide for
-`@frankzhang2026/opencode-android-orchestrator@0.2.0`. That version is currently
-unpublished, so lifecycle commands shown here are post-release commands unless
-you are working in an isolated maintainer fixture.
+`@frankzhang2026/opencode-android-orchestrator@0.3.0`.
 
 ## Start with read-only evidence
 
@@ -13,7 +11,7 @@ From the repository root, capture:
 git status --short --branch
 git rev-parse HEAD
 opencode --version
-npx @frankzhang2026/opencode-android-orchestrator@0.2.0 doctor . --json
+npx @frankzhang2026/opencode-android-orchestrator@0.3.0 doctor . --json
 ```
 
 If installation never completed, doctor will correctly report a missing or

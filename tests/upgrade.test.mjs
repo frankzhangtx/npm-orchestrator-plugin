@@ -132,7 +132,7 @@ function simulateOlderInstallation(
   const manifest = JSON.parse(
     readFileSync(join(root, INSTALLATION_MANIFEST_RELATIVE_PATH), "utf8"),
   );
-  manifest.package.version = "0.1.0";
+  manifest.package.version = "0.2.0";
 
   const oldAgent = "legacy scheduled coder\n";
   writeFileSync(join(root, ".opencode/agents/scheduled-coder.md"), oldAgent);
@@ -153,7 +153,7 @@ function simulateOlderInstallation(
   const openCodePath = join(root, "opencode.jsonc");
   const oldOpenCode = readFileSync(openCodePath, "utf8").replace(
     ORCHESTRATOR_PLUGIN_REFERENCE,
-    "@frankzhang2026/opencode-android-orchestrator@0.1.0",
+    "@frankzhang2026/opencode-android-orchestrator@0.2.0",
   );
   writeFileSync(openCodePath, oldOpenCode);
   chmodSync(openCodePath, 0o600);
@@ -234,8 +234,8 @@ test("plans an older-version upgrade without writing recovery or managed files",
     assert.equal(plan.targetDirectory, root);
     assert.equal(plan.moduleScope, "all");
     assert.equal(plan.primaryModule, ":mobile");
-    assert.equal(plan.fromVersion, "0.1.0");
-    assert.equal(plan.toVersion, "0.2.0");
+    assert.equal(plan.fromVersion, "0.2.0");
+    assert.equal(plan.toVersion, "0.3.0");
     assert.equal(plan.desiredFiles.length, 45);
     assert.equal(plan.removedFiles.length, 0);
     assert.equal(existsSync(plan.recoveryDirectory), false);
@@ -301,8 +301,8 @@ test("upgrades unchanged managed files, preserves original merges, and restores 
 
     assert.equal(result.status, "upgraded");
     assert.equal(result.moduleScope, "all");
-    assert.equal(result.fromVersion, "0.1.0");
-    assert.equal(result.toVersion, "0.2.0");
+    assert.equal(result.fromVersion, "0.2.0");
+    assert.equal(result.toVersion, "0.3.0");
     assert.equal(result.managedFileCount, 45);
     assert.equal(result.writtenFileCount, 3);
     assert.equal(result.reusedFileCount, 42);
@@ -316,7 +316,7 @@ test("upgrades unchanged managed files, preserves original merges, and restores 
     assert.equal(lstatSync(join(root, "legacy/user-note.txt")).mode & 0o777, 0o600);
 
     const manifest = readInstallationManifest(root);
-    assert.equal(manifest.package.version, "0.2.0");
+    assert.equal(manifest.package.version, "0.3.0");
     assert.equal(manifest.installation.id, "upgrade-success-001");
     assert.equal(manifest.installation.state, "installed");
     assert.equal(verifyInstallationIntegrity(root).ok, true);
@@ -356,7 +356,7 @@ test("upgrades unchanged managed files, preserves original merges, and restores 
     assert.equal(doctor.ok, true);
     assert.match(formatProjectUpgradeResult(result), /Result: UPGRADED/);
     assert.match(formatProjectUpgradeResult(result), /Module scope: all/);
-    assert.match(formatProjectUpgradeResult(result), /0\.1\.0 -> 0\.2\.0/);
+    assert.match(formatProjectUpgradeResult(result), /0\.2\.0 -> 0\.3\.0/);
   } finally {
     rmSync(root, { recursive: true, force: true });
   }
@@ -637,7 +637,7 @@ test("upgrade refuses to downgrade a newer installed package", () => {
     const manifest = JSON.parse(
       readFileSync(join(root, INSTALLATION_MANIFEST_RELATIVE_PATH), "utf8"),
     );
-    manifest.package.version = "0.3.0";
+    manifest.package.version = "0.4.0";
     writeManifest(root, manifest);
 
     assert.throws(

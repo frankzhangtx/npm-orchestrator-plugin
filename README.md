@@ -2,10 +2,10 @@
 
 Reusable OpenCode orchestration for macOS Android projects.
 
-> **Release warning:** `0.2.0` is still an unpublished development version.
-> Do not run the `npx` examples against a production repository until the
-> release and two-version acceptance gates are complete. Published `0.1.0` is
-> an early scaffold without a working installer.
+Version `0.2.0` is the first published lifecycle release. Version `0.3.0` adds
+default all-module orchestration, configurable Gradle verification tasks, and
+stricter contract/evidence validation while retaining the same certified
+OpenCode compatibility range.
 
 ## Documentation
 
@@ -33,11 +33,11 @@ Run lifecycle commands from the project root or a directory below it. Use a
 clean branch and preserve an independent backup before the first installation,
 even though the installer maintains its own verified recovery data.
 
-## Quick start after release
+## Quick start
 
 ```sh
-npx @frankzhang2026/opencode-android-orchestrator@0.2.0 init .
-npx @frankzhang2026/opencode-android-orchestrator@0.2.0 doctor .
+npx @frankzhang2026/opencode-android-orchestrator@0.3.0 init .
+npx @frankzhang2026/opencode-android-orchestrator@0.3.0 doctor .
 opencode --agent scheduled-planner .
 ```
 
@@ -47,7 +47,7 @@ a task contract without selecting a primary module. To intentionally restrict
 generated contracts to one module, opt into primary-module scope:
 
 ```sh
-npx @frankzhang2026/opencode-android-orchestrator@0.2.0 init . \
+npx @frankzhang2026/opencode-android-orchestrator@0.3.0 init . \
   --module-scope primary \
   --primary-module :mobile
 ```
@@ -74,9 +74,9 @@ does not register Scheduler or launchd jobs.
 
 ## Status
 
-Version `0.1.0` was published as an early scaffold and does not provide a
-working installer. Development now targets `0.2.0`; it must not be published
-until the installer lifecycle and release gates are complete.
+Version `0.1.0` was an early scaffold without a working installer. Version
+`0.2.0` introduced the complete managed lifecycle; version `0.3.0` builds on
+that release with all-module defaults and stronger verification contracts.
 
 The cross-version plugin entry, OpenCode version doctor, Android/Gradle project
 discovery, audited V3 resources, and all deterministic V3 Shell transactions
@@ -93,8 +93,7 @@ only unchanged managed resources, carries original pre-install backups
 forward, and restores the complete previous installation if verification
 fails. The `uninstall` command now restores unchanged original files, removes
 unchanged plugin-created files, and retains any content, permission, or
-deletion drift for manual review. Version `0.2.0` is still local-only and has
-not passed the release gates.
+deletion drift for manual review.
 
 Implemented checks include:
 
@@ -214,7 +213,7 @@ preparation alone as resource installation;
 ## Init
 
 ```sh
-npx @frankzhang2026/opencode-android-orchestrator@0.2.0 init .
+npx @frankzhang2026/opencode-android-orchestrator@0.3.0 init .
 opencode --agent scheduled-planner .
 ```
 
@@ -244,9 +243,8 @@ Verification failure automatically restores originals and records rollback
 history; recovery backups remain below `.automation-plugin/backups/`. Repeating
 `init` on an unchanged, healthy installation performs no managed-file writes.
 
-Version `0.2.0` has not been published, so the `npx` example is the intended
-post-release command rather than an instruction to publish or switch a live
-project now.
+Pin the exact package version in long-lived repositories and review the
+generated installation diff before starting the scheduled planner.
 
 ## Doctor
 
@@ -301,7 +299,8 @@ preflight verifies both resolved permissions and tool discovery.
 
 ### Phase 2 mutating-tool decision
 
-The 2026-08-25 evaluation is **NO-GO for mutating custom tools in `0.2.0`**.
+The 2026-08-25 evaluation remains **NO-GO for mutating custom tools in
+`0.3.0`**.
 The fixed Shell allowlist remains the only entry point for state transitions,
 Git mutations, and agent launches. OpenCode custom tools provide typed arguments
 and workspace context, but a normal permission prompt is not the workflow's
@@ -371,9 +370,6 @@ the command again on the current, unchanged version is byte-idempotent: it
 rechecks prerequisites and post-install verification without creating upgrade
 history or recovery state.
 
-Version `0.2.0` has not been published. These commands document the intended
-post-release lifecycle and are not instructions to upgrade a live project yet.
-
 ## Uninstall
 
 ```sh
@@ -402,10 +398,6 @@ Any failure before that commit restores the complete installed state. Original
 installation backups and uninstall evidence are intentionally retained for
 audit and manual recovery; user-created or pre-existing empty directories are
 never guessed at or recursively removed.
-
-Version `0.2.0` has not been published. This command documents the intended
-post-release lifecycle and is not an instruction to uninstall a live project
-through the unpublished package.
 
 ## Development
 

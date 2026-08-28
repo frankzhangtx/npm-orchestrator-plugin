@@ -1,6 +1,23 @@
 # Changelog
 
-## 0.2.0 - Unreleased
+## 0.3.0 - 2026-08-28
+
+- Add `all` and `primary` module scopes and make all-module task contracts the
+  default for new installations. Multi-application projects no longer require
+  a primary selection; upgrades from configurations without the scope field
+  remain in `primary` mode unless explicitly widened.
+- Add configurable Gradle verification task matrices to `init` and `upgrade`,
+  and bind focused-test contract entries to both an allowed Gradle task and a
+  test filter.
+- Harden task-contract validation, source-scope enforcement, RED evidence,
+  verification output, and integration checks while preserving protected
+  Gradle and orchestration files.
+- Retry OpenCode configuration discovery only for its known transient SQLite
+  checkpoint failure.
+- Expand multi-module, lifecycle, CLI, schema, migration, and compatibility
+  coverage to 124 Node tests and the audited 38-case Shell suite.
+
+## 0.2.0 - 2026-08-26
 
 - Add the complete MIT license, packaged third-party notices, public repository
   metadata, draft release notes, and a fail-closed `0.2.0` authorization record.
@@ -28,10 +45,6 @@
 - Add a read-only adaptive template planner that derives the project name,
   modules, namespaces/application IDs, protected Gradle files, source-set
   paths, and focused-test placeholder without writing the target repository.
-- Add `all` and `primary` module scopes, make all-module task contracts the
-  default for new installations, remove mandatory primary selection from
-  multi-application projects, and preserve legacy upgrades as `primary` unless
-  they explicitly opt into broader scope.
 - Make agent permissions and deterministic scope gates work with detected
   Android module directories, including custom `projectDir` mappings.
 - Remove the legacy Scheduler dependency, project-specific identifiers, and
