@@ -41,13 +41,20 @@ npx @frankzhang2026/opencode-android-orchestrator@0.2.0 doctor .
 opencode --agent scheduled-planner .
 ```
 
-If more than one Android application module is detected, select the intended
-primary module explicitly:
+New installations use all-module scope by default. Every detected Android
+module's `src/main`, `src/test`, and `src/androidTest` trees can be included in
+a task contract without selecting a primary module. To intentionally restrict
+generated contracts to one module, opt into primary-module scope:
 
 ```sh
 npx @frankzhang2026/opencode-android-orchestrator@0.2.0 init . \
+  --module-scope primary \
   --primary-module :mobile
 ```
+
+In all-module scope, `--primary-module` is optional and only chooses the
+default module used by the focused-test placeholder; it does not narrow which
+detected modules may be modified.
 
 The install transaction manages 45 project-local paths:
 
@@ -106,9 +113,10 @@ Implemented checks include:
   gates consume detected source-set paths instead of a fixed module name
 - a portable automation configuration source, both Schemas, contract example,
   plan guide, and bounded AGENTS managed block
-- adaptive configuration for every detected Android module, an unambiguous or
-  explicitly selected primary module, exact protected build files, production
-  and test source sets, and a namespace-aware focused-test placeholder
+- adaptive configuration for every detected Android module, default
+  all-module task paths, opt-in primary-module restriction, exact protected
+  build files, production/test source sets, and a namespace-aware focused-test
+  placeholder
 - removal of the legacy Scheduler dependency and all local absolute paths from
   shipped templates
 - read-only `opencode.json`/`opencode.jsonc` merge planning that preserves
@@ -146,9 +154,10 @@ Implemented checks include:
   evidence, and automatically restores the installed state on pre-commit
   failure
 
-The planners deliberately avoid filesystem writes. The adaptive planner also
-blocks ambiguous primary modules, paths outside the Git root, and nested Gradle
-roots that the current root-relative transaction scripts cannot safely run.
+The planners deliberately avoid filesystem writes. The adaptive planner blocks
+ambiguous primary-module selections only in `primary` scope, as well as paths
+outside the Git root and nested Gradle roots that the current root-relative
+transaction scripts cannot safely run.
 The transaction layer writes only installer control state and recovery
 evidence until `init`, `upgrade`, or `uninstall` explicitly applies a validated
 plan.
@@ -161,7 +170,8 @@ import {
 } from "@frankzhang2026/opencode-android-orchestrator";
 
 const plan = planAdaptiveProjectTemplates("/path/to/android-project", {
-  primaryModule: ":mobile", // optional when exactly one application is found
+  moduleScope: "all", // optional; this is the default
+  primaryModule: ":mobile", // optional focused-test default in all mode
 });
 
 console.log(plan.automationConfigContent);
@@ -208,10 +218,14 @@ npx @frankzhang2026/opencode-android-orchestrator@0.2.0 init .
 opencode --agent scheduled-planner .
 ```
 
-For a multi-application project, select the primary module explicitly:
+All detected modules are enabled by default, including multi-application
+projects. Use the restrictive mode only when a task contract must stay within
+one module:
 
 ```sh
-opencode-android-orchestrator init . --primary-module :mobile
+opencode-android-orchestrator init . \
+  --module-scope primary \
+  --primary-module :mobile
 ```
 
 Before writing, `init` requires a compatible OpenCode version, a Git-backed
@@ -323,14 +337,19 @@ than public tools.
 
 ```sh
 opencode-android-orchestrator upgrade /path/to/android-project
-opencode-android-orchestrator upgrade . --primary-module :mobile --json
+opencode-android-orchestrator upgrade . --module-scope all --json
 ```
 
 `upgrade` accepts either the Git root or a directory below it. It first validates
 the installed manifest, every managed file, and every original-file backup. It
 refuses downgrades, user-modified managed resources, damaged backups, ambiguous
-Android modules, same-version resource rewrites, and an unfinished upgrade
-marker before creating recovery state.
+Android modules in restrictive `primary` scope, same-version resource rewrites,
+and an unfinished upgrade marker before creating recovery state.
+
+Upgrade preserves the installed module scope. Installations created before the
+scope field existed are interpreted as `primary` so an upgrade cannot silently
+widen write access; pass `--module-scope all` during a real version upgrade to
+opt in explicitly.
 
 For an older healthy installation, the command:
 

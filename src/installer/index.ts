@@ -17,6 +17,8 @@ export {
 
 export {
   AdaptiveProjectTemplateError,
+  DEFAULT_MODULE_SCOPE,
+  isModuleScope,
   planAdaptiveProjectTemplates,
   type AdaptiveAndroidModuleConfiguration,
   type AdaptiveAndroidProjectConfiguration,
@@ -24,7 +26,10 @@ export {
   type AdaptiveProjectTemplateErrorCode,
   type AdaptiveProjectTemplateOptions,
   type AdaptiveProjectTemplatePlan,
+  type AdaptiveTargetTest,
   type AdaptiveTaskContractExample,
+  type GradleVerificationConfiguration,
+  type ModuleScope,
 } from "./adaptive-templates.js";
 
 export {
@@ -129,6 +134,7 @@ export {
   ORCHESTRATOR_PACKAGE_NAME,
   ORCHESTRATOR_PACKAGE_VERSION,
   ORCHESTRATOR_PLUGIN_REFERENCE,
+  OPENCODE_CONFIG_SCHEMA_URL,
   REQUIRED_PLUGIN_REFERENCES,
   SUPERPOWERS_PLUGIN_REFERENCE,
   OpenCodeConfigMergeError,

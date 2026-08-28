@@ -1,5 +1,7 @@
 #!/usr/bin/env node
 
+import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
 import process from "node:process";
 
 import { INSTALLER_COMMANDS } from "./commands/index.js";
@@ -9,6 +11,11 @@ import {
   runProjectInitialization,
   type ProjectInitializationOptions,
 } from "./installer/init.js";
+import {
+  isModuleScope,
+  type GradleVerificationConfiguration,
+  type ModuleScope,
+} from "./installer/adaptive-templates.js";
 import {
   formatProjectUpgradeResult,
   runProjectUpgrade,
@@ -34,8 +41,9 @@ function printInitHelp(): void {
   process.stdout.write(`OpenCode Android Orchestrator init\n\n`);
   process.stdout.write(`Usage:\n`);
   process.stdout.write(
-    `  opencode-android-orchestrator init [directory] [--primary-module <gradle-path>] [--json]\n`,
+    `  opencode-android-orchestrator init [directory] [--module-scope <all|primary>] [--primary-module <gradle-path>] [--gradle-verification-config <json-path>] [--json]\n`,
   );
+  process.stdout.write(`\nDefault module scope: all\n`);
 }
 
 function printDoctorHelp(): void {
@@ -50,7 +58,10 @@ function printUpgradeHelp(): void {
   process.stdout.write(`OpenCode Android Orchestrator upgrade\n\n`);
   process.stdout.write(`Usage:\n`);
   process.stdout.write(
-    `  opencode-android-orchestrator upgrade [directory] [--primary-module <gradle-path>] [--json]\n`,
+    `  opencode-android-orchestrator upgrade [directory] [--module-scope <all|primary>] [--primary-module <gradle-path>] [--gradle-verification-config <json-path>] [--json]\n`,
+  );
+  process.stdout.write(
+    `\nPreserves the installed module scope; legacy installations default to primary.\n`,
   );
 }
 
@@ -90,6 +101,22 @@ function printCommandError(error: unknown): void {
   }
 }
 
+function readGradleVerificationConfiguration(
+  path: string,
+): GradleVerificationConfiguration {
+  const absolutePath = resolve(path);
+  try {
+    return JSON.parse(
+      readFileSync(absolutePath, "utf8"),
+    ) as GradleVerificationConfiguration;
+  } catch (error) {
+    const detail = error instanceof Error ? error.message : String(error);
+    throw new Error(
+      `Unable to read Gradle verification configuration ${absolutePath}: ${detail}`,
+    );
+  }
+}
+
 const [command, ...commandArguments] = process.argv.slice(2);
 
 if (command === undefined || command === "--help" || command === "-h") {
@@ -100,7 +127,9 @@ if (command === undefined || command === "--help" || command === "-h") {
     process.exitCode = 0;
   } else {
     let targetDirectory: string | undefined;
+    let moduleScope: ModuleScope | undefined;
     let primaryModule: string | undefined;
+    let gradleVerificationConfigPath: string | undefined;
     let json = false;
     const unexpected: string[] = [];
 
@@ -108,6 +137,25 @@ if (command === undefined || command === "--help" || command === "-h") {
       const argument = commandArguments[index] ?? "";
       if (argument === "--json") {
         json = true;
+      } else if (argument === "--module-scope") {
+        const value = commandArguments[index + 1];
+        if (value === undefined || value.startsWith("-")) {
+          unexpected.push(argument);
+        } else {
+          if (isModuleScope(value)) {
+            moduleScope = value;
+          } else {
+            unexpected.push(`${argument} ${value}`);
+          }
+          index += 1;
+        }
+      } else if (argument.startsWith("--module-scope=")) {
+        const value = argument.slice("--module-scope=".length);
+        if (isModuleScope(value)) {
+          moduleScope = value;
+        } else {
+          unexpected.push(argument);
+        }
       } else if (argument === "--primary-module") {
         const value = commandArguments[index + 1];
         if (value === undefined || value.startsWith("-")) {
@@ -122,6 +170,21 @@ if (command === undefined || command === "--help" || command === "-h") {
           unexpected.push(argument);
         } else {
           primaryModule = value;
+        }
+      } else if (argument === "--gradle-verification-config") {
+        const value = commandArguments[index + 1];
+        if (value === undefined || value.startsWith("-")) {
+          unexpected.push(argument);
+        } else {
+          gradleVerificationConfigPath = value;
+          index += 1;
+        }
+      } else if (argument.startsWith("--gradle-verification-config=")) {
+        const value = argument.slice("--gradle-verification-config=".length);
+        if (value.length === 0) {
+          unexpected.push(argument);
+        } else {
+          gradleVerificationConfigPath = value;
         }
       } else if (argument.startsWith("-")) {
         unexpected.push(argument);
@@ -138,11 +201,19 @@ if (command === undefined || command === "--help" || command === "-h") {
       );
       process.exitCode = 2;
     } else {
-      const options: ProjectInitializationOptions = {};
-      if (primaryModule !== undefined) {
-        options.primaryModule = primaryModule;
-      }
       try {
+        const options: ProjectInitializationOptions = {};
+        if (moduleScope !== undefined) {
+          options.moduleScope = moduleScope;
+        }
+        if (primaryModule !== undefined) {
+          options.primaryModule = primaryModule;
+        }
+        if (gradleVerificationConfigPath !== undefined) {
+          options.gradleVerification = readGradleVerificationConfiguration(
+            gradleVerificationConfigPath,
+          );
+        }
         const result = runProjectInitialization(
           targetDirectory ?? process.cwd(),
           options,
@@ -165,7 +236,9 @@ if (command === undefined || command === "--help" || command === "-h") {
     process.exitCode = 0;
   } else {
     let targetDirectory: string | undefined;
+    let moduleScope: ModuleScope | undefined;
     let primaryModule: string | undefined;
+    let gradleVerificationConfigPath: string | undefined;
     let json = false;
     const unexpected: string[] = [];
 
@@ -173,6 +246,25 @@ if (command === undefined || command === "--help" || command === "-h") {
       const argument = commandArguments[index] ?? "";
       if (argument === "--json") {
         json = true;
+      } else if (argument === "--module-scope") {
+        const value = commandArguments[index + 1];
+        if (value === undefined || value.startsWith("-")) {
+          unexpected.push(argument);
+        } else {
+          if (isModuleScope(value)) {
+            moduleScope = value;
+          } else {
+            unexpected.push(`${argument} ${value}`);
+          }
+          index += 1;
+        }
+      } else if (argument.startsWith("--module-scope=")) {
+        const value = argument.slice("--module-scope=".length);
+        if (isModuleScope(value)) {
+          moduleScope = value;
+        } else {
+          unexpected.push(argument);
+        }
       } else if (argument === "--primary-module") {
         const value = commandArguments[index + 1];
         if (value === undefined || value.startsWith("-")) {
@@ -187,6 +279,21 @@ if (command === undefined || command === "--help" || command === "-h") {
           unexpected.push(argument);
         } else {
           primaryModule = value;
+        }
+      } else if (argument === "--gradle-verification-config") {
+        const value = commandArguments[index + 1];
+        if (value === undefined || value.startsWith("-")) {
+          unexpected.push(argument);
+        } else {
+          gradleVerificationConfigPath = value;
+          index += 1;
+        }
+      } else if (argument.startsWith("--gradle-verification-config=")) {
+        const value = argument.slice("--gradle-verification-config=".length);
+        if (value.length === 0) {
+          unexpected.push(argument);
+        } else {
+          gradleVerificationConfigPath = value;
         }
       } else if (argument.startsWith("-")) {
         unexpected.push(argument);
@@ -203,11 +310,19 @@ if (command === undefined || command === "--help" || command === "-h") {
       );
       process.exitCode = 2;
     } else {
-      const options: ProjectUpgradeOptions = {};
-      if (primaryModule !== undefined) {
-        options.primaryModule = primaryModule;
-      }
       try {
+        const options: ProjectUpgradeOptions = {};
+        if (moduleScope !== undefined) {
+          options.moduleScope = moduleScope;
+        }
+        if (primaryModule !== undefined) {
+          options.primaryModule = primaryModule;
+        }
+        if (gradleVerificationConfigPath !== undefined) {
+          options.gradleVerification = readGradleVerificationConfiguration(
+            gradleVerificationConfigPath,
+          );
+        }
         const result = runProjectUpgrade(
           targetDirectory ?? process.cwd(),
           options,

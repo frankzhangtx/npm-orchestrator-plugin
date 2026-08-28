@@ -91,7 +91,10 @@ test("CLI exposes init options and rejects an incomplete module selection", () =
 
   assert.equal(help.status, 0);
   assert.match(help.stdout, /init \[directory\]/);
+  assert.match(help.stdout, /--module-scope <all\|primary>/);
+  assert.match(help.stdout, /Default module scope: all/);
   assert.match(help.stdout, /--primary-module <gradle-path>/);
+  assert.match(help.stdout, /--gradle-verification-config <json-path>/);
   assert.match(help.stdout, /--json/);
 
   const invalid = spawnSync(
@@ -101,6 +104,14 @@ test("CLI exposes init options and rejects an incomplete module selection", () =
   );
   assert.equal(invalid.status, 2);
   assert.match(invalid.stderr, /Unexpected init argument/);
+
+  const invalidScope = spawnSync(
+    process.execPath,
+    ["dist/cli.js", "init", "--module-scope", "unsupported"],
+    { encoding: "utf8" },
+  );
+  assert.equal(invalidScope.status, 2);
+  assert.match(invalidScope.stderr, /Unexpected init argument/);
 });
 
 test("CLI exposes upgrade options and rejects an incomplete module selection", () => {
@@ -112,7 +123,10 @@ test("CLI exposes upgrade options and rejects an incomplete module selection", (
 
   assert.equal(help.status, 0);
   assert.match(help.stdout, /upgrade \[directory\]/);
+  assert.match(help.stdout, /--module-scope <all\|primary>/);
+  assert.match(help.stdout, /legacy installations default to primary/);
   assert.match(help.stdout, /--primary-module <gradle-path>/);
+  assert.match(help.stdout, /--gradle-verification-config <json-path>/);
   assert.match(help.stdout, /--json/);
 
   const invalid = spawnSync(
@@ -122,6 +136,14 @@ test("CLI exposes upgrade options and rejects an incomplete module selection", (
   );
   assert.equal(invalid.status, 2);
   assert.match(invalid.stderr, /Unexpected upgrade argument/);
+
+  const invalidScope = spawnSync(
+    process.execPath,
+    ["dist/cli.js", "upgrade", "--module-scope=unsupported"],
+    { encoding: "utf8" },
+  );
+  assert.equal(invalidScope.status, 2);
+  assert.match(invalidScope.stderr, /Unexpected upgrade argument/);
 });
 
 test("CLI exposes uninstall options and rejects unknown flags", () => {

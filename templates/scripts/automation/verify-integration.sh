@@ -12,26 +12,27 @@ head="${3:-}"
 automation_validate_task_id "$task_id"
 [[ "$(automation_read_state "$task_id")" == "INTEGRATING" ]] || automation_die "$task_id is not INTEGRATING"
 contract="$(automation_contract_path "$task_id")"
+"$SCRIPT_DIR/validate-contract.sh" "$task_id" >/dev/null
 
 "$SCRIPT_DIR/integration-scope-gate.sh" "$task_id" "$base" "$head"
 
-while IFS= read -r filter; do
-    automation_info "running integration focused test: $filter"
-    ./gradlew testDebugUnitTest --tests "$filter"
-done < <(jq -r '.targetTests[]' "$contract")
+while IFS=$'\t' read -r gradle_task filter; do
+    automation_info "running integration focused test ($gradle_task): $filter"
+    automation_run_focused_test "$gradle_task" "$filter" "$AUTOMATION_ROOT"
+done < <(jq -r '.targetTests[] | [.gradleTask, .filter] | @tsv' "$contract")
 
 automation_info "running integration full unit tests"
-./gradlew testDebugUnitTest
+automation_run_gradle_group "fullUnitTestTasks" "$AUTOMATION_ROOT"
 
-automation_info "building integration debug APK"
-./gradlew assembleDebug
+automation_info "running configured integration assemble tasks"
+automation_run_gradle_group "assembleTasks" "$AUTOMATION_ROOT"
 
-automation_info "running integration Android lint"
-./gradlew lint
+automation_info "running configured integration Android lint tasks"
+automation_run_gradle_group "lintTasks" "$AUTOMATION_ROOT"
 
 if [[ "$(jq -r '.deviceTestsRequired' "$contract")" == "true" ]]; then
-    automation_info "running integration connected device tests"
-    ./gradlew connectedDebugAndroidTest
+    automation_info "running configured integration device tests"
+    automation_run_gradle_group "deviceTestTasks" "$AUTOMATION_ROOT"
 fi
 
 automation_info "integration candidate passed all deterministic verification"

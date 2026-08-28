@@ -16,15 +16,15 @@ if [[ -z "$task_id" || -z "$expected" || "$separator" != "--" || -z "$filter" ||
 fi
 
 automation_validate_task_id "$task_id"
-safe_filter_pattern='^[A-Za-z0-9_.#$*-]+$'
-[[ "$filter" =~ $safe_filter_pattern ]] || automation_die "unsafe test filter: $filter"
+automation_validate_test_filter "$filter"
 [[ ${#expected} -ge 3 ]] || automation_die "expected failure text is too short"
 [[ "$(automation_read_state "$task_id")" == "CODING" ]] || automation_die "$task_id is not CODING"
 "$SCRIPT_DIR/validate-contract.sh" "$task_id"
 
 contract="$(automation_contract_path "$task_id")"
-jq -e --arg filter "$filter" '.targetTests | index($filter) != null' "$contract" >/dev/null || \
-    automation_die "test filter is not declared in the contract: $filter"
+target_count="$(jq -er --arg filter "$filter" '[.targetTests[] | select(.filter == $filter)] | length' "$contract")"
+[[ "$target_count" -eq 1 ]] || automation_die "test filter must identify exactly one declared contract target: $filter"
+gradle_task="$(jq -er --arg filter "$filter" '.targetTests[] | select(.filter == $filter) | .gradleTask' "$contract")"
 
 evidence_dir="$(automation_evidence_path "$task_id")"
 mkdir -p "$evidence_dir"
@@ -34,10 +34,7 @@ red_meta="$evidence_dir/red.json"
 started_at="$(automation_now)"
 
 set +e
-(
-    cd "$AUTOMATION_ROOT"
-    ./gradlew testDebugUnitTest --tests "$filter"
-) 2>&1 | tee "$red_log"
+automation_run_focused_test "$gradle_task" "$filter" "$AUTOMATION_ROOT" 2>&1 | tee "$red_log"
 red_status=${PIPESTATUS[0]}
 set -e
 
@@ -49,9 +46,10 @@ jq -n \
     --arg startedAt "$started_at" \
     --arg finishedAt "$(automation_now)" \
     --arg expectedFailure "$expected" \
+    --arg gradleTask "$gradle_task" \
     --arg testFilter "$filter" \
     --argjson exitCode "$red_status" \
-    '{taskId: $taskId, startedAt: $startedAt, finishedAt: $finishedAt, command: ["./gradlew", "testDebugUnitTest", "--tests", $testFilter], expectedFailure: $expectedFailure, exitCode: $exitCode}' \
+    '{taskId: $taskId, startedAt: $startedAt, finishedAt: $finishedAt, command: ["./gradlew", $gradleTask, "--tests", $testFilter], expectedFailure: $expectedFailure, exitCode: $exitCode}' \
     | automation_record_json "$red_meta"
 
 automation_info "$task_id RED evidence recorded"

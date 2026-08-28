@@ -105,6 +105,13 @@ plugin options. It rejects malformed/ambiguous files, duplicate identities,
 different managed-plugin versions, and symlinks. AGENTS merging owns only one
 marked block and rejects partial, duplicate, or modified markers.
 
+New installations generate task examples in `all` module scope: every detected
+Android module's `src/main`, `src/test`, and `src/androidTest` path is eligible,
+while Gradle settings/build files and orchestration resources remain protected.
+`primary` scope narrows the generated paths to one module. Upgrade treats a
+legacy configuration with no scope field as `primary`, preventing an implicit
+permission expansion.
+
 The installed manifest is `0600`. Installer control, backup, recovery, and
 history directories are created with private `0700` defaults; backup files
 preserve the original file mode where recovery requires it. Shell resources

@@ -10,19 +10,19 @@ const templatesRoot = fileURLToPath(new URL("../templates/", import.meta.url));
 const expectedBaselineHashes = new Map([
   [
     "automation/config.json",
-    "af0edec723043c8664ea6960fcdf9aec0e05e32491cfe56a5cbd87ecd429fcb4",
+    "b155888e4047b6864bef02c50b1f204e4fc010c916049c4872165e15c387dfee",
   ],
   [
     "automation/config.schema.json",
-    "98a3acfe3a5a263dac779424abe5c65251c58d2777194b929876379640a422fc",
+    "af8cb68fc1c658d7bc5d2567eaad793a259d8e732caf5cc2b4f3d305e31bbce8",
   ],
   [
     "automation/task-contract.schema.json",
-    "52812feca6c7de0a87e731d9306e889f3af4eaee9c954a80fd166b3adcba161c",
+    "3399b9ab137805fdf58324961f02bfeee5b4e5421cbfb4494483ba3a6af13121",
   ],
   [
     "automation/tasks/TASK-TEMPLATE.json.example",
-    "4a160d51aad027b2500acd488e364cce291bfcaacaa870a1a6f93d21df3378da",
+    "ec02d32b5db8aec24db1cb0303cbaaef58fd3e94f5b08e86833197d2fec8cfea",
   ],
   [
     "docs/plans/README.md",
@@ -106,8 +106,25 @@ test("keeps configuration, schemas, and contract example structurally aligned", 
     "docs/plans/TASK-EXAMPLE-001.md",
   );
   assert.ok(contractExample.forbiddenPaths.includes("AGENTS.md"));
+  assert.ok(configSchema.required.includes("gradleVerification"));
   assert.ok(configSchema.required.includes("androidProject"));
   assert.equal(Object.hasOwn(config, "androidProject"), false);
+  assert.deepEqual(
+    configSchema.properties.androidProject.properties.moduleScope.enum,
+    ["all", "primary"],
+  );
+  assert.equal(
+    configSchema.properties.androidProject.required.includes("moduleScope"),
+    false,
+    "moduleScope stays optional so pre-feature V3 configurations remain valid",
+  );
+  assert.deepEqual(config.gradleVerification, {
+    fullUnitTestTasks: ["testDebugUnitTest"],
+    focusedTestTasks: ["testDebugUnitTest"],
+    assembleTasks: ["assembleDebug"],
+    lintTasks: ["lint"],
+    deviceTestTasks: ["connectedDebugAndroidTest"],
+  });
   assert.deepEqual(configSchema.properties.plugins.required, ["superpowers"]);
 });
 
@@ -143,7 +160,12 @@ test("keeps the render sources project-independent and Scheduler-free", () => {
     "**/src/test/**",
     "**/src/androidTest/**",
   ]);
-  assert.deepEqual(contractExample.targetTests, ["*ReplaceWithFocusedTest"]);
+  assert.deepEqual(contractExample.targetTests, [
+    {
+      gradleTask: "testDebugUnitTest",
+      filter: "*ReplaceWithFocusedTest",
+    },
+  ]);
   assert.doesNotMatch(
     combinedResources,
     /\/Users\/|zhanglong|cctest|opencode-scheduler/i,

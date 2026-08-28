@@ -17,38 +17,23 @@ evidence_dir="$(automation_evidence_path "$task_id")"
 
 "$SCRIPT_DIR/scope-gate.sh" "$task_id"
 
-while IFS= read -r filter; do
-    automation_info "running focused test: $filter"
-    (
-        cd "$AUTOMATION_ROOT"
-        ./gradlew testDebugUnitTest --tests "$filter"
-    )
-done < <(jq -r '.targetTests[]' "$contract")
+while IFS=$'\t' read -r gradle_task filter; do
+    automation_info "running focused test ($gradle_task): $filter"
+    automation_run_focused_test "$gradle_task" "$filter" "$AUTOMATION_ROOT"
+done < <(jq -r '.targetTests[] | [.gradleTask, .filter] | @tsv' "$contract")
 
 automation_info "running full unit tests"
-(
-    cd "$AUTOMATION_ROOT"
-    ./gradlew testDebugUnitTest
-)
+automation_run_gradle_group "fullUnitTestTasks" "$AUTOMATION_ROOT"
 
-automation_info "building debug APK"
-(
-    cd "$AUTOMATION_ROOT"
-    ./gradlew assembleDebug
-)
+automation_info "running configured assemble tasks"
+automation_run_gradle_group "assembleTasks" "$AUTOMATION_ROOT"
 
-automation_info "running Android lint"
-(
-    cd "$AUTOMATION_ROOT"
-    ./gradlew lint
-)
+automation_info "running configured Android lint tasks"
+automation_run_gradle_group "lintTasks" "$AUTOMATION_ROOT"
 
 if [[ "$(jq -r '.deviceTestsRequired' "$contract")" == "true" ]]; then
-    automation_info "running connected device tests"
-    (
-        cd "$AUTOMATION_ROOT"
-        ./gradlew connectedDebugAndroidTest
-    )
+    automation_info "running configured device tests"
+    automation_run_gradle_group "deviceTestTasks" "$AUTOMATION_ROOT"
 fi
 
 automation_info "all deterministic verification commands passed"

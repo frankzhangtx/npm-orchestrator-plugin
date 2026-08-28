@@ -29,6 +29,23 @@
     "systematic-debugging",
     "verification-before-completion"
   ],
+  "gradleVerification": {
+    "fullUnitTestTasks": [
+      "testDebugUnitTest"
+    ],
+    "focusedTestTasks": [
+      "testDebugUnitTest"
+    ],
+    "assembleTasks": [
+      "assembleDebug"
+    ],
+    "lintTasks": [
+      "lint"
+    ],
+    "deviceTestTasks": [
+      "connectedDebugAndroidTest"
+    ]
+  },
   "protectedPaths": [
     ".opencode/",
     ".automation-plugin/",

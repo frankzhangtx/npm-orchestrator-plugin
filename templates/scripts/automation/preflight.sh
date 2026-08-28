@@ -124,7 +124,7 @@ else
     discovery_dir="$(mktemp -d "${TMPDIR:-/tmp}/opencode-android-orchestrator-preflight.XXXXXX")"
     trap 'rm -rf "$discovery_dir"' EXIT
 
-    if ! opencode debug config > "$discovery_dir/config.json" 2> "$discovery_dir/config.err"; then
+    if ! automation_resolve_opencode_config "$discovery_dir/config.json" "$discovery_dir/config.err"; then
         automation_die "OpenCode resolved config failed; see $discovery_dir/config.err"
     fi
     superpowers_pin="$(jq -r '.plugins.superpowers' "$AUTOMATION_CONFIG")"

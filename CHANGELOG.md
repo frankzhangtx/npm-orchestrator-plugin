@@ -28,6 +28,10 @@
 - Add a read-only adaptive template planner that derives the project name,
   modules, namespaces/application IDs, protected Gradle files, source-set
   paths, and focused-test placeholder without writing the target repository.
+- Add `all` and `primary` module scopes, make all-module task contracts the
+  default for new installations, remove mandatory primary selection from
+  multi-application projects, and preserve legacy upgrades as `primary` unless
+  they explicitly opt into broader scope.
 - Make agent permissions and deterministic scope gates work with detected
   Android module directories, including custom `projectDir` mappings.
 - Remove the legacy Scheduler dependency, project-specific identifiers, and

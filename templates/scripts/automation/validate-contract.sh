@@ -13,6 +13,7 @@ input="${1:-}"
 [[ -n "$input" ]] || { usage; exit 2; }
 automation_require_command jq
 automation_require_layout
+automation_validate_config
 
 if [[ "$input" == */* || "$input" == *.json || "$input" == *.example ]]; then
     contract="$input"
@@ -39,7 +40,12 @@ jq -e '
     (.allowedSuperpowers == ["test-driven-development", "systematic-debugging", "verification-before-completion"]) and
     (.acceptanceCriteria | type == "array" and length > 0) and
     (.nonGoals | type == "array" and length > 0) and
-    (.targetTests | type == "array" and length > 0) and
+    (.targetTests | type == "array" and length > 0 and all(.[];
+        type == "object" and
+        keys == ["filter", "gradleTask"] and
+        (.gradleTask | type == "string" and test("^(?:[A-Za-z][A-Za-z0-9_.-]*|(?::[A-Za-z0-9_.-]+)+)$")) and
+        (.filter | type == "string" and test("^[A-Za-z0-9_.#$*-]+$")))) and
+    ([.targetTests[].filter] | length == (unique | length)) and
     (.deviceTestsRequired | type == "boolean") and
     (.testPolicy == "required" or .testPolicy == "not-required") and
     (if .testPolicy == "not-required" then (.testPolicyReason | type == "string" and length >= 20) else true end)
@@ -68,10 +74,15 @@ while IFS= read -r protected; do
     fi
 done < <(jq -r '.protectedPaths[]' "$AUTOMATION_CONFIG")
 
-safe_filter_pattern='^[A-Za-z0-9_.#$*-]+$'
-while IFS= read -r filter; do
-    [[ "$filter" =~ $safe_filter_pattern ]] || automation_die "unsafe target test filter: $filter"
-done < <(jq -r '.targetTests[]' "$contract")
+while IFS=$'\t' read -r gradle_task filter; do
+    automation_validate_gradle_task "$gradle_task"
+    automation_validate_test_filter "$filter"
+    jq -e \
+        --arg task "$gradle_task" \
+        '.gradleVerification.focusedTestTasks | index($task) != null' \
+        "$AUTOMATION_CONFIG" >/dev/null || \
+        automation_die "target test Gradle task is not allowed by automation/config.json: $gradle_task"
+done < <(jq -r '.targetTests[] | [.gradleTask, .filter] | @tsv' "$contract")
 
 if rg -n -i 'replace with|TASK-EXAMPLE|todo|tbd|placeholder' "$contract" >/dev/null; then
     automation_die "contract still contains template placeholders"

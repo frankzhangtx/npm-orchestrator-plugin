@@ -137,10 +137,18 @@ jq -n '{
         "systematic-debugging",
         "verification-before-completion"
     ],
+    gradleVerification: {
+        fullUnitTestTasks: ["testDebugUnitTest"],
+        focusedTestTasks: ["testDebugUnitTest"],
+        assembleTasks: ["assembleDebug"],
+        lintTasks: ["lint"],
+        deviceTestTasks: ["connectedDebugAndroidTest"]
+    },
     androidProject: {
         name: "automation-shell-fixture",
         gradleDsl: "kotlin",
         settingsFile: "settings.gradle.kts",
+        moduleScope: "all",
         primaryModule: ":mobile-client",
         modules: [{
             gradlePath: ":mobile-client",
@@ -217,7 +225,10 @@ jq -n '{
     ],
     acceptanceCriteria: ["Greeting returns the approved value"],
     nonGoals: ["No unrelated refactoring"],
-    targetTests: ["dev.example.orchestratorfixture.GreetingTest"],
+    targetTests: [{
+        gradleTask: "testDebugUnitTest",
+        filter: "dev.example.orchestratorfixture.GreetingTest"
+    }],
     deviceTestsRequired: false,
     testPolicy: "required",
     testPolicyReason: "The behavior requires a focused regression test"
@@ -273,11 +284,17 @@ pass 'illegal state transition is rejected'
 run_fixture ./scripts/automation/claim-task.sh TASK-TEST-001 >/dev/null
 [[ "$(jq -r '.state' "$runtime_root/state/TASK-TEST-001.json")" == "CODING" ]] || fail 'claim did not create CODING state'
 [[ -f "$runtime_root/evidence/TASK-TEST-001/baseline.json" ]] || fail 'baseline metadata missing'
+jq -e \
+    '.command == ["./gradlew", "testDebugUnitTest"]' \
+    "$runtime_root/evidence/TASK-TEST-001/baseline.json" >/dev/null || fail 'baseline command does not match the configured task matrix'
 pass 'claim verifies workspace identity and records a green baseline'
 
 printf '%s\n' 'class GreetingTest { fun expectedBehavior() = Unit }' > "$fixture/mobile-client/src/test/java/dev/example/orchestratorfixture/GreetingTest.kt"
 run_fixture ./scripts/automation/record-red.sh TASK-TEST-001 'expected missing behavior' -- dev.example.orchestratorfixture.GreetingTest >/dev/null
 [[ "$(jq -r '.exitCode' "$runtime_root/evidence/TASK-TEST-001/red.json")" -ne 0 ]] || fail 'RED evidence exit code was not captured'
+jq -e \
+    '.command == ["./gradlew", "testDebugUnitTest", "--tests", "dev.example.orchestratorfixture.GreetingTest"]' \
+    "$runtime_root/evidence/TASK-TEST-001/red.json" >/dev/null || fail 'RED command does not bind the configured task and filter'
 pass 'focused failing test records genuine RED evidence'
 
 printf '%s\n' 'unsafe' > "$fixture/automation/forbidden-change.txt"
@@ -338,7 +355,7 @@ jq \
     '.id = "TASK-TEST-002" |
      .title = "Exercise the bounded verification failure loop" |
      .planPath = "docs/plans/TASK-TEST-002.md" |
-     .targetTests = ["dev.example.orchestratorfixture.FailureLoopTest"]' \
+     .targetTests = [{gradleTask: "testDebugUnitTest", filter: "dev.example.orchestratorfixture.FailureLoopTest"}]' \
     "$fixture/automation/tasks/TASK-TEST-001.json" \
     > "$fixture/automation/tasks/TASK-TEST-002.json"
 (
@@ -375,7 +392,7 @@ jq \
     '.id = "TASK-TEST-003" |
      .title = "Verify dirty worktree preflight blocking" |
      .planPath = "docs/plans/TASK-TEST-003.md" |
-     .targetTests = ["dev.example.orchestratorfixture.PreflightBlockTest"]' \
+     .targetTests = [{gradleTask: "testDebugUnitTest", filter: "dev.example.orchestratorfixture.PreflightBlockTest"}]' \
     "$fixture/automation/tasks/TASK-TEST-001.json" \
     > "$fixture/automation/tasks/TASK-TEST-003.json"
 (
@@ -402,7 +419,7 @@ jq \
     '.id = "TASK-TEST-005" |
      .title = "Exercise the bounded reviewer repair cycle" |
      .planPath = "docs/plans/TASK-TEST-005.md" |
-     .targetTests = ["dev.example.orchestratorfixture.ReviewerFixTest"]' \
+     .targetTests = [{gradleTask: "testDebugUnitTest", filter: "dev.example.orchestratorfixture.ReviewerFixTest"}]' \
     "$fixture/automation/tasks/TASK-TEST-001.json" \
     > "$fixture/automation/tasks/TASK-TEST-005.json"
 (
@@ -452,7 +469,7 @@ jq \
     '.id = "TASK-TEST-004" |
      .title = "Exercise in-place transactional integration" |
      .planPath = "docs/plans/TASK-TEST-004.md" |
-     .targetTests = ["dev.example.orchestratorfixture.OrchestratedFlowTest"]' \
+     .targetTests = [{gradleTask: "testDebugUnitTest", filter: "dev.example.orchestratorfixture.OrchestratedFlowTest"}]' \
     "$fixture/automation/tasks/TASK-TEST-001.json" \
     > "$fixture/automation/tasks/TASK-TEST-004.json"
 
@@ -557,7 +574,7 @@ jq \
     '.id = "TASK-TEST-008" |
      .title = "Archive an interrupted in-place task" |
      .planPath = "docs/plans/TASK-TEST-008.md" |
-     .targetTests = ["dev.example.orchestratorfixture.AbortArchiveTest"]' \
+     .targetTests = [{gradleTask: "testDebugUnitTest", filter: "dev.example.orchestratorfixture.AbortArchiveTest"}]' \
     "$fixture/automation/tasks/TASK-TEST-001.json" \
     > "$fixture/automation/tasks/TASK-TEST-008.json"
 run_fixture ./scripts/automation/prepare-contract-review.sh TASK-TEST-008 '批准方案，生成计划和任务合同。' >/dev/null
@@ -586,7 +603,7 @@ jq \
     '.id = "TASK-TEST-009" |
      .title = "Abort before product editing" |
      .planPath = "docs/plans/TASK-TEST-009.md" |
-     .targetTests = ["dev.example.orchestratorfixture.PlanningOnlyAbortTest"]' \
+     .targetTests = [{gradleTask: "testDebugUnitTest", filter: "dev.example.orchestratorfixture.PlanningOnlyAbortTest"}]' \
     "$fixture/automation/tasks/TASK-TEST-001.json" \
     > "$fixture/automation/tasks/TASK-TEST-009.json"
 run_fixture ./scripts/automation/prepare-contract-review.sh TASK-TEST-009 '批准方案，生成计划和任务合同。' >/dev/null
@@ -611,7 +628,7 @@ jq \
     '.id = "TASK-TEST-007" |
      .title = "Keep optional isolated workspace support" |
      .planPath = "docs/plans/TASK-TEST-007.md" |
-     .targetTests = ["dev.example.orchestratorfixture.IsolatedFlowTest"]' \
+     .targetTests = [{gradleTask: "testDebugUnitTest", filter: "dev.example.orchestratorfixture.IsolatedFlowTest"}]' \
     "$fixture/automation/tasks/TASK-TEST-001.json" \
     > "$fixture/automation/tasks/TASK-TEST-007.json"
 run_fixture ./scripts/automation/prepare-contract-review.sh TASK-TEST-007 '批准方案，生成计划和任务合同。' >/dev/null
@@ -654,7 +671,7 @@ jq \
     '.id = "TASK-TEST-006" |
      .title = "Block an advanced original branch" |
      .planPath = "docs/plans/TASK-TEST-006.md" |
-     .targetTests = ["dev.example.orchestratorfixture.AdvancedOriginalTest"]' \
+     .targetTests = [{gradleTask: "testDebugUnitTest", filter: "dev.example.orchestratorfixture.AdvancedOriginalTest"}]' \
     "$fixture/automation/tasks/TASK-TEST-001.json" \
     > "$fixture/automation/tasks/TASK-TEST-006.json"
 run_fixture ./scripts/automation/prepare-contract-review.sh TASK-TEST-006 '批准方案，生成计划和任务合同。' >/dev/null

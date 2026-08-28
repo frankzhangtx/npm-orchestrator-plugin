@@ -18,6 +18,8 @@ export const ORCHESTRATOR_PACKAGE_NAME =
 export const ORCHESTRATOR_PACKAGE_VERSION = "0.2.0";
 export const ORCHESTRATOR_PLUGIN_REFERENCE =
   `${ORCHESTRATOR_PACKAGE_NAME}@${ORCHESTRATOR_PACKAGE_VERSION}`;
+export const OPENCODE_CONFIG_SCHEMA_URL =
+  "https://opencode.ai/config.json";
 export const SUPERPOWERS_PLUGIN_REFERENCE =
   "superpowers@git+https://github.com/obra/superpowers.git#v6.2.0";
 export const REQUIRED_PLUGIN_REFERENCES = [
@@ -323,6 +325,8 @@ export function mergeOpenCodeConfigText(
   options: OpenCodeConfigMergeOptions = {},
 ): OpenCodeConfigMergeResult {
   const validated = parseAndValidateConfig(source);
+  const hasSchema =
+    findNodeAtLocation(validated.root, ["$schema"]) !== undefined;
   const desiredReferences = requiredReferences(options);
   const existingByIdentity = new Map(
     validated.pluginReferences.map((reference) => [
@@ -350,7 +354,7 @@ export function mergeOpenCodeConfigText(
     }
   }
 
-  if (addedPluginReferences.length === 0) {
+  if (addedPluginReferences.length === 0 && hasSchema) {
     return {
       content: source,
       changed: false,
@@ -364,12 +368,27 @@ export function mergeOpenCodeConfigText(
   };
   let content = source;
 
-  if (validated.pluginNode === undefined) {
+  if (!hasSchema) {
+    content = applyEdits(
+      content,
+      modify(
+        content,
+        ["$schema"],
+        OPENCODE_CONFIG_SCHEMA_URL,
+        modificationOptions,
+      ),
+    );
+  }
+
+  if (
+    addedPluginReferences.length > 0 &&
+    validated.pluginNode === undefined
+  ) {
     content = applyEdits(
       content,
       modify(content, ["plugin"], addedPluginReferences, modificationOptions),
     );
-  } else {
+  } else if (addedPluginReferences.length > 0) {
     let insertionIndex = validated.pluginReferences.length;
     for (const reference of addedPluginReferences) {
       content = applyEdits(

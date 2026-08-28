@@ -30,12 +30,10 @@ baseline_meta="$evidence_dir/baseline.json"
 protected_hashes="$evidence_dir/protected.sha256"
 started_at="$(automation_now)"
 head_commit="$(git -C "$AUTOMATION_ROOT" rev-parse HEAD)"
+baseline_command="$(automation_gradle_group_command_json "fullUnitTestTasks")"
 
 set +e
-(
-    cd "$AUTOMATION_ROOT"
-    ./gradlew testDebugUnitTest
-) 2>&1 | tee "$baseline_log"
+automation_run_gradle_group "fullUnitTestTasks" "$AUTOMATION_ROOT" 2>&1 | tee "$baseline_log"
 baseline_status=${PIPESTATUS[0]}
 set -e
 
@@ -45,8 +43,9 @@ if [[ "$baseline_status" -ne 0 ]]; then
         --arg startedAt "$started_at" \
         --arg finishedAt "$(automation_now)" \
         --arg head "$head_commit" \
+        --argjson command "$baseline_command" \
         --argjson exitCode "$baseline_status" \
-        '{taskId: $taskId, startedAt: $startedAt, finishedAt: $finishedAt, head: $head, command: "./gradlew testDebugUnitTest", exitCode: $exitCode}' \
+        '{taskId: $taskId, startedAt: $startedAt, finishedAt: $finishedAt, head: $head, command: $command, exitCode: $exitCode}' \
         | automation_record_json "$baseline_meta"
     automation_transition_state "$task_id" "CODING" "BLOCKED" "preflight" "baseline unit tests failed"
     automation_die "baseline unit tests failed"
@@ -68,7 +67,8 @@ jq -n \
     --arg finishedAt "$(automation_now)" \
     --arg head "$head_commit" \
     --arg worktree "$AUTOMATION_ROOT" \
-    '{taskId: $taskId, startedAt: $startedAt, finishedAt: $finishedAt, head: $head, worktree: $worktree, command: "./gradlew testDebugUnitTest", exitCode: 0}' \
+    --argjson command "$baseline_command" \
+    '{taskId: $taskId, startedAt: $startedAt, finishedAt: $finishedAt, head: $head, worktree: $worktree, command: $command, exitCode: 0}' \
     | automation_record_json "$baseline_meta"
 
 automation_info "$task_id claimed; baseline is green"

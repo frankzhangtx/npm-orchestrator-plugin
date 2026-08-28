@@ -85,7 +85,7 @@ printf -- '- Reviewer：`%s`，独立复验退出码 `%s`\n' \
     "$(jq -r '.evidence.reviewerVerificationExitCode' "$report_file")"
 printf -- '- Reviewer 摘要：%s\n' "$(jq -r '.reviewSummary' "$report_file")"
 printf -- '- 聚焦测试：\n'
-jq -r '.targetTests[] | "  - `\(.)`"' "$report_file"
+jq -r '.targetTests[] | "  - `./gradlew \(.gradleTask) --tests \(.filter)`"' "$report_file"
 
 printf '\n### P1 · 绑定与剩余风险\n\n'
 printf -- '- 当前 diff 与质量门、独立 Review、验收包的 SHA 三方一致。\n'

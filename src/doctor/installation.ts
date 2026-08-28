@@ -7,7 +7,10 @@ import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 
 import {
+  isModuleScope,
   planAdaptiveProjectTemplates,
+  type GradleVerificationConfiguration,
+  type ModuleScope,
 } from "../installer/adaptive-templates.js";
 import { planAgentsConfigMerge } from "../installer/agents-config.js";
 import {
@@ -537,15 +540,41 @@ function managedConfigurationCheck(
     if (typeof primaryModule !== "string") {
       throw new Error("androidProject.primaryModule must be a string");
     }
+    const configuredModuleScope = automationConfig.androidProject.moduleScope;
+    let moduleScope: ModuleScope;
+    let comparableAutomationConfig: Record<string, unknown> = automationConfig;
+    if (configuredModuleScope === undefined) {
+      moduleScope = "primary";
+      comparableAutomationConfig = {
+        ...automationConfig,
+        androidProject: {
+          ...automationConfig.androidProject,
+          moduleScope,
+        },
+      };
+    } else if (isModuleScope(configuredModuleScope)) {
+      moduleScope = configuredModuleScope;
+    } else {
+      throw new Error(
+        "androidProject.moduleScope must be either all or primary",
+      );
+    }
+    if (!isRecord(automationConfig.gradleVerification)) {
+      throw new Error("automation config must contain a gradleVerification object");
+    }
     const expected = planAdaptiveProjectTemplates(targetDirectory, {
+      moduleScope,
       primaryModule,
+      gradleVerification:
+        automationConfig.gradleVerification as unknown as GradleVerificationConfiguration,
     });
-    if (!jsonMatches(automationConfig, expected.automationConfig)) {
+    if (!jsonMatches(comparableAutomationConfig, expected.automationConfig)) {
       failures.push(
         "automation/config.json: configuration no longer matches the detected Android project and packaged safe defaults.",
       );
     } else {
-      details.push(`Automation primary module: ${primaryModule}`);
+      details.push(`Automation module scope: ${moduleScope}`);
+      details.push(`Automation default module: ${primaryModule}`);
     }
 
     const taskExample = JSON.parse(
@@ -556,7 +585,7 @@ function managedConfigurationCheck(
     ) as unknown;
     if (!jsonMatches(taskExample, expected.taskContractExample)) {
       failures.push(
-        "automation/tasks/TASK-TEMPLATE.json.example: example no longer matches the detected primary module.",
+        "automation/tasks/TASK-TEMPLATE.json.example: example no longer matches the detected module scope.",
       );
     }
   } catch (error) {

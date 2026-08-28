@@ -41,8 +41,9 @@ remain human-readable on stderr with a stable code such as `[FILE_CONFLICT]`.
 | OpenCode version failure | Installed version is below `1.14.22`, at or above `1.16.0`, or cannot be parsed/executed. | Install a certified version (`1.14.22` or `1.15.13`) for release validation. Do not bypass the version gate. |
 | Git root or Android project not detected | The target is outside a Git repository, settings are missing, or no supported Android module was found. | Run from the intended repository/module and inspect `settings.gradle` or `settings.gradle.kts`. Nested Gradle roots are intentionally unsupported. |
 | Gradle Wrapper failure | `gradlew` or `gradle/wrapper/gradle-wrapper.properties` is missing, or `gradlew` is not executable. | Restore the project's reviewed Wrapper files. Do not let the installer generate or replace build configuration. |
-| `PRIMARY_MODULE_AMBIGUOUS` | Multiple Android application modules exist. | Rerun `init` or `upgrade` with an exact Gradle path such as `--primary-module :mobile`. |
-| `PRIMARY_MODULE_NOT_FOUND` | The selected Gradle path is absent or not an application module. | Use a module path reported by doctor/project detection; do not pass a filesystem directory. |
+| `MODULE_SCOPE_INVALID` or an invalid `--module-scope` argument | The value is not `all` or `primary`. | Use `all` for the default all-module contract or `primary` for an intentional single-module restriction. |
+| `PRIMARY_MODULE_AMBIGUOUS` | Restrictive `primary` scope has multiple possible Android modules. | Supply an exact Gradle path, for example `--module-scope primary --primary-module :mobile`, or use the default `all` scope. |
+| `PRIMARY_MODULE_NOT_FOUND` | The selected Gradle path was not detected. | Use a module path reported by doctor/project detection; do not pass a filesystem directory. |
 | Android SDK failure | No valid explicit SDK, `ANDROID_HOME`, `ANDROID_SDK_ROOT`, or `local.properties` `sdk.dir` was found. | Configure one real SDK root containing `platforms/` and `build-tools/`. Do not publish `local.properties`. |
 | Missing `git`, `jq`, `rg`, `shasum`, or Java | Required deterministic command is unavailable on `PATH`. | Install or restore the missing command, record its version, and rerun the read-only checks. |
 

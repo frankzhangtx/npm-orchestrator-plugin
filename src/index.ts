@@ -70,6 +70,8 @@ export {
 } from "./installer/agents-config.js";
 export {
   AdaptiveProjectTemplateError,
+  DEFAULT_MODULE_SCOPE,
+  isModuleScope,
   planAdaptiveProjectTemplates,
   type AdaptiveAndroidModuleConfiguration,
   type AdaptiveAndroidProjectConfiguration,
@@ -78,6 +80,8 @@ export {
   type AdaptiveProjectTemplateOptions,
   type AdaptiveProjectTemplatePlan,
   type AdaptiveTaskContractExample,
+  type GradleVerificationConfiguration,
+  type ModuleScope,
 } from "./installer/adaptive-templates.js";
 export {
   detectAndroidProject,
@@ -181,6 +185,7 @@ export {
   ORCHESTRATOR_PACKAGE_NAME,
   ORCHESTRATOR_PACKAGE_VERSION,
   ORCHESTRATOR_PLUGIN_REFERENCE,
+  OPENCODE_CONFIG_SCHEMA_URL,
   REQUIRED_PLUGIN_REFERENCES,
   SUPERPOWERS_PLUGIN_REFERENCE,
   OpenCodeConfigMergeError,

@@ -18,6 +18,7 @@ import {
   ORCHESTRATOR_PACKAGE_NAME,
   ORCHESTRATOR_PACKAGE_VERSION,
   ORCHESTRATOR_PLUGIN_REFERENCE,
+  OPENCODE_CONFIG_SCHEMA_URL,
   SUPERPOWERS_PLUGIN_REFERENCE,
   OpenCodeConfigMergeError,
   mergeOpenCodeConfigText,
@@ -76,6 +77,7 @@ test("is byte-for-byte idempotent once the required plugins exist", () => {
   const initial = mergeOpenCodeConfigText("{}\n");
   const repeated = mergeOpenCodeConfigText(initial.content);
 
+  assert.equal(JSON.parse(initial.content).$schema, OPENCODE_CONFIG_SCHEMA_URL);
   assert.equal(repeated.changed, false);
   assert.deepEqual(repeated.addedPluginReferences, []);
   assert.equal(repeated.content, initial.content);
@@ -98,6 +100,7 @@ test("preserves JSONC comments, trailing commas, order, and plugin options", () 
   assert.match(result.content, /\/\/ Keep this project setting\./);
   assert.match(result.content, /\/\/ keep options/);
   assert.match(result.content, /"enabled": true/);
+  assert.equal(config.$schema, OPENCODE_CONFIG_SCHEMA_URL);
   assert.ok(
     result.content.includes(`"${ORCHESTRATOR_PLUGIN_REFERENCE}",\n    ],`),
   );
@@ -111,6 +114,7 @@ test("preserves JSONC comments, trailing commas, order, and plugin options", () 
 test("treats an exact plugin tuple reference as already installed", () => {
   const source = `${JSON.stringify(
     {
+      $schema: OPENCODE_CONFIG_SCHEMA_URL,
       plugin: [
         [SUPERPOWERS_PLUGIN_REFERENCE, { enabled: true }],
         [ORCHESTRATOR_PLUGIN_REFERENCE, { mode: "safe" }],
@@ -186,6 +190,10 @@ test("plans a new opencode.json without writing it", () => {
     assert.equal(plan.configPath, join(directory, "opencode.json"));
     assert.equal(plan.originalContent, "{}\n");
     assert.equal(plan.changed, true);
+    assert.equal(
+      JSON.parse(plan.content).$schema,
+      OPENCODE_CONFIG_SCHEMA_URL,
+    );
     assert.equal(existsSync(plan.configPath), false);
   });
 });
@@ -204,6 +212,7 @@ test("plans an existing opencode.jsonc without modifying it", () => {
     assert.equal(plan.originalContent, source);
     assert.equal(readFileSync(configPath, "utf8"), source);
     assert.match(plan.content, /\/\/ retained/);
+    assert.equal(parse(plan.content).$schema, OPENCODE_CONFIG_SCHEMA_URL);
   });
 });
 
@@ -245,6 +254,7 @@ test("keeps package identity parsing and pinned constants aligned", () => {
   );
   assert.equal(ORCHESTRATOR_PACKAGE_NAME, packageJson.name);
   assert.equal(ORCHESTRATOR_PACKAGE_VERSION, packageJson.version);
+  assert.equal(OPENCODE_CONFIG_SCHEMA_URL, "https://opencode.ai/config.json");
   assert.equal(
     ORCHESTRATOR_PLUGIN_REFERENCE,
     `${packageJson.name}@${packageJson.version}`,

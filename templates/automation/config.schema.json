@@ -13,6 +13,17 @@
     "nullableIdentifier": {
       "type": ["string", "null"],
       "minLength": 1
+    },
+    "gradleTask": {
+      "type": "string",
+      "minLength": 1,
+      "pattern": "^(?:[A-Za-z][A-Za-z0-9_.-]*|(?::[A-Za-z0-9_.-]+)+)$"
+    },
+    "gradleTaskList": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": { "$ref": "#/$defs/gradleTask" }
     }
   },
   "required": [
@@ -30,6 +41,7 @@
     "approvalPhrases",
     "plugins",
     "requiredSkills",
+    "gradleVerification",
     "androidProject",
     "protectedPaths"
   ],
@@ -72,6 +84,24 @@
       "uniqueItems": true,
       "items": { "type": "string", "minLength": 1 }
     },
+    "gradleVerification": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "fullUnitTestTasks",
+        "focusedTestTasks",
+        "assembleTasks",
+        "lintTasks",
+        "deviceTestTasks"
+      ],
+      "properties": {
+        "fullUnitTestTasks": { "$ref": "#/$defs/gradleTaskList" },
+        "focusedTestTasks": { "$ref": "#/$defs/gradleTaskList" },
+        "assembleTasks": { "$ref": "#/$defs/gradleTaskList" },
+        "lintTasks": { "$ref": "#/$defs/gradleTaskList" },
+        "deviceTestTasks": { "$ref": "#/$defs/gradleTaskList" }
+      }
+    },
     "androidProject": {
       "type": "object",
       "additionalProperties": false,
@@ -88,6 +118,7 @@
         "name": { "type": "string", "minLength": 1 },
         "gradleDsl": { "enum": ["kotlin", "groovy", "mixed"] },
         "settingsFile": { "$ref": "#/$defs/repositoryPath" },
+        "moduleScope": { "enum": ["all", "primary"] },
         "primaryModule": {
           "type": "string",
           "pattern": "^:(?:[A-Za-z0-9_.-]+(?::[A-Za-z0-9_.-]+)*)?$"

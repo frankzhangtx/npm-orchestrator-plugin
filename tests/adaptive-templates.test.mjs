@@ -71,19 +71,34 @@ test("renders portable configuration and a focused task example from Kotlin proj
   const root = createAdaptiveKotlinFixture();
   try {
     const before = listFixture(root);
-    const plan = planAdaptiveProjectTemplates(join(root, "clients/mobile"));
+    const gradleVerification = {
+      fullUnitTestTasks: [":mobile:testDebugUnitTest"],
+      focusedTestTasks: [":mobile:testDebugUnitTest"],
+      assembleTasks: [":mobile:assembleDebug"],
+      lintTasks: [":mobile:lint"],
+      deviceTestTasks: [":mobile:connectedDebugAndroidTest"],
+    };
+    const plan = planAdaptiveProjectTemplates(join(root, "clients/mobile"), {
+      gradleVerification,
+    });
 
     assert.deepEqual(listFixture(root), before, "render planning must be read-only");
     assert.equal(plan.projectRoot, root);
+    assert.equal(plan.moduleScope, "all");
     assert.equal(plan.primaryModule.gradlePath, ":mobile");
     assert.deepEqual(plan.automationConfig.plugins, {
       superpowers:
         "superpowers@git+https://github.com/obra/superpowers.git#v6.2.0",
     });
+    assert.deepEqual(
+      plan.automationConfig.gradleVerification,
+      gradleVerification,
+    );
     assert.deepEqual(plan.automationConfig.androidProject, {
       name: "Adaptive Fixture",
       gradleDsl: "kotlin",
       settingsFile: "settings.gradle.kts",
+      moduleScope: "all",
       primaryModule: ":mobile",
       modules: [
         {
@@ -122,12 +137,18 @@ test("renders portable configuration and a focused task example from Kotlin proj
       ),
     );
     assert.deepEqual(plan.taskContractExample.allowedPaths, [
+      "feature/profile/src/main/**",
       "clients/mobile/src/main/**",
+      "feature/profile/src/test/**",
+      "feature/profile/src/androidTest/**",
       "clients/mobile/src/test/**",
       "clients/mobile/src/androidTest/**",
     ]);
     assert.deepEqual(plan.taskContractExample.targetTests, [
-      "dev.adaptive.mobile.ReplaceWithFocusedTest",
+      {
+        gradleTask: ":mobile:testDebugUnitTest",
+        filter: "dev.adaptive.mobile.ReplaceWithFocusedTest",
+      },
     ]);
     assert.doesNotMatch(plan.automationConfigContent, /opencode-scheduler/);
     assert.doesNotMatch(plan.automationConfigContent, new RegExp(root));
@@ -140,7 +161,7 @@ test("renders portable configuration and a focused task example from Kotlin proj
   }
 });
 
-test("requires an explicit primary module when a Groovy project has multiple applications", () => {
+test("defaults multi-application projects to all-module scope without requiring a primary module", () => {
   const root = mkdtempSync(join(tmpdir(), "orchestrator-adaptive-groovy-"));
   try {
     mkdirSync(join(root, ".git"));
@@ -161,8 +182,26 @@ test("requires an explicit primary module when a Groovy project has multiple app
     );
     addWrapper(root);
 
+    const allModulePlan = planAdaptiveProjectTemplates(root);
+    assert.equal(allModulePlan.moduleScope, "all");
+    assert.equal(allModulePlan.primaryModule.gradlePath, ":phone");
+    assert.equal(
+      allModulePlan.automationConfig.androidProject.moduleScope,
+      "all",
+    );
+    assert.ok(
+      allModulePlan.taskContractExample.allowedPaths.includes(
+        "phone/src/main/**",
+      ),
+    );
+    assert.ok(
+      allModulePlan.taskContractExample.allowedPaths.includes(
+        "clients/tablet/src/main/**",
+      ),
+    );
+
     assert.throws(
-      () => planAdaptiveProjectTemplates(root),
+      () => planAdaptiveProjectTemplates(root, { moduleScope: "primary" }),
       (error) =>
         error instanceof AdaptiveProjectTemplateError &&
         error.code === "PRIMARY_MODULE_AMBIGUOUS" &&
@@ -171,12 +210,36 @@ test("requires an explicit primary module when a Groovy project has multiple app
     );
 
     const plan = planAdaptiveProjectTemplates(root, {
+      moduleScope: "primary",
       primaryModule: ":tablet",
     });
+    assert.equal(plan.moduleScope, "primary");
     assert.equal(plan.primaryModule.directory, "clients/tablet");
-    assert.deepEqual(plan.taskContractExample.targetTests, [
-      "dev.adaptive.tablet.ReplaceWithFocusedTest",
+    assert.deepEqual(plan.taskContractExample.allowedPaths, [
+      "clients/tablet/src/main/**",
+      "clients/tablet/src/test/**",
+      "clients/tablet/src/androidTest/**",
     ]);
+    assert.deepEqual(plan.taskContractExample.targetTests, [
+      {
+        gradleTask: "testDebugUnitTest",
+        filter: "dev.adaptive.tablet.ReplaceWithFocusedTest",
+      },
+    ]);
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
+});
+
+test("rejects unsupported module scopes", () => {
+  const root = createAdaptiveKotlinFixture();
+  try {
+    assert.throws(
+      () => planAdaptiveProjectTemplates(root, { moduleScope: "unsupported" }),
+      (error) =>
+        error instanceof AdaptiveProjectTemplateError &&
+        error.code === "MODULE_SCOPE_INVALID",
+    );
   } finally {
     rmSync(root, { recursive: true, force: true });
   }

@@ -25,8 +25,11 @@ Migrated template roots:
 `automation/config.json` is an input to the adaptive renderer, not a directly
 installable configuration. `planAdaptiveProjectTemplates` injects the required
 `androidProject` metadata, repository-relative build files, protected paths,
-all detected production/test source sets, and primary-module task paths. The
-renderer rejects ambiguous primary modules unless the caller selects one.
+all detected production/test source sets, and a module scope. New renders use
+`all` scope and generate task paths for every detected module without requiring
+a primary selection. `primary` scope restricts paths to one module and retains
+the ambiguity guard. The selected/default module still supplies the focused
+test placeholder in both modes.
 
 The legacy Scheduler field has been removed while Superpowers remains pinned.
 The scope gates consume generated source-set arrays, and the Shell test fixture

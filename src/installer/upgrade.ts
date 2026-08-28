@@ -54,6 +54,11 @@ import {
   ORCHESTRATOR_PACKAGE_VERSION,
   mergeOpenCodeConfigText,
 } from "./opencode-config.js";
+import {
+  isModuleScope,
+  type GradleVerificationConfiguration,
+  type ModuleScope,
+} from "./adaptive-templates.js";
 
 export const UPGRADE_MARKER_RELATIVE_PATH =
   `${INSTALLATION_CONTROL_DIRECTORY}/upgrade.json`;
@@ -96,7 +101,9 @@ export class ProjectUpgradeError extends Error {
 
 export interface ProjectUpgradeOptions {
   androidSdkDirectory?: string;
+  gradleVerification?: GradleVerificationConfiguration;
   installedAt?: string;
+  moduleScope?: ModuleScope;
   opencodeExecutable?: string;
   preparedAt?: string;
   primaryModule?: string;
@@ -134,6 +141,7 @@ export interface PlannedUpgradeRemoval {
 export interface ProjectUpgradePlan {
   status: "already-current" | "upgrade";
   targetDirectory: string;
+  moduleScope: ModuleScope;
   primaryModule: string;
   fromVersion: string;
   toVersion: string;
@@ -164,6 +172,7 @@ export interface AppliedProjectUpgrade {
 export interface ProjectUpgradeResult {
   status: "upgraded" | "already-current";
   targetDirectory: string;
+  moduleScope: ModuleScope;
   primaryModule: string;
   fromVersion: string;
   toVersion: string;
@@ -630,15 +639,21 @@ function textFromOriginal(
     : Buffer.from(original.content).toString("utf8");
 }
 
-function configuredPrimaryModule(
+interface ConfiguredAdaptiveOptions {
+  moduleScope?: ModuleScope;
+  primaryModule?: string;
+  gradleVerification?: GradleVerificationConfiguration;
+}
+
+function configuredAdaptiveOptions(
   targetDirectory: string,
   manifest: InstallationManifest,
-): string | undefined {
+): ConfiguredAdaptiveOptions {
   const file = manifest.files.find(
     (candidate) => candidate.path === "automation/config.json",
   );
   if (file === undefined) {
-    return undefined;
+    return { moduleScope: "primary" };
   }
   const snapshot = snapshotFile(targetDirectory, file.path);
   if (!manifestFileMatchesSnapshot(file, snapshot) || snapshot.content === null) {
@@ -647,13 +662,14 @@ function configuredPrimaryModule(
       "The installed automation configuration changed before upgrade planning.",
     );
   }
+  let value: {
+    androidProject?: { moduleScope?: unknown; primaryModule?: unknown };
+    gradleVerification?: unknown;
+  };
   try {
-    const value = JSON.parse(Buffer.from(snapshot.content).toString("utf8")) as {
-      androidProject?: { primaryModule?: unknown };
-    };
-    return typeof value.androidProject?.primaryModule === "string"
-      ? value.androidProject.primaryModule
-      : undefined;
+    value = JSON.parse(
+      Buffer.from(snapshot.content).toString("utf8"),
+    ) as typeof value;
   } catch (error) {
     throw new ProjectUpgradeError(
       "INSTALLATION_INVALID",
@@ -661,6 +677,27 @@ function configuredPrimaryModule(
       [error instanceof Error ? error.message : String(error)],
     );
   }
+
+  const configured: ConfiguredAdaptiveOptions = {};
+  const configuredModuleScope = value.androidProject?.moduleScope;
+  if (configuredModuleScope === undefined) {
+    configured.moduleScope = "primary";
+  } else if (isModuleScope(configuredModuleScope)) {
+    configured.moduleScope = configuredModuleScope;
+  } else {
+    throw new ProjectUpgradeError(
+      "INSTALLATION_INVALID",
+      "androidProject.moduleScope must be either all or primary.",
+    );
+  }
+  if (typeof value.androidProject?.primaryModule === "string") {
+    configured.primaryModule = value.androidProject.primaryModule;
+  }
+  if (value.gradleVerification !== undefined) {
+    configured.gradleVerification =
+      value.gradleVerification as GradleVerificationConfiguration;
+  }
+  return configured;
 }
 
 function desiredMergeInputs(
@@ -925,12 +962,26 @@ export function planProjectUpgrade(
     );
   }
 
-  const primaryModule =
-    options.primaryModule ??
-    configuredPrimaryModule(requestedTarget, stable.manifest);
+  const configured = configuredAdaptiveOptions(
+    requestedTarget,
+    stable.manifest,
+  );
+  const adaptiveOptions: ConfiguredAdaptiveOptions = {};
+  const moduleScope =
+    options.moduleScope ?? configured.moduleScope ?? "primary";
+  adaptiveOptions.moduleScope = moduleScope;
+  const primaryModule = options.primaryModule ?? configured.primaryModule;
+  if (primaryModule !== undefined) {
+    adaptiveOptions.primaryModule = primaryModule;
+  }
+  const gradleVerification =
+    options.gradleVerification ?? configured.gradleVerification;
+  if (gradleVerification !== undefined) {
+    adaptiveOptions.gradleVerification = gradleVerification;
+  }
   const resources = planProjectResourceInputs(
     requestedTarget,
-    primaryModule === undefined ? {} : { primaryModule },
+    adaptiveOptions,
   );
   if (resources.targetDirectory !== requestedTarget) {
     throw new ProjectUpgradeError(
@@ -984,6 +1035,7 @@ export function planProjectUpgrade(
   return {
     status: sameVersion ? "already-current" : "upgrade",
     targetDirectory: requestedTarget,
+    moduleScope: resources.adaptiveTemplates.moduleScope,
     primaryModule: resources.adaptiveTemplates.primaryModule.gradlePath,
     fromVersion: stable.manifest.package.version,
     toVersion: ORCHESTRATOR_PACKAGE_VERSION,
@@ -1011,6 +1063,7 @@ function planFingerprint(plan: ProjectUpgradePlan): string {
   return serialize({
     status: plan.status,
     targetDirectory: plan.targetDirectory,
+    moduleScope: plan.moduleScope,
     primaryModule: plan.primaryModule,
     fromVersion: plan.fromVersion,
     toVersion: plan.toVersion,
@@ -1048,6 +1101,7 @@ function planFingerprint(plan: ProjectUpgradePlan): string {
 
 function assertPlanConsistent(plan: ProjectUpgradePlan): void {
   const replanned = planProjectUpgrade(plan.targetDirectory, {
+    moduleScope: plan.moduleScope,
     primaryModule: plan.primaryModule,
     upgradeId: plan.upgradeId,
     preparedAt: plan.preparedAt,
@@ -1736,6 +1790,7 @@ export function runProjectUpgrade(
     return {
       status: "already-current",
       targetDirectory: plan.targetDirectory,
+      moduleScope: plan.moduleScope,
       primaryModule: plan.primaryModule,
       fromVersion: plan.fromVersion,
       toVersion: plan.toVersion,
@@ -1771,6 +1826,7 @@ export function runProjectUpgrade(
   return {
     status: "upgraded",
     targetDirectory: plan.targetDirectory,
+    moduleScope: plan.moduleScope,
     primaryModule: plan.primaryModule,
     fromVersion: plan.fromVersion,
     toVersion: plan.toVersion,
@@ -1795,7 +1851,8 @@ export function formatProjectUpgradeResult(result: ProjectUpgradeResult): string
     "",
     `Result: ${result.status === "upgraded" ? "UPGRADED" : "ALREADY CURRENT"}`,
     `Project root: ${result.targetDirectory}`,
-    `Primary module: ${result.primaryModule}`,
+    `Module scope: ${result.moduleScope}`,
+    `Default module: ${result.primaryModule}`,
     `Version: ${result.fromVersion} -> ${result.toVersion}`,
     `Managed files: ${String(result.managedFileCount)}`,
     `Written files: ${String(result.writtenFileCount)}`,

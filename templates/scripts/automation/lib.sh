@@ -69,6 +69,23 @@ automation_require_command() {
     command -v "$1" >/dev/null 2>&1 || automation_die "required command is missing: $1"
 }
 
+automation_resolve_opencode_config() {
+    local output_file="$1"
+    local error_file="$2"
+    local checkpoint_error="Failed to run the query 'PRAGMA wal_checkpoint(PASSIVE)'"
+
+    if opencode debug config > "$output_file" 2> "$error_file"; then
+        return 0
+    fi
+    if ! rg -F "$checkpoint_error" "$error_file" >/dev/null; then
+        return 1
+    fi
+
+    automation_warn "OpenCode database checkpoint failed once; retrying resolved config discovery"
+    sleep 1
+    opencode debug config > "$output_file" 2> "$error_file"
+}
+
 automation_require_layout() {
     [[ -f "$AUTOMATION_CONFIG" ]] || automation_die "missing $AUTOMATION_CONFIG"
     [[ -d "$AUTOMATION_TASKS_DIR" ]] || automation_die "missing $AUTOMATION_TASKS_DIR"
@@ -83,6 +100,14 @@ automation_validate_config() {
             (startswith("/") | not) and
             (test("^[A-Za-z]:[/\\\\]") | not) and
             (test("(^|/)\\.\\.(/|$)") | not);
+        def gradle_task:
+            type == "string" and
+            test("^(?:[A-Za-z][A-Za-z0-9_.-]*|(?::[A-Za-z0-9_.-]+)+)$");
+        def gradle_task_list:
+            type == "array" and
+            length > 0 and
+            length == (unique | length) and
+            all(.[]; gradle_task);
         .schemaVersion == 3 and
         (.enabled | type == "boolean") and
         (.mode == "shadow" or .mode == "orchestrated") and
@@ -101,11 +126,26 @@ automation_validate_config() {
         (.plugins | type == "object" and keys == ["superpowers"]) and
         (.plugins.superpowers | type == "string" and length > 0) and
         (.requiredSkills | type == "array" and length >= 6) and
+        (.gradleVerification as $verification |
+            ($verification | type == "object") and
+            ($verification | keys == [
+                "assembleTasks",
+                "deviceTestTasks",
+                "focusedTestTasks",
+                "fullUnitTestTasks",
+                "lintTasks"
+            ]) and
+            ($verification.fullUnitTestTasks | gradle_task_list) and
+            ($verification.focusedTestTasks | gradle_task_list) and
+            ($verification.assembleTasks | gradle_task_list) and
+            ($verification.lintTasks | gradle_task_list) and
+            ($verification.deviceTestTasks | gradle_task_list)) and
         (.androidProject as $project |
             ($project | type == "object") and
             ($project.name | type == "string" and length > 0) and
             ($project.gradleDsl == "kotlin" or $project.gradleDsl == "groovy" or $project.gradleDsl == "mixed") and
             ($project.settingsFile | repository_path) and
+            ((($project | has("moduleScope")) | not) or $project.moduleScope == "all" or $project.moduleScope == "primary") and
             ($project.primaryModule | type == "string" and test("^:(?:[A-Za-z0-9_.-]+(?::[A-Za-z0-9_.-]+)*)?$")) and
             ($project.modules | type == "array" and length > 0 and all(.[];
                 (.gradlePath | type == "string" and test("^:(?:[A-Za-z0-9_.-]+(?::[A-Za-z0-9_.-]+)*)?$")) and
@@ -199,6 +239,84 @@ automation_read_state() {
 automation_config_value() {
     local query="$1"
     jq -r "$query" "$AUTOMATION_CONFIG"
+}
+
+automation_validate_gradle_task() {
+    local task="${1:-}"
+    local safe_task_pattern='^([A-Za-z][A-Za-z0-9_.-]*|(:[A-Za-z0-9_.-]+)+)$'
+    [[ "$task" =~ $safe_task_pattern ]] || automation_die "unsafe Gradle task: ${task:-<empty>}"
+}
+
+automation_validate_test_filter() {
+    local filter="${1:-}"
+    local safe_filter_pattern='^[A-Za-z0-9_.#$*-]+$'
+    [[ "$filter" =~ $safe_filter_pattern ]] || automation_die "unsafe test filter: ${filter:-<empty>}"
+}
+
+automation_validate_gradle_group() {
+    local group="${1:-}"
+    case "$group" in
+        fullUnitTestTasks|focusedTestTasks|assembleTasks|lintTasks|deviceTestTasks) ;;
+        *)
+            automation_die "unknown Gradle verification group: ${group:-<empty>}"
+            return 1
+            ;;
+    esac
+}
+
+automation_gradle_group_command_json() {
+    local group="$1"
+    automation_validate_gradle_group "$group" || return 1
+    automation_validate_config || return 1
+    jq -ce \
+        --arg group "$group" \
+        '["./gradlew"] + .gradleVerification[$group]' \
+        "$AUTOMATION_CONFIG"
+}
+
+automation_run_gradle_group() {
+    local group="$1"
+    local root="${2:-$AUTOMATION_ROOT}"
+    local task
+    local -a tasks=()
+
+    automation_validate_gradle_group "$group" || return 1
+    automation_validate_config || return 1
+    while IFS= read -r task; do
+        automation_validate_gradle_task "$task" || return 1
+        tasks[${#tasks[@]}]="$task"
+    done < <(jq -er --arg group "$group" '.gradleVerification[$group][]' "$AUTOMATION_CONFIG")
+    [[ "${#tasks[@]}" -gt 0 ]] || {
+        automation_die "Gradle verification group is empty: $group"
+        return 1
+    }
+
+    (
+        cd "$root"
+        ./gradlew "${tasks[@]}"
+    )
+}
+
+automation_run_focused_test() {
+    local task="$1"
+    local filter="$2"
+    local root="${3:-$AUTOMATION_ROOT}"
+
+    automation_validate_config || return 1
+    automation_validate_gradle_task "$task" || return 1
+    automation_validate_test_filter "$filter" || return 1
+    jq -e \
+        --arg task "$task" \
+        '.gradleVerification.focusedTestTasks | index($task) != null' \
+        "$AUTOMATION_CONFIG" >/dev/null || {
+            automation_die "focused Gradle task is not allowed by automation/config.json: $task"
+            return 1
+        }
+
+    (
+        cd "$root"
+        ./gradlew "$task" --tests "$filter"
+    )
 }
 
 automation_require_approval() {

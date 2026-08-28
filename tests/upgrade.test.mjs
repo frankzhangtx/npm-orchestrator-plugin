@@ -125,7 +125,10 @@ function writeManifest(root, manifest) {
   chmodSync(path, 0o600);
 }
 
-function simulateOlderInstallation(root, { legacyFile = false } = {}) {
+function simulateOlderInstallation(
+  root,
+  { legacyFile = false, omitModuleScope = false } = {},
+) {
   const manifest = JSON.parse(
     readFileSync(join(root, INSTALLATION_MANIFEST_RELATIVE_PATH), "utf8"),
   );
@@ -155,6 +158,15 @@ function simulateOlderInstallation(root, { legacyFile = false } = {}) {
   writeFileSync(openCodePath, oldOpenCode);
   chmodSync(openCodePath, 0o600);
   updateManifestEntry(manifest, "opencode.jsonc", oldOpenCode);
+
+  if (omitModuleScope) {
+    const configPath = join(root, "automation/config.json");
+    const config = JSON.parse(readFileSync(configPath, "utf8"));
+    delete config.androidProject.moduleScope;
+    const configContent = `${JSON.stringify(config, null, 2)}\n`;
+    writeFileSync(configPath, configContent);
+    updateManifestEntry(manifest, "automation/config.json", configContent);
+  }
 
   if (legacyFile) {
     const path = "legacy/user-note.txt";
@@ -220,6 +232,7 @@ test("plans an older-version upgrade without writing recovery or managed files",
 
     assert.equal(plan.status, "upgrade");
     assert.equal(plan.targetDirectory, root);
+    assert.equal(plan.moduleScope, "all");
     assert.equal(plan.primaryModule, ":mobile");
     assert.equal(plan.fromVersion, "0.1.0");
     assert.equal(plan.toVersion, "0.2.0");
@@ -244,6 +257,38 @@ test("plans an older-version upgrade without writing recovery or managed files",
   }
 });
 
+test("upgrades legacy configurations without moduleScope in primary mode", () => {
+  const { root, sdk } = createInstalledFixture();
+  try {
+    simulateOlderInstallation(root, { omitModuleScope: true });
+
+    const allModulePlan = planProjectUpgrade(root, {
+      ...upgradeOptions(
+        sdk,
+        successfulRunner(),
+        "upgrade-legacy-scope-plan-001",
+      ),
+      moduleScope: "all",
+    });
+    assert.equal(allModulePlan.moduleScope, "all");
+
+    const result = runProjectUpgrade(
+      root,
+      upgradeOptions(sdk, successfulRunner(), "upgrade-legacy-scope-001"),
+    );
+    const config = JSON.parse(
+      readFileSync(join(root, "automation/config.json"), "utf8"),
+    );
+
+    assert.equal(result.status, "upgraded");
+    assert.equal(result.moduleScope, "primary");
+    assert.equal(config.androidProject.moduleScope, "primary");
+    assert.equal(result.doctor.ok, true);
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
+});
+
 test("upgrades unchanged managed files, preserves original merges, and restores obsolete user files", () => {
   const { root, sdk, originalAgents, originalOpenCode } = createInstalledFixture();
   try {
@@ -255,6 +300,7 @@ test("upgrades unchanged managed files, preserves original merges, and restores 
     );
 
     assert.equal(result.status, "upgraded");
+    assert.equal(result.moduleScope, "all");
     assert.equal(result.fromVersion, "0.1.0");
     assert.equal(result.toVersion, "0.2.0");
     assert.equal(result.managedFileCount, 45);
@@ -309,6 +355,7 @@ test("upgrades unchanged managed files, preserves original merges, and restores 
     });
     assert.equal(doctor.ok, true);
     assert.match(formatProjectUpgradeResult(result), /Result: UPGRADED/);
+    assert.match(formatProjectUpgradeResult(result), /Module scope: all/);
     assert.match(formatProjectUpgradeResult(result), /0\.1\.0 -> 0\.2\.0/);
   } finally {
     rmSync(root, { recursive: true, force: true });
@@ -328,6 +375,7 @@ test("repeated upgrade is byte-idempotent for the current version", () => {
     );
 
     assert.equal(result.status, "already-current");
+    assert.equal(result.moduleScope, "all");
     assert.equal(result.writtenFileCount, 0);
     assert.equal(result.reusedFileCount, 45);
     assert.equal(result.recoveryDirectory, null);

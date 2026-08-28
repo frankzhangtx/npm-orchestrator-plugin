@@ -23,6 +23,7 @@ import {
   planAdaptiveProjectTemplates,
   type AdaptiveProjectTemplateOptions,
   type AdaptiveProjectTemplatePlan,
+  type ModuleScope,
 } from "./adaptive-templates.js";
 import {
   planAgentsConfigMerge,
@@ -133,6 +134,7 @@ export interface InitVerificationReport {
 export interface ProjectInitializationResult {
   status: "installed" | "already-installed";
   targetDirectory: string;
+  moduleScope: ModuleScope;
   primaryModule: string;
   manifestPath: string;
   backupDirectory: string;
@@ -359,8 +361,14 @@ export function planProjectInitialization(
   options: ProjectInitializationOptions = {},
 ): ProjectInitializationPlan {
   const adaptiveOptions: AdaptiveProjectTemplateOptions = {};
+  if (options.moduleScope !== undefined) {
+    adaptiveOptions.moduleScope = options.moduleScope;
+  }
   if (options.primaryModule !== undefined) {
     adaptiveOptions.primaryModule = options.primaryModule;
+  }
+  if (options.gradleVerification !== undefined) {
+    adaptiveOptions.gradleVerification = options.gradleVerification;
   }
   const resources = planProjectResourceInputs(directory, adaptiveOptions);
   const { adaptiveTemplates, targetDirectory } = resources;
@@ -596,6 +604,7 @@ function resultFromApplied(
   return {
     status: "installed",
     targetDirectory: plan.targetDirectory,
+    moduleScope: plan.adaptiveTemplates.moduleScope,
     primaryModule: plan.adaptiveTemplates.primaryModule.gradlePath,
     manifestPath: applied.prepared.manifestPath,
     backupDirectory: applied.prepared.backupDirectory,
@@ -632,6 +641,7 @@ export function runProjectInitialization(
     return {
       status: "already-installed",
       targetDirectory: plan.targetDirectory,
+      moduleScope: plan.adaptiveTemplates.moduleScope,
       primaryModule: plan.adaptiveTemplates.primaryModule.gradlePath,
       manifestPath: join(
         plan.targetDirectory,
@@ -677,7 +687,8 @@ export function formatProjectInitializationResult(
     "",
     `Result: ${result.status === "installed" ? "INSTALLED" : "ALREADY INSTALLED"}`,
     `Project root: ${result.targetDirectory}`,
-    `Primary module: ${result.primaryModule}`,
+    `Module scope: ${result.moduleScope}`,
+    `Default module: ${result.primaryModule}`,
     `Managed files: ${String(result.managedFileCount)}`,
     `Written files: ${String(result.writtenFileCount)}`,
     `Reused files: ${String(result.reusedFileCount)}`,

@@ -47,7 +47,7 @@ const expectedHashes = new Map([
   ],
   [
     "scripts/automation/claim-task.sh",
-    "b7301e94f8895c23ac75d1622d497049366d13d0b355cb2ff1d37f1ece64ffdb",
+    "f20dc032b7ba97623def068e9eb9fc7056ae8cc5a09858612e25cf478d243947",
   ],
   [
     "scripts/automation/integration-scope-gate.sh",
@@ -55,7 +55,7 @@ const expectedHashes = new Map([
   ],
   [
     "scripts/automation/lib.sh",
-    "0f3e3184cb4871198d116dad48193f6f8c21dd299548665e0b1e9ecf9d43ea58",
+    "0d1814b96b12ad054eed08055e9f515e835d662ae734594515fc58cc0d5afc41",
   ],
   [
     "scripts/automation/orchestrate-task.sh",
@@ -63,7 +63,7 @@ const expectedHashes = new Map([
   ],
   [
     "scripts/automation/preflight.sh",
-    "7a3aea76607b2695c305a196b97e5ddf963f0099d55c094aa0157af9c45ea836",
+    "303737be7366428301ea970ab56aaa5adacc2308d84ca06ab6c426c2d3069e78",
   ],
   [
     "scripts/automation/prepare-contract-review.sh",
@@ -79,7 +79,7 @@ const expectedHashes = new Map([
   ],
   [
     "scripts/automation/record-red.sh",
-    "aed319b7231a5b27e9062510e95fad849e565c6ddb3a63d1bdebe6e8e5ff7198",
+    "5f5fff2c3562a3a6ad3872d28675a589f6630931a75e69fc71cf498a3eb84cb7",
   ],
   [
     "scripts/automation/resume-review-fix.sh",
@@ -103,7 +103,7 @@ const expectedHashes = new Map([
   ],
   [
     "scripts/automation/show-acceptance-review.sh",
-    "56ee3a37712d42d106cf26ee1ae266a7ad3b74c593ff926fcb1f7f0038029e3f",
+    "5586bfcf240eea11f738829deff8a4d21fa6ab7a378c574a79b958caaa08a18b",
   ],
   [
     "scripts/automation/status.sh",
@@ -115,7 +115,7 @@ const expectedHashes = new Map([
   ],
   [
     "scripts/automation/tests/run-tests.sh",
-    "1afc99abe485a2dc73b9486a4e6dfb1790c768611db2c91de5c454dbc5bc10be",
+    "a3a212ae5fb2a17d56585378cce7c932d0e7addbc9bea91f38aea76d559f384d",
   ],
   [
     "scripts/automation/transition-state.sh",
@@ -123,15 +123,15 @@ const expectedHashes = new Map([
   ],
   [
     "scripts/automation/validate-contract.sh",
-    "cd0d16e84e916ad8971fcc262879d84f9842c077023ede7797da6413c892bf48",
+    "bc0f1e62be119b8bf3907f17b1787bb6c85906d8bcdb4cf1fb9ab0a9ed2836e1",
   ],
   [
     "scripts/automation/verify-integration.sh",
-    "2d85a0dfdea8f4b452daf91277702ab3a5a19ed8ab350bf6c23e363d1ceb28b2",
+    "287d8280f14738f3a248c560360b5373572b8c93221a5cdf740623aee7c0cfce",
   ],
   [
     "scripts/automation/verify-task.sh",
-    "93ef720c5061daaaa6b8049532600e587eed638ba6cd15a46e9ab0fc48956d6b",
+    "39276cc40d470edfb1c78685bf8557b65ec600e8cf8c7eb9e7f9682b684743e3",
   ],
 ]);
 
@@ -273,6 +273,80 @@ test("preflight accepts absent legacy Scheduler tools but rejects enabled ones",
       shell: false,
     });
     assert.notEqual(unsafeResult.status, 0, fixture.file);
+  }
+});
+
+test("OpenCode config discovery retries only the transient checkpoint failure", () => {
+  const root = mkdtempSync(join(tmpdir(), "orchestrator-opencode-retry-"));
+  const script = join(root, "exercise-retry.sh");
+  const output = join(root, "config.json");
+  const error = join(root, "config.err");
+  const count = join(root, "attempts.txt");
+
+  try {
+    const gitInit = spawnSync("git", ["init", "-q"], {
+      cwd: root,
+      encoding: "utf8",
+      shell: false,
+    });
+    assert.equal(gitInit.status, 0, gitInit.stderr);
+    writeFileSync(
+      script,
+      `#!/usr/bin/env bash
+set -euo pipefail
+source "$RETRY_TEST_LIB"
+attempts=0
+opencode() {
+    attempts=$((attempts + 1))
+    printf '%s\\n' "$attempts" > "$RETRY_TEST_COUNT"
+    if [[ "$RETRY_TEST_MODE" == "transient" && "$attempts" -eq 1 ]]; then
+        printf '%s\\n' "Failed to run the query 'PRAGMA wal_checkpoint(PASSIVE)'" >&2
+        return 1
+    fi
+    if [[ "$RETRY_TEST_MODE" == "permanent" ]]; then
+        printf '%s\\n' "invalid OpenCode configuration" >&2
+        return 1
+    fi
+    printf '%s\\n' '{"plugin":[]}'
+}
+automation_resolve_opencode_config "$RETRY_TEST_OUTPUT" "$RETRY_TEST_ERROR"
+`,
+    );
+    chmodSync(script, 0o755);
+    const environment = {
+      ...process.env,
+      AUTOMATION_PROJECT_ROOT: root,
+      AUTOMATION_TEST_MODE: "1",
+      RETRY_TEST_COUNT: count,
+      RETRY_TEST_ERROR: error,
+      RETRY_TEST_LIB: join(automationRoot, "lib.sh"),
+      RETRY_TEST_OUTPUT: output,
+    };
+
+    const transient = spawnSync(script, [], {
+      cwd: root,
+      encoding: "utf8",
+      env: { ...environment, RETRY_TEST_MODE: "transient" },
+      shell: false,
+    });
+    assert.equal(transient.status, 0, transient.stderr);
+    assert.equal(readFileSync(count, "utf8").trim(), "2");
+    assert.deepEqual(JSON.parse(readFileSync(output, "utf8")), { plugin: [] });
+    assert.equal(readFileSync(error, "utf8"), "");
+    assert.match(transient.stderr, /retrying resolved config discovery/);
+
+    const permanent = spawnSync(script, [], {
+      cwd: root,
+      encoding: "utf8",
+      env: { ...environment, RETRY_TEST_MODE: "permanent" },
+      shell: false,
+    });
+    assert.notEqual(permanent.status, 0);
+    assert.equal(readFileSync(count, "utf8").trim(), "1");
+    assert.match(readFileSync(error, "utf8"), /invalid OpenCode configuration/);
+    assert.doesNotMatch(permanent.stderr, /retrying resolved config discovery/);
+  } finally {
+    rmSync(root, { recursive: true, force: true });
   }
 });
 

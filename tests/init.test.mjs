@@ -84,6 +84,28 @@ function createGroovyFixture() {
   return root;
 }
 
+function createMultiApplicationFixture() {
+  const root = mkdtempSync(join(tmpdir(), "orchestrator-init-multi-"));
+  mkdirSync(join(root, ".git"));
+  writeFixtureFile(
+    root,
+    "settings.gradle.kts",
+    'rootProject.name = "Init Multi"\ninclude(":phone", ":tablet")\n',
+  );
+  writeFixtureFile(
+    root,
+    "phone/build.gradle.kts",
+    'plugins { id("com.android.application") }\nandroid { namespace = "dev.init.phone" }\n',
+  );
+  writeFixtureFile(
+    root,
+    "tablet/build.gradle.kts",
+    'plugins { id("com.android.application") }\nandroid { namespace = "dev.init.tablet" }\n',
+  );
+  addWrapper(root);
+  return root;
+}
+
 function commandResult(status, stdout = "", stderr = "", error = null) {
   return { status, stdout, stderr, error };
 }
@@ -149,6 +171,7 @@ test("plans and installs all managed resources in a Kotlin DSL project", () => {
 
     assert.equal(result.status, "installed");
     assert.equal(result.targetDirectory, root);
+    assert.equal(result.moduleScope, "all");
     assert.equal(result.primaryModule, ":mobile");
     assert.equal(result.managedFileCount, 45);
     assert.equal(result.writtenFileCount, 45);
@@ -167,10 +190,18 @@ test("plans and installs all managed resources in a Kotlin DSL project", () => {
       readFileSync(join(root, "automation/config.json"), "utf8"),
     );
     assert.equal(automationConfig.androidProject.name, "Init Kotlin");
+    assert.equal(automationConfig.androidProject.moduleScope, "all");
     assert.equal(automationConfig.androidProject.primaryModule, ":mobile");
     assert.deepEqual(automationConfig.androidProject.productionPaths, [
       "clients/mobile/src/main/**",
     ]);
+    assert.deepEqual(automationConfig.gradleVerification, {
+      fullUnitTestTasks: ["testDebugUnitTest"],
+      focusedTestTasks: ["testDebugUnitTest"],
+      assembleTasks: ["assembleDebug"],
+      lintTasks: ["lint"],
+      deviceTestTasks: ["connectedDebugAndroidTest"],
+    });
     const taskExample = JSON.parse(
       readFileSync(
         join(root, "automation/tasks/TASK-TEMPLATE.json.example"),
@@ -178,7 +209,10 @@ test("plans and installs all managed resources in a Kotlin DSL project", () => {
       ),
     );
     assert.deepEqual(taskExample.targetTests, [
-      "dev.init.kotlin.ReplaceWithFocusedTest",
+      {
+        gradleTask: "testDebugUnitTest",
+        filter: "dev.init.kotlin.ReplaceWithFocusedTest",
+      },
     ]);
 
     const agents = readFileSync(join(root, "AGENTS.md"), "utf8");
@@ -201,6 +235,32 @@ test("plans and installs all managed resources in a Kotlin DSL project", () => {
     assert.equal(readInstallationManifest(root).installation.state, "installed");
     assert.equal(verifyInstallationIntegrity(root).ok, true);
     assert.equal(calls.length, 8);
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
+});
+
+test("installs a multi-application project in all-module mode without primary selection", () => {
+  const root = createMultiApplicationFixture();
+  try {
+    const result = runProjectInitialization(
+      root,
+      initOptions(successfulRunner(), "init-multi-001"),
+    );
+    const taskExample = JSON.parse(
+      readFileSync(
+        join(root, "automation/tasks/TASK-TEMPLATE.json.example"),
+        "utf8",
+      ),
+    );
+
+    assert.equal(result.status, "installed");
+    assert.equal(result.moduleScope, "all");
+    assert.equal(result.primaryModule, ":phone");
+    assert.ok(taskExample.allowedPaths.includes("phone/src/main/**"));
+    assert.ok(taskExample.allowedPaths.includes("tablet/src/main/**"));
+    assert.ok(taskExample.allowedPaths.includes("phone/src/test/**"));
+    assert.ok(taskExample.allowedPaths.includes("tablet/src/androidTest/**"));
   } finally {
     rmSync(root, { recursive: true, force: true });
   }
@@ -251,6 +311,7 @@ test("installs dynamic resources in a Groovy DSL project", () => {
     );
 
     assert.equal(result.status, "installed");
+    assert.equal(result.moduleScope, "all");
     assert.equal(result.primaryModule, ":app");
     assert.equal(config.androidProject.gradleDsl, "groovy");
     assert.equal(config.androidProject.modules[0].directory, "android-app");

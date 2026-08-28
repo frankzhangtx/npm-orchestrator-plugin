@@ -61,8 +61,12 @@ After release, initialize with the fixed version:
 npx @frankzhang2026/opencode-android-orchestrator@0.2.0 init .
 ```
 
-Use `--primary-module :mobile` when the project has multiple application
-modules and `:mobile` is the intended orchestration target.
+New installations default to all-module scope, so multiple application modules
+do not require a selection. Use
+`--module-scope primary --primary-module :mobile` only when generated task
+contracts must be restricted to `:mobile`. In all-module scope,
+`--primary-module :mobile` merely chooses the focused-test placeholder's
+default module.
 
 ## From a manually copied V3 setup
 
@@ -109,6 +113,12 @@ first-install backup before it creates recovery state. It reconstructs merged
 OpenCode and AGENTS content from the original pre-install files, carries that
 recovery lineage forward, snapshots the current version, writes the new
 resources, and reruns the 38 automation tests plus the shadow run.
+
+Upgrade preserves an installed `androidProject.moduleScope`. A legacy
+manifest-managed configuration without that field is treated as `primary`,
+which prevents an upgrade from silently expanding its editable module set. To
+adopt all-module scope during a version upgrade, pass `--module-scope all` and
+review the regenerated task example before approving automation.
 
 The command refuses:
 

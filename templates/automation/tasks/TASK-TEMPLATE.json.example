@@ -45,7 +45,10 @@
     "Do not upgrade dependencies or Gradle configuration"
   ],
   "targetTests": [
-    "*ReplaceWithFocusedTest"
+    {
+      "gradleTask": "testDebugUnitTest",
+      "filter": "*ReplaceWithFocusedTest"
+    }
   ],
   "deviceTestsRequired": false,
   "testPolicy": "required",

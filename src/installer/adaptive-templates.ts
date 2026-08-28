@@ -15,6 +15,7 @@ import {
 
 export type AdaptiveProjectTemplateErrorCode =
   | "INVALID_ANDROID_PROJECT"
+  | "MODULE_SCOPE_INVALID"
   | "NESTED_GRADLE_ROOT_UNSUPPORTED"
   | "PRIMARY_MODULE_AMBIGUOUS"
   | "PRIMARY_MODULE_NOT_FOUND"
@@ -38,8 +39,28 @@ export class AdaptiveProjectTemplateError extends Error {
 }
 
 export interface AdaptiveProjectTemplateOptions {
-  /** Select a detected module by Gradle path, for example `:mobile`. */
+  /** Select whether generated task contracts can modify every detected module or one primary module. */
+  moduleScope?: ModuleScope;
+  /** Select the only editable module in primary scope or the focused-test default in all scope. */
   primaryModule?: string;
+  /** Override the packaged Gradle quality-gate task matrix. */
+  gradleVerification?: GradleVerificationConfiguration;
+}
+
+export type ModuleScope = "all" | "primary";
+
+export const DEFAULT_MODULE_SCOPE: ModuleScope = "all";
+
+export function isModuleScope(value: unknown): value is ModuleScope {
+  return value === "all" || value === "primary";
+}
+
+export interface GradleVerificationConfiguration {
+  fullUnitTestTasks: readonly string[];
+  focusedTestTasks: readonly string[];
+  assembleTasks: readonly string[];
+  lintTasks: readonly string[];
+  deviceTestTasks: readonly string[];
 }
 
 export interface AdaptiveAndroidModuleConfiguration {
@@ -56,6 +77,8 @@ export interface AdaptiveAndroidProjectConfiguration {
   name: string;
   gradleDsl: Exclude<GradleDsl, "unknown">;
   settingsFile: string;
+  moduleScope: ModuleScope;
+  /** Default module for focused-test rendering; it does not narrow all-module scope. */
   primaryModule: string;
   modules: readonly AdaptiveAndroidModuleConfiguration[];
   productionPaths: readonly string[];
@@ -66,8 +89,14 @@ export interface AdaptiveAutomationConfiguration {
   readonly [key: string]: unknown;
   schemaVersion: 3;
   androidProject: AdaptiveAndroidProjectConfiguration;
+  gradleVerification: GradleVerificationConfiguration;
   plugins: Readonly<{ superpowers: string }>;
   protectedPaths: readonly string[];
+}
+
+export interface AdaptiveTargetTest {
+  gradleTask: string;
+  filter: string;
 }
 
 export interface AdaptiveTaskContractExample {
@@ -75,12 +104,13 @@ export interface AdaptiveTaskContractExample {
   schemaVersion: 1;
   allowedPaths: readonly string[];
   forbiddenPaths: readonly string[];
-  targetTests: readonly string[];
+  targetTests: readonly AdaptiveTargetTest[];
 }
 
 export interface AdaptiveProjectTemplatePlan {
   detection: AndroidProjectDetection;
   projectRoot: string;
+  moduleScope: ModuleScope;
   primaryModule: AdaptiveAndroidModuleConfiguration;
   automationConfig: AdaptiveAutomationConfiguration;
   automationConfigContent: string;
@@ -156,6 +186,76 @@ function unique(values: readonly string[]): readonly string[] {
   return [...new Set(values)];
 }
 
+const GRADLE_TASK_PATTERN =
+  /^(?:[A-Za-z][A-Za-z0-9_.-]*|(?::[A-Za-z0-9_.-]+)+)$/;
+
+const GRADLE_VERIFICATION_PROPERTIES = [
+  "fullUnitTestTasks",
+  "focusedTestTasks",
+  "assembleTasks",
+  "lintTasks",
+  "deviceTestTasks",
+] as const;
+
+function gradleTaskList(
+  value: Record<string, unknown>,
+  propertyName: (typeof GRADLE_VERIFICATION_PROPERTIES)[number],
+  source: string,
+): readonly string[] {
+  const property = value[propertyName];
+  if (
+    !Array.isArray(property) ||
+    property.length === 0 ||
+    property.some(
+      (entry) =>
+        typeof entry !== "string" ||
+        !GRADLE_TASK_PATTERN.test(entry),
+    ) ||
+    new Set(property).size !== property.length
+  ) {
+    throw new AdaptiveProjectTemplateError(
+      "TEMPLATE_INVALID",
+      `Gradle verification property ${propertyName} must be a non-empty unique task array: ${source}`,
+    );
+  }
+  return property as readonly string[];
+}
+
+function gradleVerificationConfiguration(
+  value: unknown,
+  source: string,
+): GradleVerificationConfiguration {
+  if (!isRecord(value)) {
+    throw new AdaptiveProjectTemplateError(
+      "TEMPLATE_INVALID",
+      `Gradle verification configuration must be an object: ${source}`,
+    );
+  }
+  const actualKeys = Object.keys(value).sort();
+  const expectedKeys = [...GRADLE_VERIFICATION_PROPERTIES].sort();
+  if (
+    actualKeys.length !== expectedKeys.length ||
+    actualKeys.some((key, index) => key !== expectedKeys[index])
+  ) {
+    throw new AdaptiveProjectTemplateError(
+      "TEMPLATE_INVALID",
+      `Gradle verification configuration has unexpected or missing properties: ${source}`,
+      actualKeys,
+    );
+  }
+  return {
+    fullUnitTestTasks: gradleTaskList(
+      value,
+      "fullUnitTestTasks",
+      source,
+    ),
+    focusedTestTasks: gradleTaskList(value, "focusedTestTasks", source),
+    assembleTasks: gradleTaskList(value, "assembleTasks", source),
+    lintTasks: gradleTaskList(value, "lintTasks", source),
+    deviceTestTasks: gradleTaskList(value, "deviceTestTasks", source),
+  };
+}
+
 function sourcePattern(directory: string, sourceSet: string): string {
   const prefix = directory === "." ? "" : `${directory}/`;
   return `${prefix}src/${sourceSet}/**`;
@@ -164,6 +264,7 @@ function sourcePattern(directory: string, sourceSet: string): string {
 function selectPrimaryModule(
   modules: readonly AndroidModuleDetection[],
   requestedGradlePath: string | undefined,
+  moduleScope: ModuleScope,
 ): AndroidModuleDetection {
   if (requestedGradlePath !== undefined) {
     const selected = modules.find(
@@ -189,9 +290,14 @@ function selectPrimaryModule(
     return modules[0] as AndroidModuleDetection;
   }
 
+  const defaultModule = applications[0] ?? modules[0];
+  if (moduleScope === "all" && defaultModule !== undefined) {
+    return defaultModule;
+  }
+
   throw new AdaptiveProjectTemplateError(
     "PRIMARY_MODULE_AMBIGUOUS",
-    "Select a primary Android module explicitly before rendering templates.",
+    "Primary-module scope requires an explicit Android module before rendering templates.",
     (applications.length > 1 ? applications : modules).map(
       (module) => module.gradlePath,
     ),
@@ -248,9 +354,19 @@ export function planAdaptiveProjectTemplates(
 
   const gitRoot = detection.gitRoot;
 
+  const moduleScope = options.moduleScope ?? DEFAULT_MODULE_SCOPE;
+  if (!isModuleScope(moduleScope)) {
+    throw new AdaptiveProjectTemplateError(
+      "MODULE_SCOPE_INVALID",
+      `Unsupported Android module scope: ${String(moduleScope)}`,
+      ["Expected one of: all, primary"],
+    );
+  }
+
   const selectedModule = selectPrimaryModule(
     detection.modules,
     options.primaryModule,
+    moduleScope,
   );
   const modules = detection.modules.map<AdaptiveAndroidModuleConfiguration>(
     (module) => ({
@@ -286,6 +402,7 @@ export function planAdaptiveProjectTemplates(
     name: detection.projectName,
     gradleDsl: detection.dsl,
     settingsFile: repositoryPath(gitRoot, detection.settingsFile),
+    moduleScope,
     primaryModule: primaryModule.gradlePath,
     modules,
     productionPaths,
@@ -294,6 +411,12 @@ export function planAdaptiveProjectTemplates(
 
   const configTemplatePath = "automation/config.json";
   const configTemplate = readObjectTemplate(configTemplatePath);
+  const gradleVerification = gradleVerificationConfiguration(
+    options.gradleVerification ?? configTemplate.gradleVerification,
+    options.gradleVerification === undefined
+      ? configTemplatePath
+      : "AdaptiveProjectTemplateOptions.gradleVerification",
+  );
   const baseProtectedPaths = stringArrayProperty(
     configTemplate,
     "protectedPaths",
@@ -306,6 +429,7 @@ export function planAdaptiveProjectTemplates(
   ]);
   const automationConfig = {
     ...configTemplate,
+    gradleVerification,
     androidProject,
     protectedPaths,
   } as unknown as AdaptiveAutomationConfiguration;
@@ -313,20 +437,36 @@ export function planAdaptiveProjectTemplates(
   const taskTemplatePath =
     "automation/tasks/TASK-TEMPLATE.json.example";
   const taskTemplate = readObjectTemplate(taskTemplatePath);
+  const defaultFocusedTestTask = gradleVerification.focusedTestTasks[0];
+  if (defaultFocusedTestTask === undefined) {
+    throw new AdaptiveProjectTemplateError(
+      "TEMPLATE_INVALID",
+      "Gradle verification configuration has no focused test task.",
+    );
+  }
   const taskContractExample = {
     ...taskTemplate,
-    allowedPaths: [
-      sourcePattern(primaryModule.directory, "main"),
-      sourcePattern(primaryModule.directory, "test"),
-      sourcePattern(primaryModule.directory, "androidTest"),
-    ],
+    allowedPaths:
+      moduleScope === "all"
+        ? [...productionPaths, ...testPaths]
+        : [
+            sourcePattern(primaryModule.directory, "main"),
+            sourcePattern(primaryModule.directory, "test"),
+            sourcePattern(primaryModule.directory, "androidTest"),
+          ],
     forbiddenPaths: protectedPaths.map(taskForbiddenPath),
-    targetTests: [taskTestFilter(primaryModule)],
+    targetTests: [
+      {
+        gradleTask: defaultFocusedTestTask,
+        filter: taskTestFilter(primaryModule),
+      },
+    ],
   } as unknown as AdaptiveTaskContractExample;
 
   return {
     detection,
     projectRoot: detection.projectRoot,
+    moduleScope,
     primaryModule,
     automationConfig,
     automationConfigContent: serialize(automationConfig),
