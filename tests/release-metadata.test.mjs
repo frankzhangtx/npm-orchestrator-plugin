@@ -110,3 +110,51 @@ test("keeps the published release outcome auditable and outside package files", 
   assert.match(releaseNotes, /fixed Registry artifact is byte-identical/i);
   assert.match(releaseNotes, /real-model three-question task closure/i);
 });
+
+test("records the verified 0.3.0 Registry publication", () => {
+  const packageJson = JSON.parse(read("package.json"));
+  const authorization = read("release/0.3.0-authorization.md");
+  const releaseNotes = read("release/0.3.0-release-notes.md");
+
+  assert.doesNotMatch(packageJson.files.join("\n"), /release\//);
+  assert.doesNotMatch(packageJson.files.join("\n"), /tests\//);
+  assert.match(authorization, /Status: PUBLISHED/);
+  assert.match(authorization, /explicitly instructed publication[\s\S]*`0\.3\.0`/i);
+  assert.match(
+    authorization,
+    /npm whoami[\s\S]*returned\s+`frankzhang2026`/,
+  );
+  assert.match(
+    authorization,
+    /contains\s+`0\.1\.0`, `0\.2\.0`, and `0\.3\.0`[\s\S]*`latest` pointing to `0\.3\.0`/i,
+  );
+  assert.match(
+    authorization,
+    /4a54255edd486266fd1b7f98a68b7ee03375e203/,
+  );
+  assert.match(
+    authorization,
+    /d09d7bd38915cc555fca5d77ca0accb571616788edeee87f42e1cee7da742cfe/,
+  );
+  assert.match(
+    authorization,
+    /84b55b436a9ae99d3dde69b9d82d25b59b42d541/,
+  );
+  assert.match(
+    authorization,
+    /sha512-whkfJQN7ynvWYg5olieGm\+lHoj\/wkiKl13bRQqbohVFO\/OE8rvaIljDxn2u3xPRc7ZiJ19tIYC\+hrOJ7zeHkVw==/,
+  );
+  assert.match(authorization, /first browser-auth publish attempt was cancelled/i);
+  assert.match(authorization, /successful retry used Safari/i);
+  assert.match(authorization, /fixed-version Registry download was byte-identical/i);
+  assert.match(authorization, /No Git tag or GitHub release was created/);
+  assert.doesNotMatch(
+    authorization,
+    /https:\/\/www\.npmjs\.com\/auth\/cli\/|one-time password:|npm token:/i,
+  );
+
+  assert.match(releaseNotes, /Status: published/);
+  assert.match(releaseNotes, /Registry download is byte-identical/i);
+  assert.match(releaseNotes, /default module scope was `all`/i);
+  assert.match(releaseNotes, /No Git tag or GitHub release was created/);
+});
