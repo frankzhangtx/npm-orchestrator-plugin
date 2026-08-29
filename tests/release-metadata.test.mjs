@@ -158,3 +158,49 @@ test("records the verified 0.3.0 Registry publication", () => {
   assert.match(releaseNotes, /default module scope was `all`/i);
   assert.match(releaseNotes, /No Git tag or GitHub release was created/);
 });
+
+test("records the verified 0.4.0 Registry publication", () => {
+  const packageJson = JSON.parse(read("package.json"));
+  const authorization = read("release/0.4.0-authorization.md");
+  const releaseNotes = read("release/0.4.0-release-notes.md");
+
+  assert.doesNotMatch(packageJson.files.join("\n"), /release\//);
+  assert.doesNotMatch(packageJson.files.join("\n"), /tests\//);
+  assert.match(authorization, /Status: PUBLISHED/);
+  assert.match(authorization, /explicitly instructed publication[\s\S]*`0\.4\.0`/i);
+  assert.match(
+    authorization,
+    /npm whoami[\s\S]*returned\s+`frankzhang2026`/,
+  );
+  assert.match(
+    authorization,
+    /contains `0\.1\.0`,[\s\S]*`0\.4\.0`[\s\S]*`latest` pointing to `0\.4\.0`/i,
+  );
+  assert.match(
+    authorization,
+    /ae22486d62cdfb5a8aa6a9fcafe41087546124a7/,
+  );
+  assert.match(
+    authorization,
+    /dcb50806f173ceab97d1ac393363724ded56f37e4e54f754cdf04a96bb10a299/,
+  );
+  assert.match(
+    authorization,
+    /1ee666a298126e52d3e022a11723f57c0781e73a/,
+  );
+  assert.match(
+    authorization,
+    /sha512-R4fHYMkVdMxKmaNQk4KNqRDYEbyK\/GOpzDHrbM21w1leqjEJ\+VmfLs26klmXd95VnY7TiFP\/NDLtz0x\/z7qp5w==/,
+  );
+  assert.match(authorization, /fixed-version Registry download was[\s\S]*byte-identical/i);
+  assert.match(authorization, /No Git tag or GitHub release was created/);
+  assert.doesNotMatch(
+    authorization,
+    /https:\/\/www\.npmjs\.com\/(?:auth|login)\/|one-time password:|npm token:/i,
+  );
+
+  assert.match(releaseNotes, /Status: published/);
+  assert.match(releaseNotes, /Registry download is byte-identical/i);
+  assert.match(releaseNotes, /\.automation-worktree-allowlist/);
+  assert.match(releaseNotes, /No Git tag or GitHub release was created/);
+});
