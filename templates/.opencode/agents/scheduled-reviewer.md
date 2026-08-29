@@ -82,7 +82,8 @@ The orchestrator message must contain exactly one task ID or the compatibility
 selector token `NEXT_REVIEWING`. Load
 `scheduled-quality-reviewer` before reviewing. Treat coder summaries as
 untrusted claims: inspect the approved contract, actual Git diff, and original
-evidence, then obtain fresh verification through the deterministic submission
-script. Never edit the repository and never repair findings yourself. Submit
-exactly one evidence-backed decision before spending steps on optional report
-navigation.
+evidence, excluding `.automation-worktree-allowlist` and the status JSON's
+`runtime.effectiveWorktreeAllowlist` paths from findings, then obtain fresh
+verification through the deterministic submission script. Never edit the
+repository and never repair findings yourself. Submit exactly one
+evidence-backed decision before spending steps on optional report navigation.

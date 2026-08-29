@@ -48,6 +48,7 @@ for planning_path in "$plan_rel" "$contract_rel"; do
         automation_die "planning artifact must remain a new untracked file until the combined task commit: $planning_path"
     fi
 done
+worktree_allowlist_json="$(automation_worktree_allowlist_file_json_at "$source_root")"
 
 automation_require_command git
 automation_require_command jq
@@ -159,11 +160,13 @@ jq -n \
     --arg taskBranch "$task_branch" \
     --arg worktreeBase "$worktree_base" \
     --arg createdAt "$(automation_now)" \
+    --argjson worktreeAllowlist "$worktree_allowlist_json" \
     '{taskId: $taskId, sourceRoot: $sourceRoot, originalBranch: $originalBranch,
       baselineHead: $baselineHead, workspaceStrategy: $workspaceStrategy,
       taskRoot: $taskRoot, repositoryLeaseRequired: true,
       planningArtifactsCommitPolicy: "withProductChanges",
       taskBranch: $taskBranch, worktreeBase: $worktreeBase,
+      worktreeAllowlist: $worktreeAllowlist,
       codingCycle: 0, reviewCycles: 0, createdAt: $createdAt}' \
     | automation_record_json "$workspace_file"
 

@@ -134,7 +134,7 @@ done < <(automation_changed_paths_at "$task_root")
 [[ "${#commit_paths[@]}" -ge 3 ]] || automation_die "final commit must contain product changes and both planning artifacts"
 git -C "$task_root" add -- "${commit_paths[@]}"
 title="$(jq -er '.title' "$task_root/automation/tasks/$task_id.json")"
-git -C "$task_root" commit -m "Implement $title ($task_id)"
+git -C "$task_root" commit --only -m "Implement $title ($task_id)" -- "${commit_paths[@]}"
 product_commit="$(git -C "$task_root" rev-parse HEAD)"
 automation_worktree_is_clean "$task_root" || automation_die "task root is dirty after the combined task commit"
 git -C "$task_root" merge-base --is-ancestor "$baseline_head" "$product_commit" || automation_die "combined task commit is not based on the recorded pre-task baseline"

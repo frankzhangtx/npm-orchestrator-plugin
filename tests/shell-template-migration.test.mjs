@@ -23,19 +23,19 @@ const automationRoot = join(templatesRoot, "scripts", "automation");
 const expectedHashes = new Map([
   [
     "scripts/automation/abort-task.sh",
-    "a581f47327b0929eb22eb044e02e466f9caded17f2b0c2b78128a130a6f66c41",
+    "734c05f82db7f77dba7b0ac8ae1fc92d3c02cb8e877b9309944269cbd853464d",
   ],
   [
     "scripts/automation/accept-and-integrate.sh",
-    "23b0397dbff45da94cf0eff6c466c1a7af07457568bbaab02320235592c91707",
+    "b1fc65b31b275de79621714d48175bf00cd63647db92d9aeb4841fd382c055fa",
   ],
   [
     "scripts/automation/acceptance-report.sh",
-    "a80456ed8c6ba110bf078263022f4903d4a783d483fc073d2685da0e33514fd3",
+    "a3dee5d983cf2aa6cecd6b1791ac645dce337e671ae1e6bcf950143770e6e386",
   ],
   [
     "scripts/automation/approve-and-run.sh",
-    "46bac28a4bc4ea31adb1a9760ca39d6d31d8da7c7117d053fc8b2146debb562d",
+    "6f15ce1a95dd3886fc053d7f00d0b6d1c6ef58e38bd93fe2a1fa98e92fa56f2b",
   ],
   [
     "scripts/automation/begin-review.sh",
@@ -55,11 +55,11 @@ const expectedHashes = new Map([
   ],
   [
     "scripts/automation/lib.sh",
-    "0d1814b96b12ad054eed08055e9f515e835d662ae734594515fc58cc0d5afc41",
+    "b092025163a023737894dfd0baa354f74e917de016bd16ba82831d20057827bf",
   ],
   [
     "scripts/automation/orchestrate-task.sh",
-    "f77a4e602fdf75a6b8c8bbf591da4b3c64017ffacd4756b5d8d37fa61e6e6f91",
+    "1a2ea9925caf6ba67c216c2ee1e58fd7625401a674c4a2d5f1e532c5affec288",
   ],
   [
     "scripts/automation/preflight.sh",
@@ -91,7 +91,7 @@ const expectedHashes = new Map([
   ],
   [
     "scripts/automation/scope-gate.sh",
-    "9dbebfa969bf19acc748b367dba8355e6e658c003651f4add95db1142ddf6ddd",
+    "bb6aaf80ac0341e59b460858a4074e8a2d333fa51f25b9d55f5ad72cbe2b7578",
   ],
   [
     "scripts/automation/select-task.sh",
@@ -107,7 +107,7 @@ const expectedHashes = new Map([
   ],
   [
     "scripts/automation/status.sh",
-    "16aa708b9c92c0c4d298b6678537281ebcfa079ecc4a6321dc022a4739fe996c",
+    "719e1bdfed4b7d2666847f5babaa2ac870371cd760923c77e124cbf54966be66",
   ],
   [
     "scripts/automation/submit-review.sh",
@@ -115,7 +115,7 @@ const expectedHashes = new Map([
   ],
   [
     "scripts/automation/tests/run-tests.sh",
-    "a3a212ae5fb2a17d56585378cce7c932d0e7addbc9bea91f38aea76d559f384d",
+    "3c174febbbbe294b36ea2cc8f7308e118dd65f725133769873de2b07ab758bac",
   ],
   [
     "scripts/automation/transition-state.sh",

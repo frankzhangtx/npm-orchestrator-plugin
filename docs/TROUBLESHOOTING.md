@@ -60,6 +60,26 @@ plugins, required skills, agent permissions, and both read-only custom tools.
 If it fails, preserve its exact output. Do not broaden an agent's default-deny
 permissions to make discovery pass.
 
+## Worktree allowlist failures
+
+Use `.automation-worktree-allowlist` only for intentional local changes that
+must remain outside every task diff and commit. The file belongs in the Git
+repository root, with one exact repository-relative file path per line.
+
+| Symptom | Likely cause | Safe response |
+| --- | --- | --- |
+| `Git worktree is dirty` | At least one tracked or untracked change is not listed. | Inspect `git status --short`. Commit/revert the task-relevant change, or add only an intentionally local exact file path to the allowlist. |
+| `must be exact file paths, not patterns` | An entry contains `*`, `?`, or bracket syntax. | Replace it with each exact file path; directory-wide bypasses are intentionally unsupported. |
+| `must not include a protected path` or `reserved or unsafe` | The entry targets orchestration, Gradle, Git metadata, a plan, or another protected path. | Remove the entry. Protected control and planning files must remain visible to the gates. |
+| `must be a regular file, not a symlink` | The control file is a symlink or another unsupported file type. | Replace it with a small regular text file at the repository root. |
+| A task does not include a file you expected it to edit | The path was in the snapshot taken at contract approval. | Finish/abort the active task, remove the entry, then start and approve a new task. |
+| A local rename still blocks startup | Only the new or old name is listed. | Add both exact paths; rename detection treats the source deletion and destination addition independently. |
+
+The control file itself does not block orchestration and does not require a
+`.gitignore` entry for that purpose. Git may still display it in ordinary
+`git status`, which is separate from the orchestrator's filtered view. Staged
+allowlisted entries remain staged and are not consumed by task or abort commits.
+
 ## Installation conflicts
 
 Common fail-closed codes include:

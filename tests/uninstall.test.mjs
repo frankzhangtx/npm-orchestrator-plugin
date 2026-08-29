@@ -58,7 +58,7 @@ function successfulRunner() {
       return commandResult(0, `${executable} fixture version\n`);
     }
     if (executable.endsWith("scripts/automation/tests/run-tests.sh")) {
-      return commandResult(0, "ok 38 - fixture\n1..38\n");
+      return commandResult(0, "ok 42 - fixture\n1..42\n");
     }
     if (executable.endsWith("scripts/automation/shadow-run.sh")) {
       return commandResult(

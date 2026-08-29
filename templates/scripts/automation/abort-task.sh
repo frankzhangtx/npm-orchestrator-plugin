@@ -59,6 +59,7 @@ if [[ -d "$task_root" ]]; then
         changed_paths=()
         changed_path_count=0
         product_path_count=0
+        changed_path_list="$(automation_changed_paths_at "$task_root")"
         while IFS= read -r path; do
             if [[ -n "$path" ]]; then
                 changed_paths+=("$path")
@@ -67,16 +68,10 @@ if [[ -d "$task_root" ]]; then
                     product_path_count=$((product_path_count + 1))
                 fi
             fi
-        done < <(automation_changed_paths_at "$task_root")
+        done <<< "$changed_path_list"
 
-        git -C "$task_root" status --short --branch > "$evidence_dir/abort-status.txt"
-        {
-            git -C "$task_root" diff --binary HEAD --
-            while IFS= read -r path; do
-                [[ -n "$path" ]] || continue
-                git -C "$task_root" diff --binary --no-index -- /dev/null "$task_root/$path" || [[ "$?" -eq 1 ]]
-            done < <(git -C "$task_root" ls-files --others --exclude-standard | LC_ALL=C sort)
-        } > "$evidence_dir/aborted.diff"
+        automation_worktree_status_at "$task_root" > "$evidence_dir/abort-status.txt"
+        automation_worktree_patch_at "$task_root" > "$evidence_dir/aborted.diff"
 
         if [[ "$changed_path_count" -gt 0 ]]; then
             for path in "${changed_paths[@]}"; do
@@ -92,7 +87,7 @@ if [[ -d "$task_root" ]]; then
             done
             if [[ "$product_path_count" -gt 0 ]]; then
                 git -C "$task_root" add -- "${changed_paths[@]}"
-                git -C "$task_root" commit -m "Archive aborted work for $task_id"
+                git -C "$task_root" commit --only -m "Archive aborted work for $task_id" -- "${changed_paths[@]}"
                 recovery_commit="$(git -C "$task_root" rev-parse HEAD)"
             else
                 plan_rel="$(jq -er '.planPath' "$origin_file")"

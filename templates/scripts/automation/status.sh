@@ -33,6 +33,7 @@ if [[ "$ready_json" != "null" ]]; then
 fi
 
 current_diff_sha=""
+effective_worktree_allowlist_json='[]'
 lease_json=null
 lease_matches=null
 original_head_current=""
@@ -41,6 +42,7 @@ task_branch_exists=null
 if [[ "$workspace_json" != "null" ]]; then
     task_root="$(jq -r '.taskRoot // .taskWorktree // empty' <<< "$workspace_json")"
     if [[ -n "$task_root" && -d "$task_root" ]]; then
+        effective_worktree_allowlist_json="$(automation_effective_worktree_allowlist_json_at "$task_root")"
         current_diff_sha="$(automation_worktree_diff_sha "$task_root")"
     fi
     source_root="$(jq -r '.sourceRoot // empty' <<< "$workspace_json")"
@@ -97,6 +99,7 @@ jq -n \
     --argjson repositoryLease "$lease_json" \
     --argjson repositoryLeaseMatches "$lease_matches" \
     --argjson taskBranchExists "$task_branch_exists" \
+    --argjson effectiveWorktreeAllowlist "$effective_worktree_allowlist_json" \
     --arg originalHeadCurrent "$original_head_current" \
     --argjson originalBranchDrifted "$original_branch_drifted" \
     --arg evidence "$evidence_dir" \
@@ -106,6 +109,7 @@ jq -n \
         repositoryLease: $repositoryLease,
         repositoryLeaseMatches: $repositoryLeaseMatches,
         taskBranchExists: $taskBranchExists,
+        effectiveWorktreeAllowlist: $effectiveWorktreeAllowlist,
         originalHeadCurrent: ($originalHeadCurrent | if length == 0 then null else . end),
         originalBranchDrifted: $originalBranchDrifted
       },

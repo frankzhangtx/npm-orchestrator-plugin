@@ -113,7 +113,7 @@ npx @frankzhang2026/opencode-android-orchestrator@0.3.0 upgrade . --json
 first-install backup before it creates recovery state. It reconstructs merged
 OpenCode and AGENTS content from the original pre-install files, carries that
 recovery lineage forward, snapshots the current version, writes the new
-resources, and reruns the 38 automation tests plus the shadow run.
+resources, and reruns the 42 automation tests plus the shadow run.
 
 Upgrade preserves an installed `androidProject.moduleScope`. A legacy
 manifest-managed configuration without that field is treated as `primary`,
@@ -153,7 +153,7 @@ Verify all of the following before switching normal work to the plugin:
 - doctor has no failed check;
 - all three agents, four commands, and required skills are discoverable;
 - both read-only custom tools resolve for the scheduled agents;
-- the Shell suite ends with `1..38`;
+- the Shell suite ends with `1..42`;
 - shadow output contains `"mutationPerformed": false`;
 - `git status --short` contains only the reviewed installation diff;
 - no Git push, launchd registration, extra candidate worktree, or copied Android

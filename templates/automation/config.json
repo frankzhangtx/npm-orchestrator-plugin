@@ -47,6 +47,7 @@
     ]
   },
   "protectedPaths": [
+    ".automation-worktree-allowlist",
     ".opencode/",
     ".automation-plugin/",
     "automation/",

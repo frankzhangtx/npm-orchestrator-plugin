@@ -456,7 +456,7 @@ export function verifyInitializedProject(
       "automation-tests",
       "Automation transaction tests",
       automationTests,
-      (stdout) => /(?:^|\n)1\.\.38(?:\n|$)/.test(stdout),
+      (stdout) => /(?:^|\n)1\.\.42(?:\n|$)/.test(stdout),
     ),
     processCheck(
       "shadow-run",

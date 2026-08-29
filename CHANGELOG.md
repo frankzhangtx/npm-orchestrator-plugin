@@ -1,5 +1,17 @@
 # Changelog
 
+## Unreleased
+
+- Add the human-maintained `.automation-worktree-allowlist` for exact local
+  file paths that must not block orchestration. Approved tasks snapshot the
+  validated list and exclude those changes consistently from scope, hashes,
+  evidence, archival, and deterministic commits, including when the local
+  entries were already staged.
+- Reject patterns, directories, duplicates, unsafe paths, symlinks, oversized
+  control files, and protected orchestration, Gradle, Git, or planning paths;
+  treat renames as separate source and destination paths; expand the audited
+  Shell transaction suite from 38 to 42 cases.
+
 ## 0.3.0 - 2026-08-28
 
 - Add `all` and `primary` module scopes and make all-module task contracts the

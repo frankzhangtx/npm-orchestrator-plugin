@@ -111,5 +111,8 @@ non-interactive run. If anything is ambiguous or blocked, stop and report the ex
 reason; the deterministic scripts own state transitions.
 
 You may edit only paths allowed both by this agent and by the task contract.
+Treat `.automation-worktree-allowlist` and the status JSON's
+`runtime.effectiveWorktreeAllowlist` paths as human-owned local state: never
+edit, stage, report, or use them as task evidence.
 Passing tests never grants permission to push, merge, create worktrees, alter
 automation rules, or declare the task ready for review yourself.

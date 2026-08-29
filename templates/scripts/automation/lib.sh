@@ -47,6 +47,9 @@ AUTOMATION_STATE_DIR="$AUTOMATION_RUNTIME_ROOT/state"
 AUTOMATION_EVIDENCE_DIR="$AUTOMATION_RUNTIME_ROOT/evidence"
 AUTOMATION_LOCKS_DIR="$AUTOMATION_RUNTIME_ROOT/locks"
 AUTOMATION_WORKSPACES_DIR="$AUTOMATION_RUNTIME_ROOT/workspaces"
+AUTOMATION_WORKTREE_ALLOWLIST_RELATIVE_PATH=".automation-worktree-allowlist"
+AUTOMATION_WORKTREE_ALLOWLIST_MAX_BYTES=65536
+AUTOMATION_WORKTREE_ALLOWLIST_MAX_ENTRIES=256
 
 automation_info() {
     printf '[automation] %s\n' "$*"
@@ -383,12 +386,235 @@ automation_array_matches_path() {
     return 1
 }
 
+automation_validate_worktree_allowlist_entry_at() {
+    local root="$1"
+    local path="$2"
+    local config_file="$root/automation/config.json"
+    local protected
+
+    if [[ -z "$path" ]]; then
+        automation_die "worktree allowlist entries must not be empty"
+        return 1
+    fi
+    if [[ "$path" == [[:space:]]* || "$path" == *[[:space:]] ]]; then
+        automation_die "worktree allowlist entries must not have leading or trailing whitespace: $path"
+        return 1
+    fi
+    case "$path" in
+        *[[:cntrl:]]*|*'\\'*)
+            automation_die "worktree allowlist entries must use plain repository-relative paths: $path"
+            return 1
+            ;;
+        *'*'*|*'?'*|*'['*|*']'*)
+            automation_die "worktree allowlist entries must be exact file paths, not patterns: $path"
+            return 1
+            ;;
+    esac
+    case "/$path/" in
+        *'//'*|*'/./'*|*'/../'*)
+            automation_die "worktree allowlist entries must be normalized repository-relative paths: $path"
+            return 1
+            ;;
+    esac
+    case "$path" in
+        /*|./*|.|..|.git|.git/*|docs/plans|docs/plans/*|"$AUTOMATION_WORKTREE_ALLOWLIST_RELATIVE_PATH")
+            automation_die "worktree allowlist entry is reserved or unsafe: $path"
+            return 1
+            ;;
+    esac
+    if [[ -d "$root/$path" ]]; then
+        automation_die "worktree allowlist entries must identify files, not directories: $path"
+        return 1
+    fi
+
+    if [[ ! -f "$config_file" ]]; then
+        automation_die "missing automation configuration while validating worktree allowlist: $config_file"
+        return 1
+    fi
+    if ! jq -e '.protectedPaths | type == "array" and all(.[]; type == "string" and length > 0)' \
+        "$config_file" >/dev/null; then
+        automation_die "automation protectedPaths are invalid while validating the worktree allowlist"
+        return 1
+    fi
+    while IFS= read -r protected; do
+        if automation_path_matches "$path" "$protected"; then
+            automation_die "worktree allowlist must not include a protected path: $path"
+            return 1
+        fi
+    done < <(jq -r '.protectedPaths[]' "$config_file")
+    return 0
+}
+
+automation_worktree_allowlist_file_entries_at() {
+    local root="$1"
+    local allowlist_file="$root/$AUTOMATION_WORKTREE_ALLOWLIST_RELATIVE_PATH"
+    local byte_count line existing
+    local entry_count=0
+    local -a entries=()
+
+    if [[ ! -e "$allowlist_file" && ! -L "$allowlist_file" ]]; then
+        return 0
+    fi
+    if [[ -L "$allowlist_file" || ! -f "$allowlist_file" ]]; then
+        automation_die "worktree allowlist must be a regular file, not a symlink: $allowlist_file"
+        return 1
+    fi
+    byte_count="$(wc -c < "$allowlist_file" | tr -d '[:space:]')"
+    if [[ ! "$byte_count" =~ ^[0-9]+$ ]] || \
+       [[ "$byte_count" -gt "$AUTOMATION_WORKTREE_ALLOWLIST_MAX_BYTES" ]]; then
+        automation_die "worktree allowlist exceeds $AUTOMATION_WORKTREE_ALLOWLIST_MAX_BYTES bytes: $allowlist_file"
+        return 1
+    fi
+
+    while IFS= read -r line || [[ -n "$line" ]]; do
+        line="${line%$'\r'}"
+        [[ -n "$line" && "$line" != \#* ]] || continue
+        automation_validate_worktree_allowlist_entry_at "$root" "$line" || return 1
+        if [[ "$entry_count" -gt 0 ]]; then
+            for existing in "${entries[@]}"; do
+                if [[ "$existing" == "$line" ]]; then
+                    automation_die "duplicate worktree allowlist entry: $line"
+                    return 1
+                fi
+            done
+        fi
+        entry_count=$((entry_count + 1))
+        if [[ "$entry_count" -gt "$AUTOMATION_WORKTREE_ALLOWLIST_MAX_ENTRIES" ]]; then
+            automation_die "worktree allowlist exceeds $AUTOMATION_WORKTREE_ALLOWLIST_MAX_ENTRIES entries"
+            return 1
+        fi
+        entries[${#entries[@]}]="$line"
+    done < "$allowlist_file"
+
+    if [[ "$entry_count" -gt 0 ]]; then
+        for line in "${entries[@]}"; do
+            printf '%s\n' "$line"
+        done
+    fi
+    return 0
+}
+
+automation_worktree_allowlist_entries_json() {
+    local entries="$1"
+    if [[ -z "$entries" ]]; then
+        printf '[]\n'
+    else
+        printf '%s\n' "$entries" | jq -Rsc 'split("\n") | map(select(length > 0))'
+    fi
+}
+
+automation_worktree_allowlist_file_json_at() {
+    local root="$1"
+    local entries
+    entries="$(automation_worktree_allowlist_file_entries_at "$root")" || return 1
+    automation_worktree_allowlist_entries_json "$entries"
+}
+
+automation_effective_worktree_allowlist_entries_at() {
+    local root="$1"
+    local resolved_root
+    local lease_file="$AUTOMATION_LOCKS_DIR/repository.workspace.lease/lease.json"
+    local task_id workspace_file source_root task_root resolved_source resolved_task entry
+
+    resolved_root="$(cd "$root" && pwd -P)" || {
+        automation_die "unable to resolve worktree root for allowlist: $root"
+        return 1
+    }
+    if [[ -f "$lease_file" ]]; then
+        task_id="$(jq -er '.taskId' "$lease_file")" || {
+            automation_die "repository lease is invalid while resolving the worktree allowlist"
+            return 1
+        }
+        workspace_file="$(automation_workspace_path "$task_id")"
+        if [[ -f "$workspace_file" ]] && jq -e 'has("worktreeAllowlist")' "$workspace_file" >/dev/null; then
+            jq -e \
+                --argjson max "$AUTOMATION_WORKTREE_ALLOWLIST_MAX_ENTRIES" \
+                '.worktreeAllowlist as $entries |
+                 ($entries | type == "array") and
+                 ($entries | length <= $max) and
+                 ($entries | length == (unique | length)) and
+                 all($entries[]; type == "string" and length > 0)' \
+                "$workspace_file" >/dev/null || {
+                    automation_die "workspace worktreeAllowlist snapshot is invalid: $workspace_file"
+                    return 1
+                }
+            source_root="$(jq -er '.sourceRoot' "$workspace_file")" || return 1
+            task_root="$(automation_workspace_task_root "$workspace_file")" || return 1
+            resolved_source="$(cd "$source_root" 2>/dev/null && pwd -P || true)"
+            resolved_task="$(cd "$task_root" 2>/dev/null && pwd -P || true)"
+            if [[ "$resolved_root" == "$resolved_source" ]]; then
+                while IFS= read -r entry; do
+                    [[ -n "$entry" ]] || continue
+                    automation_validate_worktree_allowlist_entry_at "$root" "$entry" || return 1
+                    printf '%s\n' "$entry"
+                done < <(jq -r '.worktreeAllowlist[]' "$workspace_file")
+                return 0
+            fi
+            if [[ "$resolved_root" == "$resolved_task" ]]; then
+                return 0
+            fi
+        fi
+    fi
+
+    automation_worktree_allowlist_file_entries_at "$root"
+}
+
+automation_effective_worktree_allowlist_json_at() {
+    local root="$1"
+    local entries
+    entries="$(automation_effective_worktree_allowlist_entries_at "$root")" || return 1
+    automation_worktree_allowlist_entries_json "$entries"
+}
+
+automation_worktree_path_is_allowlisted() {
+    local path="$1"
+    local entries="$2"
+    local entry
+
+    [[ "$path" == "$AUTOMATION_WORKTREE_ALLOWLIST_RELATIVE_PATH" ]] && return 0
+    while IFS= read -r entry; do
+        [[ -n "$entry" ]] || continue
+        [[ "$path" == "$entry" ]] && return 0
+    done <<< "$entries"
+    return 1
+}
+
+automation_filter_worktree_paths_at() {
+    local root="$1"
+    local paths="$2"
+    local allowlist path
+
+    allowlist="$(automation_effective_worktree_allowlist_entries_at "$root")" || return 1
+    while IFS= read -r path; do
+        [[ -n "$path" ]] || continue
+        if ! automation_worktree_path_is_allowlisted "$path" "$allowlist"; then
+            printf '%s\n' "$path"
+        fi
+    done <<< "$paths"
+    return 0
+}
+
+automation_tracked_changed_paths_at() {
+    local root="$1"
+    local paths
+    paths="$(git -C "$root" diff --no-renames --name-only HEAD -- | LC_ALL=C sort -u)" || return 1
+    automation_filter_worktree_paths_at "$root" "$paths"
+}
+
+automation_untracked_paths_at() {
+    local root="$1"
+    local paths
+    paths="$(git -C "$root" ls-files --others --exclude-standard | LC_ALL=C sort -u)" || return 1
+    automation_filter_worktree_paths_at "$root" "$paths"
+}
+
 automation_changed_paths_at() {
     local root="$1"
-    {
-        git -C "$root" diff --name-only HEAD --
-        git -C "$root" ls-files --others --exclude-standard
-    } | LC_ALL=C sort -u
+    local tracked untracked
+
+    tracked="$(automation_tracked_changed_paths_at "$root")" || return 1
+    untracked="$(automation_untracked_paths_at "$root")" || return 1
+    printf '%s\n%s\n' "$tracked" "$untracked" | awk 'NF' | LC_ALL=C sort -u
 }
 
 automation_changed_paths() {
@@ -461,20 +687,71 @@ automation_changed_paths_between() {
 
 automation_worktree_diff_sha() {
     local root="${1:-$AUTOMATION_ROOT}"
-    local path
+    local tracked_paths untracked_paths path
+    tracked_paths="$(automation_tracked_changed_paths_at "$root")" || return 1
+    untracked_paths="$(automation_untracked_paths_at "$root")" || return 1
     {
-        git -C "$root" diff --binary HEAD --
+        while IFS= read -r path; do
+            [[ -n "$path" ]] || continue
+            git -C "$root" diff --binary --no-renames HEAD -- "$path"
+        done <<< "$tracked_paths"
         while IFS= read -r path; do
             [[ -n "$path" ]] || continue
             printf 'UNTRACKED %s\0' "$path"
             git -C "$root" hash-object -- "$path"
-        done < <(git -C "$root" ls-files --others --exclude-standard | LC_ALL=C sort)
+        done <<< "$untracked_paths"
     } | shasum -a 256 | awk '{print $1}'
+}
+
+automation_worktree_diff_stat_at() {
+    local root="${1:-$AUTOMATION_ROOT}"
+    local tracked_paths path
+    local -a paths=()
+
+    tracked_paths="$(automation_tracked_changed_paths_at "$root")" || return 1
+    while IFS= read -r path; do
+        [[ -n "$path" ]] && paths[${#paths[@]}]="$path"
+    done <<< "$tracked_paths"
+    if [[ "${#paths[@]}" -gt 0 ]]; then
+        git -C "$root" diff --stat --no-renames HEAD -- "${paths[@]}"
+    fi
+    return 0
+}
+
+automation_worktree_patch_at() {
+    local root="${1:-$AUTOMATION_ROOT}"
+    local tracked_paths untracked_paths path
+
+    tracked_paths="$(automation_tracked_changed_paths_at "$root")" || return 1
+    untracked_paths="$(automation_untracked_paths_at "$root")" || return 1
+    while IFS= read -r path; do
+        [[ -n "$path" ]] || continue
+        git -C "$root" diff --binary --no-renames HEAD -- "$path"
+    done <<< "$tracked_paths"
+    while IFS= read -r path; do
+        [[ -n "$path" ]] || continue
+        git -C "$root" diff --binary --no-index -- /dev/null "$root/$path" || [[ "$?" -eq 1 ]]
+    done <<< "$untracked_paths"
+    return 0
+}
+
+automation_worktree_status_at() {
+    local root="${1:-$AUTOMATION_ROOT}"
+    local changed_paths path
+
+    changed_paths="$(automation_changed_paths_at "$root")" || return 1
+    printf 'branch %s\n' "$(automation_current_branch "$root")"
+    while IFS= read -r path; do
+        [[ -n "$path" ]] && printf 'changed %s\n' "$path"
+    done <<< "$changed_paths"
+    return 0
 }
 
 automation_worktree_is_clean() {
     local root="${1:-$AUTOMATION_ROOT}"
-    [[ -z "$(git -C "$root" status --porcelain --untracked-files=all)" ]]
+    local changed_paths
+    changed_paths="$(automation_changed_paths_at "$root")" || return 1
+    [[ -z "$changed_paths" ]]
 }
 
 automation_create_lock_dir() {

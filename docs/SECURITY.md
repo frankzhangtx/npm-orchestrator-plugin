@@ -112,6 +112,13 @@ while Gradle settings/build files and orchestration resources remain protected.
 legacy configuration with no scope field as `primary`, preventing an implicit
 permission expansion.
 
+The optional repository-root `.automation-worktree-allowlist` is controlled by
+the local human operator, not by task agents. It accepts at most 256 exact,
+normalized repository-relative file paths in a regular file no larger than 64
+KiB. Patterns, directories, duplicates, Git metadata, planning artifacts, and
+configured protected paths fail closed. The control file itself is protected
+and excluded from orchestration change views.
+
 The installed manifest is `0600`. Installer control, backup, recovery, and
 history directories are created with private `0700` defaults; backup files
 preserve the original file mode where recovery requires it. Shell resources
@@ -121,7 +128,7 @@ non-executable.
 ## Transaction and recovery safety
 
 `init` writes original-file backups before publishing a prepared manifest. It
-then applies validated files, runs the 38-case transaction suite and a shadow
+then applies validated files, runs the 42-case transaction suite and a shadow
 run, verifies final hashes/modes, and only then marks the manifest installed.
 Failure before completion restores originals and removes safely unchanged new
 files.
@@ -151,6 +158,13 @@ the recorded before/after hashes and Git refs.
   ready. Successful integration creates exactly one combined local commit.
 - Scope gates inspect tracked and untracked changes, reject protected paths and
   obvious test weakening, and bind the accepted result to a diff SHA.
+- An approved task snapshots the validated worktree allowlist. Listed local
+  changes are excluded consistently from cleanliness, scope, hashes, evidence,
+  archival, and commits; explicit commit pathsets preserve allowlisted staged
+  entries, and rename detection cannot hide an unlisted source path. Changing
+  the control file mid-task cannot widen the active snapshot. Status exposes
+  the effective list to Coder and Reviewer sessions and returns an empty list
+  inside isolated task worktrees.
 - Integration reruns verification before a fast-forward. It never pushes.
 - A successfully integrated task branch is deleted only after the original
   branch reaches the verified commit. Failure preserves the branch for
@@ -209,6 +223,9 @@ commit installer recovery data unless an explicit internal policy requires it.
   validating its storage and cleanup policy.
 - Recovery evidence improves auditability but increases local sensitive-data
   retention.
+- A human can intentionally hide a product-file change by allowlisting its
+  exact path. Such a file is outside the task's reviewed and committed result;
+  remove it from the list before any task that is expected to modify it.
 - Real dual-version end-to-end acceptance and a clean install from the final
   tarball remain mandatory release gates.
 

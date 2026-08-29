@@ -12,7 +12,7 @@ fixed references, plugin options, CRLF/tab preservation, malformed input,
 duplicates, version conflicts, ambiguous config files, and symbolic links. The
 infrastructure resource suite additionally locks the portable V3 configuration
 source, Schemas, task example, plan guide, and bounded AGENTS managed block. The
-38-case Shell transaction suite runs against a non-default module path and
+42-case Shell transaction suite runs against a non-default module path and
 verifies dynamic production/test scope classification.
 
 The installation transaction suite covers read-only SHA-256 planning,

@@ -52,17 +52,10 @@ while IFS= read -r path; do
 done < <(automation_product_changed_paths_at "$task_id" "$AUTOMATION_ROOT")
 changed_paths_json="$(printf '%s\n' "${changed_paths[@]}" | jq -Rsc 'split("\n") | map(select(length > 0))')"
 planning_artifacts_json="$(jq -c '[.planPath, .contractPath]' "$origin_file")"
-diff_stat="$(git -C "$AUTOMATION_ROOT" diff --stat HEAD --)"
-untracked_paths="$(git -C "$AUTOMATION_ROOT" ls-files --others --exclude-standard | LC_ALL=C sort)"
+diff_stat="$(automation_worktree_diff_stat_at "$AUTOMATION_ROOT")"
 
 sealed_diff="$evidence_dir/sealed.diff"
-{
-    git -C "$AUTOMATION_ROOT" diff --binary HEAD --
-    while IFS= read -r path; do
-        [[ -n "$path" ]] || continue
-        git -C "$AUTOMATION_ROOT" diff --binary --no-index -- /dev/null "$AUTOMATION_ROOT/$path" || [[ "$?" -eq 1 ]]
-    done <<< "$untracked_paths"
-} > "$sealed_diff"
+automation_worktree_patch_at "$AUTOMATION_ROOT" > "$sealed_diff"
 
 report_file="$evidence_dir/acceptance-report.json"
 jq -n \

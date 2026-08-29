@@ -136,6 +136,16 @@ test("renders portable configuration and a focused task example from Kotlin proj
         "clients/mobile/build.gradle.kts",
       ),
     );
+    assert.ok(
+      plan.automationConfig.protectedPaths.includes(
+        ".automation-worktree-allowlist",
+      ),
+    );
+    assert.ok(
+      plan.taskContractExample.forbiddenPaths.includes(
+        ".automation-worktree-allowlist",
+      ),
+    );
     assert.deepEqual(plan.taskContractExample.allowedPaths, [
       "feature/profile/src/main/**",
       "clients/mobile/src/main/**",

@@ -56,6 +56,36 @@ In all-module scope, `--primary-module` is optional and only chooses the
 default module used by the focused-test placeholder; it does not narrow which
 detected modules may be modified.
 
+### Allow intentional local worktree changes
+
+If one or more files must stay locally modified while orchestration runs,
+create `.automation-worktree-allowlist` in the Git repository root and edit it
+as a normal text file:
+
+```text
+# One exact repository-relative file path per line
+local/operator-note.txt
+config/developer-overrides.json
+```
+
+Blank lines and lines beginning with `#` are ignored. Entries must be exact
+file paths; directory entries and glob patterns are rejected. The control file
+itself is automatically ignored by orchestration, so it does not need a
+`.gitignore` rule merely to pass preflight.
+
+Allowlisted tracked, untracked, and staged changes do not block startup and are
+excluded from task scope, diff hashes, acceptance/abort evidence, and
+deterministic commits. Existing staged entries remain staged instead of being
+consumed by task or recovery commits. A rename has two paths, so both the old
+and new exact path must be listed if the whole rename should remain local.
+Protected orchestration, Gradle, Git, and planning paths cannot be allowlisted.
+Use this only for files that the task must not modify; remove an entry before
+starting a task that should change that file. The list is snapshotted at
+contract approval, so edits made during a running task apply to the next task.
+Task status exposes the effective snapshot to Coder and Reviewer sessions; an
+isolated task worktree receives an empty effective list so task-local edits are
+never hidden by source-worktree exclusions.
+
 The install transaction manages 45 project-local paths:
 
 | Resource group | Count | Installation behavior |
@@ -135,7 +165,7 @@ Implemented checks include:
 - a write-capable `init` transaction that installs 45 managed files, preserves
   Shell executable modes, merges OpenCode JSON/JSONC and one bounded AGENTS
   block, and is byte-idempotent for an unchanged installed version
-- write-before-complete verification using the 38-case automation suite and a
+- write-before-complete verification using the 42-case automation suite and a
   read-only shadow run; any failure restores original files before reporting
   the error
 - an installation-aware, read-only doctor that authenticates the 45-file
@@ -236,7 +266,7 @@ Android Gradle project, an executable Gradle Wrapper, `git`, `jq`, `rg`,
 2. rejects all unresolved content or mode conflicts;
 3. backs up every existing managed path and publishes a `prepared` manifest;
 4. writes missing or approved merged files with verified hashes and modes;
-5. runs the 38 automation tests and `shadow-run.sh`;
+5. runs the 42 automation tests and `shadow-run.sh`;
 6. marks the manifest `installed` only after both checks pass.
 
 Verification failure automatically restores originals and records rollback
@@ -327,7 +357,7 @@ the immediately preceding `question` result and bind at least the approval
 kind, task ID, session, message, relevant sealed SHA/branch, timestamp, and
 nonce. It must also retain fixed-script authentication, strict state
 preconditions, project/worktree bounds, abort propagation that terminates child
-processes, bounded structured output, exact per-agent permissions, the 38-case
+processes, bounded structured output, exact per-agent permissions, the 42-case
 transaction suite, and real `1.14.22`/`1.15.13` integration tests. Internal
 Coder/Reviewer transition scripts remain private orchestration details rather
 than public tools.
@@ -360,7 +390,7 @@ For an older healthy installation, the command:
    backup set;
 4. writes only changed managed resources and restores or removes resources no
    longer managed by the new version;
-5. runs the 38 automation tests and a mutation-free shadow run before swapping
+5. runs the 42 automation tests and a mutation-free shadow run before swapping
    the active manifest;
 6. records upgrade history below `.automation-plugin/history/`.
 

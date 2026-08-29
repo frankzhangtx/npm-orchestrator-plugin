@@ -64,12 +64,13 @@ while IFS= read -r path; do
 done <<< "$changed_file_list"
 
 deleted_tests="$(
-    git -C "$AUTOMATION_ROOT" diff --name-only --diff-filter=D HEAD -- \
-        | while IFS= read -r path; do
-            if automation_array_matches_path "$AUTOMATION_CONFIG" '.androidProject.testPaths' "$path"; then
-                printf '%s\n' "$path"
-            fi
-        done
+    while IFS= read -r path; do
+        [[ -n "$path" ]] || continue
+        if [[ -n "$(git -C "$AUTOMATION_ROOT" diff --no-renames --name-only --diff-filter=D HEAD -- "$path")" ]] && \
+           automation_array_matches_path "$AUTOMATION_CONFIG" '.androidProject.testPaths' "$path"; then
+            printf '%s\n' "$path"
+        fi
+    done <<< "$changed_file_list"
 )"
 [[ -z "$deleted_tests" ]] || { automation_die "test deletion is forbidden: $deleted_tests"; exit 40; }
 
@@ -83,7 +84,7 @@ added_test_lines="$(
     while IFS= read -r path; do
         [[ -n "$path" ]] || continue
         if automation_array_matches_path "$AUTOMATION_CONFIG" '.androidProject.testPaths' "$path"; then
-            git -C "$AUTOMATION_ROOT" diff --unified=0 HEAD -- "$path"
+            git -C "$AUTOMATION_ROOT" diff --no-renames --unified=0 HEAD -- "$path"
         fi
     done <<< "$changed_file_list" \
         | awk '/^\+\+\+/ { next } /^\+/ { sub(/^\+/, ""); print }'
@@ -95,12 +96,14 @@ if printf '%s\n' "$added_test_lines" | rg -n "$weakening_pattern" >/dev/null; th
 fi
 
 while IFS= read -r untracked_test; do
-    if automation_array_matches_path "$AUTOMATION_CONFIG" '.androidProject.testPaths' "$untracked_test" && \
+    [[ -n "$untracked_test" ]] || continue
+    if ! git -C "$AUTOMATION_ROOT" ls-files --error-unmatch -- "$untracked_test" >/dev/null 2>&1 && \
+       automation_array_matches_path "$AUTOMATION_CONFIG" '.androidProject.testPaths' "$untracked_test" && \
         rg -n "$weakening_pattern" "$AUTOMATION_ROOT/$untracked_test" >/dev/null; then
         automation_die "potential test weakening detected in new test: $untracked_test"
         exit 40
     fi
-done < <(git -C "$AUTOMATION_ROOT" ls-files --others --exclude-standard)
+done <<< "$changed_file_list"
 
 if [[ "$planning_commit_policy" == "withProductChanges" ]]; then
     automation_info "scope gate passed ($changed_count product files; sealed planning artifacts excluded from the contract limit)"

@@ -13,6 +13,7 @@
     "**/src/androidTest/**"
   ],
   "forbiddenPaths": [
+    ".automation-worktree-allowlist",
     ".opencode/**",
     ".automation-plugin/**",
     "automation/**",

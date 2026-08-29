@@ -11,7 +11,7 @@ const opencodeTemplateRoot = join(templatesRoot, ".opencode");
 const expectedHashes = new Map([
   [
     ".opencode/agents/scheduled-coder.md",
-    "b895789511cec1d8993ed2ca8540f44ffe4c03edb5c802ab519b269cc1793284",
+    "ff76cddd22aaf5974c7a2b88bb75a4ffce67eb8ab0fdce79f781a7e7d8203d45",
   ],
   [
     ".opencode/agents/scheduled-planner.md",
@@ -19,7 +19,7 @@ const expectedHashes = new Map([
   ],
   [
     ".opencode/agents/scheduled-reviewer.md",
-    "9632d7d2a6f8297b4cc397c68c20b4c230cce479064a6d82f4e683be1f400206",
+    "a681c0d0c7ee34a039ed7ff28c962c04e0818237e554f5ddf61b7ae447fa5f49",
   ],
   [
     ".opencode/commands/abort-task.md",
@@ -39,7 +39,7 @@ const expectedHashes = new Map([
   ],
   [
     ".opencode/skills/scheduled-quality-coder/SKILL.md",
-    "d88438c0fdff50918ee3ab130751134b0018d2caa84578836de5e8b5904bfb4f",
+    "a1c81a3bdc00d59e2e57f9571bc50fc8a5c28665c30a55b42a73c615c4e693f0",
   ],
   [
     ".opencode/skills/scheduled-quality-orchestrator/SKILL.md",
@@ -47,7 +47,7 @@ const expectedHashes = new Map([
   ],
   [
     ".opencode/skills/scheduled-quality-reviewer/SKILL.md",
-    "53e7a92b663a5245f3f860a781a48fbfe84cb3376329edba64ff8e888a6dba95",
+    "3f7ac69ac393ba484d9c39ebd7693cc13892182d36e9c28deb9ebbbb0b6c9750",
   ],
 ]);
 
@@ -88,6 +88,16 @@ test("keeps migrated templates project-independent and structurally valid", () =
     assert.match(contents, /^---\n(?:.|\n)+?\n---\n/, path);
     assert.doesNotMatch(contents, /\/Users\/|zhanglong|cctest/i, path);
     assert.doesNotMatch(contents, /\.git\/automation-runtime/, path);
+  }
+
+  for (const path of [
+    ".opencode/agents/scheduled-coder.md",
+    ".opencode/agents/scheduled-reviewer.md",
+    ".opencode/skills/scheduled-quality-coder/SKILL.md",
+    ".opencode/skills/scheduled-quality-reviewer/SKILL.md",
+  ]) {
+    const contents = readFileSync(join(templatesRoot, path), "utf8");
+    assert.match(contents, /runtime\.effectiveWorktreeAllowlist/, path);
   }
 });
 

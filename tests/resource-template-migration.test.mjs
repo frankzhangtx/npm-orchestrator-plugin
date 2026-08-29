@@ -10,7 +10,7 @@ const templatesRoot = fileURLToPath(new URL("../templates/", import.meta.url));
 const expectedBaselineHashes = new Map([
   [
     "automation/config.json",
-    "b155888e4047b6864bef02c50b1f204e4fc010c916049c4872165e15c387dfee",
+    "b37eeec6cfb9a70e1897e25db313e7be8a29013234e1914f12ab26120d5be8bd",
   ],
   [
     "automation/config.schema.json",
@@ -22,7 +22,7 @@ const expectedBaselineHashes = new Map([
   ],
   [
     "automation/tasks/TASK-TEMPLATE.json.example",
-    "ec02d32b5db8aec24db1cb0303cbaaef58fd3e94f5b08e86833197d2fec8cfea",
+    "55aed442520541e90e892ff59a8f0db728b8acb2bb76bd7af777b894c7a40298",
   ],
   [
     "docs/plans/README.md",
@@ -32,7 +32,7 @@ const expectedBaselineHashes = new Map([
 
 const agentsFragmentPath = "AGENTS.md.fragment";
 const expectedAgentsFragmentHash =
-  "1d0195c5eae155daa0847a4c690d93ffe588f07c42f2e20205fd2271f27000c4";
+  "84f320a639307e1acb44fa73eb349bd7f556542390a96c45485dad8e60a241c5";
 
 function listFiles(directory) {
   return readdirSync(directory, { withFileTypes: true }).flatMap((entry) => {
@@ -106,6 +106,14 @@ test("keeps configuration, schemas, and contract example structurally aligned", 
     "docs/plans/TASK-EXAMPLE-001.md",
   );
   assert.ok(contractExample.forbiddenPaths.includes("AGENTS.md"));
+  assert.ok(
+    config.protectedPaths.includes(".automation-worktree-allowlist"),
+  );
+  assert.ok(
+    contractExample.forbiddenPaths.includes(
+      ".automation-worktree-allowlist",
+    ),
+  );
   assert.ok(configSchema.required.includes("gradleVerification"));
   assert.ok(configSchema.required.includes("androidProject"));
   assert.equal(Object.hasOwn(config, "androidProject"), false);
@@ -185,6 +193,7 @@ test("provides one portable and bounded AGENTS managed block", () => {
   assert.match(fragment, /\.\/gradlew testDebugUnitTest/);
   assert.match(fragment, /single-choice `question` selection/);
   assert.match(fragment, /must not push Git changes/);
+  assert.match(fragment, /\.automation-worktree-allowlist/);
   assert.doesNotMatch(
     fragment,
     /# Repository Guidelines|\/Users\/|cctest|\.git\/automation-runtime/,
