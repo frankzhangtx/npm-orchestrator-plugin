@@ -3,9 +3,9 @@
 Reusable OpenCode orchestration for macOS Android projects.
 
 Version `0.2.0` is the first published lifecycle release. Version `0.3.0` adds
-default all-module orchestration, configurable Gradle verification tasks, and
-stricter contract/evidence validation while retaining the same certified
-OpenCode compatibility range.
+default all-module orchestration and stronger verification contracts. Version
+`0.4.0` adds a validated, exact-path worktree allowlist for intentional local
+changes while retaining the same certified OpenCode compatibility range.
 
 ## Documentation
 
@@ -36,8 +36,8 @@ even though the installer maintains its own verified recovery data.
 ## Quick start
 
 ```sh
-npx @frankzhang2026/opencode-android-orchestrator@0.3.0 init .
-npx @frankzhang2026/opencode-android-orchestrator@0.3.0 doctor .
+npx @frankzhang2026/opencode-android-orchestrator@0.4.0 init .
+npx @frankzhang2026/opencode-android-orchestrator@0.4.0 doctor .
 opencode --agent scheduled-planner .
 ```
 
@@ -47,7 +47,7 @@ a task contract without selecting a primary module. To intentionally restrict
 generated contracts to one module, opt into primary-module scope:
 
 ```sh
-npx @frankzhang2026/opencode-android-orchestrator@0.3.0 init . \
+npx @frankzhang2026/opencode-android-orchestrator@0.4.0 init . \
   --module-scope primary \
   --primary-module :mobile
 ```
@@ -105,8 +105,9 @@ does not register Scheduler or launchd jobs.
 ## Status
 
 Version `0.1.0` was an early scaffold without a working installer. Version
-`0.2.0` introduced the complete managed lifecycle; version `0.3.0` builds on
-that release with all-module defaults and stronger verification contracts.
+`0.2.0` introduced the complete managed lifecycle, `0.3.0` added all-module
+defaults and stronger verification contracts, and `0.4.0` adds the bounded
+worktree allowlist described above.
 
 The cross-version plugin entry, OpenCode version doctor, Android/Gradle project
 discovery, audited V3 resources, and all deterministic V3 Shell transactions
@@ -243,7 +244,7 @@ preparation alone as resource installation;
 ## Init
 
 ```sh
-npx @frankzhang2026/opencode-android-orchestrator@0.3.0 init .
+npx @frankzhang2026/opencode-android-orchestrator@0.4.0 init .
 opencode --agent scheduled-planner .
 ```
 
@@ -330,7 +331,7 @@ preflight verifies both resolved permissions and tool discovery.
 ### Phase 2 mutating-tool decision
 
 The 2026-08-25 evaluation remains **NO-GO for mutating custom tools in
-`0.3.0`**.
+`0.4.0`**.
 The fixed Shell allowlist remains the only entry point for state transitions,
 Git mutations, and agent launches. OpenCode custom tools provide typed arguments
 and workspace context, but a normal permission prompt is not the workflow's

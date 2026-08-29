@@ -1,7 +1,7 @@
 # Troubleshooting
 
 Use this guide for
-`@frankzhang2026/opencode-android-orchestrator@0.3.0`.
+`@frankzhang2026/opencode-android-orchestrator@0.4.0`.
 
 ## Start with read-only evidence
 
@@ -11,7 +11,7 @@ From the repository root, capture:
 git status --short --branch
 git rev-parse HEAD
 opencode --version
-npx @frankzhang2026/opencode-android-orchestrator@0.3.0 doctor . --json
+npx @frankzhang2026/opencode-android-orchestrator@0.4.0 doctor . --json
 ```
 
 If installation never completed, doctor will correctly report a missing or

@@ -1,6 +1,6 @@
 # Third-Party Notices
 
-Last reviewed for `0.3.0` on 2026-08-28.
+Last reviewed for `0.4.0` on 2026-08-29.
 
 The published package does not vendor `node_modules`, third-party binaries, or
 third-party Skill source. Its compiled JavaScript imports the direct runtime

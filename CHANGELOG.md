@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 0.4.0 - 2026-08-29
 
 - Add the human-maintained `.automation-worktree-allowlist` for exact local
   file paths that must not block orchestration. Approved tasks snapshot the

@@ -16,9 +16,9 @@ test("ships complete MIT license and third-party notices", () => {
   const license = read("LICENSE");
   const notices = read("THIRD_PARTY_NOTICES.md");
 
-  assert.equal(packageJson.version, "0.3.0");
-  assert.equal(packageLock.version, "0.3.0");
-  assert.equal(packageLock.packages[""].version, "0.3.0");
+  assert.equal(packageJson.version, "0.4.0");
+  assert.equal(packageLock.version, "0.4.0");
+  assert.equal(packageLock.packages[""].version, "0.4.0");
   assert.equal(packageJson.license, "MIT");
   assert.equal(packageJson.author, "frankzhang2026");
   assert.deepEqual(packageJson.repository, {
