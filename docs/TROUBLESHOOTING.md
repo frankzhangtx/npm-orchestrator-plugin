@@ -1,7 +1,7 @@
 # Troubleshooting
 
 Use this guide for
-`@frankzhang2026/opencode-android-orchestrator@0.4.0`.
+`@frankzhang2026/opencode-android-orchestrator@0.5.0`.
 
 ## Start with read-only evidence
 
@@ -11,7 +11,7 @@ From the repository root, capture:
 git status --short --branch
 git rev-parse HEAD
 opencode --version
-npx @frankzhang2026/opencode-android-orchestrator@0.4.0 doctor . --json
+npx @frankzhang2026/opencode-android-orchestrator@0.5.0 doctor . --json
 ```
 
 If installation never completed, doctor will correctly report a missing or
@@ -42,6 +42,7 @@ remain human-readable on stderr with a stable code such as `[FILE_CONFLICT]`.
 | `MODULE_SCOPE_INVALID` or an invalid `--module-scope` argument | The value is not `all` or `primary`. | Use `all` for the default all-module contract or `primary` for an intentional single-module restriction. |
 | `PRIMARY_MODULE_AMBIGUOUS` | Restrictive `primary` scope has multiple possible Android modules. | Supply an exact Gradle path, for example `--module-scope primary --primary-module :mobile`, or use the default `all` scope. |
 | `PRIMARY_MODULE_NOT_FOUND` | The selected Gradle path was not detected. | Use a module path reported by doctor/project detection; do not pass a filesystem directory. |
+| `GRADLE_DISCOVERY_FAILED` | The temporary read-only Gradle configuration failed, or registered tasks could not form every required verification group. | Run `./gradlew help --console=plain` and fix the reported project/JDK/dependency issue. Use `--gradle-verification-config` only for an intentional nonstandard task policy, and keep that file inside the target repository. |
 | Android SDK failure | No valid explicit SDK, `ANDROID_HOME`, `ANDROID_SDK_ROOT`, or `local.properties` `sdk.dir` was found. | Configure one real SDK root containing `platforms/` and `build-tools/`. Do not publish `local.properties`. |
 | Missing `git`, `jq`, `rg`, `shasum`, or Java | Required deterministic command is unavailable on `PATH`. | Install or restore the missing command, record its version, and rerun the read-only checks. |
 
@@ -63,8 +64,10 @@ permissions to make discovery pass.
 ## Worktree allowlist failures
 
 Use `.automation-worktree-allowlist` only for intentional local changes that
-must remain outside every task diff and commit. The file belongs in the Git
-repository root, with one exact repository-relative file path per line.
+must remain outside every task diff and commit. `init` creates a comment-only
+starter file in the Git repository root when it is missing and preserves an
+existing regular file. Add one exact repository-relative file path per line;
+leaving the generated file comment-only is valid.
 
 | Symptom | Likely cause | Safe response |
 | --- | --- | --- |
@@ -74,11 +77,14 @@ repository root, with one exact repository-relative file path per line.
 | `must be a regular file, not a symlink` | The control file is a symlink or another unsupported file type. | Replace it with a small regular text file at the repository root. |
 | A task does not include a file you expected it to edit | The path was in the snapshot taken at contract approval. | Finish/abort the active task, remove the entry, then start and approve a new task. |
 | A local rename still blocks startup | Only the new or old name is listed. | Add both exact paths; rename detection treats the source deletion and destination addition independently. |
+| `WORKTREE_ALLOWLIST_INVALID` during `init` | The target path is a directory, symlink, or another non-regular file. | Replace it with a regular text file or remove it and rerun `init` so the starter file can be created safely. |
 
 The control file itself does not block orchestration and does not require a
 `.gitignore` entry for that purpose. Git may still display it in ordinary
 `git status`, which is separate from the orchestrator's filtered view. Staged
 allowlisted entries remain staged and are not consumed by task or abort commits.
+The file is human-owned after bootstrap, remains outside managed-resource
+integrity hashes, and is preserved by upgrade and uninstall.
 
 ## Installation conflicts
 

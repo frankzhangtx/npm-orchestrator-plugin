@@ -51,6 +51,18 @@ function successfulCommandRunner(executable, args) {
   if (args.length === 1 && ["--version", "-version"].includes(args[0])) {
     return commandResult(0, `${executable} fixture version\n`);
   }
+  if (executable.endsWith("gradlew") && args[0] === "help") {
+    return commandResult(
+      0,
+      [
+        "OPENCODE_ANDROID_ORCHESTRATOR_TASK=:mobile:assembleDebug",
+        "OPENCODE_ANDROID_ORCHESTRATOR_TASK=:mobile:connectedDebugAndroidTest",
+        "OPENCODE_ANDROID_ORCHESTRATOR_TASK=:mobile:lint",
+        "OPENCODE_ANDROID_ORCHESTRATOR_TASK=:mobile:testDebugUnitTest",
+        "",
+      ].join("\n"),
+    );
+  }
   return commandResult(1, "", `unexpected command: ${executable}`);
 }
 
@@ -245,7 +257,7 @@ test("installed doctor rejects a self-consistent manifest rewrite of a packaged 
     assert.equal(check(report, "installation-manifest").status, "fail");
     assert.match(
       check(report, "installation-manifest").details.join("\n"),
-      /does not match the packaged 0\.4\.0 template/,
+      /does not match the packaged 0\.5\.0 template/,
     );
     assert.equal(
       check(report, "managed-resources").status,

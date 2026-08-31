@@ -31,6 +31,22 @@ a primary selection. `primary` scope restricts paths to one module and retains
 the ambiguity guard. The selected/default module still supplies the focused
 test placeholder in both modes.
 
+The lifecycle `init` path first asks Gradle for its registered debug unit,
+assemble, lint, and connected-device tasks through a temporary read-only init
+script. The resulting exact task paths replace the baseline matrix before the
+adaptive render. This covers product flavors without shipping a project name,
+an absolute configuration path, or a hand-maintained JSON file. The packaged
+matrix remains the deterministic fallback for the read-only planning API;
+callers may still pass an explicit matrix when they intentionally need a custom
+policy.
+
+After read-only planning succeeds, `init` creates a comment-only
+`.automation-worktree-allowlist` if it is missing and preserves any existing
+regular file. This user-editable control file remains outside the managed
+resource manifest so its exact-path entries can change without causing package
+integrity drift; failed first-install verification removes a newly bootstrapped
+file during rollback.
+
 The legacy Scheduler field has been removed while Superpowers remains pinned.
 The scope gates consume generated source-set arrays, and the Shell test fixture
 uses a neutral custom module and package. No shipped template contains a local

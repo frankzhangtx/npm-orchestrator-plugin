@@ -23,6 +23,7 @@ import {
   SUPERPOWERS_PLUGIN_REFERENCE,
   UNINSTALL_MARKER_RELATIVE_PATH,
   UPGRADE_MARKER_RELATIVE_PATH,
+  WORKTREE_ALLOWLIST_RELATIVE_PATH,
   applyProjectUpgrade,
   formatProjectUpgradeResult,
   planProjectUpgrade,
@@ -68,6 +69,18 @@ function successfulRunner(calls = []) {
     }
     if (args.length === 1 && ["--version", "-version"].includes(args[0])) {
       return commandResult(0, `${executable} fixture version\n`);
+    }
+    if (executable.endsWith("gradlew") && args[0] === "help") {
+      return commandResult(
+        0,
+        [
+          "OPENCODE_ANDROID_ORCHESTRATOR_TASK=:mobile:assembleDebug",
+          "OPENCODE_ANDROID_ORCHESTRATOR_TASK=:mobile:connectedDebugAndroidTest",
+          "OPENCODE_ANDROID_ORCHESTRATOR_TASK=:mobile:lint",
+          "OPENCODE_ANDROID_ORCHESTRATOR_TASK=:mobile:testDebugUnitTest",
+          "",
+        ].join("\n"),
+      );
     }
     return commandResult(1, "", `unexpected command: ${executable}`);
   };
@@ -235,7 +248,7 @@ test("plans an older-version upgrade without writing recovery or managed files",
     assert.equal(plan.moduleScope, "all");
     assert.equal(plan.primaryModule, ":mobile");
     assert.equal(plan.fromVersion, "0.2.0");
-    assert.equal(plan.toVersion, "0.4.0");
+    assert.equal(plan.toVersion, "0.5.0");
     assert.equal(plan.desiredFiles.length, 45);
     assert.equal(plan.removedFiles.length, 0);
     assert.equal(existsSync(plan.recoveryDirectory), false);
@@ -292,6 +305,11 @@ test("upgrades legacy configurations without moduleScope in primary mode", () =>
 test("upgrades unchanged managed files, preserves original merges, and restores obsolete user files", () => {
   const { root, sdk, originalAgents, originalOpenCode } = createInstalledFixture();
   try {
+    const customAllowlist = "config/developer-overrides.json\n";
+    writeFileSync(
+      join(root, WORKTREE_ALLOWLIST_RELATIVE_PATH),
+      customAllowlist,
+    );
     const old = simulateOlderInstallation(root, { legacyFile: true });
 
     const result = runProjectUpgrade(
@@ -302,7 +320,7 @@ test("upgrades unchanged managed files, preserves original merges, and restores 
     assert.equal(result.status, "upgraded");
     assert.equal(result.moduleScope, "all");
     assert.equal(result.fromVersion, "0.2.0");
-    assert.equal(result.toVersion, "0.4.0");
+    assert.equal(result.toVersion, "0.5.0");
     assert.equal(result.managedFileCount, 45);
     assert.equal(result.writtenFileCount, 3);
     assert.equal(result.reusedFileCount, 42);
@@ -316,10 +334,15 @@ test("upgrades unchanged managed files, preserves original merges, and restores 
     assert.equal(lstatSync(join(root, "legacy/user-note.txt")).mode & 0o777, 0o600);
 
     const manifest = readInstallationManifest(root);
-    assert.equal(manifest.package.version, "0.4.0");
+    assert.equal(manifest.package.version, "0.5.0");
     assert.equal(manifest.installation.id, "upgrade-success-001");
     assert.equal(manifest.installation.state, "installed");
     assert.equal(verifyInstallationIntegrity(root).ok, true);
+    assert.equal(
+      readFileSync(join(root, WORKTREE_ALLOWLIST_RELATIVE_PATH), "utf8"),
+      customAllowlist,
+      "upgrade must preserve the human-maintained allowlist",
+    );
     assert.equal(existsSync(join(root, UPGRADE_MARKER_RELATIVE_PATH)), false);
     assert.equal(existsSync(result.recoveryDirectory), true);
     assert.equal(existsSync(result.historyPath), true);
@@ -356,7 +379,7 @@ test("upgrades unchanged managed files, preserves original merges, and restores 
     assert.equal(doctor.ok, true);
     assert.match(formatProjectUpgradeResult(result), /Result: UPGRADED/);
     assert.match(formatProjectUpgradeResult(result), /Module scope: all/);
-    assert.match(formatProjectUpgradeResult(result), /0\.2\.0 -> 0\.4\.0/);
+    assert.match(formatProjectUpgradeResult(result), /0\.2\.0 -> 0\.5\.0/);
   } finally {
     rmSync(root, { recursive: true, force: true });
   }
@@ -637,7 +660,7 @@ test("upgrade refuses to downgrade a newer installed package", () => {
     const manifest = JSON.parse(
       readFileSync(join(root, INSTALLATION_MANIFEST_RELATIVE_PATH), "utf8"),
     );
-    manifest.package.version = "0.5.0";
+    manifest.package.version = "0.6.0";
     writeManifest(root, manifest);
 
     assert.throws(

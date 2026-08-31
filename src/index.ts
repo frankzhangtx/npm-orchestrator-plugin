@@ -92,7 +92,20 @@ export {
   type GradleWrapperDetection,
 } from "./installer/android-project.js";
 export {
+  GRADLE_TASK_DISCOVERY_INIT_SCRIPT,
+  GradleVerificationDiscoveryError,
+  discoverGradleVerificationConfiguration,
+  inferGradleVerificationConfiguration,
+  parseGradleTaskPaths,
+  type GradleVerificationDiscoveryErrorCode,
+  type GradleVerificationDiscoveryOptions,
+  type GradleVerificationProcessOptions,
+  type GradleVerificationProcessRunner,
+} from "./installer/gradle-verification.js";
+export {
+  INITIAL_WORKTREE_ALLOWLIST_CONTENT,
   ProjectInitializationError,
+  WORKTREE_ALLOWLIST_RELATIVE_PATH,
   formatProjectInitializationResult,
   planProjectInitialization,
   planProjectResourceInputs,
@@ -109,6 +122,7 @@ export {
   type ProjectInitializationPlan,
   type ProjectInitializationResult,
   type ProjectResourceInputPlan,
+  type WorktreeAllowlistInitializationStatus,
 } from "./installer/init.js";
 export {
   INSTALLATION_BACKUPS_DIRECTORY,

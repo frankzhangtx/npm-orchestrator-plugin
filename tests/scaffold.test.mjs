@@ -95,6 +95,8 @@ test("CLI exposes init options and rejects an incomplete module selection", () =
   assert.match(help.stdout, /Default module scope: all/);
   assert.match(help.stdout, /--primary-module <gradle-path>/);
   assert.match(help.stdout, /--gradle-verification-config <json-path>/);
+  assert.match(help.stdout, /Gradle verification: auto-discovered/);
+  assert.match(help.stdout, /Worktree allowlist: created automatically/);
   assert.match(help.stdout, /--json/);
 
   const invalid = spawnSync(

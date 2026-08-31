@@ -44,6 +44,12 @@ function printInitHelp(): void {
     `  opencode-android-orchestrator init [directory] [--module-scope <all|primary>] [--primary-module <gradle-path>] [--gradle-verification-config <json-path>] [--json]\n`,
   );
   process.stdout.write(`\nDefault module scope: all\n`);
+  process.stdout.write(
+    `Default Gradle verification: auto-discovered; the JSON option is an explicit override.\n`,
+  );
+  process.stdout.write(
+    `Worktree allowlist: created automatically when missing; an existing regular file is preserved.\n`,
+  );
 }
 
 function printDoctorHelp(): void {

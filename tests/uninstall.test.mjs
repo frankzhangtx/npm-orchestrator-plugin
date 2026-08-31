@@ -21,6 +21,7 @@ import {
   UNINSTALL_MARKER_RELATIVE_PATH,
   InstallationManifestError,
   ProjectUninstallError,
+  WORKTREE_ALLOWLIST_RELATIVE_PATH,
   applyProjectUninstall,
   formatProjectUninstallResult,
   planProjectUninstall,
@@ -56,6 +57,18 @@ function successfulRunner() {
     }
     if (args.length === 1 && ["--version", "-version"].includes(args[0])) {
       return commandResult(0, `${executable} fixture version\n`);
+    }
+    if (executable.endsWith("gradlew") && args[0] === "help") {
+      return commandResult(
+        0,
+        [
+          "OPENCODE_ANDROID_ORCHESTRATOR_TASK=:mobile:assembleDebug",
+          "OPENCODE_ANDROID_ORCHESTRATOR_TASK=:mobile:connectedDebugAndroidTest",
+          "OPENCODE_ANDROID_ORCHESTRATOR_TASK=:mobile:lint",
+          "OPENCODE_ANDROID_ORCHESTRATOR_TASK=:mobile:testDebugUnitTest",
+          "",
+        ].join("\n"),
+      );
     }
     if (executable.endsWith("scripts/automation/tests/run-tests.sh")) {
       return commandResult(0, "ok 42 - fixture\n1..42\n");
@@ -130,6 +143,11 @@ test("plans read-only and safely uninstalls unchanged managed resources", () => 
     "uninstall-source-clean-001",
   );
   try {
+    const customAllowlist = "local/operator-note.txt\n";
+    writeFileSync(
+      join(root, WORKTREE_ALLOWLIST_RELATIVE_PATH),
+      customAllowlist,
+    );
     const manifestBefore = readFileSync(
       join(root, INSTALLATION_MANIFEST_RELATIVE_PATH),
       "utf8",
@@ -171,6 +189,11 @@ test("plans read-only and safely uninstalls unchanged managed resources", () => 
     assert.equal(lstatSync(join(root, "opencode.jsonc")).mode & 0o777, 0o600);
     assert.equal(existsSync(join(root, ".opencode/agents/scheduled-coder.md")), false);
     assert.equal(existsSync(join(root, "scripts/automation/preflight.sh")), false);
+    assert.equal(
+      readFileSync(join(root, WORKTREE_ALLOWLIST_RELATIVE_PATH), "utf8"),
+      customAllowlist,
+      "uninstall must preserve the human-owned allowlist",
+    );
     assertManifestMissing(root);
     assert.equal(existsSync(join(root, UNINSTALL_MARKER_RELATIVE_PATH)), false);
     assert.equal(existsSync(result.recoveryDirectory), true);

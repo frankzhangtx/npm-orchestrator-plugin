@@ -307,7 +307,7 @@ function tokenIsApplied(source: string, token: string): boolean {
     const nextLineBreak = source.indexOf("\n", tokenIndex);
     const lineEnd = nextLineBreak < 0 ? source.length : nextLineBreak;
     const line = source.slice(lineStart, lineEnd);
-    if (!/\bapply\s+false\b/.test(line)) {
+    if (!/\bapply\s*(?:\(\s*)?false\b/.test(line)) {
       return true;
     }
     searchFrom = tokenIndex + token.length;

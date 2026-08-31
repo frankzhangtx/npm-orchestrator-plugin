@@ -18,8 +18,10 @@ import { parse } from "jsonc-parser";
 import {
   INSTALLATION_CONTROL_DIRECTORY,
   INSTALLATION_MANIFEST_RELATIVE_PATH,
+  INITIAL_WORKTREE_ALLOWLIST_CONTENT,
   ORCHESTRATOR_PLUGIN_REFERENCE,
   SUPERPOWERS_PLUGIN_REFERENCE,
+  WORKTREE_ALLOWLIST_RELATIVE_PATH,
   InstallationManifestError,
   ProjectInitializationError,
   planProjectInitialization,
@@ -110,6 +112,17 @@ function commandResult(status, stdout = "", stderr = "", error = null) {
   return { status, stdout, stderr, error };
 }
 
+function gradleDiscoveryOutput() {
+  return ["mobile", "app", "phone", "tablet"]
+    .flatMap((module) => [
+      `OPENCODE_ANDROID_ORCHESTRATOR_TASK=:${module}:assembleDebug`,
+      `OPENCODE_ANDROID_ORCHESTRATOR_TASK=:${module}:connectedDebugAndroidTest`,
+      `OPENCODE_ANDROID_ORCHESTRATOR_TASK=:${module}:lint`,
+      `OPENCODE_ANDROID_ORCHESTRATOR_TASK=:${module}:testDebugUnitTest`,
+    ])
+    .join("\n");
+}
+
 function successfulRunner(calls = []) {
   return (executable, args, options) => {
     calls.push({ executable, args: [...args], options });
@@ -118,6 +131,9 @@ function successfulRunner(calls = []) {
     }
     if (args.length === 1 && ["--version", "-version"].includes(args[0])) {
       return commandResult(0, `${executable} fixture version\n`);
+    }
+    if (executable.endsWith("gradlew") && args[0] === "help") {
+      return commandResult(0, `${gradleDiscoveryOutput()}\n`);
     }
     if (executable.endsWith("scripts/automation/tests/run-tests.sh")) {
       return commandResult(0, "ok 42 - fixture\n1..42\n");
@@ -159,6 +175,11 @@ test("plans and installs all managed resources in a Kotlin DSL project", () => {
     assert.equal(plan.targetDirectory, root);
     assert.equal(plan.installation.files.length, 45);
     assert.equal(
+      existsSync(join(root, WORKTREE_ALLOWLIST_RELATIVE_PATH)),
+      false,
+      "planning must not create the worktree allowlist",
+    );
+    assert.equal(
       existsSync(join(root, INSTALLATION_CONTROL_DIRECTORY)),
       false,
       "planning must be read-only",
@@ -176,6 +197,22 @@ test("plans and installs all managed resources in a Kotlin DSL project", () => {
     assert.equal(result.managedFileCount, 45);
     assert.equal(result.writtenFileCount, 45);
     assert.equal(result.reusedFileCount, 0);
+    assert.equal(result.worktreeAllowlistStatus, "created");
+    assert.equal(
+      result.worktreeAllowlistPath,
+      join(root, WORKTREE_ALLOWLIST_RELATIVE_PATH),
+    );
+    assert.equal(
+      readFileSync(join(root, WORKTREE_ALLOWLIST_RELATIVE_PATH), "utf8"),
+      INITIAL_WORKTREE_ALLOWLIST_CONTENT,
+    );
+    assert.equal(
+      result.manifest.files.some(
+        ({ path }) => path === WORKTREE_ALLOWLIST_RELATIVE_PATH,
+      ),
+      false,
+      "the human-maintained allowlist must remain outside managed-file hashes",
+    );
     assert.equal(result.doctor.ok, true);
     assert.equal(result.verification.ok, true);
     assert.deepEqual(
@@ -197,7 +234,7 @@ test("plans and installs all managed resources in a Kotlin DSL project", () => {
     ]);
     assert.deepEqual(automationConfig.gradleVerification, {
       fullUnitTestTasks: ["testDebugUnitTest"],
-      focusedTestTasks: ["testDebugUnitTest"],
+      focusedTestTasks: [":mobile:testDebugUnitTest"],
       assembleTasks: ["assembleDebug"],
       lintTasks: ["lint"],
       deviceTestTasks: ["connectedDebugAndroidTest"],
@@ -210,7 +247,7 @@ test("plans and installs all managed resources in a Kotlin DSL project", () => {
     );
     assert.deepEqual(taskExample.targetTests, [
       {
-        gradleTask: "testDebugUnitTest",
+        gradleTask: ":mobile:testDebugUnitTest",
         filter: "dev.init.kotlin.ReplaceWithFocusedTest",
       },
     ]);
@@ -234,7 +271,7 @@ test("plans and installs all managed resources in a Kotlin DSL project", () => {
     );
     assert.equal(readInstallationManifest(root).installation.state, "installed");
     assert.equal(verifyInstallationIntegrity(root).ok, true);
-    assert.equal(calls.length, 8);
+    assert.equal(calls.length, 9);
   } finally {
     rmSync(root, { recursive: true, force: true });
   }
@@ -278,6 +315,11 @@ test("repeated init is byte-idempotent for an unchanged installation", () => {
       "utf8",
     );
     const configBefore = readFileSync(join(root, "automation/config.json"));
+    const customAllowlist = "local/operator-note.txt\n";
+    writeFileSync(
+      join(root, WORKTREE_ALLOWLIST_RELATIVE_PATH),
+      customAllowlist,
+    );
 
     const repeated = runProjectInitialization(root, options);
 
@@ -285,6 +327,12 @@ test("repeated init is byte-idempotent for an unchanged installation", () => {
     assert.equal(repeated.status, "already-installed");
     assert.equal(repeated.writtenFileCount, 0);
     assert.equal(repeated.reusedFileCount, 45);
+    assert.equal(repeated.worktreeAllowlistStatus, "existing");
+    assert.equal(
+      readFileSync(join(root, WORKTREE_ALLOWLIST_RELATIVE_PATH), "utf8"),
+      customAllowlist,
+      "repeated init must preserve human-maintained entries",
+    );
     assert.equal(
       readFileSync(join(root, INSTALLATION_MANIFEST_RELATIVE_PATH), "utf8"),
       manifestBefore,
@@ -293,7 +341,60 @@ test("repeated init is byte-idempotent for an unchanged installation", () => {
       readFileSync(join(root, "automation/config.json")),
       configBefore,
     );
-    assert.equal(calls.length, 16, "prerequisites and verifiers run each time");
+    assert.equal(calls.length, 18, "prerequisites, discovery, and verifiers run each time");
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
+});
+
+test("init preserves a pre-existing regular worktree allowlist", () => {
+  const root = createKotlinFixture();
+  try {
+    const existingContent = "config/developer-overrides.json\n";
+    writeFixtureFile(
+      root,
+      WORKTREE_ALLOWLIST_RELATIVE_PATH,
+      existingContent,
+      0o600,
+    );
+
+    const result = runProjectInitialization(
+      root,
+      initOptions(successfulRunner(), "init-existing-allowlist-001"),
+    );
+
+    assert.equal(result.status, "installed");
+    assert.equal(result.worktreeAllowlistStatus, "existing");
+    assert.equal(
+      readFileSync(join(root, WORKTREE_ALLOWLIST_RELATIVE_PATH), "utf8"),
+      existingContent,
+    );
+    assert.equal(
+      lstatSync(join(root, WORKTREE_ALLOWLIST_RELATIVE_PATH)).mode & 0o777,
+      0o600,
+    );
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
+});
+
+test("init rejects a non-regular worktree allowlist before installation writes", () => {
+  const root = createKotlinFixture();
+  try {
+    mkdirSync(join(root, WORKTREE_ALLOWLIST_RELATIVE_PATH));
+
+    assert.throws(
+      () =>
+        runProjectInitialization(
+          root,
+          initOptions(successfulRunner(), "init-invalid-allowlist-001"),
+        ),
+      (error) =>
+        error instanceof ProjectInitializationError &&
+        error.code === "WORKTREE_ALLOWLIST_INVALID",
+    );
+    assert.equal(existsSync(join(root, INSTALLATION_CONTROL_DIRECTORY)), false);
+    assert.equal(existsSync(join(root, ".opencode")), false);
   } finally {
     rmSync(root, { recursive: true, force: true });
   }
@@ -382,7 +483,7 @@ test("init stops on a template conflict before creating control state", () => {
     );
     assert.equal(existsSync(join(root, ".opencode/commands")), false);
     assert.equal(existsSync(join(root, INSTALLATION_CONTROL_DIRECTORY)), false);
-    assert.equal(calls.length, 6, "only pre-install prerequisites run");
+    assert.equal(calls.length, 7, "only prerequisites and task discovery run");
   } finally {
     rmSync(root, { recursive: true, force: true });
   }
@@ -401,6 +502,9 @@ test("init restores original files when post-install verification fails", () => 
       }
       if (args.length === 1 && ["--version", "-version"].includes(args[0])) {
         return commandResult(0, `${executable} fixture version\n`);
+      }
+      if (executable.endsWith("gradlew") && args[0] === "help") {
+        return commandResult(0, `${gradleDiscoveryOutput()}\n`);
       }
       if (executable.endsWith("scripts/automation/tests/run-tests.sh")) {
         return commandResult(1, "not ok 1 - fixture\n", "fixture failure\n");
@@ -434,6 +538,11 @@ test("init restores original files when post-install verification fails", () => 
     assert.equal(existsSync(join(root, "automation")), false);
     assert.equal(existsSync(join(root, "scripts")), false);
     assert.equal(existsSync(join(root, "docs")), false);
+    assert.equal(
+      existsSync(join(root, WORKTREE_ALLOWLIST_RELATIVE_PATH)),
+      false,
+      "the init-created allowlist must roll back with a failed installation",
+    );
     assert.equal(
       existsSync(join(root, INSTALLATION_MANIFEST_RELATIVE_PATH)),
       false,

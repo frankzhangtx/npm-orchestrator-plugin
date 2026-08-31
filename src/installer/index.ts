@@ -41,7 +41,9 @@ export {
   type GradleWrapperDetection,
 } from "./android-project.js";
 export {
+  INITIAL_WORKTREE_ALLOWLIST_CONTENT,
   ProjectInitializationError,
+  WORKTREE_ALLOWLIST_RELATIVE_PATH,
   formatProjectInitializationResult,
   planProjectInitialization,
   planProjectResourceInputs,
@@ -58,6 +60,7 @@ export {
   type ProjectInitializationPlan,
   type ProjectInitializationResult,
   type ProjectResourceInputPlan,
+  type WorktreeAllowlistInitializationStatus,
 } from "./init.js";
 export {
   INSTALLATION_BACKUPS_DIRECTORY,

@@ -1,5 +1,22 @@
 # Changelog
 
+## 0.5.0 - 2026-08-31
+
+- Make `init` discover registered Android debug verification tasks through one
+  temporary read-only Gradle init script, including flavor-specific unit and
+  connected-device tasks, while retaining the JSON matrix only as an explicit
+  override.
+- Prefer the application/module-named flavor for the focused-test placeholder,
+  retain every discovered debug flavor in full verification, and fail before
+  installation writes when Gradle discovery is incomplete.
+- Treat both Groovy/Kotlin `apply false` and `.apply(false)` plugin aliases as
+  declarations rather than applied Android plugins, eliminating false root
+  module ambiguity in convention-heavy builds.
+- Make `init` create a safe comment-only `.automation-worktree-allowlist` when
+  missing, preserve existing regular files, exclude the human-owned file from
+  managed-resource hashes, and remove a newly created file if installation
+  verification rolls back.
+
 ## 0.4.0 - 2026-08-29
 
 - Add the human-maintained `.automation-worktree-allowlist` for exact local

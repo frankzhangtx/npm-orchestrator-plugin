@@ -3,6 +3,8 @@ import {
   lstatSync,
   readdirSync,
   readFileSync,
+  unlinkSync,
+  writeFileSync,
 } from "node:fs";
 import {
   isAbsolute,
@@ -25,6 +27,10 @@ import {
   type AdaptiveProjectTemplatePlan,
   type ModuleScope,
 } from "./adaptive-templates.js";
+import {
+  GradleVerificationDiscoveryError,
+  discoverGradleVerificationConfiguration,
+} from "./gradle-verification.js";
 import {
   planAgentsConfigMerge,
   type AgentsConfigMergePlan,
@@ -59,12 +65,24 @@ const TEMPLATE_COPY_FILES = [
   "docs/plans/README.md",
 ] as const;
 
+export const WORKTREE_ALLOWLIST_RELATIVE_PATH =
+  ".automation-worktree-allowlist";
+export const INITIAL_WORKTREE_ALLOWLIST_CONTENT = [
+  "# Optional: one exact repository-relative file path per line.",
+  "# Blank lines and lines beginning with # are ignored.",
+  "",
+].join("\n");
+
 export type ProjectInitializationErrorCode =
   | "DOCTOR_FAILED"
   | "EXISTING_INSTALLATION_DIFFERENT"
   | "EXISTING_INSTALLATION_INVALID"
+  | "GRADLE_DISCOVERY_FAILED"
   | "POST_INSTALL_VERIFICATION_FAILED"
-  | "TEMPLATE_INVALID";
+  | "TEMPLATE_INVALID"
+  | "WORKTREE_ALLOWLIST_INVALID"
+  | "WORKTREE_ALLOWLIST_ROLLBACK_FAILED"
+  | "WORKTREE_ALLOWLIST_WRITE_FAILED";
 
 export class ProjectInitializationError extends Error {
   readonly code: ProjectInitializationErrorCode;
@@ -141,9 +159,18 @@ export interface ProjectInitializationResult {
   managedFileCount: number;
   writtenFileCount: number;
   reusedFileCount: number;
+  worktreeAllowlistPath: string;
+  worktreeAllowlistStatus: WorktreeAllowlistInitializationStatus;
   manifest: InstallationManifest;
   doctor: DoctorReport;
   verification: InitVerificationReport;
+}
+
+export type WorktreeAllowlistInitializationStatus = "created" | "existing";
+
+interface WorktreeAllowlistInitialization {
+  path: string;
+  status: WorktreeAllowlistInitializationStatus;
 }
 
 export const runInitProcess: InitProcessRunner = (
@@ -167,6 +194,116 @@ export const runInitProcess: InitProcessRunner = (
 
 function comparePaths(left: string, right: string): number {
   return left < right ? -1 : left > right ? 1 : 0;
+}
+
+function filesystemErrorCode(error: unknown): string | null {
+  if (
+    typeof error === "object" &&
+    error !== null &&
+    "code" in error &&
+    typeof error.code === "string"
+  ) {
+    return error.code;
+  }
+  return null;
+}
+
+function assertExistingWorktreeAllowlistIsRegular(path: string): void {
+  let stats;
+  try {
+    stats = lstatSync(path);
+  } catch (error) {
+    throw new ProjectInitializationError(
+      "WORKTREE_ALLOWLIST_WRITE_FAILED",
+      `Unable to inspect the worktree allowlist: ${path}`,
+      [error instanceof Error ? error.message : String(error)],
+    );
+  }
+  if (stats.isSymbolicLink() || !stats.isFile()) {
+    throw new ProjectInitializationError(
+      "WORKTREE_ALLOWLIST_INVALID",
+      "The worktree allowlist must be a regular file, not a symlink or directory.",
+      [path],
+    );
+  }
+}
+
+function initializeWorktreeAllowlist(
+  targetDirectory: string,
+): WorktreeAllowlistInitialization {
+  const path = join(targetDirectory, WORKTREE_ALLOWLIST_RELATIVE_PATH);
+  try {
+    lstatSync(path);
+    assertExistingWorktreeAllowlistIsRegular(path);
+    return { path, status: "existing" };
+  } catch (error) {
+    if (
+      error instanceof ProjectInitializationError ||
+      filesystemErrorCode(error) !== "ENOENT"
+    ) {
+      if (error instanceof ProjectInitializationError) {
+        throw error;
+      }
+      throw new ProjectInitializationError(
+        "WORKTREE_ALLOWLIST_WRITE_FAILED",
+        `Unable to inspect the worktree allowlist target: ${path}`,
+        [error instanceof Error ? error.message : String(error)],
+      );
+    }
+  }
+
+  try {
+    writeFileSync(path, INITIAL_WORKTREE_ALLOWLIST_CONTENT, {
+      flag: "wx",
+      mode: 0o644,
+    });
+    return { path, status: "created" };
+  } catch (error) {
+    if (filesystemErrorCode(error) === "EEXIST") {
+      assertExistingWorktreeAllowlistIsRegular(path);
+      return { path, status: "existing" };
+    }
+    throw new ProjectInitializationError(
+      "WORKTREE_ALLOWLIST_WRITE_FAILED",
+      `Unable to create the worktree allowlist: ${path}`,
+      [error instanceof Error ? error.message : String(error)],
+    );
+  }
+}
+
+function rollbackWorktreeAllowlistInitialization(
+  initialization: WorktreeAllowlistInitialization,
+  originalError: unknown,
+): never {
+  if (initialization.status === "created") {
+    try {
+      const stats = lstatSync(initialization.path);
+      const content = readFileSync(initialization.path, "utf8");
+      if (
+        stats.isSymbolicLink() ||
+        !stats.isFile() ||
+        content !== INITIAL_WORKTREE_ALLOWLIST_CONTENT
+      ) {
+        throw new Error(
+          "The newly created allowlist changed during initialization and was preserved.",
+        );
+      }
+      unlinkSync(initialization.path);
+    } catch (error) {
+      if (filesystemErrorCode(error) !== "ENOENT") {
+        throw new ProjectInitializationError(
+          "WORKTREE_ALLOWLIST_ROLLBACK_FAILED",
+          "Initialization failed and the automatically created worktree allowlist could not be rolled back safely.",
+          [
+            `Original failure: ${originalError instanceof Error ? originalError.message : String(originalError)}`,
+            `Allowlist rollback failure: ${error instanceof Error ? error.message : String(error)}`,
+            `Preserved path: ${initialization.path}`,
+          ],
+        );
+      }
+    }
+  }
+  throw originalError;
 }
 
 function templateRoot(): string {
@@ -515,6 +652,40 @@ function existingManifest(targetDirectory: string): InstallationManifest | null 
   }
 }
 
+function optionsWithAutomaticGradleVerification(
+  directory: string,
+  options: ProjectInitializationOptions,
+  runner: InitProcessRunner,
+): ProjectInitializationOptions {
+  if (options.gradleVerification !== undefined) {
+    return options;
+  }
+  try {
+    return {
+      ...options,
+      gradleVerification: discoverGradleVerificationConfiguration(
+        directory,
+        runner,
+        options.primaryModule === undefined
+          ? {}
+          : { primaryModule: options.primaryModule },
+      ),
+    };
+  } catch (error) {
+    if (error instanceof GradleVerificationDiscoveryError) {
+      throw new ProjectInitializationError(
+        "GRADLE_DISCOVERY_FAILED",
+        error.message,
+        [
+          ...error.details,
+          "Fix Gradle configuration or use --gradle-verification-config for an intentional project override.",
+        ],
+      );
+    }
+    throw error;
+  }
+}
+
 function desiredFilesMatch(
   existing: InstallationManifest,
   planned: InstallationManifest,
@@ -600,6 +771,7 @@ function resultFromApplied(
   applied: AppliedInstallation,
   doctor: DoctorReport,
   verification: InitVerificationReport,
+  worktreeAllowlist: WorktreeAllowlistInitialization,
 ): ProjectInitializationResult {
   return {
     status: "installed",
@@ -611,6 +783,8 @@ function resultFromApplied(
     managedFileCount: applied.manifest.files.length,
     writtenFileCount: applied.writtenFileCount,
     reusedFileCount: applied.reusedFileCount,
+    worktreeAllowlistPath: worktreeAllowlist.path,
+    worktreeAllowlistStatus: worktreeAllowlist.status,
     manifest: applied.manifest,
     doctor,
     verification,
@@ -623,20 +797,31 @@ export function runProjectInitialization(
 ): ProjectInitializationResult {
   const runner = options.processRunner ?? runInitProcess;
   const doctor = doctorForInitialization(directory, options, runner);
-  const plan = planProjectInitialization(directory, options);
+  const resolvedOptions = optionsWithAutomaticGradleVerification(
+    directory,
+    options,
+    runner,
+  );
+  const plan = planProjectInitialization(directory, resolvedOptions);
   const existing = existingManifest(plan.targetDirectory);
 
   if (existing !== null) {
     assertExistingInstallationIsCurrent(plan, existing);
-    const verification = verifyInitializedProject(plan.targetDirectory, runner);
-    if (!verification.ok) {
-      throw new ProjectInitializationError(
-        "POST_INSTALL_VERIFICATION_FAILED",
-        "The existing installation failed verification; no file was changed.",
-        verification.checks
-          .filter((check) => check.status === "fail")
-          .flatMap((check) => [check.summary, ...check.details]),
-      );
+    const worktreeAllowlist = initializeWorktreeAllowlist(plan.targetDirectory);
+    let verification: InitVerificationReport;
+    try {
+      verification = verifyInitializedProject(plan.targetDirectory, runner);
+      if (!verification.ok) {
+        throw new ProjectInitializationError(
+          "POST_INSTALL_VERIFICATION_FAILED",
+          "The existing installation failed verification; no persistent file was changed.",
+          verification.checks
+            .filter((check) => check.status === "fail")
+            .flatMap((check) => [check.summary, ...check.details]),
+        );
+      }
+    } catch (error) {
+      rollbackWorktreeAllowlistInitialization(worktreeAllowlist, error);
     }
     return {
       status: "already-installed",
@@ -654,29 +839,43 @@ export function runProjectInitialization(
       managedFileCount: existing.files.length,
       writtenFileCount: 0,
       reusedFileCount: existing.files.length,
+      worktreeAllowlistPath: worktreeAllowlist.path,
+      worktreeAllowlistStatus: worktreeAllowlist.status,
       manifest: existing,
       doctor,
       verification,
     };
   }
 
+  const worktreeAllowlist = initializeWorktreeAllowlist(plan.targetDirectory);
   let verification: InitVerificationReport | null = null;
-  const applied = applyInstallationPlan(plan.installation, {
-    ...(options.installedAt === undefined
-      ? {}
-      : { installedAt: options.installedAt }),
-    verify: () => {
-      verification = verifyInitializedProject(plan.targetDirectory, runner);
-      assertVerificationPassed(verification);
-    },
-  });
+  let applied: AppliedInstallation;
+  try {
+    applied = applyInstallationPlan(plan.installation, {
+      ...(options.installedAt === undefined
+        ? {}
+        : { installedAt: options.installedAt }),
+      verify: () => {
+        verification = verifyInitializedProject(plan.targetDirectory, runner);
+        assertVerificationPassed(verification);
+      },
+    });
+  } catch (error) {
+    rollbackWorktreeAllowlistInitialization(worktreeAllowlist, error);
+  }
   if (verification === null) {
     throw new ProjectInitializationError(
       "POST_INSTALL_VERIFICATION_FAILED",
       "Installation verification did not produce a report.",
     );
   }
-  return resultFromApplied(plan, applied, doctor, verification);
+  return resultFromApplied(
+    plan,
+    applied,
+    doctor,
+    verification,
+    worktreeAllowlist,
+  );
 }
 
 export function formatProjectInitializationResult(
@@ -692,6 +891,7 @@ export function formatProjectInitializationResult(
     `Managed files: ${String(result.managedFileCount)}`,
     `Written files: ${String(result.writtenFileCount)}`,
     `Reused files: ${String(result.reusedFileCount)}`,
+    `Worktree allowlist: ${result.worktreeAllowlistPath} (${result.worktreeAllowlistStatus})`,
     `Manifest: ${result.manifestPath}`,
     `Recovery backups: ${result.backupDirectory}`,
     "Failure rollback: automatic until the manifest is marked installed",

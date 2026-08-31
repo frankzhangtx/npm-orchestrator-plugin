@@ -16,9 +16,9 @@ test("ships complete MIT license and third-party notices", () => {
   const license = read("LICENSE");
   const notices = read("THIRD_PARTY_NOTICES.md");
 
-  assert.equal(packageJson.version, "0.4.0");
-  assert.equal(packageLock.version, "0.4.0");
-  assert.equal(packageLock.packages[""].version, "0.4.0");
+  assert.equal(packageJson.version, "0.5.0");
+  assert.equal(packageLock.version, "0.5.0");
+  assert.equal(packageLock.packages[""].version, "0.5.0");
   assert.equal(packageJson.license, "MIT");
   assert.equal(packageJson.author, "frankzhang2026");
   assert.deepEqual(packageJson.repository, {
@@ -203,4 +203,18 @@ test("records the verified 0.4.0 Registry publication", () => {
   assert.match(releaseNotes, /Registry download is byte-identical/i);
   assert.match(releaseNotes, /\.automation-worktree-allowlist/);
   assert.match(releaseNotes, /No Git tag or GitHub release was created/);
+});
+
+test("documents the 0.5.0 release candidate without claiming publication", () => {
+  const packageJson = JSON.parse(read("package.json"));
+  const releaseNotes = read("release/0.5.0-release-notes.md");
+
+  assert.doesNotMatch(packageJson.files.join("\n"), /release\//);
+  assert.match(releaseNotes, /Status: release candidate/);
+  assert.match(releaseNotes, /registered Android debug verification tasks/i);
+  assert.match(releaseNotes, /\.automation-worktree-allowlist/);
+  assert.match(releaseNotes, /134 Node tests/);
+  assert.match(releaseNotes, /42-case Shell lifecycle\s+suite/);
+  assert.match(releaseNotes, /does not publish the npm package/i);
+  assert.doesNotMatch(releaseNotes, /Status: published/i);
 });
