@@ -260,14 +260,59 @@ test("records the verified 0.5.0 Registry publication", () => {
   assert.match(releaseNotes, /No Git tag or GitHub release was created/);
 });
 
-test("records 0.6.0 as an unpublished release candidate", () => {
+test("records the verified 0.6.0 Registry publication", () => {
   const packageJson = JSON.parse(read("package.json"));
+  const authorization = read("release/0.6.0-authorization.md");
   const releaseNotes = read("release/0.6.0-release-notes.md");
 
   assert.equal(packageJson.version, "0.6.0");
   assert.doesNotMatch(packageJson.files.join("\n"), /release\//);
-  assert.match(releaseNotes, /Status: unpublished release candidate/);
+  assert.doesNotMatch(packageJson.files.join("\n"), /tests\//);
+  assert.match(authorization, /Status: PUBLISHED/);
+  assert.match(
+    authorization,
+    /explicitly instructed continuation[\s\S]*`0\.6\.0`/i,
+  );
+  assert.match(
+    authorization,
+    /npm whoami[\s\S]*returned\s+`frankzhang2026`/,
+  );
+  assert.match(
+    authorization,
+    /contains `0\.1\.0`,[\s\S]*`0\.6\.0`[\s\S]*`latest`[\s\S]*`0\.6\.0`/i,
+  );
+  assert.match(
+    authorization,
+    /db6f61b23ba070248a062e7c80e0b6e4c6dd6477/,
+  );
+  assert.match(
+    authorization,
+    /15ac0a16575c9b337aaa9879686d2a57d28452a1566a2c1d7e105b2e85fbcd18/,
+  );
+  assert.match(
+    authorization,
+    /299d9d8aa4b99fda1f317e9df260de293c030fca/,
+  );
+  assert.match(
+    authorization,
+    /sha512-6wFD88iQjZX3rC\+jI\/s4JHrMGWmjYNnY7inlXUTMMuDmfrS1lEh2u08Lt6SphJzjPiS2LrZBCtcfGQKUTbV9qQ==/,
+  );
+  assert.match(
+    authorization,
+    /fixed-version\s+Registry download was[\s\S]*byte-identical/i,
+  );
+  assert.match(authorization, /135 Node tests/);
+  assert.match(authorization, /42 audited Shell lifecycle cases/);
+  assert.match(authorization, /No Git tag or GitHub release was created/);
+  assert.doesNotMatch(
+    authorization,
+    /https:\/\/www\.npmjs\.com\/(?:auth|login)\/|one-time password:|npm token:/i,
+  );
+
+  assert.match(releaseNotes, /Status: published/);
   assert.match(releaseNotes, /--no-configuration-cache/);
-  assert.match(releaseNotes, /separate explicit authorization/);
-  assert.doesNotMatch(releaseNotes, /Status: published/i);
+  assert.match(releaseNotes, /135 Node tests/);
+  assert.match(releaseNotes, /42-case Shell lifecycle\s+suite/);
+  assert.match(releaseNotes, /Registry download is byte-identical/i);
+  assert.match(releaseNotes, /No Git tag or GitHub release was created/);
 });
