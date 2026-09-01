@@ -103,6 +103,7 @@ export interface ProjectUpgradeOptions {
   androidSdkDirectory?: string;
   gradleVerification?: GradleVerificationConfiguration;
   installedAt?: string;
+  longCommandTimeoutMs?: number;
   moduleScope?: ModuleScope;
   opencodeExecutable?: string;
   preparedAt?: string;
@@ -643,6 +644,7 @@ interface ConfiguredAdaptiveOptions {
   moduleScope?: ModuleScope;
   primaryModule?: string;
   gradleVerification?: GradleVerificationConfiguration;
+  longCommandTimeoutMs?: number;
 }
 
 function configuredAdaptiveOptions(
@@ -665,6 +667,7 @@ function configuredAdaptiveOptions(
   let value: {
     androidProject?: { moduleScope?: unknown; primaryModule?: unknown };
     gradleVerification?: unknown;
+    longCommandTimeoutMs?: unknown;
   };
   try {
     value = JSON.parse(
@@ -696,6 +699,9 @@ function configuredAdaptiveOptions(
   if (value.gradleVerification !== undefined) {
     configured.gradleVerification =
       value.gradleVerification as GradleVerificationConfiguration;
+  }
+  if (typeof value.longCommandTimeoutMs === "number") {
+    configured.longCommandTimeoutMs = value.longCommandTimeoutMs;
   }
   return configured;
 }
@@ -978,6 +984,11 @@ export function planProjectUpgrade(
     options.gradleVerification ?? configured.gradleVerification;
   if (gradleVerification !== undefined) {
     adaptiveOptions.gradleVerification = gradleVerification;
+  }
+  const longCommandTimeoutMs =
+    options.longCommandTimeoutMs ?? configured.longCommandTimeoutMs;
+  if (longCommandTimeoutMs !== undefined) {
+    adaptiveOptions.longCommandTimeoutMs = longCommandTimeoutMs;
   }
   const resources = planProjectResourceInputs(
     requestedTarget,

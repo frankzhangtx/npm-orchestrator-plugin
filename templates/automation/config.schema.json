@@ -36,6 +36,7 @@
     "maxFixLoops",
     "maxReviewCycles",
     "maxReviewerRestarts",
+    "longCommandTimeoutMs",
     "autoCleanupWorktrees",
     "pushAfterAcceptance",
     "approvalPhrases",
@@ -57,17 +58,23 @@
     "maxFixLoops": { "type": "integer", "minimum": 0, "maximum": 1 },
     "maxReviewCycles": { "type": "integer", "minimum": 0, "maximum": 2 },
     "maxReviewerRestarts": { "type": "integer", "minimum": 0, "maximum": 3 },
+    "longCommandTimeoutMs": {
+      "type": "integer",
+      "minimum": 120000,
+      "maximum": 7200000
+    },
     "autoCleanupWorktrees": { "type": "boolean" },
     "pushAfterAcceptance": { "const": false },
     "approvalPhrases": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["proposal", "contract", "acceptance", "abort"],
+      "required": ["proposal", "contract", "acceptance", "abort", "resume"],
       "properties": {
         "proposal": { "type": "string", "minLength": 4 },
         "contract": { "type": "string", "minLength": 4 },
         "acceptance": { "type": "string", "minLength": 4 },
-        "abort": { "type": "string", "minLength": 4 }
+        "abort": { "type": "string", "minLength": 4 },
+        "resume": { "type": "string", "minLength": 4 }
       }
     },
     "plugins": {

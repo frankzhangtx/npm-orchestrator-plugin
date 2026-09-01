@@ -55,7 +55,7 @@ const expectedHashes = new Map([
   ],
   [
     "scripts/automation/lib.sh",
-    "b092025163a023737894dfd0baa354f74e917de016bd16ba82831d20057827bf",
+    "d81f063ec1a73900327a658b07bbdcc40a4e5f70b464e3cd2e9452258832aa5a",
   ],
   [
     "scripts/automation/orchestrate-task.sh",
@@ -63,7 +63,7 @@ const expectedHashes = new Map([
   ],
   [
     "scripts/automation/preflight.sh",
-    "303737be7366428301ea970ab56aaa5adacc2308d84ca06ab6c426c2d3069e78",
+    "e04531b02530616632026b63e803be4764813d2d4a1469d1ea277e91f5190e08",
   ],
   [
     "scripts/automation/prepare-contract-review.sh",
@@ -88,6 +88,10 @@ const expectedHashes = new Map([
   [
     "scripts/automation/resume-review.sh",
     "dd0a73af218c4a1b7e9cf5266574b0f943fb12c61ec1e652d1fea2a6e9187592",
+  ],
+  [
+    "scripts/automation/resume-task.sh",
+    "80aa4085ac9ee95ff483bc0b487efe62cfe585d5a65dae0bbb47272dd977d601",
   ],
   [
     "scripts/automation/scope-gate.sh",
@@ -115,7 +119,7 @@ const expectedHashes = new Map([
   ],
   [
     "scripts/automation/tests/run-tests.sh",
-    "3c174febbbbe294b36ea2cc8f7308e118dd65f725133769873de2b07ab758bac",
+    "0fa9df61c26af0fdfd1baa0ec6c0a6ac1edfb01fe08b3404d7c4aba61934f0c5",
   ],
   [
     "scripts/automation/transition-state.sh",
@@ -146,7 +150,7 @@ function templatePath(path) {
   return relative(templatesRoot, path).split(sep).join("/");
 }
 
-test("ships exactly the 28 audited V3 automation shell files", () => {
+test("ships exactly the 29 audited V3 automation shell files", () => {
   const actualPaths = listFiles(automationRoot).map(templatePath).sort();
   assert.deepEqual(actualPaths, [...expectedHashes.keys()].sort());
 });
@@ -217,6 +221,7 @@ test("preflight accepts absent legacy Scheduler tools but rejects enabled ones",
         ...[
           "prepare-contract-review.sh",
           "approve-and-run.sh",
+          "resume-task.sh",
           "resume-review.sh",
           "accept-and-integrate.sh",
           "abort-task.sh",

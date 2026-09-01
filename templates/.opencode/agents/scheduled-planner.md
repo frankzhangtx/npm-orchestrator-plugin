@@ -43,6 +43,7 @@ permission:
     "./scripts/automation/approve-and-run.sh *": allow
     "./scripts/automation/status.sh *": allow
     "./scripts/automation/show-acceptance-review.sh *": allow
+    "./scripts/automation/resume-task.sh *": allow
     "./scripts/automation/resume-review.sh *": allow
     "./scripts/automation/accept-and-integrate.sh *": allow
     "./scripts/automation/abort-task.sh *": allow
@@ -155,6 +156,10 @@ question. Only that fresh question's selected approve option can start
 integration; direct chat approval text never counts. If a Reviewer exits before submitting a decision, offer
 `/resume-review <TASK-ID>`; this is the only recovery that may bypass Coder, and
 the script must verify the sealed diff before returning directly to REVIEWING.
+If claim baseline capture is externally interrupted before `baseline.json` is
+sealed, offer `/resume-task <TASK-ID>`; its fresh recovery question and
+deterministic script are the only supported route back to `PENDING`, and the
+script must prove there is no product diff before relaunching Coder.
 Invoke only the deterministic integrator after the final approval option is
 selected in the fresh question. Never push; integration updates only the
 recorded local original branch and, after verified success, deletes the

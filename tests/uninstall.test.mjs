@@ -71,7 +71,7 @@ function successfulRunner() {
       );
     }
     if (executable.endsWith("scripts/automation/tests/run-tests.sh")) {
-      return commandResult(0, "ok 42 - fixture\n1..42\n");
+      return commandResult(0, "ok 44 - fixture\n1..44\n");
     }
     if (executable.endsWith("scripts/automation/shadow-run.sh")) {
       return commandResult(
@@ -156,7 +156,7 @@ test("plans read-only and safely uninstalls unchanged managed resources", () => 
     const plan = planProjectUninstall(join(root, "clients/mobile"), options);
 
     assert.equal(plan.targetDirectory, root);
-    assert.equal(plan.files.length, 45);
+    assert.equal(plan.files.length, 47);
     assert.equal(disposition(plan, "AGENTS.md"), "restore-original");
     assert.equal(disposition(plan, "opencode.jsonc"), "restore-original");
     assert.equal(
@@ -173,9 +173,9 @@ test("plans read-only and safely uninstalls unchanged managed resources", () => 
     const result = runProjectUninstall(join(root, "clients/mobile"), options);
 
     assert.equal(result.status, "uninstalled");
-    assert.equal(result.managedFileCount, 45);
+    assert.equal(result.managedFileCount, 47);
     assert.equal(result.restoredFileCount, 2);
-    assert.equal(result.removedFileCount, 43);
+    assert.equal(result.removedFileCount, 45);
     assert.equal(result.alreadyCleanFileCount, 0);
     assert.equal(result.retainedFileCount, 0);
     assert.deepEqual(result.retainedPaths, []);
@@ -240,7 +240,7 @@ test("retains content, permission, and deletion drift while uninstalling safe fi
 
     assert.equal(result.status, "uninstalled-with-retained-files");
     assert.equal(result.restoredFileCount, 0);
-    assert.equal(result.removedFileCount, 41);
+    assert.equal(result.removedFileCount, 43);
     assert.equal(result.alreadyCleanFileCount, 1);
     assert.equal(result.retainedFileCount, 3);
     assert.deepEqual(
@@ -416,9 +416,9 @@ test("CLI uninstall supports structured JSON output", () => {
     const output = JSON.parse(result.stdout);
     assert.equal(output.status, "uninstalled");
     assert.equal(output.targetDirectory, root);
-    assert.equal(output.managedFileCount, 45);
+    assert.equal(output.managedFileCount, 47);
     assert.equal(output.restoredFileCount, 2);
-    assert.equal(output.removedFileCount, 43);
+    assert.equal(output.removedFileCount, 45);
     assertManifestMissing(root);
   } finally {
     rmSync(root, { recursive: true, force: true });

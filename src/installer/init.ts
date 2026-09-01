@@ -507,6 +507,9 @@ export function planProjectInitialization(
   if (options.gradleVerification !== undefined) {
     adaptiveOptions.gradleVerification = options.gradleVerification;
   }
+  if (options.longCommandTimeoutMs !== undefined) {
+    adaptiveOptions.longCommandTimeoutMs = options.longCommandTimeoutMs;
+  }
   const resources = planProjectResourceInputs(directory, adaptiveOptions);
   const { adaptiveTemplates, targetDirectory } = resources;
   const agentsMerge = planAgentsConfigMerge(targetDirectory);
@@ -593,7 +596,7 @@ export function verifyInitializedProject(
       "automation-tests",
       "Automation transaction tests",
       automationTests,
-      (stdout) => /(?:^|\n)1\.\.42(?:\n|$)/.test(stdout),
+      (stdout) => /(?:^|\n)1\.\.44(?:\n|$)/.test(stdout),
     ),
     processCheck(
       "shadow-run",

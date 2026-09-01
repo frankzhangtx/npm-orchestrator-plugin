@@ -120,12 +120,14 @@ automation_validate_config() {
         (.maxFixLoops | type == "number" and . >= 0 and . <= 1 and floor == .) and
         (.maxReviewCycles | type == "number" and . >= 0 and . <= 2 and floor == .) and
         (.maxReviewerRestarts | type == "number" and . >= 0 and . <= 3 and floor == .) and
+        (.longCommandTimeoutMs | type == "number" and . >= 120000 and . <= 7200000 and floor == .) and
         (.autoCleanupWorktrees | type == "boolean") and
         .pushAfterAcceptance == false and
         (.approvalPhrases.proposal | type == "string" and length >= 4) and
         (.approvalPhrases.contract | type == "string" and length >= 4) and
         (.approvalPhrases.acceptance | type == "string" and length >= 4) and
         (.approvalPhrases.abort | type == "string" and length >= 4) and
+        (.approvalPhrases.resume | type == "string" and length >= 4) and
         (.plugins | type == "object" and keys == ["superpowers"]) and
         (.plugins.superpowers | type == "string" and length > 0) and
         (.requiredSkills | type == "array" and length >= 6) and

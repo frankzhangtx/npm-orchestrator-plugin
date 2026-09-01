@@ -4,6 +4,10 @@ import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import process from "node:process";
 
+import {
+  DEFAULT_LONG_COMMAND_TIMEOUT_MS,
+  isLongCommandTimeoutMs,
+} from "./config/long-command-timeout.js";
 import { INSTALLER_COMMANDS } from "./commands/index.js";
 import { formatDoctorReport, runDoctor } from "./doctor/index.js";
 import {
@@ -41,7 +45,7 @@ function printInitHelp(): void {
   process.stdout.write(`OpenCode Android Orchestrator init\n\n`);
   process.stdout.write(`Usage:\n`);
   process.stdout.write(
-    `  opencode-android-orchestrator init [directory] [--module-scope <all|primary>] [--primary-module <gradle-path>] [--gradle-verification-config <json-path>] [--json]\n`,
+    `  opencode-android-orchestrator init [directory] [--module-scope <all|primary>] [--primary-module <gradle-path>] [--gradle-verification-config <json-path>] [--long-command-timeout-ms <milliseconds>] [--json]\n`,
   );
   process.stdout.write(`\nDefault module scope: all\n`);
   process.stdout.write(
@@ -49,6 +53,9 @@ function printInitHelp(): void {
   );
   process.stdout.write(
     `Worktree allowlist: created automatically when missing; an existing regular file is preserved.\n`,
+  );
+  process.stdout.write(
+    `Default managed long-command timeout: ${DEFAULT_LONG_COMMAND_TIMEOUT_MS} ms (30 minutes).\n`,
   );
 }
 
@@ -64,11 +71,22 @@ function printUpgradeHelp(): void {
   process.stdout.write(`OpenCode Android Orchestrator upgrade\n\n`);
   process.stdout.write(`Usage:\n`);
   process.stdout.write(
-    `  opencode-android-orchestrator upgrade [directory] [--module-scope <all|primary>] [--primary-module <gradle-path>] [--gradle-verification-config <json-path>] [--json]\n`,
+    `  opencode-android-orchestrator upgrade [directory] [--module-scope <all|primary>] [--primary-module <gradle-path>] [--gradle-verification-config <json-path>] [--long-command-timeout-ms <milliseconds>] [--json]\n`,
   );
   process.stdout.write(
     `\nPreserves the installed module scope; legacy installations default to primary.\n`,
   );
+  process.stdout.write(
+    `Preserves the installed long-command timeout; legacy installations default to ${DEFAULT_LONG_COMMAND_TIMEOUT_MS} ms.\n`,
+  );
+}
+
+function parseLongCommandTimeoutMs(value: string): number | undefined {
+  if (!/^\d+$/.test(value)) {
+    return undefined;
+  }
+  const parsed = Number(value);
+  return isLongCommandTimeoutMs(parsed) ? parsed : undefined;
 }
 
 function printUninstallHelp(): void {
@@ -136,6 +154,7 @@ if (command === undefined || command === "--help" || command === "-h") {
     let moduleScope: ModuleScope | undefined;
     let primaryModule: string | undefined;
     let gradleVerificationConfigPath: string | undefined;
+    let longCommandTimeoutMs: number | undefined;
     let json = false;
     const unexpected: string[] = [];
 
@@ -191,6 +210,26 @@ if (command === undefined || command === "--help" || command === "-h") {
           unexpected.push(argument);
         } else {
           gradleVerificationConfigPath = value;
+        }
+      } else if (argument === "--long-command-timeout-ms") {
+        const value = commandArguments[index + 1];
+        const parsed = value === undefined
+          ? undefined
+          : parseLongCommandTimeoutMs(value);
+        if (parsed === undefined) {
+          unexpected.push(value === undefined ? argument : `${argument} ${value}`);
+        } else {
+          longCommandTimeoutMs = parsed;
+          index += 1;
+        }
+      } else if (argument.startsWith("--long-command-timeout-ms=")) {
+        const parsed = parseLongCommandTimeoutMs(
+          argument.slice("--long-command-timeout-ms=".length),
+        );
+        if (parsed === undefined) {
+          unexpected.push(argument);
+        } else {
+          longCommandTimeoutMs = parsed;
         }
       } else if (argument.startsWith("-")) {
         unexpected.push(argument);
@@ -220,6 +259,9 @@ if (command === undefined || command === "--help" || command === "-h") {
             gradleVerificationConfigPath,
           );
         }
+        if (longCommandTimeoutMs !== undefined) {
+          options.longCommandTimeoutMs = longCommandTimeoutMs;
+        }
         const result = runProjectInitialization(
           targetDirectory ?? process.cwd(),
           options,
@@ -245,6 +287,7 @@ if (command === undefined || command === "--help" || command === "-h") {
     let moduleScope: ModuleScope | undefined;
     let primaryModule: string | undefined;
     let gradleVerificationConfigPath: string | undefined;
+    let longCommandTimeoutMs: number | undefined;
     let json = false;
     const unexpected: string[] = [];
 
@@ -301,6 +344,26 @@ if (command === undefined || command === "--help" || command === "-h") {
         } else {
           gradleVerificationConfigPath = value;
         }
+      } else if (argument === "--long-command-timeout-ms") {
+        const value = commandArguments[index + 1];
+        const parsed = value === undefined
+          ? undefined
+          : parseLongCommandTimeoutMs(value);
+        if (parsed === undefined) {
+          unexpected.push(value === undefined ? argument : `${argument} ${value}`);
+        } else {
+          longCommandTimeoutMs = parsed;
+          index += 1;
+        }
+      } else if (argument.startsWith("--long-command-timeout-ms=")) {
+        const parsed = parseLongCommandTimeoutMs(
+          argument.slice("--long-command-timeout-ms=".length),
+        );
+        if (parsed === undefined) {
+          unexpected.push(argument);
+        } else {
+          longCommandTimeoutMs = parsed;
+        }
       } else if (argument.startsWith("-")) {
         unexpected.push(argument);
       } else if (targetDirectory === undefined) {
@@ -328,6 +391,9 @@ if (command === undefined || command === "--help" || command === "-h") {
           options.gradleVerification = readGradleVerificationConfiguration(
             gradleVerificationConfigPath,
           );
+        }
+        if (longCommandTimeoutMs !== undefined) {
+          options.longCommandTimeoutMs = longCommandTimeoutMs;
         }
         const result = runProjectUpgrade(
           targetDirectory ?? process.cwd(),

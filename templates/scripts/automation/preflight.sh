@@ -155,6 +155,7 @@ else
         (last_rule("edit"; "**/src/**") == "deny") and
         (last_rule("bash"; "./scripts/automation/prepare-contract-review.sh *") == "allow") and
         (last_rule("bash"; "./scripts/automation/approve-and-run.sh *") == "allow") and
+        (last_rule("bash"; "./scripts/automation/resume-task.sh *") == "allow") and
         (last_rule("bash"; "./scripts/automation/resume-review.sh *") == "allow") and
         (last_rule("bash"; "./scripts/automation/accept-and-integrate.sh *") == "allow") and
         (last_rule("bash"; "./scripts/automation/abort-task.sh *") == "allow") and

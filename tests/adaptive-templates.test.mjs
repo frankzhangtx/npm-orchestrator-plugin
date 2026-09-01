@@ -80,12 +80,14 @@ test("renders portable configuration and a focused task example from Kotlin proj
     };
     const plan = planAdaptiveProjectTemplates(join(root, "clients/mobile"), {
       gradleVerification,
+      longCommandTimeoutMs: 3_600_000,
     });
 
     assert.deepEqual(listFixture(root), before, "render planning must be read-only");
     assert.equal(plan.projectRoot, root);
     assert.equal(plan.moduleScope, "all");
     assert.equal(plan.primaryModule.gradlePath, ":mobile");
+    assert.equal(plan.automationConfig.longCommandTimeoutMs, 3_600_000);
     assert.deepEqual(plan.automationConfig.plugins, {
       superpowers:
         "superpowers@git+https://github.com/obra/superpowers.git#v6.2.0",
@@ -193,6 +195,7 @@ test("defaults multi-application projects to all-module scope without requiring 
     addWrapper(root);
 
     const allModulePlan = planAdaptiveProjectTemplates(root);
+    assert.equal(allModulePlan.automationConfig.longCommandTimeoutMs, 1_800_000);
     assert.equal(allModulePlan.moduleScope, "all");
     assert.equal(allModulePlan.primaryModule.gradlePath, ":phone");
     assert.equal(
@@ -250,6 +253,22 @@ test("rejects unsupported module scopes", () => {
         error instanceof AdaptiveProjectTemplateError &&
         error.code === "MODULE_SCOPE_INVALID",
     );
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
+});
+
+test("rejects long-command timeouts outside the bounded integer range", () => {
+  const root = createAdaptiveKotlinFixture();
+  try {
+    for (const longCommandTimeoutMs of [119_999, 7_200_001, 1_800_000.5]) {
+      assert.throws(
+        () => planAdaptiveProjectTemplates(root, { longCommandTimeoutMs }),
+        (error) =>
+          error instanceof AdaptiveProjectTemplateError &&
+          error.code === "LONG_COMMAND_TIMEOUT_INVALID",
+      );
+    }
   } finally {
     rmSync(root, { recursive: true, force: true });
   }

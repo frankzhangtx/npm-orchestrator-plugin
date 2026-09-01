@@ -15,7 +15,7 @@ const expectedHashes = new Map([
   ],
   [
     ".opencode/agents/scheduled-planner.md",
-    "2e70352abee6c4cc6ce15d80dba5a1f4ecf450de49f31834f6de0ee3342e2577",
+    "d47c9c6e1c50e71003560fa70013cea5a91485b571a46b6149b48e520e85a06d",
   ],
   [
     ".opencode/agents/scheduled-reviewer.md",
@@ -38,12 +38,16 @@ const expectedHashes = new Map([
     "be85c63d766785f77f0d03ce31761999efd3bde8eb74cdcfcaa99d05ba177bd8",
   ],
   [
+    ".opencode/commands/resume-task.md",
+    "524108e44dc7384cffd3333c29a42b4de139f76a927faca795158cd2ea6f7834",
+  ],
+  [
     ".opencode/skills/scheduled-quality-coder/SKILL.md",
     "a1c81a3bdc00d59e2e57f9571bc50fc8a5c28665c30a55b42a73c615c4e693f0",
   ],
   [
     ".opencode/skills/scheduled-quality-orchestrator/SKILL.md",
-    "3a25a4a65d23c5957aa017331533d844b14a77751cc25dc579b9e8622612d0ec",
+    "291dd653e4dd7db833cde47d49aaf8fe8e4d6e7779f8c9400fa2aa4f8f21c907",
   ],
   [
     ".opencode/skills/scheduled-quality-reviewer/SKILL.md",

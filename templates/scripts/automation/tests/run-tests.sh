@@ -119,13 +119,15 @@ jq -n '{
     maxFixLoops: 1,
     maxReviewCycles: 1,
     maxReviewerRestarts: 2,
+    longCommandTimeoutMs: 1800000,
     autoCleanupWorktrees: true,
     pushAfterAcceptance: false,
     approvalPhrases: {
         proposal: "批准方案，生成计划和任务合同。",
         contract: "合同已复核，批准自动执行到人工验收阶段。",
         acceptance: "验收通过，提交到原分支。",
-        abort: "中止任务，封存修改并恢复原分支。"
+        abort: "中止任务，封存修改并恢复原分支。",
+        resume: "恢复任务，重新捕获基线并继续自动执行。"
     },
     plugins: {
         superpowers: "superpowers@git+https://github.com/obra/superpowers.git#v6.2.0"
@@ -483,9 +485,12 @@ fi
 if run_fixture env AUTOMATION_SKIP_AGENT_RUN=1 ./scripts/automation/resume-review.sh TASK-TEST-003 >/dev/null 2>&1; then
     fail 'reviewer-only recovery accepted a non-review blocker'
 fi
+if run_fixture env AUTOMATION_SKIP_AGENT_RUN=1 ./scripts/automation/resume-task.sh TASK-TEST-003 '恢复任务，重新捕获基线并继续自动执行。' >/dev/null 2>&1; then
+    fail 'baseline-only recovery accepted a preflight blocker'
+fi
 rm "$fixture/unapproved-change.txt"
 pass 'preflight blocks dirty task roots without retrying implicitly'
-pass 'reviewer-only recovery rejects unrelated BLOCKED states'
+pass 'reviewer and baseline recovery reject unrelated BLOCKED states'
 
 printf '%s\n' '# Approved reviewer-fix plan' > "$fixture/docs/plans/TASK-TEST-005.md"
 jq \
@@ -744,6 +749,38 @@ run_fixture ./scripts/automation/abort-task.sh TASK-TEST-009 '中止任务，封
 [[ "$(git -C "$fixture" rev-parse HEAD)" == "$planning_only_baseline" ]] || fail 'planning-only abort changed original branch history'
 [[ ! -e "$fixture/docs/plans/TASK-TEST-009.md" && ! -e "$fixture/automation/tasks/TASK-TEST-009.json" ]] || fail 'planning-only abort left generated artifacts in the original worktree'
 pass 'aborting before product edits archives planning artifacts without creating a planning-only commit'
+
+printf '%s\n' '# Baseline interruption recovery plan' > "$fixture/docs/plans/TASK-TEST-010.md"
+jq \
+    '.id = "TASK-TEST-010" |
+     .title = "Recover one interrupted baseline capture" |
+     .planPath = "docs/plans/TASK-TEST-010.md" |
+     .targetTests = [{gradleTask: "testDebugUnitTest", filter: "dev.example.orchestratorfixture.BaselineRecoveryTest"}]' \
+    "$fixture/automation/tasks/TASK-TEST-001.json" \
+    > "$fixture/automation/tasks/TASK-TEST-010.json"
+run_fixture ./scripts/automation/prepare-contract-review.sh TASK-TEST-010 '批准方案，生成计划和任务合同。' >/dev/null
+run_fixture env AUTOMATION_SKIP_AGENT_RUN=1 ./scripts/automation/approve-and-run.sh TASK-TEST-010 '合同已复核，批准自动执行到人工验收阶段。' >/dev/null
+run_fixture ./scripts/automation/transition-state.sh TASK-TEST-010 PENDING CODING coder-launcher 'preflight passed; capturing baseline' >/dev/null
+run_fixture ./scripts/automation/block-task.sh TASK-TEST-010 'claim baseline capture interrupted before metadata sealing' >/dev/null
+if run_fixture env AUTOMATION_SKIP_AGENT_RUN=1 ./scripts/automation/resume-task.sh TASK-TEST-010 '拒绝' >/dev/null 2>&1; then
+    fail 'baseline recovery accepted an invalid confirmation'
+fi
+[[ "$(jq -r '.state' "$runtime_root/state/TASK-TEST-010.json")" == "BLOCKED" ]] || fail 'rejected baseline recovery changed task state'
+run_fixture env AUTOMATION_SKIP_AGENT_RUN=1 ./scripts/automation/resume-task.sh TASK-TEST-010 '恢复任务，重新捕获基线并继续自动执行。' >/dev/null
+[[ "$(jq -r '.state' "$runtime_root/state/TASK-TEST-010.json")" == "PENDING" ]] || fail 'baseline recovery did not return to PENDING'
+[[ "$(jq -s 'length' "$runtime_root/evidence/TASK-TEST-010/baseline-resumptions.jsonl")" -eq 1 ]] || fail 'baseline recovery did not record one bounded resumption'
+[[ "$(jq -s -r '.[-1].kind' "$runtime_root/evidence/TASK-TEST-010/approvals.jsonl")" == "resume-baseline" ]] || fail 'baseline recovery approval was not audited'
+[[ ! -f "$runtime_root/evidence/TASK-TEST-010/baseline.json" ]] || fail 'baseline recovery manufactured baseline evidence'
+pass 'one explicitly approved baseline interruption resumes through PENDING without product changes'
+
+run_fixture ./scripts/automation/transition-state.sh TASK-TEST-010 PENDING CODING coder-launcher 'preflight passed; capturing baseline' >/dev/null
+run_fixture ./scripts/automation/block-task.sh TASK-TEST-010 'claim baseline capture interrupted a second time before metadata sealing' >/dev/null
+if run_fixture env AUTOMATION_SKIP_AGENT_RUN=1 ./scripts/automation/resume-task.sh TASK-TEST-010 '恢复任务，重新捕获基线并继续自动执行。' >/dev/null 2>&1; then
+    fail 'baseline recovery exceeded its one-restart limit'
+fi
+[[ "$(jq -r '.state' "$runtime_root/state/TASK-TEST-010.json")" == "BLOCKED" ]] || fail 'exhausted baseline recovery changed task state'
+pass 'baseline recovery stops after one auditable restart'
+run_fixture ./scripts/automation/abort-task.sh TASK-TEST-010 '中止任务，封存修改并恢复原分支。' >/dev/null
 
 isolated_config_tmp="$(mktemp "$fixture/automation/.config.XXXXXX")"
 jq '.workspaceStrategy = "isolatedWorktree"' "$fixture/automation/config.json" > "$isolated_config_tmp"

@@ -1,5 +1,23 @@
 # Changelog
 
+## 0.6.1 - Unreleased
+
+- Raise direct managed long-running automation commands through the certified
+  `tool.execute.before` hook to a 30-minute (`1800000` ms) default timeout,
+  while preserving any higher caller timeout and leaving unrelated commands
+  untouched.
+- Add the bounded `longCommandTimeoutMs` configuration (`120000` through
+  `7200000` ms), expose it through `init` and `upgrade` as
+  `--long-command-timeout-ms`, and preserve an installed value during upgrade.
+- Add `/resume-task` and `resume-task.sh` for one explicitly approved recovery
+  when baseline capture was interrupted before `baseline.json` existed. The
+  script proves both refs, HEAD, lease, transition history, sealed planning
+  hashes, zero product changes, and absent downstream evidence before routing
+  `BLOCKED -> PENDING` through the normal claim flow.
+- Expand the managed inventory from 45 to 47 files, the executable Shell
+  inventory from 28 to 29 scripts, and the transaction suite from 42 to 44
+  cases.
+
 ## 0.6.0 - 2026-09-01
 
 - Disable Gradle Configuration Cache only for the temporary `help` invocation

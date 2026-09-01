@@ -141,6 +141,40 @@ If the automatic card was missed, or the user invokes `/acceptance <TASK-ID>`,
 run the same display script and repeat the same review card and `question`.
 Never substitute remembered conversation content for the fresh script output.
 
+## Baseline-only recovery
+
+If a task is `BLOCKED` because the `claim-task.sh` Gradle baseline capture was
+externally interrupted before `baseline.json` was sealed, offer:
+
+`/resume-task <TASK-ID>`
+
+The command must first display fresh status, then call one OpenCode `question`
+with `multiple: false` and `custom: false`:
+
+- header: `恢复任务`
+- question: `是否重新捕获缺失的基线证据并继续自动执行？`
+- option 1 label: `恢复任务，重新捕获基线并继续自动执行。`
+- option 1 description: `验证分支、租约、封存规划工件和零产品改动后，仅允许一次基线重试。`
+- option 2 label: `保持当前任务现场`
+- option 2 description: `不修改分支、文件、状态、证据或租约。`
+
+Only option 1 selected in that fresh question authorizes:
+
+`./scripts/automation/resume-task.sh <TASK-ID> "恢复任务，重新捕获基线并继续自动执行。"`
+
+The script must prove the last transition was the baseline-capture
+`CODING -> BLOCKED` interruption, `baseline.json` and all downstream evidence
+are absent, both refs still equal the recorded baseline, the repository lease
+still matches, and the worktree contains exactly the two sealed untracked
+planning artifacts. It records the approval and one bounded resumption,
+changes `BLOCKED` to `PENDING`, and relaunches the normal orchestration path so
+Coder performs a fresh deterministic claim. It must never erase a failed or
+successful baseline record and must never accept a product diff.
+
+Do not run `transition-state.sh`, `queue-task.sh`, reset the task root, or edit
+runtime evidence. A direct chat message is not recovery approval. If this one
+retry is exhausted, preserve the task for abort or a new reviewed contract.
+
 ## Reviewer-only recovery
 
 If a task is `BLOCKED` because a Reviewer exited before submitting a decision,
@@ -200,7 +234,8 @@ clean, or file deletion.
 ## Hard stops
 
 - Never manufacture, paraphrase, or infer one of the three normal-path
-  approvals or the exceptional abort approval. Each normal approval exists
+  approvals, the baseline-recovery approval, or the exceptional abort
+  approval. Each normal approval exists
   only when the user selects the full label in that boundary's fresh
   `question`; direct chat text never counts.
 - Never call a normal-path approval script before its matching `question`
@@ -210,7 +245,7 @@ clean, or file deletion.
   `rebase`, or `push`.
 - Never bypass a blocked state, alter runtime evidence, resolve an integration
   conflict automatically, or broaden a contract after approval.
-- For `BLOCKED`, first distinguish the recoverable Reviewer interruption above
-  from other blockers. For any other `BLOCKED`, or for `TEST_FAILED`,
+- For `BLOCKED`, first distinguish the recoverable baseline-capture and
+  Reviewer interruptions above from other blockers. For any other `BLOCKED`, or for `TEST_FAILED`,
   `NEEDS_HUMAN`, or `INTEGRATION_BLOCKED`, show the state and evidence path and
   wait for a revised contract or a specifically supported recovery action.

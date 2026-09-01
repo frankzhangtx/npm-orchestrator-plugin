@@ -10,11 +10,11 @@ const templatesRoot = fileURLToPath(new URL("../templates/", import.meta.url));
 const expectedBaselineHashes = new Map([
   [
     "automation/config.json",
-    "b37eeec6cfb9a70e1897e25db313e7be8a29013234e1914f12ab26120d5be8bd",
+    "12c99485990788fb7b8f7da344120a978bfe8ebf60f08df486b0b252a02ed2ba",
   ],
   [
     "automation/config.schema.json",
-    "af8cb68fc1c658d7bc5d2567eaad793a259d8e732caf5cc2b4f3d305e31bbce8",
+    "519f6c37c67dd9da61f4970a37da96bd7901456b8d77d8c143530886844b99db",
   ],
   [
     "automation/task-contract.schema.json",
@@ -115,6 +115,22 @@ test("keeps configuration, schemas, and contract example structurally aligned", 
     ),
   );
   assert.ok(configSchema.required.includes("gradleVerification"));
+  assert.ok(configSchema.required.includes("longCommandTimeoutMs"));
+  assert.equal(config.longCommandTimeoutMs, 1_800_000);
+  assert.deepEqual(configSchema.properties.longCommandTimeoutMs, {
+    type: "integer",
+    minimum: 120_000,
+    maximum: 7_200_000,
+  });
+  assert.equal(
+    config.protectedPaths.includes("automation/config.json"),
+    false,
+    "the automation directory prefix already protects generated configuration",
+  );
+  assert.equal(
+    config.approvalPhrases.resume,
+    "恢复任务，重新捕获基线并继续自动执行。",
+  );
   assert.ok(configSchema.required.includes("androidProject"));
   assert.equal(Object.hasOwn(config, "androidProject"), false);
   assert.deepEqual(

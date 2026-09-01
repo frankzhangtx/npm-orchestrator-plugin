@@ -62,7 +62,7 @@ function successfulRunner(calls = []) {
       return commandResult(0, "1.15.13\n");
     }
     if (executable.endsWith("scripts/automation/tests/run-tests.sh")) {
-      return commandResult(0, "ok 42 - fixture\n1..42\n");
+      return commandResult(0, "ok 44 - fixture\n1..44\n");
     }
     if (executable.endsWith("scripts/automation/shadow-run.sh")) {
       return commandResult(0, '{"mutationPerformed":false}\n');
@@ -147,6 +147,14 @@ function simulateOlderInstallation(
   );
   manifest.package.version = "0.2.0";
 
+  for (const addedPath of [
+    ".opencode/commands/resume-task.md",
+    "scripts/automation/resume-task.sh",
+  ]) {
+    rmSync(join(root, addedPath));
+    manifest.files = manifest.files.filter(({ path }) => path !== addedPath);
+  }
+
   const oldAgent = "legacy scheduled coder\n";
   writeFileSync(join(root, ".opencode/agents/scheduled-coder.md"), oldAgent);
   updateManifestEntry(
@@ -172,10 +180,14 @@ function simulateOlderInstallation(
   chmodSync(openCodePath, 0o600);
   updateManifestEntry(manifest, "opencode.jsonc", oldOpenCode);
 
-  if (omitModuleScope) {
+  {
     const configPath = join(root, "automation/config.json");
     const config = JSON.parse(readFileSync(configPath, "utf8"));
+    delete config.longCommandTimeoutMs;
+    delete config.approvalPhrases.resume;
+    if (omitModuleScope) {
     delete config.androidProject.moduleScope;
+    }
     const configContent = `${JSON.stringify(config, null, 2)}\n`;
     writeFileSync(configPath, configContent);
     updateManifestEntry(manifest, "automation/config.json", configContent);
@@ -248,8 +260,8 @@ test("plans an older-version upgrade without writing recovery or managed files",
     assert.equal(plan.moduleScope, "all");
     assert.equal(plan.primaryModule, ":mobile");
     assert.equal(plan.fromVersion, "0.2.0");
-    assert.equal(plan.toVersion, "0.6.0");
-    assert.equal(plan.desiredFiles.length, 45);
+    assert.equal(plan.toVersion, "0.6.1");
+    assert.equal(plan.desiredFiles.length, 47);
     assert.equal(plan.removedFiles.length, 0);
     assert.equal(existsSync(plan.recoveryDirectory), false);
     assert.equal(existsSync(plan.backupDirectory), false);
@@ -282,8 +294,18 @@ test("upgrades legacy configurations without moduleScope in primary mode", () =>
         "upgrade-legacy-scope-plan-001",
       ),
       moduleScope: "all",
+      longCommandTimeoutMs: 3_600_000,
     });
     assert.equal(allModulePlan.moduleScope, "all");
+    const plannedConfig = allModulePlan.desiredFiles.find(
+      ({ path }) => path === "automation/config.json",
+    );
+    assert.ok(plannedConfig);
+    assert.equal(
+      JSON.parse(Buffer.from(plannedConfig.content).toString("utf8"))
+        .longCommandTimeoutMs,
+      3_600_000,
+    );
 
     const result = runProjectUpgrade(
       root,
@@ -296,6 +318,7 @@ test("upgrades legacy configurations without moduleScope in primary mode", () =>
     assert.equal(result.status, "upgraded");
     assert.equal(result.moduleScope, "primary");
     assert.equal(config.androidProject.moduleScope, "primary");
+    assert.equal(config.longCommandTimeoutMs, 1_800_000);
     assert.equal(result.doctor.ok, true);
   } finally {
     rmSync(root, { recursive: true, force: true });
@@ -320,10 +343,10 @@ test("upgrades unchanged managed files, preserves original merges, and restores 
     assert.equal(result.status, "upgraded");
     assert.equal(result.moduleScope, "all");
     assert.equal(result.fromVersion, "0.2.0");
-    assert.equal(result.toVersion, "0.6.0");
-    assert.equal(result.managedFileCount, 45);
-    assert.equal(result.writtenFileCount, 3);
-    assert.equal(result.reusedFileCount, 42);
+    assert.equal(result.toVersion, "0.6.1");
+    assert.equal(result.managedFileCount, 47);
+    assert.equal(result.writtenFileCount, 6);
+    assert.equal(result.reusedFileCount, 41);
     assert.equal(result.restoredOrRemovedFileCount, 1);
     assert.deepEqual(result.cleanupWarnings, []);
     assert.equal(result.verification.ok, true);
@@ -334,7 +357,7 @@ test("upgrades unchanged managed files, preserves original merges, and restores 
     assert.equal(lstatSync(join(root, "legacy/user-note.txt")).mode & 0o777, 0o600);
 
     const manifest = readInstallationManifest(root);
-    assert.equal(manifest.package.version, "0.6.0");
+    assert.equal(manifest.package.version, "0.6.1");
     assert.equal(manifest.installation.id, "upgrade-success-001");
     assert.equal(manifest.installation.state, "installed");
     assert.equal(verifyInstallationIntegrity(root).ok, true);
@@ -379,7 +402,7 @@ test("upgrades unchanged managed files, preserves original merges, and restores 
     assert.equal(doctor.ok, true);
     assert.match(formatProjectUpgradeResult(result), /Result: UPGRADED/);
     assert.match(formatProjectUpgradeResult(result), /Module scope: all/);
-    assert.match(formatProjectUpgradeResult(result), /0\.2\.0 -> 0\.6\.0/);
+    assert.match(formatProjectUpgradeResult(result), /0\.2\.0 -> 0\.6\.1/);
   } finally {
     rmSync(root, { recursive: true, force: true });
   }
@@ -400,7 +423,7 @@ test("repeated upgrade is byte-idempotent for the current version", () => {
     assert.equal(result.status, "already-current");
     assert.equal(result.moduleScope, "all");
     assert.equal(result.writtenFileCount, 0);
-    assert.equal(result.reusedFileCount, 45);
+    assert.equal(result.reusedFileCount, 47);
     assert.equal(result.recoveryDirectory, null);
     assert.equal(result.historyPath, null);
     assert.equal(

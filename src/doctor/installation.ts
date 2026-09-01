@@ -28,7 +28,7 @@ import {
 } from "../installer/opencode-config.js";
 import type { DoctorCheck } from "./index.js";
 
-export const EXPECTED_MANAGED_FILE_COUNT = 45;
+export const EXPECTED_MANAGED_FILE_COUNT = 47;
 
 interface ExpectedManagedFile {
   path: string;
@@ -53,6 +53,7 @@ const OPENCODE_TEMPLATE_PATHS = [
   ".opencode/commands/abort-task.md",
   ".opencode/commands/acceptance.md",
   ".opencode/commands/change.md",
+  ".opencode/commands/resume-task.md",
   ".opencode/commands/resume-review.md",
   ".opencode/skills/scheduled-quality-coder/SKILL.md",
   ".opencode/skills/scheduled-quality-orchestrator/SKILL.md",
@@ -75,6 +76,7 @@ const AUTOMATION_SCRIPT_PATHS = [
   "scripts/automation/quality-gate.sh",
   "scripts/automation/queue-task.sh",
   "scripts/automation/record-red.sh",
+  "scripts/automation/resume-task.sh",
   "scripts/automation/resume-review-fix.sh",
   "scripts/automation/resume-review.sh",
   "scripts/automation/scope-gate.sh",

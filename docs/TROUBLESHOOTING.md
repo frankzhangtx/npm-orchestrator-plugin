@@ -1,7 +1,7 @@
 # Troubleshooting
 
 Use this guide for
-`@frankzhang2026/opencode-android-orchestrator@0.6.0`.
+`@frankzhang2026/opencode-android-orchestrator@0.6.1`.
 
 ## Start with read-only evidence
 
@@ -11,7 +11,7 @@ From the repository root, capture:
 git status --short --branch
 git rev-parse HEAD
 opencode --version
-npx @frankzhang2026/opencode-android-orchestrator@0.6.0 doctor . --json
+npx @frankzhang2026/opencode-android-orchestrator@0.6.1 doctor . --json
 ```
 
 If installation never completed, doctor will correctly report a missing or
@@ -43,6 +43,7 @@ remain human-readable on stderr with a stable code such as `[FILE_CONFLICT]`.
 | `PRIMARY_MODULE_AMBIGUOUS` | Restrictive `primary` scope has multiple possible Android modules. | Supply an exact Gradle path, for example `--module-scope primary --primary-module :mobile`, or use the default `all` scope. |
 | `PRIMARY_MODULE_NOT_FOUND` | The selected Gradle path was not detected. | Use a module path reported by doctor/project detection; do not pass a filesystem directory. |
 | `GRADLE_DISCOVERY_FAILED` | The temporary read-only Gradle configuration failed, or registered tasks could not form every required verification group. | Run `./gradlew help --no-configuration-cache --console=plain` and fix the reported project/JDK/dependency issue. Use `--gradle-verification-config` only for an intentional nonstandard task policy, and keep that file inside the target repository. |
+| Invalid `--long-command-timeout-ms` | The value is not an integer from `120000` through `7200000`. | Use the `1800000` ms default or pass an intentional bounded value to `init`/`upgrade`; do not edit the generated config directly. |
 | Android SDK failure | No valid explicit SDK, `ANDROID_HOME`, `ANDROID_SDK_ROOT`, or `local.properties` `sdk.dir` was found. | Configure one real SDK root containing `platforms/` and `build-tools/`. Do not publish `local.properties`. |
 | Missing `git`, `jq`, `rg`, `shasum`, or Java | Required deterministic command is unavailable on `PATH`. | Install or restore the missing command, record its version, and rerun the read-only checks. |
 
@@ -51,6 +52,14 @@ Gradle task-discovery invocation. This overrides a repository-level
 `org.gradle.configuration-cache=true` only for discovery; it does not change
 the project's files or normal build behavior. Deleting the project's
 Configuration Cache is therefore neither required nor a durable repair.
+
+Version `0.6.1` raises direct managed long-running lifecycle commands to at
+least `1800000` milliseconds. A higher timeout already supplied by the caller
+is preserved; unrelated Bash commands are unchanged. To configure one hour,
+run `upgrade . --long-command-timeout-ms 3600000` on a healthy installation.
+If a command still reports `120000 ms`, confirm that the project manifest and
+OpenCode plugin reference are both `0.6.1`, restart the OpenCode session so the
+plugin reloads, and rerun doctor before attempting recovery.
 
 After installation, inspect OpenCode discovery separately:
 
@@ -169,6 +178,11 @@ identify the state, workspace, original branch, sealed diff, and evidence.
 
 - `AWAITING_HUMAN`: use `/acceptance <TASK-ID>` to regenerate the verified
   review card and fresh result question.
+- `BLOCKED` after claim baseline capture was externally interrupted and
+  `baseline.json` is absent: use `/resume-task <TASK-ID>`. After a fresh
+  confirmation, the script verifies both refs, lease, transition history,
+  sealed planning hashes, zero product changes, and absent downstream
+  evidence before permitting its single `BLOCKED -> PENDING` retry.
 - `BLOCKED` after a Reviewer exited without submitting a decision: use
   `/resume-review <TASK-ID>`. The script accepts only the bounded reviewer-only
   recovery and proves the sealed diff has not changed.

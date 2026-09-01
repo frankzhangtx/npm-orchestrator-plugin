@@ -136,7 +136,7 @@ function successfulRunner(calls = []) {
       return commandResult(0, `${gradleDiscoveryOutput()}\n`);
     }
     if (executable.endsWith("scripts/automation/tests/run-tests.sh")) {
-      return commandResult(0, "ok 42 - fixture\n1..42\n");
+      return commandResult(0, "ok 44 - fixture\n1..44\n");
     }
     if (executable.endsWith("scripts/automation/shadow-run.sh")) {
       return commandResult(
@@ -173,7 +173,7 @@ test("plans and installs all managed resources in a Kotlin DSL project", () => {
       initOptions(runner, "init-kotlin-plan-001"),
     );
     assert.equal(plan.targetDirectory, root);
-    assert.equal(plan.installation.files.length, 45);
+    assert.equal(plan.installation.files.length, 47);
     assert.equal(
       existsSync(join(root, WORKTREE_ALLOWLIST_RELATIVE_PATH)),
       false,
@@ -194,8 +194,8 @@ test("plans and installs all managed resources in a Kotlin DSL project", () => {
     assert.equal(result.targetDirectory, root);
     assert.equal(result.moduleScope, "all");
     assert.equal(result.primaryModule, ":mobile");
-    assert.equal(result.managedFileCount, 45);
-    assert.equal(result.writtenFileCount, 45);
+    assert.equal(result.managedFileCount, 47);
+    assert.equal(result.writtenFileCount, 47);
     assert.equal(result.reusedFileCount, 0);
     assert.equal(result.worktreeAllowlistStatus, "created");
     assert.equal(
@@ -229,6 +229,7 @@ test("plans and installs all managed resources in a Kotlin DSL project", () => {
     assert.equal(automationConfig.androidProject.name, "Init Kotlin");
     assert.equal(automationConfig.androidProject.moduleScope, "all");
     assert.equal(automationConfig.androidProject.primaryModule, ":mobile");
+    assert.equal(automationConfig.longCommandTimeoutMs, 1_800_000);
     assert.deepEqual(automationConfig.androidProject.productionPaths, [
       "clients/mobile/src/main/**",
     ]);
@@ -326,7 +327,7 @@ test("repeated init is byte-idempotent for an unchanged installation", () => {
     assert.equal(first.status, "installed");
     assert.equal(repeated.status, "already-installed");
     assert.equal(repeated.writtenFileCount, 0);
-    assert.equal(repeated.reusedFileCount, 45);
+    assert.equal(repeated.reusedFileCount, 47);
     assert.equal(repeated.worktreeAllowlistStatus, "existing");
     assert.equal(
       readFileSync(join(root, WORKTREE_ALLOWLIST_RELATIVE_PATH), "utf8"),

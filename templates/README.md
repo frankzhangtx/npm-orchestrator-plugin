@@ -9,10 +9,10 @@ Migrated template roots:
 
 - `.opencode/agents`: `scheduled-planner`, `scheduled-coder`, and
   `scheduled-reviewer`
-- `.opencode/commands`: `change`, `acceptance`, `resume-review`, and
-  `abort-task`
+- `.opencode/commands`: `change`, `acceptance`, `resume-task`, `resume-review`,
+  and `abort-task`
 - `.opencode/skills`: the three `scheduled-quality-*` skills
-- `scripts/automation`: all 28 deterministic V3 Bash transactions and their
+- `scripts/automation`: all 29 deterministic V3 Bash transactions and their
   test runner, preserved as executable files
 - `automation`: the portable V3 configuration render source, both JSON Schemas,
   and the task contract example

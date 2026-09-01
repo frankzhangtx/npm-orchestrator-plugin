@@ -15,7 +15,7 @@ import {
 
 export const ORCHESTRATOR_PACKAGE_NAME =
   "@frankzhang2026/opencode-android-orchestrator";
-export const ORCHESTRATOR_PACKAGE_VERSION = "0.6.0";
+export const ORCHESTRATOR_PACKAGE_VERSION = "0.6.1";
 export const ORCHESTRATOR_PLUGIN_REFERENCE =
   `${ORCHESTRATOR_PACKAGE_NAME}@${ORCHESTRATOR_PACKAGE_VERSION}`;
 export const OPENCODE_CONFIG_SCHEMA_URL =

@@ -3,6 +3,10 @@ import { resolve } from "node:path";
 import type { Plugin } from "@opencode-ai/plugin";
 
 import {
+  applyLongCommandTimeout,
+  readLongCommandTimeoutMs,
+} from "../config/long-command-timeout.js";
+import {
   defineCompatibleHooks,
   toCompatiblePluginInput,
   type CompatiblePlugin,
@@ -25,6 +29,7 @@ export const createCompatiblePlugin: CompatiblePlugin = async ({
 }) => {
   const projectDirectory = resolve(directory);
   const projectWorktree = resolve(worktree);
+  const longCommandTimeoutMs = readLongCommandTimeoutMs(projectWorktree);
 
   return defineCompatibleHooks({
     tool: createReadOnlyTools({
@@ -35,6 +40,9 @@ export const createCompatiblePlugin: CompatiblePlugin = async ({
     "shell.env": async (_input, output) => {
       output.env[ORCHESTRATOR_DIRECTORY_ENV] = projectDirectory;
       output.env[ORCHESTRATOR_WORKTREE_ENV] = projectWorktree;
+    },
+    "tool.execute.before": async (input, output) => {
+      applyLongCommandTimeout(input, output, longCommandTimeoutMs);
     },
   });
 };

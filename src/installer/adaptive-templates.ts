@@ -12,9 +12,16 @@ import {
   type AndroidProjectDetection,
   type GradleDsl,
 } from "./android-project.js";
+import {
+  DEFAULT_LONG_COMMAND_TIMEOUT_MS,
+  MAXIMUM_LONG_COMMAND_TIMEOUT_MS,
+  MINIMUM_LONG_COMMAND_TIMEOUT_MS,
+  isLongCommandTimeoutMs,
+} from "../config/long-command-timeout.js";
 
 export type AdaptiveProjectTemplateErrorCode =
   | "INVALID_ANDROID_PROJECT"
+  | "LONG_COMMAND_TIMEOUT_INVALID"
   | "MODULE_SCOPE_INVALID"
   | "NESTED_GRADLE_ROOT_UNSUPPORTED"
   | "PRIMARY_MODULE_AMBIGUOUS"
@@ -45,6 +52,8 @@ export interface AdaptiveProjectTemplateOptions {
   primaryModule?: string;
   /** Override the packaged Gradle quality-gate task matrix. */
   gradleVerification?: GradleVerificationConfiguration;
+  /** Timeout applied by the plugin to managed long-running shell commands. */
+  longCommandTimeoutMs?: number;
 }
 
 export type ModuleScope = "all" | "primary";
@@ -90,6 +99,7 @@ export interface AdaptiveAutomationConfiguration {
   schemaVersion: 3;
   androidProject: AdaptiveAndroidProjectConfiguration;
   gradleVerification: GradleVerificationConfiguration;
+  longCommandTimeoutMs: number;
   plugins: Readonly<{ superpowers: string }>;
   protectedPaths: readonly string[];
 }
@@ -417,6 +427,16 @@ export function planAdaptiveProjectTemplates(
       ? configTemplatePath
       : "AdaptiveProjectTemplateOptions.gradleVerification",
   );
+  const longCommandTimeoutMs =
+    options.longCommandTimeoutMs ??
+    configTemplate.longCommandTimeoutMs ??
+    DEFAULT_LONG_COMMAND_TIMEOUT_MS;
+  if (!isLongCommandTimeoutMs(longCommandTimeoutMs)) {
+    throw new AdaptiveProjectTemplateError(
+      "LONG_COMMAND_TIMEOUT_INVALID",
+      `Long-command timeout must be an integer from ${MINIMUM_LONG_COMMAND_TIMEOUT_MS} to ${MAXIMUM_LONG_COMMAND_TIMEOUT_MS} milliseconds.`,
+    );
+  }
   const baseProtectedPaths = stringArrayProperty(
     configTemplate,
     "protectedPaths",
@@ -429,6 +449,7 @@ export function planAdaptiveProjectTemplates(
   ]);
   const automationConfig = {
     ...configTemplate,
+    longCommandTimeoutMs,
     gradleVerification,
     androidProject,
     protectedPaths,

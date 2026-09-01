@@ -17,6 +17,17 @@ export {
   type CompatiblePluginInput,
 } from "./compatibility/hooks.js";
 export {
+  DEFAULT_LONG_COMMAND_TIMEOUT_MS,
+  LONG_RUNNING_AUTOMATION_SCRIPTS,
+  MAXIMUM_LONG_COMMAND_TIMEOUT_MS,
+  MINIMUM_LONG_COMMAND_TIMEOUT_MS,
+  applyLongCommandTimeout,
+  isLongCommandTimeoutMs,
+  readLongCommandTimeoutMs,
+  type ToolExecutionInput,
+  type ToolExecutionOutput,
+} from "./config/long-command-timeout.js";
+export {
   ORCHESTRATOR_DOCTOR_TOOL_NAME,
   ORCHESTRATOR_STATUS_TOOL_NAME,
   READ_ONLY_TOOL_NAMES,

@@ -11,6 +11,9 @@ including product flavors, without a separate JSON file and bootstraps the
 human-owned worktree allowlist when it is missing. Version `0.6.0` makes that
 discovery reliable in repositories that enable Gradle Configuration Cache by
 disabling the cache only for the temporary discovery invocation.
+Version `0.6.1` gives managed long-running commands a configurable 30-minute
+default timeout and adds a bounded recovery path for baseline capture that was
+externally interrupted before evidence sealing.
 
 ## Documentation
 
@@ -45,8 +48,8 @@ project builds retain their configured cache behavior.
 ## Quick start
 
 ```sh
-npx @frankzhang2026/opencode-android-orchestrator@0.6.0 init .
-npx @frankzhang2026/opencode-android-orchestrator@0.6.0 doctor .
+npx @frankzhang2026/opencode-android-orchestrator@0.6.1 init .
+npx @frankzhang2026/opencode-android-orchestrator@0.6.1 doctor .
 opencode --agent scheduled-planner .
 ```
 
@@ -56,7 +59,7 @@ a task contract without selecting a primary module. To intentionally restrict
 generated contracts to one module, opt into primary-module scope:
 
 ```sh
-npx @frankzhang2026/opencode-android-orchestrator@0.6.0 init . \
+npx @frankzhang2026/opencode-android-orchestrator@0.6.1 init . \
   --module-scope primary \
   --primary-module :mobile
 ```
@@ -77,6 +80,25 @@ cacheable `help` invocation. `--gradle-verification-config` remains available
 only for an intentional nonstandard policy override and is not part of the
 normal quick start.
 
+### Managed long-command timeout
+
+The plugin raises direct managed lifecycle commands such as `claim-task.sh`,
+`approve-and-run.sh`, quality/review verification, recovery, and integration
+to at least `1800000` milliseconds (30 minutes). It never shortens a larger
+timeout supplied by the caller and does not alter unrelated Bash commands.
+
+Configure a different bounded value during installation or upgrade:
+
+```sh
+opencode-android-orchestrator init . --long-command-timeout-ms 3600000
+opencode-android-orchestrator upgrade . --long-command-timeout-ms 3600000
+```
+
+The accepted range is `120000` through `7200000` milliseconds. Upgrade
+preserves an installed value; installations before `0.6.1` receive the
+30-minute default. The generated `automation/config.json` remains managed, so
+use the lifecycle option instead of editing it directly.
+
 ### Allow intentional local worktree changes
 
 `init` automatically creates `.automation-worktree-allowlist` in the Git
@@ -95,7 +117,7 @@ file paths; directory entries and glob patterns are rejected. The control file
 itself is automatically ignored by orchestration, so it does not need a
 `.gitignore` rule merely to pass preflight.
 
-The file is bootstrapped but intentionally not part of the 45 managed-resource
+The file is bootstrapped but intentionally not part of the 47 managed-resource
 hashes, so human edits do not create installation-integrity drift. Planning
 remains read-only, and a file newly created by `init` is removed if that
 installation later rolls back. Upgrade and uninstall preserve the file as
@@ -114,21 +136,23 @@ Task status exposes the effective snapshot to Coder and Reviewer sessions; an
 isolated task worktree receives an empty effective list so task-local edits are
 never hidden by source-worktree exclusions.
 
-The install transaction manages 45 project-local paths:
+The install transaction manages 47 project-local paths:
 
 | Resource group | Count | Installation behavior |
 | --- | ---: | --- |
-| Scheduled agents, commands, and skills | 10 | Copy exact audited templates. |
-| Deterministic automation Shell files | 28 | Copy exact templates with `0755` modes. |
+| Scheduled agents, commands, and skills | 11 | Copy exact audited templates. |
+| Deterministic automation Shell files | 29 | Copy exact templates with `0755` modes. |
 | Schemas and plan authoring guide | 3 | Copy fixed supporting resources. |
 | Android automation config and task example | 2 | Generate from detected modules. |
 | `AGENTS.md` and OpenCode JSON/JSONC | 2 | Merge bounded content without replacing unrelated settings. |
 
 After installation, start the `scheduled-planner` and use its interactive flow.
-The `/acceptance <TASK-ID>`, `/resume-review <TASK-ID>`, and
-`/abort-task <TASK-ID>` commands are recovery/re-entry points; they do not
-replace the required fresh approval controls. The workflow never pushes and
-does not register Scheduler or launchd jobs.
+The `/acceptance <TASK-ID>`, `/resume-task <TASK-ID>`,
+`/resume-review <TASK-ID>`, and `/abort-task <TASK-ID>` commands are
+recovery/re-entry points; they do not replace the required fresh approval
+controls. `/resume-task` is limited to one baseline-only retry and rejects any
+product diff or existing baseline/downstream evidence. The workflow never
+pushes and does not register Scheduler or launchd jobs.
 
 ## Status
 
@@ -138,7 +162,8 @@ defaults and stronger verification contracts, and `0.4.0` adds the bounded
 worktree allowlist described above. Version `0.5.0` added automatic registered
 Gradle-task discovery and safe allowlist bootstrapping during `init`; version
 `0.6.0` makes discovery independent of the target project's Configuration
-Cache setting.
+Cache setting, and `0.6.1` adds configurable long-command timeouts plus bounded
+baseline-interruption recovery.
 
 The cross-version plugin entry, OpenCode version doctor, Android/Gradle project
 discovery, audited V3 resources, and all deterministic V3 Shell transactions
@@ -170,9 +195,9 @@ Implemented checks include:
   debug unit, build, lint, and connected-device verification tasks
 - a plugin compatibility boundary restricted to API fields and hooks shared
   by both certified OpenCode versions
-- project-independent templates for the three V3 agents, four commands, and
+- project-independent templates for the three V3 agents, five commands, and
   three scheduled-quality skills
-- all 28 automation Bash files with their `0755` modes; scope and test-change
+- all 29 automation Bash files with their `0755` modes; scope and test-change
   gates consume detected source-set paths instead of a fixed module name
 - a portable automation configuration source, both Schemas, contract example,
   plan guide, and bounded AGENTS managed block
@@ -196,14 +221,14 @@ Implemented checks include:
 - read-only conflict reports with existing and desired hashes, sizes, modes,
   source, and strategy; installation planning fails closed before any write
   when `copy`/`generate` content or an existing file mode would be changed
-- a write-capable `init` transaction that installs 45 managed files, preserves
+- a write-capable `init` transaction that installs 47 managed files, preserves
   Shell executable modes, merges OpenCode JSON/JSONC and one bounded AGENTS
   block, bootstraps the optional human-owned worktree allowlist when missing,
   and is byte-idempotent for an unchanged installed version
-- write-before-complete verification using the 42-case automation suite and a
+- write-before-complete verification using the 44-case automation suite and a
   read-only shadow run; any failure restores original files before reporting
   the error
-- an installation-aware, read-only doctor that authenticates the 45-file
+- an installation-aware, read-only doctor that authenticates the 47-file
   inventory against packaged templates, separates content and permission
   drift, verifies original-file backups, and semantically checks the OpenCode,
   AGENTS, adaptive Android, and task-example configuration
@@ -278,7 +303,7 @@ preparation alone as resource installation;
 ## Init
 
 ```sh
-npx @frankzhang2026/opencode-android-orchestrator@0.6.0 init .
+npx @frankzhang2026/opencode-android-orchestrator@0.6.1 init .
 opencode --agent scheduled-planner .
 ```
 
@@ -306,7 +331,7 @@ Android Gradle project, an executable Gradle Wrapper, `git`, `jq`, `rg`,
    preserving any existing regular file;
 5. backs up every existing managed path and publishes a `prepared` manifest;
 6. writes missing or approved merged files with verified hashes and modes;
-7. runs the 42 automation tests and `shadow-run.sh`;
+7. runs the 44 automation tests and `shadow-run.sh`;
 8. marks the manifest `installed` only after both checks pass.
 
 Verification failure automatically restores originals and records rollback
@@ -333,8 +358,8 @@ without detectable `platforms` or `build-tools` is reported as a warning.
 Installation checks are deliberately read-only and cover:
 
 - manifest schema, installed state, fixed package version, `0600` mode, exact
-  45-file inventory, sources, strategies, and packaged-template hashes;
-- each managed file's SHA-256, size, and mode, including all 28 executable
+  47-file inventory, sources, strategies, and packaged-template hashes;
+- each managed file's SHA-256, size, and mode, including all 29 executable
   automation scripts;
 - every original-file backup required for future recovery;
 - pinned OpenCode and Superpowers references, the exact bounded AGENTS block,
@@ -370,7 +395,7 @@ preflight verifies both resolved permissions and tool discovery.
 ### Phase 2 mutating-tool decision
 
 The 2026-08-25 evaluation remains **NO-GO for mutating custom tools in
-`0.6.0`**.
+`0.6.1`**.
 The fixed Shell allowlist remains the only entry point for state transitions,
 Git mutations, and agent launches. OpenCode custom tools provide typed arguments
 and workspace context, but a normal permission prompt is not the workflow's
@@ -387,6 +412,7 @@ two-version common execution surface. See the OpenCode documentation for
 | `prepare-contract-review.sh` | Writes approval/origin evidence and initializes `CONTRACT_REVIEW` | Defer until a fresh proposal selection can produce a one-use receipt. |
 | `approve-and-run.sh` | Acquires a repository lease, creates or switches a task branch/worktree, and launches agents | Do not wrap without a contract-approval receipt and cancellable long-running execution. |
 | `show-acceptance-review.sh` | Reads sealed evidence but may regenerate `acceptance-report.json` | First split out a genuinely read-only, in-memory preview; that preview is the earliest suitable candidate. |
+| `resume-task.sh` | Records one baseline-only resumption, changes a narrowly proven `BLOCKED` state to `PENDING`, and relaunches normal orchestration | Keep behind the fresh command question and fixed Shell allowlist; do not expose as a custom mutating tool without a one-use receipt. |
 | `resume-review.sh` | Records a bounded resumption, changes `BLOCKED` to `REVIEWING`, and launches Reviewer | Consider only after command-bound authorization and subprocess cancellation are proven on both versions. |
 | `accept-and-integrate.sh` | Creates the combined commit, fast-forwards the original branch, removes a worktree, and deletes the task branch | Do not wrap until final acceptance is bound to task ID, sealed diff, branch, session, and a consumed nonce. |
 | `abort-task.sh` | Archives work, may create a recovery commit, switches/removes worktrees, and releases the lease | Do not wrap until an equally bound, one-use abort receipt exists. |
@@ -397,7 +423,7 @@ the immediately preceding `question` result and bind at least the approval
 kind, task ID, session, message, relevant sealed SHA/branch, timestamp, and
 nonce. It must also retain fixed-script authentication, strict state
 preconditions, project/worktree bounds, abort propagation that terminates child
-processes, bounded structured output, exact per-agent permissions, the 42-case
+processes, bounded structured output, exact per-agent permissions, the 44-case
 transaction suite, and real `1.14.22`/`1.15.13` integration tests. Internal
 Coder/Reviewer transition scripts remain private orchestration details rather
 than public tools.
@@ -430,7 +456,7 @@ For an older healthy installation, the command:
    backup set;
 4. writes only changed managed resources and restores or removes resources no
    longer managed by the new version;
-5. runs the 42 automation tests and a mutation-free shadow run before swapping
+5. runs the 44 automation tests and a mutation-free shadow run before swapping
    the active manifest;
 6. records upgrade history below `.automation-plugin/history/`.
 

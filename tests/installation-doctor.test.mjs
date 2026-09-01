@@ -43,7 +43,7 @@ function successfulCommandRunner(executable, args) {
     return commandResult(0, "1.15.13\n");
   }
   if (executable.endsWith("scripts/automation/tests/run-tests.sh")) {
-    return commandResult(0, "ok 42 - fixture\n1..42\n");
+    return commandResult(0, "ok 44 - fixture\n1..44\n");
   }
   if (executable.endsWith("scripts/automation/shadow-run.sh")) {
     return commandResult(0, '{"mutationPerformed":false}\n');
@@ -136,7 +136,7 @@ test("installed doctor validates dependencies, inventory, files, modes, backups,
       check(report, "installation-manifest").summary,
       new RegExp(`tracks ${EXPECTED_MANAGED_FILE_COUNT} installed files`),
     );
-    assert.match(check(report, "managed-permissions").summary, /28 automation scripts/);
+    assert.match(check(report, "managed-permissions").summary, /29 automation scripts/);
     assert.match(check(report, "managed-configuration").summary, /consistent/);
     assert.match(formatDoctorReport(report), /Result: OK/);
   } finally {
@@ -257,7 +257,7 @@ test("installed doctor rejects a self-consistent manifest rewrite of a packaged 
     assert.equal(check(report, "installation-manifest").status, "fail");
     assert.match(
       check(report, "installation-manifest").details.join("\n"),
-      /does not match the packaged 0\.6\.0 template/,
+      /does not match the packaged 0\.6\.1 template/,
     );
     assert.equal(
       check(report, "managed-resources").status,

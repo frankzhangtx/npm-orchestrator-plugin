@@ -12,7 +12,7 @@ fixed references, plugin options, CRLF/tab preservation, malformed input,
 duplicates, version conflicts, ambiguous config files, and symbolic links. The
 infrastructure resource suite additionally locks the portable V3 configuration
 source, Schemas, task example, plan guide, and bounded AGENTS managed block. The
-42-case Shell transaction suite runs against a non-default module path and
+44-case Shell transaction suite runs against a non-default module path and
 verifies dynamic production/test scope classification.
 
 The installation transaction suite covers read-only SHA-256 planning,
@@ -22,7 +22,7 @@ user-modification guards, the portable manifest Schema, sorted read-only
 conflict reports, content and mode conflicts, identical-file reuse, explicit
 merge handling, and no-write conflict failures.
 
-The init suite installs the complete 45-file inventory into temporary Kotlin
+The init suite installs the complete 47-file inventory into temporary Kotlin
 and Groovy Android fixtures. It covers dynamic rendering, JSONC and AGENTS
 merges, executable modes, write-before-complete verification, dependency
 failure before control-state creation, repeated-init idempotence, conflict

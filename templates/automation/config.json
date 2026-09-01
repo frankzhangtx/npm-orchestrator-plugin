@@ -8,13 +8,15 @@
   "maxFixLoops": 1,
   "maxReviewCycles": 1,
   "maxReviewerRestarts": 2,
+  "longCommandTimeoutMs": 1800000,
   "autoCleanupWorktrees": true,
   "pushAfterAcceptance": false,
   "approvalPhrases": {
     "proposal": "批准方案，生成计划和任务合同。",
     "contract": "合同已复核，批准自动执行到人工验收阶段。",
     "acceptance": "验收通过，提交到原分支。",
-    "abort": "中止任务，封存修改并恢复原分支。"
+    "abort": "中止任务，封存修改并恢复原分支。",
+    "resume": "恢复任务，重新捕获基线并继续自动执行。"
   },
   "plugins": {
     "superpowers": "superpowers@git+https://github.com/obra/superpowers.git#v6.2.0"

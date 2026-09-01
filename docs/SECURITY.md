@@ -1,9 +1,9 @@
 # Security model
 
 This document describes the security properties of
-`@frankzhang2026/opencode-android-orchestrator@0.6.0`. The lifecycle foundation
+`@frankzhang2026/opencode-android-orchestrator@0.6.1`. The lifecycle foundation
 completed the real OpenCode `1.14.22` and `1.15.13` release matrix in `0.2.0`;
-`0.6.0` retains that compatibility boundary.
+`0.6.1` retains that compatibility boundary.
 
 ## Security goals and non-goals
 
@@ -40,8 +40,9 @@ perform actions outside the orchestrator's intended scope.
 
 The normal workflow has three fresh OpenCode `question` selections: proposal,
 sealed contract, and final result. Direct chat prose, silence, a dismissed
-question, or a copied option label is not a normal-path approval. Exceptional
-abort has its own fresh status display and confirmation flow.
+question, or a copied option label is not a normal-path approval. Baseline-only
+recovery and exceptional abort each have their own fresh status/question
+boundary.
 
 Approval phrases stored in `automation/config.json` are validation tokens, not
 secrets or cryptographic proof. Security depends on the scheduled planner
@@ -52,7 +53,7 @@ modify local files; this package does not claim to protect against that actor.
 
 OpenCode permission prompts are also not semantic workflow approval. They can
 be accepted for the remainder of a session and may be auto-approved. For that
-reason `0.6.0` exposes only `android_orchestrator_status` and
+reason `0.6.1` exposes only `android_orchestrator_status` and
 `android_orchestrator_doctor` as custom tools. State-changing wrappers remain a
 NO-GO until a one-use, non-model-forgeable receipt can bind the approval kind,
 task, session/message, sealed SHA or branch, time, and nonce.
@@ -83,6 +84,12 @@ The read-only status tool additionally:
 
 Doctor invokes read-only project, dependency, SDK, and installation checks and
 returns their failures instead of repairing the project.
+
+The compatible `tool.execute.before` hook may only raise the timeout argument
+for a fixed list of direct managed long-running scripts. Its generated config
+value is an integer from `120000` through `7200000` milliseconds, defaults to
+`1800000`, never shortens a larger caller timeout, and does not rewrite the
+command or authorize a state change.
 
 ## Filesystem and configuration safety
 
@@ -128,7 +135,7 @@ non-executable.
 ## Transaction and recovery safety
 
 `init` writes original-file backups before publishing a prepared manifest. It
-then applies validated files, runs the 42-case transaction suite and a shadow
+then applies validated files, runs the 44-case transaction suite and a shadow
 run, verifies final hashes/modes, and only then marks the manifest installed.
 Failure before completion restores originals and removes safely unchanged new
 files.
@@ -166,6 +173,10 @@ the recorded before/after hashes and Git refs.
   the effective list to Coder and Reviewer sessions and returns an empty list
   inside isolated task worktrees.
 - Integration reruns verification before a fast-forward. It never pushes.
+- Baseline-only recovery is accepted at most once and only when the recorded
+  task and original refs remain at the baseline, the lease and final
+  transitions match, no baseline/downstream evidence exists, and the worktree
+  still contains only the two sealed untracked planning artifacts.
 - A successfully integrated task branch is deleted only after the original
   branch reaches the verified commit. Failure preserves the branch for
   recovery.
