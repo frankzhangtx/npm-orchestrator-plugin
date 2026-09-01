@@ -1,9 +1,9 @@
 # Security model
 
 This document describes the security properties of
-`@frankzhang2026/opencode-android-orchestrator@0.5.0`. The lifecycle foundation
+`@frankzhang2026/opencode-android-orchestrator@0.6.0`. The lifecycle foundation
 completed the real OpenCode `1.14.22` and `1.15.13` release matrix in `0.2.0`;
-`0.5.0` retains that compatibility boundary.
+`0.6.0` retains that compatibility boundary.
 
 ## Security goals and non-goals
 
@@ -52,7 +52,7 @@ modify local files; this package does not claim to protect against that actor.
 
 OpenCode permission prompts are also not semantic workflow approval. They can
 be accepted for the remainder of a session and may be auto-approved. For that
-reason `0.5.0` exposes only `android_orchestrator_status` and
+reason `0.6.0` exposes only `android_orchestrator_status` and
 `android_orchestrator_doctor` as custom tools. State-changing wrappers remain a
 NO-GO until a one-use, non-model-forgeable receipt can bind the approval kind,
 task, session/message, sealed SHA or branch, time, and nonce.

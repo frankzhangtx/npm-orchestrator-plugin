@@ -133,19 +133,25 @@ test("infers a complete flavored matrix and prefers the module-named flavor", ()
   }
 });
 
-test("discovers only marker output through a temporary read-only Gradle init script", () => {
+test("disables configuration cache and discovers marker output on repeated calls", () => {
   const root = createFlavoredFixture();
-  let initScript = null;
+  const initScripts = [];
   try {
     const runner = (executable, args, options) => {
       assert.equal(executable, join(root, "gradlew"));
-      assert.equal(args[0], "help");
-      assert.equal(args[1], "--init-script");
-      initScript = args[2];
+      assert.deepEqual(args.slice(0, 3), [
+        "help",
+        "--no-configuration-cache",
+        "--init-script",
+      ]);
+      const initScript = args[3];
+      assert.equal(typeof initScript, "string");
+      assert.deepEqual(args.slice(4), ["--console=plain", "--quiet"]);
       assert.equal(existsSync(initScript), true);
       assert.equal(statSync(initScript).mode & 0o777, 0o600);
       assert.match(readFileSync(initScript, "utf8"), /projectsEvaluated/);
       assert.equal(options.cwd, root);
+      initScripts.push(initScript);
       return {
         status: 0,
         stdout: [
@@ -159,13 +165,22 @@ test("discovers only marker output through a temporary read-only Gradle init scr
       };
     };
 
-    const configuration = discoverGradleVerificationConfiguration(
+    const firstConfiguration = discoverGradleVerificationConfiguration(
+      root,
+      runner,
+    );
+    const secondConfiguration = discoverGradleVerificationConfiguration(
       root,
       runner,
     );
 
-    assert.deepEqual(configuration, expectedConfiguration);
-    assert.equal(initScript === null ? false : existsSync(initScript), false);
+    assert.deepEqual(firstConfiguration, expectedConfiguration);
+    assert.deepEqual(secondConfiguration, expectedConfiguration);
+    assert.equal(initScripts.length, 2);
+    assert.notEqual(initScripts[0], initScripts[1]);
+    for (const initScript of initScripts) {
+      assert.equal(existsSync(initScript), false);
+    }
   } finally {
     rmSync(root, { recursive: true, force: true });
   }

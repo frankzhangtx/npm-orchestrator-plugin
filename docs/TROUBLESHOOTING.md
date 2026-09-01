@@ -1,7 +1,7 @@
 # Troubleshooting
 
 Use this guide for
-`@frankzhang2026/opencode-android-orchestrator@0.5.0`.
+`@frankzhang2026/opencode-android-orchestrator@0.6.0`.
 
 ## Start with read-only evidence
 
@@ -11,7 +11,7 @@ From the repository root, capture:
 git status --short --branch
 git rev-parse HEAD
 opencode --version
-npx @frankzhang2026/opencode-android-orchestrator@0.5.0 doctor . --json
+npx @frankzhang2026/opencode-android-orchestrator@0.6.0 doctor . --json
 ```
 
 If installation never completed, doctor will correctly report a missing or
@@ -42,9 +42,15 @@ remain human-readable on stderr with a stable code such as `[FILE_CONFLICT]`.
 | `MODULE_SCOPE_INVALID` or an invalid `--module-scope` argument | The value is not `all` or `primary`. | Use `all` for the default all-module contract or `primary` for an intentional single-module restriction. |
 | `PRIMARY_MODULE_AMBIGUOUS` | Restrictive `primary` scope has multiple possible Android modules. | Supply an exact Gradle path, for example `--module-scope primary --primary-module :mobile`, or use the default `all` scope. |
 | `PRIMARY_MODULE_NOT_FOUND` | The selected Gradle path was not detected. | Use a module path reported by doctor/project detection; do not pass a filesystem directory. |
-| `GRADLE_DISCOVERY_FAILED` | The temporary read-only Gradle configuration failed, or registered tasks could not form every required verification group. | Run `./gradlew help --console=plain` and fix the reported project/JDK/dependency issue. Use `--gradle-verification-config` only for an intentional nonstandard task policy, and keep that file inside the target repository. |
+| `GRADLE_DISCOVERY_FAILED` | The temporary read-only Gradle configuration failed, or registered tasks could not form every required verification group. | Run `./gradlew help --no-configuration-cache --console=plain` and fix the reported project/JDK/dependency issue. Use `--gradle-verification-config` only for an intentional nonstandard task policy, and keep that file inside the target repository. |
 | Android SDK failure | No valid explicit SDK, `ANDROID_HOME`, `ANDROID_SDK_ROOT`, or `local.properties` `sdk.dir` was found. | Configure one real SDK root containing `platforms/` and `build-tools/`. Do not publish `local.properties`. |
 | Missing `git`, `jq`, `rg`, `shasum`, or Java | Required deterministic command is unavailable on `PATH`. | Install or restore the missing command, record its version, and rerun the read-only checks. |
+
+Version `0.6.0` always passes `--no-configuration-cache` to its temporary
+Gradle task-discovery invocation. This overrides a repository-level
+`org.gradle.configuration-cache=true` only for discovery; it does not change
+the project's files or normal build behavior. Deleting the project's
+Configuration Cache is therefore neither required nor a durable repair.
 
 After installation, inspect OpenCode discovery separately:
 

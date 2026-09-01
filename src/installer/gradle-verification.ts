@@ -385,6 +385,9 @@ export function discoverGradleVerificationConfiguration(
       detection.gradleWrapper.script,
       [
         "help",
+        // Task enumeration is a configuration-phase side effect. A cache hit
+        // would skip the callback and make a valid Android project look empty.
+        "--no-configuration-cache",
         "--init-script",
         initScript,
         "--console=plain",

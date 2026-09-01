@@ -8,7 +8,9 @@ default all-module orchestration and stronger verification contracts. Version
 changes while retaining the same certified OpenCode compatibility range.
 Version `0.5.0` makes `init` discover real Android debug verification tasks,
 including product flavors, without a separate JSON file and bootstraps the
-human-owned worktree allowlist when it is missing.
+human-owned worktree allowlist when it is missing. Version `0.6.0` makes that
+discovery reliable in repositories that enable Gradle Configuration Cache by
+disabling the cache only for the temporary discovery invocation.
 
 ## Documentation
 
@@ -35,14 +37,16 @@ human-owned worktree allowlist when it is missing.
 Run lifecycle commands from the project root or a directory below it. Use a
 clean branch and preserve an independent backup before the first installation,
 even though the installer maintains its own verified recovery data.
-`init` configures Gradle once with a temporary read-only init script, so the
-project's normal Gradle configuration and dependency resolution must succeed.
+`init` configures Gradle once with a temporary read-only init script and
+explicitly disables Configuration Cache for that invocation, so the project's
+normal Gradle configuration and dependency resolution must succeed. Normal
+project builds retain their configured cache behavior.
 
 ## Quick start
 
 ```sh
-npx @frankzhang2026/opencode-android-orchestrator@0.5.0 init .
-npx @frankzhang2026/opencode-android-orchestrator@0.5.0 doctor .
+npx @frankzhang2026/opencode-android-orchestrator@0.6.0 init .
+npx @frankzhang2026/opencode-android-orchestrator@0.6.0 doctor .
 opencode --agent scheduled-planner .
 ```
 
@@ -52,7 +56,7 @@ a task contract without selecting a primary module. To intentionally restrict
 generated contracts to one module, opt into primary-module scope:
 
 ```sh
-npx @frankzhang2026/opencode-android-orchestrator@0.5.0 init . \
+npx @frankzhang2026/opencode-android-orchestrator@0.6.0 init . \
   --module-scope primary \
   --primary-module :mobile
 ```
@@ -61,13 +65,15 @@ In all-module scope, `--primary-module` is optional and only chooses the
 default module used by the focused-test placeholder; it does not narrow which
 detected modules may be modified.
 
-In `0.5.0`, the same plain `init .` command automatically builds
+Since `0.5.0`, the same plain `init .` command automatically builds
 `gradleVerification` from tasks that Gradle actually registers. Standard
 unflavored tasks are collapsed to portable selectors such as
 `testDebugUnitTest`, while flavor-specific application tasks remain exact
 module paths. The preferred application's matching flavor is placed first for
 the generated focused-test example; all discovered debug flavors remain in the
-full verification matrix. `--gradle-verification-config` remains available
+full verification matrix. Version `0.6.0` runs this configuration-phase query
+with `--no-configuration-cache`, avoiding false empty results after a previous
+cacheable `help` invocation. `--gradle-verification-config` remains available
 only for an intentional nonstandard policy override and is not part of the
 normal quick start.
 
@@ -129,8 +135,10 @@ does not register Scheduler or launchd jobs.
 Version `0.1.0` was an early scaffold without a working installer. Version
 `0.2.0` introduced the complete managed lifecycle, `0.3.0` added all-module
 defaults and stronger verification contracts, and `0.4.0` adds the bounded
-worktree allowlist described above. Version `0.5.0` adds automatic registered
-Gradle-task discovery and safe allowlist bootstrapping during `init`.
+worktree allowlist described above. Version `0.5.0` added automatic registered
+Gradle-task discovery and safe allowlist bootstrapping during `init`; version
+`0.6.0` makes discovery independent of the target project's Configuration
+Cache setting.
 
 The cross-version plugin entry, OpenCode version doctor, Android/Gradle project
 discovery, audited V3 resources, and all deterministic V3 Shell transactions
@@ -270,7 +278,7 @@ preparation alone as resource installation;
 ## Init
 
 ```sh
-npx @frankzhang2026/opencode-android-orchestrator@0.5.0 init .
+npx @frankzhang2026/opencode-android-orchestrator@0.6.0 init .
 opencode --agent scheduled-planner .
 ```
 
@@ -290,7 +298,8 @@ Android Gradle project, an executable Gradle Wrapper, `git`, `jq`, `rg`,
 `ANDROID_SDK_ROOT`. It then:
 
 1. when no override was supplied, configures Gradle with a temporary `0600`
-   init script and derives the verification matrix from registered tasks;
+   init script, disables Configuration Cache for that invocation, and derives
+   the verification matrix from registered tasks;
 2. renders project-specific configuration and plans both safe merges;
 3. rejects all unresolved content or mode conflicts;
 4. creates a comment-only `.automation-worktree-allowlist` when missing while
@@ -361,7 +370,7 @@ preflight verifies both resolved permissions and tool discovery.
 ### Phase 2 mutating-tool decision
 
 The 2026-08-25 evaluation remains **NO-GO for mutating custom tools in
-`0.5.0`**.
+`0.6.0`**.
 The fixed Shell allowlist remains the only entry point for state transitions,
 Git mutations, and agent launches. OpenCode custom tools provide typed arguments
 and workspace context, but a normal permission prompt is not the workflow's

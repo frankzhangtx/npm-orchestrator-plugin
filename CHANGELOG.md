@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.6.0 - 2026-09-01
+
+- Disable Gradle Configuration Cache only for the temporary `help` invocation
+  used to enumerate registered Android verification tasks. This guarantees the
+  discovery init script and its `projectsEvaluated` callback run even when the
+  target repository enables `org.gradle.configuration-cache=true`.
+- Add regression coverage for the exact discovery arguments and repeated task
+  discovery, preventing a cache hit from being misreported as five missing
+  verification-task groups.
+
 ## 0.5.0 - 2026-08-31
 
 - Make `init` discover registered Android debug verification tasks through one

@@ -257,7 +257,7 @@ test("installed doctor rejects a self-consistent manifest rewrite of a packaged 
     assert.equal(check(report, "installation-manifest").status, "fail");
     assert.match(
       check(report, "installation-manifest").details.join("\n"),
-      /does not match the packaged 0\.5\.0 template/,
+      /does not match the packaged 0\.6\.0 template/,
     );
     assert.equal(
       check(report, "managed-resources").status,

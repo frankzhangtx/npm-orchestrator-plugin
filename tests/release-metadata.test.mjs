@@ -16,9 +16,9 @@ test("ships complete MIT license and third-party notices", () => {
   const license = read("LICENSE");
   const notices = read("THIRD_PARTY_NOTICES.md");
 
-  assert.equal(packageJson.version, "0.5.0");
-  assert.equal(packageLock.version, "0.5.0");
-  assert.equal(packageLock.packages[""].version, "0.5.0");
+  assert.equal(packageJson.version, "0.6.0");
+  assert.equal(packageLock.version, "0.6.0");
+  assert.equal(packageLock.packages[""].version, "0.6.0");
   assert.equal(packageJson.license, "MIT");
   assert.equal(packageJson.author, "frankzhang2026");
   assert.deepEqual(packageJson.repository, {
@@ -258,4 +258,16 @@ test("records the verified 0.5.0 Registry publication", () => {
   assert.match(releaseNotes, /42-case Shell lifecycle\s+suite/);
   assert.match(releaseNotes, /Registry download is byte-identical/i);
   assert.match(releaseNotes, /No Git tag or GitHub release was created/);
+});
+
+test("records 0.6.0 as an unpublished release candidate", () => {
+  const packageJson = JSON.parse(read("package.json"));
+  const releaseNotes = read("release/0.6.0-release-notes.md");
+
+  assert.equal(packageJson.version, "0.6.0");
+  assert.doesNotMatch(packageJson.files.join("\n"), /release\//);
+  assert.match(releaseNotes, /Status: unpublished release candidate/);
+  assert.match(releaseNotes, /--no-configuration-cache/);
+  assert.match(releaseNotes, /separate explicit authorization/);
+  assert.doesNotMatch(releaseNotes, /Status: published/i);
 });
