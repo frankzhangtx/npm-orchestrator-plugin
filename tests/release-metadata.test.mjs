@@ -360,6 +360,18 @@ test("records the recovered and verified 0.6.1 Registry publication", () => {
   assert.match(authorization, /138 Node tests/);
   assert.match(authorization, /44 audited Shell lifecycle cases/);
   assert.match(authorization, /`1\.14\.22` and `1\.15\.13` separately/);
+  assert.match(
+    authorization,
+    /healthy installed `0\.6\.0`[\s\S]*10 files[\s\S]*37 reused[\s\S]*47 managed files/i,
+  );
+  assert.match(
+    authorization,
+    /installed-version doctor, target-version upgrade,[\s\S]*target-version doctor/i,
+  );
+  assert.match(
+    authorization,
+    /packaged `docs\/MIGRATION\.md`[\s\S]*target `0\.6\.1`[\s\S]*healthy\s+`0\.6\.0` manifest/i,
+  );
   assert.match(authorization, /npm whoami[\s\S]*returned `E401`/i);
   assert.match(authorization, /No repeat `npm publish` was run/);
   assert.match(authorization, /No Git tag or GitHub release was created/);
@@ -379,6 +391,14 @@ test("records the recovered and verified 0.6.1 Registry publication", () => {
   assert.match(releaseNotes, /44-case Shell lifecycle\s+suite/);
   assert.match(releaseNotes, /Registry download is byte-identical/i);
   assert.match(releaseNotes, /`1\.14\.22` and `1\.15\.13`/);
-  assert.match(releaseNotes, /packaged `CHANGELOG\.md`[\s\S]*`Unreleased`/);
+  assert.match(
+    releaseNotes,
+    /@frankzhang2026\/opencode-android-orchestrator@0\.6\.0 doctor[\s\S]*@0\.6\.1 upgrade[\s\S]*@0\.6\.1 doctor/,
+  );
+  assert.match(releaseNotes, /10 files written and 37 reused/);
+  assert.match(
+    releaseNotes,
+    /packaged `CHANGELOG\.md`[\s\S]*`Unreleased`[\s\S]*packaged `docs\/MIGRATION\.md`/,
+  );
   assert.match(releaseNotes, /No repeat publication, Git tag, or GitHub release/);
 });
