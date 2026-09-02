@@ -316,3 +316,69 @@ test("records the verified 0.6.0 Registry publication", () => {
   assert.match(releaseNotes, /Registry download is byte-identical/i);
   assert.match(releaseNotes, /No Git tag or GitHub release was created/);
 });
+
+test("records the recovered and verified 0.6.1 Registry publication", () => {
+  const packageJson = JSON.parse(read("package.json"));
+  const authorization = read("release/0.6.1-authorization.md");
+  const releaseNotes = read("release/0.6.1-release-notes.md");
+
+  assert.equal(packageJson.version, "0.6.1");
+  assert.doesNotMatch(packageJson.files.join("\n"), /release\//);
+  assert.doesNotMatch(packageJson.files.join("\n"), /tests\//);
+  assert.match(authorization, /Status: PUBLISHED/);
+  assert.match(
+    authorization,
+    /public Registry already contained the version[\s\S]*`latest`[\s\S]*pointed to it/i,
+  );
+  assert.match(
+    authorization,
+    /did not run or retry[\s\S]*`npm publish`/i,
+  );
+  assert.match(
+    authorization,
+    /9fa54d36767ff28e8ce790751d1b39f20e067665/,
+  );
+  assert.match(
+    authorization,
+    /3840549bddb2027ea84993fb0664365e24c1925f8f0a8ee1b5253e0091ff6d93/,
+  );
+  assert.match(
+    authorization,
+    /dfc08e4808901998f4758ba03e5e5f1341619a05/,
+  );
+  assert.match(
+    authorization,
+    /sha512-LOUbfPx7WzXqHX3iGqQyRpo5xvrBX\/5oQ\/GlS1qCQAEOexG3i8Fm\/\/g7dt4AnhX5rubx0qQlNRlTHWiSXDQpAg==/,
+  );
+  assert.match(
+    authorization,
+    /fixed-version\s+Registry download was[\s\S]*byte-identical/i,
+  );
+  assert.match(authorization, /199,067 bytes compressed/);
+  assert.match(authorization, /961,026 bytes unpacked/);
+  assert.match(authorization, /PASS: 140 files/);
+  assert.match(authorization, /138 Node tests/);
+  assert.match(authorization, /44 audited Shell lifecycle cases/);
+  assert.match(authorization, /`1\.14\.22` and `1\.15\.13` separately/);
+  assert.match(authorization, /npm whoami[\s\S]*returned `E401`/i);
+  assert.match(authorization, /No repeat `npm publish` was run/);
+  assert.match(authorization, /No Git tag or GitHub release was created/);
+  assert.match(
+    authorization,
+    /published artifact contains the heading `## 0\.6\.1 - Unreleased`/,
+  );
+  assert.doesNotMatch(
+    authorization,
+    /https:\/\/www\.npmjs\.com\/(?:auth|login)\/|one-time password:|npm token:/i,
+  );
+
+  assert.match(releaseNotes, /Status: published/);
+  assert.match(releaseNotes, /30-minute \(`1800000` ms\) default timeout/);
+  assert.match(releaseNotes, /`\/resume-task` and `resume-task\.sh`/);
+  assert.match(releaseNotes, /138 Node tests/);
+  assert.match(releaseNotes, /44-case Shell lifecycle\s+suite/);
+  assert.match(releaseNotes, /Registry download is byte-identical/i);
+  assert.match(releaseNotes, /`1\.14\.22` and `1\.15\.13`/);
+  assert.match(releaseNotes, /packaged `CHANGELOG\.md`[\s\S]*`Unreleased`/);
+  assert.match(releaseNotes, /No repeat publication, Git tag, or GitHub release/);
+});
