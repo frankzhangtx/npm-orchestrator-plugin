@@ -1,7 +1,7 @@
 # Troubleshooting
 
 Use this guide for
-`@frankzhang2026/opencode-android-orchestrator@0.6.1`.
+`@frankzhang2026/opencode-android-orchestrator@0.7.0`.
 
 ## Start with read-only evidence
 
@@ -11,7 +11,7 @@ From the repository root, capture:
 git status --short --branch
 git rev-parse HEAD
 opencode --version
-npx @frankzhang2026/opencode-android-orchestrator@0.6.1 doctor . --json
+npx @frankzhang2026/opencode-android-orchestrator@0.7.0 doctor . --json
 ```
 
 If installation never completed, doctor will correctly report a missing or
@@ -43,6 +43,10 @@ remain human-readable on stderr with a stable code such as `[FILE_CONFLICT]`.
 | `PRIMARY_MODULE_AMBIGUOUS` | Restrictive `primary` scope has multiple possible Android modules. | Supply an exact Gradle path, for example `--module-scope primary --primary-module :mobile`, or use the default `all` scope. |
 | `PRIMARY_MODULE_NOT_FOUND` | The selected Gradle path was not detected. | Use a module path reported by doctor/project detection; do not pass a filesystem directory. |
 | `GRADLE_DISCOVERY_FAILED` | The temporary read-only Gradle configuration failed, or registered tasks could not form every required verification group. | Run `./gradlew help --no-configuration-cache --console=plain` and fix the reported project/JDK/dependency issue. Use `--gradle-verification-config` only for an intentional nonstandard task policy, and keep that file inside the target repository. |
+| Unit tests did not run | `unitTestsEnabled` is false. | Set it to `true` in `automation/config.json`, commit the change, and rerun the gate. |
+| Unit tests run but should be skipped | `unitTestsEnabled` is true, which is the default. | Set it to `false` in `automation/config.json`; RED evidence remains mandatory. |
+| Lint did not run | `lintEnabled` is false, which is the default. | Set it to `true` in `automation/config.json`, commit the change, and rerun the gate. |
+| Lint runs but should be skipped | `lintEnabled` is true. | Set it to `false` in `automation/config.json` and commit the change. |
 | Invalid `--long-command-timeout-ms` | The value is not an integer from `120000` through `7200000`. | Use the `1800000` ms default or pass an intentional bounded value to `init`/`upgrade`; do not edit the generated config directly. |
 | Android SDK failure | No valid explicit SDK, `ANDROID_HOME`, `ANDROID_SDK_ROOT`, or `local.properties` `sdk.dir` was found. | Configure one real SDK root containing `platforms/` and `build-tools/`. Do not publish `local.properties`. |
 | Missing `git`, `jq`, `rg`, `shasum`, or Java | Required deterministic command is unavailable on `PATH`. | Install or restore the missing command, record its version, and rerun the read-only checks. |
@@ -53,12 +57,12 @@ Gradle task-discovery invocation. This overrides a repository-level
 the project's files or normal build behavior. Deleting the project's
 Configuration Cache is therefore neither required nor a durable repair.
 
-Version `0.6.1` raises direct managed long-running lifecycle commands to at
+Version `0.7.0` raises direct managed long-running lifecycle commands to at
 least `1800000` milliseconds. A higher timeout already supplied by the caller
 is preserved; unrelated Bash commands are unchanged. To configure one hour,
 run `upgrade . --long-command-timeout-ms 3600000` on a healthy installation.
 If a command still reports `120000 ms`, confirm that the project manifest and
-OpenCode plugin reference are both `0.6.1`, restart the OpenCode session so the
+OpenCode plugin reference are both `0.7.0`, restart the OpenCode session so the
 plugin reloads, and rerun doctor before attempting recovery.
 
 After installation, inspect OpenCode discovery separately:

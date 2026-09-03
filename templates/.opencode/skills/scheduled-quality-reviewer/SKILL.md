@@ -51,8 +51,9 @@ you review.
 
    `./scripts/automation/submit-review.sh <TASK-ID> CHANGES_REQUESTED <summary>`
 
-   The script reruns the focused tests, full unit suite, debug build, and lint
-   before accepting `APPROVED`, and records that fresh output. Therefore do not
+   The script reruns the focused tests and full unit suite when
+   `unitTestsEnabled` is true, always runs the debug build, runs Android lint
+   when `lintEnabled` is true, and records that fresh output. Therefore do not
    run those Gradle commands separately before an approval submission. Run an
    individual verification command only to diagnose a failed submission, and
    always reserve a step for the final `submit-review.sh` call.

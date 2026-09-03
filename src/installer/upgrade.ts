@@ -23,6 +23,10 @@ import {
   parseOpenCodeVersion,
 } from "../compatibility/versions.js";
 import {
+  AUTOMATION_CONFIG_RELATIVE_PATH,
+  matchesManifestModuloVerificationPolicy,
+} from "../config/verification-policy.js";
+import {
   formatDoctorReport,
   runDoctor,
   type DoctorReport,
@@ -481,6 +485,25 @@ function manifestFileMatchesSnapshot(
   );
 }
 
+function managedFileAcceptsSnapshot(
+  file: InstallationManifestFile,
+  snapshot: UpgradeFileSnapshot,
+): boolean {
+  if (manifestFileMatchesSnapshot(file, snapshot)) {
+    return true;
+  }
+  return (
+    file.path === AUTOMATION_CONFIG_RELATIVE_PATH &&
+    snapshot.existed &&
+    snapshot.content !== null &&
+    snapshot.mode === file.mode &&
+    matchesManifestModuloVerificationPolicy(snapshot.content, {
+      sha256: file.sha256,
+      size: file.size,
+    })
+  );
+}
+
 function readStableManifest(targetDirectory: string): {
   manifest: InstallationManifest;
   content: string;
@@ -644,6 +667,8 @@ interface ConfiguredAdaptiveOptions {
   moduleScope?: ModuleScope;
   primaryModule?: string;
   gradleVerification?: GradleVerificationConfiguration;
+  lintEnabled?: boolean;
+  unitTestsEnabled?: boolean;
   longCommandTimeoutMs?: number;
 }
 
@@ -658,7 +683,7 @@ function configuredAdaptiveOptions(
     return { moduleScope: "primary" };
   }
   const snapshot = snapshotFile(targetDirectory, file.path);
-  if (!manifestFileMatchesSnapshot(file, snapshot) || snapshot.content === null) {
+  if (!managedFileAcceptsSnapshot(file, snapshot) || snapshot.content === null) {
     throw new ProjectUpgradeError(
       "INSTALLED_FILES_MODIFIED",
       "The installed automation configuration changed before upgrade planning.",
@@ -667,6 +692,8 @@ function configuredAdaptiveOptions(
   let value: {
     androidProject?: { moduleScope?: unknown; primaryModule?: unknown };
     gradleVerification?: unknown;
+    lintEnabled?: unknown;
+    unitTestsEnabled?: unknown;
     longCommandTimeoutMs?: unknown;
   };
   try {
@@ -699,6 +726,24 @@ function configuredAdaptiveOptions(
   if (value.gradleVerification !== undefined) {
     configured.gradleVerification =
       value.gradleVerification as GradleVerificationConfiguration;
+  }
+  if (value.lintEnabled !== undefined) {
+    if (typeof value.lintEnabled !== "boolean") {
+      throw new ProjectUpgradeError(
+        "INSTALLATION_INVALID",
+        "lintEnabled must be a boolean when present.",
+      );
+    }
+    configured.lintEnabled = value.lintEnabled;
+  }
+  if (value.unitTestsEnabled !== undefined) {
+    if (typeof value.unitTestsEnabled !== "boolean") {
+      throw new ProjectUpgradeError(
+        "INSTALLATION_INVALID",
+        "unitTestsEnabled must be a boolean when present.",
+      );
+    }
+    configured.unitTestsEnabled = value.unitTestsEnabled;
   }
   if (typeof value.longCommandTimeoutMs === "number") {
     configured.longCommandTimeoutMs = value.longCommandTimeoutMs;
@@ -785,7 +830,7 @@ function planDesiredFiles(
       const content = bytes(input.content);
       const before = snapshotFile(targetDirectory, path);
       const current = currentByPath.get(path);
-      if (current !== undefined && !manifestFileMatchesSnapshot(current, before)) {
+      if (current !== undefined && !managedFileAcceptsSnapshot(current, before)) {
         throw new ProjectUpgradeError(
           "INSTALLED_FILES_MODIFIED",
           `Managed file changed before upgrade planning: ${path}`,
@@ -984,6 +1029,12 @@ export function planProjectUpgrade(
     options.gradleVerification ?? configured.gradleVerification;
   if (gradleVerification !== undefined) {
     adaptiveOptions.gradleVerification = gradleVerification;
+  }
+  if (configured.lintEnabled !== undefined) {
+    adaptiveOptions.lintEnabled = configured.lintEnabled;
+  }
+  if (configured.unitTestsEnabled !== undefined) {
+    adaptiveOptions.unitTestsEnabled = configured.unitTestsEnabled;
   }
   const longCommandTimeoutMs =
     options.longCommandTimeoutMs ?? configured.longCommandTimeoutMs;

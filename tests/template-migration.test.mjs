@@ -43,7 +43,7 @@ const expectedHashes = new Map([
   ],
   [
     ".opencode/skills/scheduled-quality-coder/SKILL.md",
-    "a1c81a3bdc00d59e2e57f9571bc50fc8a5c28665c30a55b42a73c615c4e693f0",
+    "882a45d9f1a4d144202bda0e372170c6d3f008f3196d386d827b06d5e33cbb4a",
   ],
   [
     ".opencode/skills/scheduled-quality-orchestrator/SKILL.md",
@@ -51,7 +51,7 @@ const expectedHashes = new Map([
   ],
   [
     ".opencode/skills/scheduled-quality-reviewer/SKILL.md",
-    "3f7ac69ac393ba484d9c39ebd7693cc13892182d36e9c28deb9ebbbb0b6c9750",
+    "11473d32863f717780eff97380ea100a922a8e14479fbe106c9283f44cb67e1e",
   ],
 ]);
 

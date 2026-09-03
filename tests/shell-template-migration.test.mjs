@@ -47,7 +47,7 @@ const expectedHashes = new Map([
   ],
   [
     "scripts/automation/claim-task.sh",
-    "f20dc032b7ba97623def068e9eb9fc7056ae8cc5a09858612e25cf478d243947",
+    "da89a3985d8ebcf1d1589c5908b4f714c77f10150ec2b9c6d0ec0f8928da837e",
   ],
   [
     "scripts/automation/integration-scope-gate.sh",
@@ -55,11 +55,11 @@ const expectedHashes = new Map([
   ],
   [
     "scripts/automation/lib.sh",
-    "d81f063ec1a73900327a658b07bbdcc40a4e5f70b464e3cd2e9452258832aa5a",
+    "2d85dab8f52d1bd0bad9e868b8573b70f192bbe16673c5bf451843bee013198c",
   ],
   [
     "scripts/automation/orchestrate-task.sh",
-    "1a2ea9925caf6ba67c216c2ee1e58fd7625401a674c4a2d5f1e532c5affec288",
+    "6bd0ad1a5dd185c91e94baaa55e20244a71b87e93a2c9e312087ef1f64610fdf",
   ],
   [
     "scripts/automation/preflight.sh",
@@ -119,7 +119,7 @@ const expectedHashes = new Map([
   ],
   [
     "scripts/automation/tests/run-tests.sh",
-    "0fa9df61c26af0fdfd1baa0ec6c0a6ac1edfb01fe08b3404d7c4aba61934f0c5",
+    "c2131184591888c372fe776d290f495abc3c775d4196f71d31781eaf02a51001",
   ],
   [
     "scripts/automation/transition-state.sh",
@@ -131,11 +131,11 @@ const expectedHashes = new Map([
   ],
   [
     "scripts/automation/verify-integration.sh",
-    "287d8280f14738f3a248c560360b5373572b8c93221a5cdf740623aee7c0cfce",
+    "9bb30fd2214b2d0d72dd1046d49b964bd5da113e5c0ebdcf722b05be2af42cc0",
   ],
   [
     "scripts/automation/verify-task.sh",
-    "39276cc40d470edfb1c78685bf8557b65ec600e8cf8c7eb9e7f9682b684743e3",
+    "26c0e2a51ebc59a687e58c598e9989d8f3d4db2a816ea93c3662e36cef3497e0",
   ],
 ]);
 

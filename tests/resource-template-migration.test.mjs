@@ -10,11 +10,11 @@ const templatesRoot = fileURLToPath(new URL("../templates/", import.meta.url));
 const expectedBaselineHashes = new Map([
   [
     "automation/config.json",
-    "12c99485990788fb7b8f7da344120a978bfe8ebf60f08df486b0b252a02ed2ba",
+    "0d1412f68fc74399b5f64a269f8408a799d70a918314ede55480baa0e103a85d",
   ],
   [
     "automation/config.schema.json",
-    "519f6c37c67dd9da61f4970a37da96bd7901456b8d77d8c143530886844b99db",
+    "0e05fd74928f7ec43dfeabe411f218ea4c7ebc1a6a54a355119578f2460d68fd",
   ],
   [
     "automation/task-contract.schema.json",
@@ -22,7 +22,7 @@ const expectedBaselineHashes = new Map([
   ],
   [
     "automation/tasks/TASK-TEMPLATE.json.example",
-    "55aed442520541e90e892ff59a8f0db728b8acb2bb76bd7af777b894c7a40298",
+    "f85aa38f761d9a45cab9c8210a78c2c84c3ac2862960aa88a08ca9631f07290e",
   ],
   [
     "docs/plans/README.md",
@@ -115,6 +115,18 @@ test("keeps configuration, schemas, and contract example structurally aligned", 
     ),
   );
   assert.ok(configSchema.required.includes("gradleVerification"));
+  assert.ok(configSchema.required.includes("unitTestsEnabled"));
+  assert.equal(config.unitTestsEnabled, true);
+  assert.deepEqual(configSchema.properties.unitTestsEnabled, {
+    type: "boolean",
+    default: true,
+  });
+  assert.ok(configSchema.required.includes("lintEnabled"));
+  assert.equal(config.lintEnabled, false);
+  assert.deepEqual(configSchema.properties.lintEnabled, {
+    type: "boolean",
+    default: false,
+  });
   assert.ok(configSchema.required.includes("longCommandTimeoutMs"));
   assert.equal(config.longCommandTimeoutMs, 1_800_000);
   assert.deepEqual(configSchema.properties.longCommandTimeoutMs, {

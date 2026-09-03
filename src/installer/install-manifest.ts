@@ -19,6 +19,10 @@ import {
 } from "node:path";
 
 import {
+  AUTOMATION_CONFIG_RELATIVE_PATH,
+  matchesManifestModuloVerificationPolicy,
+} from "../config/verification-policy.js";
+import {
   ORCHESTRATOR_PACKAGE_NAME,
   ORCHESTRATOR_PACKAGE_VERSION,
 } from "./opencode-config.js";
@@ -623,6 +627,23 @@ function snapshotMatchesManifestFile(
     snapshot.sha256 === file.sha256 &&
     snapshot.size === file.size &&
     snapshot.mode === file.mode
+  );
+}
+
+function snapshotMatchesIntegrityPolicy(
+  snapshot: FileSnapshot,
+  file: InstallationManifestFile,
+): boolean {
+  return (
+    snapshotMatchesManifestFile(snapshot, file) ||
+    (file.path === AUTOMATION_CONFIG_RELATIVE_PATH &&
+      snapshot.existed &&
+      snapshot.content !== null &&
+      snapshot.mode === file.mode &&
+      matchesManifestModuloVerificationPolicy(snapshot.content, {
+        sha256: file.sha256,
+        size: file.size,
+      }))
   );
 }
 
@@ -1537,7 +1558,7 @@ export function verifyInstallationIntegrity(
         const snapshot = snapshotFile(targetDirectory, file.path);
         installed = !snapshot.existed
           ? "missing"
-          : snapshotMatchesManifestFile(snapshot, file)
+          : snapshotMatchesIntegrityPolicy(snapshot, file)
             ? "match"
             : "mismatch";
       } catch {

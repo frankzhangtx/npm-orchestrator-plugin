@@ -1,7 +1,15 @@
 # Changelog
 
-## 0.6.1 - Unreleased
+## 0.7.0 - Unreleased
 
+- Make unit-test and Android lint gates explicit, repository-configured
+  policies. `unitTestsEnabled` defaults to `true`, `lintEnabled` defaults to
+  `false`, and both are changed only in `automation/config.json`.
+- Preserve supported verification-policy edits across upgrades and accept them
+  in doctor checks while keeping every other generated configuration field
+  protected by manifest integrity.
+- Skip baseline/focused/full unit-test gates or `lintTasks` when their policy is
+  disabled, while retaining RED evidence and discovered task lists.
 - Raise direct managed long-running automation commands through the certified
   `tool.execute.before` hook to a 30-minute (`1800000` ms) default timeout,
   while preserving any higher caller timeout and leaving unrelated commands

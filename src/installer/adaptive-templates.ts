@@ -18,16 +18,22 @@ import {
   MINIMUM_LONG_COMMAND_TIMEOUT_MS,
   isLongCommandTimeoutMs,
 } from "../config/long-command-timeout.js";
+import {
+  DEFAULT_LINT_ENABLED,
+  DEFAULT_UNIT_TESTS_ENABLED,
+} from "../config/verification-policy.js";
 
 export type AdaptiveProjectTemplateErrorCode =
   | "INVALID_ANDROID_PROJECT"
+  | "LINT_ENABLED_INVALID"
   | "LONG_COMMAND_TIMEOUT_INVALID"
   | "MODULE_SCOPE_INVALID"
   | "NESTED_GRADLE_ROOT_UNSUPPORTED"
   | "PRIMARY_MODULE_AMBIGUOUS"
   | "PRIMARY_MODULE_NOT_FOUND"
   | "PROJECT_PATH_OUTSIDE_GIT_ROOT"
-  | "TEMPLATE_INVALID";
+  | "TEMPLATE_INVALID"
+  | "UNIT_TESTS_ENABLED_INVALID";
 
 export class AdaptiveProjectTemplateError extends Error {
   readonly code: AdaptiveProjectTemplateErrorCode;
@@ -52,6 +58,10 @@ export interface AdaptiveProjectTemplateOptions {
   primaryModule?: string;
   /** Override the packaged Gradle quality-gate task matrix. */
   gradleVerification?: GradleVerificationConfiguration;
+  /** Run Android lint as part of task and integration verification. */
+  lintEnabled?: boolean;
+  /** Run focused and full unit tests as part of managed verification. */
+  unitTestsEnabled?: boolean;
   /** Timeout applied by the plugin to managed long-running shell commands. */
   longCommandTimeoutMs?: number;
 }
@@ -99,6 +109,8 @@ export interface AdaptiveAutomationConfiguration {
   schemaVersion: 3;
   androidProject: AdaptiveAndroidProjectConfiguration;
   gradleVerification: GradleVerificationConfiguration;
+  lintEnabled: boolean;
+  unitTestsEnabled: boolean;
   longCommandTimeoutMs: number;
   plugins: Readonly<{ superpowers: string }>;
   protectedPaths: readonly string[];
@@ -427,6 +439,24 @@ export function planAdaptiveProjectTemplates(
       ? configTemplatePath
       : "AdaptiveProjectTemplateOptions.gradleVerification",
   );
+  const lintEnabled =
+    options.lintEnabled ?? configTemplate.lintEnabled ?? DEFAULT_LINT_ENABLED;
+  if (typeof lintEnabled !== "boolean") {
+    throw new AdaptiveProjectTemplateError(
+      "LINT_ENABLED_INVALID",
+      "Android lint verification must be enabled or disabled with a boolean value.",
+    );
+  }
+  const unitTestsEnabled =
+    options.unitTestsEnabled ??
+    configTemplate.unitTestsEnabled ??
+    DEFAULT_UNIT_TESTS_ENABLED;
+  if (typeof unitTestsEnabled !== "boolean") {
+    throw new AdaptiveProjectTemplateError(
+      "UNIT_TESTS_ENABLED_INVALID",
+      "Unit-test verification must be enabled or disabled with a boolean value.",
+    );
+  }
   const longCommandTimeoutMs =
     options.longCommandTimeoutMs ??
     configTemplate.longCommandTimeoutMs ??
@@ -449,6 +479,8 @@ export function planAdaptiveProjectTemplates(
   ]);
   const automationConfig = {
     ...configTemplate,
+    lintEnabled,
+    unitTestsEnabled,
     longCommandTimeoutMs,
     gradleVerification,
     androidProject,

@@ -170,6 +170,8 @@ test("CLI exposes init options and rejects an incomplete module selection", () =
   assert.match(help.stdout, /Default module scope: all/);
   assert.match(help.stdout, /--primary-module <gradle-path>/);
   assert.match(help.stdout, /--gradle-verification-config <json-path>/);
+  assert.doesNotMatch(help.stdout, /--enable-lint|--disable-lint/);
+  assert.match(help.stdout, /edit lintEnabled and unitTestsEnabled/);
   assert.match(help.stdout, /--long-command-timeout-ms <milliseconds>/);
   assert.match(help.stdout, /1800000 ms \(30 minutes\)/);
   assert.match(help.stdout, /Gradle verification: auto-discovered/);
@@ -214,6 +216,8 @@ test("CLI exposes upgrade options and rejects an incomplete module selection", (
   assert.match(help.stdout, /legacy installations default to primary/);
   assert.match(help.stdout, /--primary-module <gradle-path>/);
   assert.match(help.stdout, /--gradle-verification-config <json-path>/);
+  assert.doesNotMatch(help.stdout, /--enable-lint|--disable-lint/);
+  assert.match(help.stdout, /unit tests enabled and lint disabled/);
   assert.match(help.stdout, /--long-command-timeout-ms <milliseconds>/);
   assert.match(help.stdout, /legacy installations default to 1800000 ms/);
   assert.match(help.stdout, /--json/);
@@ -233,6 +237,14 @@ test("CLI exposes upgrade options and rejects an incomplete module selection", (
   );
   assert.equal(invalidScope.status, 2);
   assert.match(invalidScope.stderr, /Unexpected upgrade argument/);
+
+  const removedLintOption = spawnSync(
+    process.execPath,
+    ["dist/cli.js", "upgrade", "--enable-lint"],
+    { encoding: "utf8" },
+  );
+  assert.equal(removedLintOption.status, 2);
+  assert.match(removedLintOption.stderr, /Unexpected upgrade argument/);
 });
 
 test("CLI exposes uninstall options and rejects unknown flags", () => {

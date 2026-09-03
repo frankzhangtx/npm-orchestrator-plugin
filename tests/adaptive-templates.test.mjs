@@ -80,6 +80,8 @@ test("renders portable configuration and a focused task example from Kotlin proj
     };
     const plan = planAdaptiveProjectTemplates(join(root, "clients/mobile"), {
       gradleVerification,
+      lintEnabled: true,
+      unitTestsEnabled: false,
       longCommandTimeoutMs: 3_600_000,
     });
 
@@ -87,6 +89,8 @@ test("renders portable configuration and a focused task example from Kotlin proj
     assert.equal(plan.projectRoot, root);
     assert.equal(plan.moduleScope, "all");
     assert.equal(plan.primaryModule.gradlePath, ":mobile");
+    assert.equal(plan.automationConfig.lintEnabled, true);
+    assert.equal(plan.automationConfig.unitTestsEnabled, false);
     assert.equal(plan.automationConfig.longCommandTimeoutMs, 3_600_000);
     assert.deepEqual(plan.automationConfig.plugins, {
       superpowers:
@@ -195,6 +199,8 @@ test("defaults multi-application projects to all-module scope without requiring 
     addWrapper(root);
 
     const allModulePlan = planAdaptiveProjectTemplates(root);
+    assert.equal(allModulePlan.automationConfig.lintEnabled, false);
+    assert.equal(allModulePlan.automationConfig.unitTestsEnabled, true);
     assert.equal(allModulePlan.automationConfig.longCommandTimeoutMs, 1_800_000);
     assert.equal(allModulePlan.moduleScope, "all");
     assert.equal(allModulePlan.primaryModule.gradlePath, ":phone");
@@ -269,6 +275,34 @@ test("rejects long-command timeouts outside the bounded integer range", () => {
           error.code === "LONG_COMMAND_TIMEOUT_INVALID",
       );
     }
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
+});
+
+test("rejects a non-boolean Android lint policy", () => {
+  const root = createAdaptiveKotlinFixture();
+  try {
+    assert.throws(
+      () => planAdaptiveProjectTemplates(root, { lintEnabled: "yes" }),
+      (error) =>
+        error instanceof AdaptiveProjectTemplateError &&
+        error.code === "LINT_ENABLED_INVALID",
+    );
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
+});
+
+test("rejects a non-boolean unit-test policy", () => {
+  const root = createAdaptiveKotlinFixture();
+  try {
+    assert.throws(
+      () => planAdaptiveProjectTemplates(root, { unitTestsEnabled: "yes" }),
+      (error) =>
+        error instanceof AdaptiveProjectTemplateError &&
+        error.code === "UNIT_TESTS_ENABLED_INVALID",
+    );
   } finally {
     rmSync(root, { recursive: true, force: true });
   }

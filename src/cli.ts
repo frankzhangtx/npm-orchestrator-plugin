@@ -52,6 +52,9 @@ function printInitHelp(): void {
     `Default Gradle verification: auto-discovered; the JSON option is an explicit override.\n`,
   );
   process.stdout.write(
+    `Verification policy: edit lintEnabled and unitTestsEnabled in automation/config.json after installation.\n`,
+  );
+  process.stdout.write(
     `Worktree allowlist: created automatically when missing; an existing regular file is preserved.\n`,
   );
   process.stdout.write(
@@ -75,6 +78,9 @@ function printUpgradeHelp(): void {
   );
   process.stdout.write(
     `\nPreserves the installed module scope; legacy installations default to primary.\n`,
+  );
+  process.stdout.write(
+    `Preserves verification policy from automation/config.json; legacy defaults are unit tests enabled and lint disabled.\n`,
   );
   process.stdout.write(
     `Preserves the installed long-command timeout; legacy installations default to ${DEFAULT_LONG_COMMAND_TIMEOUT_MS} ms.\n`,

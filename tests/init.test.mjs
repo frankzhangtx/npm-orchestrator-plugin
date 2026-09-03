@@ -229,6 +229,8 @@ test("plans and installs all managed resources in a Kotlin DSL project", () => {
     assert.equal(automationConfig.androidProject.name, "Init Kotlin");
     assert.equal(automationConfig.androidProject.moduleScope, "all");
     assert.equal(automationConfig.androidProject.primaryModule, ":mobile");
+    assert.equal(automationConfig.lintEnabled, false);
+    assert.equal(automationConfig.unitTestsEnabled, true);
     assert.equal(automationConfig.longCommandTimeoutMs, 1_800_000);
     assert.deepEqual(automationConfig.androidProject.productionPaths, [
       "clients/mobile/src/main/**",

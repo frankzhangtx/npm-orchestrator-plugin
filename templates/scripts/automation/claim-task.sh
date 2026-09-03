@@ -30,12 +30,21 @@ baseline_meta="$evidence_dir/baseline.json"
 protected_hashes="$evidence_dir/protected.sha256"
 started_at="$(automation_now)"
 head_commit="$(git -C "$AUTOMATION_ROOT" rev-parse HEAD)"
-baseline_command="$(automation_gradle_group_command_json "fullUnitTestTasks")"
+unit_tests_enabled="$(automation_config_value '.unitTestsEnabled')"
+baseline_command='[]'
+if [[ "$unit_tests_enabled" == "true" ]]; then
+    baseline_command="$(automation_gradle_group_command_json "fullUnitTestTasks")"
+fi
 
-set +e
-automation_run_gradle_group "fullUnitTestTasks" "$AUTOMATION_ROOT" 2>&1 | tee "$baseline_log"
-baseline_status=${PIPESTATUS[0]}
-set -e
+if [[ "$unit_tests_enabled" == "true" ]]; then
+    set +e
+    automation_run_gradle_group "fullUnitTestTasks" "$AUTOMATION_ROOT" 2>&1 | tee "$baseline_log"
+    baseline_status=${PIPESTATUS[0]}
+    set -e
+else
+    automation_info "skipping baseline unit tests (unitTestsEnabled=false)" | tee "$baseline_log"
+    baseline_status=0
+fi
 
 if [[ "$baseline_status" -ne 0 ]]; then
     jq -n \
@@ -44,8 +53,9 @@ if [[ "$baseline_status" -ne 0 ]]; then
         --arg finishedAt "$(automation_now)" \
         --arg head "$head_commit" \
         --argjson command "$baseline_command" \
+        --argjson unitTestsEnabled "$unit_tests_enabled" \
         --argjson exitCode "$baseline_status" \
-        '{taskId: $taskId, startedAt: $startedAt, finishedAt: $finishedAt, head: $head, command: $command, exitCode: $exitCode}' \
+        '{taskId: $taskId, startedAt: $startedAt, finishedAt: $finishedAt, head: $head, command: $command, unitTestsEnabled: $unitTestsEnabled, exitCode: $exitCode}' \
         | automation_record_json "$baseline_meta"
     automation_transition_state "$task_id" "CODING" "BLOCKED" "preflight" "baseline unit tests failed"
     automation_die "baseline unit tests failed"
@@ -68,7 +78,12 @@ jq -n \
     --arg head "$head_commit" \
     --arg worktree "$AUTOMATION_ROOT" \
     --argjson command "$baseline_command" \
-    '{taskId: $taskId, startedAt: $startedAt, finishedAt: $finishedAt, head: $head, worktree: $worktree, command: $command, exitCode: 0}' \
+    --argjson unitTestsEnabled "$unit_tests_enabled" \
+    '{taskId: $taskId, startedAt: $startedAt, finishedAt: $finishedAt, head: $head, worktree: $worktree, command: $command, unitTestsEnabled: $unitTestsEnabled, exitCode: 0}' \
     | automation_record_json "$baseline_meta"
 
-automation_info "$task_id claimed; baseline is green"
+if [[ "$unit_tests_enabled" == "true" ]]; then
+    automation_info "$task_id claimed; baseline is green"
+else
+    automation_info "$task_id claimed; baseline unit tests were disabled by configuration"
+fi

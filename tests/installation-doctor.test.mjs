@@ -22,6 +22,7 @@ import {
   readInstallationManifest,
   runDoctor,
   runProjectInitialization,
+  verifyInstallationIntegrity,
 } from "../dist/index.js";
 
 function writeFixtureFile(root, relativePath, content, mode) {
@@ -144,6 +145,47 @@ test("installed doctor validates dependencies, inventory, files, modes, backups,
   }
 });
 
+test("installed doctor accepts repository verification-policy changes", () => {
+  const { root } = createInstalledFixture();
+  try {
+    const path = join(root, "automation/config.json");
+    const config = JSON.parse(readFileSync(path, "utf8"));
+    config.unitTestsEnabled = false;
+    config.lintEnabled = true;
+    writeFileSync(path, `${JSON.stringify(config, null, 2)}\n`);
+
+    assert.equal(verifyInstallationIntegrity(root).ok, true);
+    const report = installedDoctor(root);
+
+    assert.equal(report.ok, true);
+    assert.equal(check(report, "managed-resources").status, "pass");
+    assert.equal(check(report, "managed-configuration").status, "pass");
+    assert.match(
+      check(report, "managed-configuration").details.join("\n"),
+      /Unit-test verification: disabled[\s\S]*Android lint verification: enabled/,
+    );
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
+});
+
+test("installed integrity rejects non-boolean verification-policy changes", () => {
+  const { root } = createInstalledFixture();
+  try {
+    const path = join(root, "automation/config.json");
+    const config = JSON.parse(readFileSync(path, "utf8"));
+    config.lintEnabled = "true";
+    writeFileSync(path, `${JSON.stringify(config, null, 2)}\n`);
+
+    assert.equal(verifyInstallationIntegrity(root).ok, false);
+    const report = installedDoctor(root);
+    assert.equal(check(report, "managed-resources").status, "fail");
+    assert.equal(check(report, "managed-configuration").status, "fail");
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
+});
+
 test("installed doctor reports content and executable-mode drift separately", () => {
   const { root } = createInstalledFixture();
   try {
@@ -257,7 +299,7 @@ test("installed doctor rejects a self-consistent manifest rewrite of a packaged 
     assert.equal(check(report, "installation-manifest").status, "fail");
     assert.match(
       check(report, "installation-manifest").details.join("\n"),
-      /does not match the packaged 0\.6\.1 template/,
+      /does not match the packaged 0\.7\.0 template/,
     );
     assert.equal(
       check(report, "managed-resources").status,

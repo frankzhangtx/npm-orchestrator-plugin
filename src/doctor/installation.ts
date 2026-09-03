@@ -6,6 +6,13 @@ import {
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 
+import { DEFAULT_LONG_COMMAND_TIMEOUT_MS } from "../config/long-command-timeout.js";
+import {
+  AUTOMATION_CONFIG_RELATIVE_PATH,
+  DEFAULT_LINT_ENABLED,
+  DEFAULT_UNIT_TESTS_ENABLED,
+  matchesManifestModuloVerificationPolicy,
+} from "../config/verification-policy.js";
 import {
   isModuleScope,
   planAdaptiveProjectTemplates,
@@ -365,10 +372,16 @@ function managedResourceCheck(
       continue;
     }
     const actualSha256 = sha256(inspection.file.content);
-    if (
+    const contentChanged =
       inspection.file.content.byteLength !== file.size ||
-      actualSha256 !== file.sha256
-    ) {
+      actualSha256 !== file.sha256;
+    const supportedPolicyOverride =
+      file.path === AUTOMATION_CONFIG_RELATIVE_PATH &&
+      matchesManifestModuloVerificationPolicy(inspection.file.content, {
+        sha256: file.sha256,
+        size: file.size,
+      });
+    if (contentChanged && !supportedPolicyOverride) {
       failures.push(
         `${file.path}: SHA-256 or size mismatch (actual ${actualSha256}).`,
       );
@@ -380,7 +393,7 @@ function managedResourceCheck(
     status: failures.length === 0 ? "pass" : "fail",
     summary:
       failures.length === 0
-        ? `All ${manifest.files.length} managed files match the manifest.`
+        ? `All ${manifest.files.length} managed files match the manifest or supported verification-policy overrides.`
         : `${failures.length} managed file(s) are missing, unsafe, or modified.`,
     details: failures,
   };
@@ -564,11 +577,46 @@ function managedConfigurationCheck(
     if (!isRecord(automationConfig.gradleVerification)) {
       throw new Error("automation config must contain a gradleVerification object");
     }
+    const lintEnabled = automationConfig.lintEnabled ?? DEFAULT_LINT_ENABLED;
+    if (typeof lintEnabled !== "boolean") {
+      throw new Error("lintEnabled must be a boolean");
+    }
+    if (automationConfig.lintEnabled === undefined) {
+      comparableAutomationConfig = {
+        ...comparableAutomationConfig,
+        lintEnabled,
+      };
+    }
+    const unitTestsEnabled =
+      automationConfig.unitTestsEnabled ?? DEFAULT_UNIT_TESTS_ENABLED;
+    if (typeof unitTestsEnabled !== "boolean") {
+      throw new Error("unitTestsEnabled must be a boolean");
+    }
+    if (automationConfig.unitTestsEnabled === undefined) {
+      comparableAutomationConfig = {
+        ...comparableAutomationConfig,
+        unitTestsEnabled,
+      };
+    }
+    const longCommandTimeoutMs =
+      automationConfig.longCommandTimeoutMs ?? DEFAULT_LONG_COMMAND_TIMEOUT_MS;
+    if (typeof longCommandTimeoutMs !== "number") {
+      throw new Error("longCommandTimeoutMs must be a number");
+    }
+    if (automationConfig.longCommandTimeoutMs === undefined) {
+      comparableAutomationConfig = {
+        ...comparableAutomationConfig,
+        longCommandTimeoutMs,
+      };
+    }
     const expected = planAdaptiveProjectTemplates(targetDirectory, {
       moduleScope,
       primaryModule,
       gradleVerification:
         automationConfig.gradleVerification as unknown as GradleVerificationConfiguration,
+      lintEnabled,
+      unitTestsEnabled,
+      longCommandTimeoutMs,
     });
     if (!jsonMatches(comparableAutomationConfig, expected.automationConfig)) {
       failures.push(
@@ -577,6 +625,10 @@ function managedConfigurationCheck(
     } else {
       details.push(`Automation module scope: ${moduleScope}`);
       details.push(`Automation default module: ${primaryModule}`);
+      details.push(
+        `Unit-test verification: ${unitTestsEnabled ? "enabled" : "disabled"}`,
+      );
+      details.push(`Android lint verification: ${lintEnabled ? "enabled" : "disabled"}`);
     }
 
     const taskExample = JSON.parse(

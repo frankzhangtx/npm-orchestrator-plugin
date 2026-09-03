@@ -1,9 +1,9 @@
 # Security model
 
 This document describes the security properties of
-`@frankzhang2026/opencode-android-orchestrator@0.6.1`. The lifecycle foundation
+`@frankzhang2026/opencode-android-orchestrator@0.7.0`. The lifecycle foundation
 completed the real OpenCode `1.14.22` and `1.15.13` release matrix in `0.2.0`;
-`0.6.1` retains that compatibility boundary.
+`0.7.0` retains that compatibility boundary.
 
 ## Security goals and non-goals
 
@@ -53,7 +53,7 @@ modify local files; this package does not claim to protect against that actor.
 
 OpenCode permission prompts are also not semantic workflow approval. They can
 be accepted for the remainder of a session and may be auto-approved. For that
-reason `0.6.1` exposes only `android_orchestrator_status` and
+reason `0.7.0` exposes only `android_orchestrator_status` and
 `android_orchestrator_doctor` as custom tools. State-changing wrappers remain a
 NO-GO until a one-use, non-model-forgeable receipt can bind the approval kind,
 task, session/message, sealed SHA or branch, time, and nonce.
@@ -118,6 +118,14 @@ while Gradle settings/build files and orchestration resources remain protected.
 `primary` scope narrows the generated paths to one module. Upgrade treats a
 legacy configuration with no scope field as `primary`, preventing an implicit
 permission expansion.
+
+`unitTestsEnabled` and `lintEnabled` are the only operator-editable fields in
+the otherwise manifest-managed `automation/config.json`. Upgrade authenticates
+the remaining generated content before preserving those values, and doctor
+validates the resulting adaptive configuration. Task agents still cannot edit
+the protected file. Unit tests default on and lint defaults off; disabling unit
+verification does not remove the mandatory RED evidence step. Assemble, scope,
+evidence, and required device-test gates are unaffected.
 
 The optional repository-root `.automation-worktree-allowlist` is controlled by
 the local human operator, not by task agents. It accepts at most 256 exact,

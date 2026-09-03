@@ -183,6 +183,8 @@ function simulateOlderInstallation(
   {
     const configPath = join(root, "automation/config.json");
     const config = JSON.parse(readFileSync(configPath, "utf8"));
+    delete config.unitTestsEnabled;
+    delete config.lintEnabled;
     delete config.longCommandTimeoutMs;
     delete config.approvalPhrases.resume;
     if (omitModuleScope) {
@@ -260,7 +262,7 @@ test("plans an older-version upgrade without writing recovery or managed files",
     assert.equal(plan.moduleScope, "all");
     assert.equal(plan.primaryModule, ":mobile");
     assert.equal(plan.fromVersion, "0.2.0");
-    assert.equal(plan.toVersion, "0.6.1");
+    assert.equal(plan.toVersion, "0.7.0");
     assert.equal(plan.desiredFiles.length, 47);
     assert.equal(plan.removedFiles.length, 0);
     assert.equal(existsSync(plan.recoveryDirectory), false);
@@ -286,6 +288,11 @@ test("upgrades legacy configurations without moduleScope in primary mode", () =>
   const { root, sdk } = createInstalledFixture();
   try {
     simulateOlderInstallation(root, { omitModuleScope: true });
+    const configuredPath = join(root, "automation/config.json");
+    const configuredPolicy = JSON.parse(readFileSync(configuredPath, "utf8"));
+    configuredPolicy.unitTestsEnabled = false;
+    configuredPolicy.lintEnabled = true;
+    writeFileSync(configuredPath, `${JSON.stringify(configuredPolicy, null, 2)}\n`);
 
     const allModulePlan = planProjectUpgrade(root, {
       ...upgradeOptions(
@@ -303,6 +310,16 @@ test("upgrades legacy configurations without moduleScope in primary mode", () =>
     assert.ok(plannedConfig);
     assert.equal(
       JSON.parse(Buffer.from(plannedConfig.content).toString("utf8"))
+        .lintEnabled,
+      true,
+    );
+    assert.equal(
+      JSON.parse(Buffer.from(plannedConfig.content).toString("utf8"))
+        .unitTestsEnabled,
+      false,
+    );
+    assert.equal(
+      JSON.parse(Buffer.from(plannedConfig.content).toString("utf8"))
         .longCommandTimeoutMs,
       3_600_000,
     );
@@ -318,6 +335,8 @@ test("upgrades legacy configurations without moduleScope in primary mode", () =>
     assert.equal(result.status, "upgraded");
     assert.equal(result.moduleScope, "primary");
     assert.equal(config.androidProject.moduleScope, "primary");
+    assert.equal(config.unitTestsEnabled, false);
+    assert.equal(config.lintEnabled, true);
     assert.equal(config.longCommandTimeoutMs, 1_800_000);
     assert.equal(result.doctor.ok, true);
   } finally {
@@ -343,13 +362,18 @@ test("upgrades unchanged managed files, preserves original merges, and restores 
     assert.equal(result.status, "upgraded");
     assert.equal(result.moduleScope, "all");
     assert.equal(result.fromVersion, "0.2.0");
-    assert.equal(result.toVersion, "0.6.1");
+    assert.equal(result.toVersion, "0.7.0");
     assert.equal(result.managedFileCount, 47);
     assert.equal(result.writtenFileCount, 6);
     assert.equal(result.reusedFileCount, 41);
     assert.equal(result.restoredOrRemovedFileCount, 1);
     assert.deepEqual(result.cleanupWarnings, []);
     assert.equal(result.verification.ok, true);
+    const upgradedConfig = JSON.parse(
+      readFileSync(join(root, "automation/config.json"), "utf8"),
+    );
+    assert.equal(upgradedConfig.unitTestsEnabled, true);
+    assert.equal(upgradedConfig.lintEnabled, false);
     assert.equal(
       readFileSync(join(root, "legacy/user-note.txt"), "utf8"),
       "user value before plugin\n",
@@ -357,7 +381,7 @@ test("upgrades unchanged managed files, preserves original merges, and restores 
     assert.equal(lstatSync(join(root, "legacy/user-note.txt")).mode & 0o777, 0o600);
 
     const manifest = readInstallationManifest(root);
-    assert.equal(manifest.package.version, "0.6.1");
+    assert.equal(manifest.package.version, "0.7.0");
     assert.equal(manifest.installation.id, "upgrade-success-001");
     assert.equal(manifest.installation.state, "installed");
     assert.equal(verifyInstallationIntegrity(root).ok, true);
@@ -402,7 +426,7 @@ test("upgrades unchanged managed files, preserves original merges, and restores 
     assert.equal(doctor.ok, true);
     assert.match(formatProjectUpgradeResult(result), /Result: UPGRADED/);
     assert.match(formatProjectUpgradeResult(result), /Module scope: all/);
-    assert.match(formatProjectUpgradeResult(result), /0\.2\.0 -> 0\.6\.1/);
+    assert.match(formatProjectUpgradeResult(result), /0\.2\.0 -> 0\.7\.0/);
   } finally {
     rmSync(root, { recursive: true, force: true });
   }
@@ -683,7 +707,7 @@ test("upgrade refuses to downgrade a newer installed package", () => {
     const manifest = JSON.parse(
       readFileSync(join(root, INSTALLATION_MANIFEST_RELATIVE_PATH), "utf8"),
     );
-    manifest.package.version = "0.7.0";
+    manifest.package.version = "0.8.0";
     writeManifest(root, manifest);
 
     assert.throws(

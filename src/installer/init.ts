@@ -112,7 +112,10 @@ export type InitProcessRunner = (
 ) => CommandResult;
 
 export interface ProjectInitializationOptions
-  extends AdaptiveProjectTemplateOptions {
+  extends Omit<
+    AdaptiveProjectTemplateOptions,
+    "lintEnabled" | "unitTestsEnabled"
+  > {
   androidSdkDirectory?: string;
   installationId?: string;
   preparedAt?: string;

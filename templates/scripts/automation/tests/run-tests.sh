@@ -119,6 +119,8 @@ jq -n '{
     maxFixLoops: 1,
     maxReviewCycles: 1,
     maxReviewerRestarts: 2,
+    unitTestsEnabled: true,
+    lintEnabled: false,
     longCommandTimeoutMs: 1800000,
     autoCleanupWorktrees: true,
     pushAfterAcceptance: false,
@@ -319,7 +321,29 @@ printf '%s\n' \
 pass 'invalid, duplicate, symbolic-link, patterned, and protected allowlist input fails closed'
 
 run_fixture ./scripts/automation/validate-contract.sh TASK-TEST-001 >/dev/null
-pass 'valid version-3 configuration and task contract are accepted'
+verification_config_backup="$(mktemp "$runtime_root/config.json.XXXXXX")"
+cp "$fixture/automation/config.json" "$verification_config_backup"
+
+unit_enabled_output="$(run_fixture env AUTOMATION_FAKE_GREEN=1 bash -c 'source ./scripts/automation/lib.sh; automation_run_configured_unit_tests ./automation/tasks/TASK-TEST-001.json')"
+[[ "$unit_enabled_output" == *"running focused test"* ]] || fail 'default unit-test policy did not run the focused test'
+[[ "$unit_enabled_output" == *"running full unit tests"* ]] || fail 'default unit-test policy did not run the full unit-test group'
+[[ "$unit_enabled_output" == *"BUILD SUCCESSFUL"* ]] || fail 'enabled unit-test policy did not execute configured tests'
+jq '.unitTestsEnabled = false' "$verification_config_backup" > "$fixture/automation/config.json"
+unit_disabled_output="$(run_fixture bash -c 'source ./scripts/automation/lib.sh; automation_run_configured_unit_tests ./automation/tasks/TASK-TEST-001.json')"
+[[ "$unit_disabled_output" == *"skipping unit tests (unitTestsEnabled=false)"* ]] || fail 'disabled unit-test policy did not skip verification'
+[[ "$unit_disabled_output" != *"BUILD SUCCESSFUL"* ]] || fail 'disabled unit-test policy executed a configured test'
+cp "$verification_config_backup" "$fixture/automation/config.json"
+
+lint_disabled_output="$(run_fixture bash -c 'source ./scripts/automation/lib.sh; automation_run_configured_lint')"
+[[ "$lint_disabled_output" == *"skipping Android lint (lintEnabled=false)"* ]] || fail 'default lint policy did not skip Android lint'
+jq '.lintEnabled = true' "$verification_config_backup" > "$fixture/automation/config.json"
+lint_enabled_output="$(run_fixture bash -c 'source ./scripts/automation/lib.sh; automation_run_configured_lint')"
+[[ "$lint_enabled_output" == *"running configured Android lint tasks"* ]] || fail 'enabled lint policy did not run Android lint'
+[[ "$lint_enabled_output" == *"BUILD SUCCESSFUL"* ]] || fail 'enabled lint policy did not execute the configured lint task'
+cp "$verification_config_backup" "$fixture/automation/config.json"
+rm "$verification_config_backup"
+run_fixture ./scripts/automation/validate-contract.sh TASK-TEST-001 >/dev/null
+pass 'repository configuration defaults unit tests on and lint off and honors both switches'
 
 if run_fixture env AUTOMATION_HUMAN_APPROVED=0 ./scripts/automation/queue-task.sh TASK-TEST-001 >/dev/null 2>&1; then
     fail 'legacy queue accepted without explicit human approval'

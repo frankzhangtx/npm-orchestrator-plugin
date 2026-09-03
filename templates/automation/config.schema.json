@@ -36,6 +36,8 @@
     "maxFixLoops",
     "maxReviewCycles",
     "maxReviewerRestarts",
+    "unitTestsEnabled",
+    "lintEnabled",
     "longCommandTimeoutMs",
     "autoCleanupWorktrees",
     "pushAfterAcceptance",
@@ -58,6 +60,8 @@
     "maxFixLoops": { "type": "integer", "minimum": 0, "maximum": 1 },
     "maxReviewCycles": { "type": "integer", "minimum": 0, "maximum": 2 },
     "maxReviewerRestarts": { "type": "integer", "minimum": 0, "maximum": 3 },
+    "unitTestsEnabled": { "type": "boolean", "default": true },
+    "lintEnabled": { "type": "boolean", "default": false },
     "longCommandTimeoutMs": {
       "type": "integer",
       "minimum": 120000,

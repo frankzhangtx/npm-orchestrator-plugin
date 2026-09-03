@@ -17,19 +17,12 @@ evidence_dir="$(automation_evidence_path "$task_id")"
 
 "$SCRIPT_DIR/scope-gate.sh" "$task_id"
 
-while IFS=$'\t' read -r gradle_task filter; do
-    automation_info "running focused test ($gradle_task): $filter"
-    automation_run_focused_test "$gradle_task" "$filter" "$AUTOMATION_ROOT"
-done < <(jq -r '.targetTests[] | [.gradleTask, .filter] | @tsv' "$contract")
-
-automation_info "running full unit tests"
-automation_run_gradle_group "fullUnitTestTasks" "$AUTOMATION_ROOT"
+automation_run_configured_unit_tests "$contract" "$AUTOMATION_ROOT"
 
 automation_info "running configured assemble tasks"
 automation_run_gradle_group "assembleTasks" "$AUTOMATION_ROOT"
 
-automation_info "running configured Android lint tasks"
-automation_run_gradle_group "lintTasks" "$AUTOMATION_ROOT"
+automation_run_configured_lint "$AUTOMATION_ROOT"
 
 if [[ "$(jq -r '.deviceTestsRequired' "$contract")" == "true" ]]; then
     automation_info "running configured device tests"

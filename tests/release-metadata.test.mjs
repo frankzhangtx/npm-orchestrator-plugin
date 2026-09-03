@@ -16,9 +16,9 @@ test("ships complete MIT license and third-party notices", () => {
   const license = read("LICENSE");
   const notices = read("THIRD_PARTY_NOTICES.md");
 
-  assert.equal(packageJson.version, "0.6.1");
-  assert.equal(packageLock.version, "0.6.1");
-  assert.equal(packageLock.packages[""].version, "0.6.1");
+  assert.equal(packageJson.version, "0.7.0");
+  assert.equal(packageLock.version, "0.7.0");
+  assert.equal(packageLock.packages[""].version, "0.7.0");
   assert.equal(packageJson.license, "MIT");
   assert.equal(packageJson.author, "frankzhang2026");
   assert.deepEqual(packageJson.repository, {
@@ -265,7 +265,7 @@ test("records the verified 0.6.0 Registry publication", () => {
   const authorization = read("release/0.6.0-authorization.md");
   const releaseNotes = read("release/0.6.0-release-notes.md");
 
-  assert.equal(packageJson.version, "0.6.1");
+  assert.equal(packageJson.version, "0.7.0");
   assert.doesNotMatch(packageJson.files.join("\n"), /release\//);
   assert.doesNotMatch(packageJson.files.join("\n"), /tests\//);
   assert.match(authorization, /Status: PUBLISHED/);
@@ -322,7 +322,7 @@ test("records the recovered and verified 0.6.1 Registry publication", () => {
   const authorization = read("release/0.6.1-authorization.md");
   const releaseNotes = read("release/0.6.1-release-notes.md");
 
-  assert.equal(packageJson.version, "0.6.1");
+  assert.equal(packageJson.version, "0.7.0");
   assert.doesNotMatch(packageJson.files.join("\n"), /release\//);
   assert.doesNotMatch(packageJson.files.join("\n"), /tests\//);
   assert.match(authorization, /Status: PUBLISHED/);

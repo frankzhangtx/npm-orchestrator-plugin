@@ -120,6 +120,8 @@ automation_validate_config() {
         (.maxFixLoops | type == "number" and . >= 0 and . <= 1 and floor == .) and
         (.maxReviewCycles | type == "number" and . >= 0 and . <= 2 and floor == .) and
         (.maxReviewerRestarts | type == "number" and . >= 0 and . <= 3 and floor == .) and
+        (.unitTestsEnabled | type == "boolean") and
+        (.lintEnabled | type == "boolean") and
         (.longCommandTimeoutMs | type == "number" and . >= 120000 and . <= 7200000 and floor == .) and
         (.autoCleanupWorktrees | type == "boolean") and
         .pushAfterAcceptance == false and
@@ -300,6 +302,40 @@ automation_run_gradle_group() {
         cd "$root"
         ./gradlew "${tasks[@]}"
     )
+}
+
+automation_run_configured_unit_tests() {
+    local contract="${1:-}"
+    local root="${2:-$AUTOMATION_ROOT}"
+    local context="${3:-}"
+
+    [[ -n "$contract" && -f "$contract" ]] || automation_die "unit-test contract does not exist: $contract"
+    automation_validate_config || return 1
+    if [[ "$(automation_config_value '.unitTestsEnabled')" != "true" ]]; then
+        automation_info "skipping ${context}unit tests (unitTestsEnabled=false)"
+        return 0
+    fi
+
+    while IFS=$'\t' read -r gradle_task filter; do
+        automation_info "running ${context}focused test ($gradle_task): $filter"
+        automation_run_focused_test "$gradle_task" "$filter" "$root"
+    done < <(jq -r '.targetTests[] | [.gradleTask, .filter] | @tsv' "$contract")
+
+    automation_info "running ${context}full unit tests"
+    automation_run_gradle_group "fullUnitTestTasks" "$root"
+}
+
+automation_run_configured_lint() {
+    local root="${1:-$AUTOMATION_ROOT}"
+
+    automation_validate_config || return 1
+    if [[ "$(automation_config_value '.lintEnabled')" != "true" ]]; then
+        automation_info "skipping Android lint (lintEnabled=false)"
+        return 0
+    fi
+
+    automation_info "running configured Android lint tasks"
+    automation_run_gradle_group "lintTasks" "$root"
 }
 
 automation_run_focused_test() {

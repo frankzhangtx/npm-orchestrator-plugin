@@ -8,6 +8,8 @@
   "maxFixLoops": 1,
   "maxReviewCycles": 1,
   "maxReviewerRestarts": 2,
+  "unitTestsEnabled": true,
+  "lintEnabled": false,
   "longCommandTimeoutMs": 1800000,
   "autoCleanupWorktrees": true,
   "pushAfterAcceptance": false,

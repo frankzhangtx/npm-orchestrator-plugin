@@ -39,7 +39,7 @@
   "acceptanceCriteria": [
     "Replace with an observable input/output or UI behavior",
     "A focused test demonstrates the behavior and is captured RED before implementation",
-    "Unit tests, debug build, and lint all pass"
+    "Debug build passes; unit tests and Android lint also pass when their configuration flags are enabled"
   ],
   "nonGoals": [
     "Do not refactor unrelated screens",

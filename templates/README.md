@@ -38,7 +38,10 @@ adaptive render. This covers product flavors without shipping a project name,
 an absolute configuration path, or a hand-maintained JSON file. The packaged
 matrix remains the deterministic fallback for the read-only planning API;
 callers may still pass an explicit matrix when they intentionally need a custom
-policy.
+policy. Verification switches live in `automation/config.json`:
+`unitTestsEnabled` defaults to true and `lintEnabled` defaults to false.
+Discovered task lists are retained even while their corresponding gate is
+disabled.
 
 After read-only planning succeeds, `init` creates a comment-only
 `.automation-worktree-allowlist` if it is missing and preserves any existing

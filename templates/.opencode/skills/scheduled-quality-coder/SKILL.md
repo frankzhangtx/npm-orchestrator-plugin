@@ -36,9 +36,10 @@ it with `./scripts/automation/block-task.sh <TASK-ID> <reason>` before stopping.
 
    - For `PENDING`, run `./scripts/automation/claim-task.sh <TASK-ID>`. It
      performs preflight, verifies that the only orchestration-visible initial
-     changes are the two sealed, uncommitted planning artifacts, captures the
-     green baseline, and changes the task to `CODING`. The status JSON's
-     `runtime.effectiveWorktreeAllowlist` contains human-owned local paths that
+     changes are the two sealed, uncommitted planning artifacts, captures a
+     green unit-test baseline when `unitTestsEnabled` is true or records the
+     configured skip otherwise, and changes the task to `CODING`. The status
+     JSON's `runtime.effectiveWorktreeAllowlist` contains human-owned local paths that
      are outside the task; do not edit, stage, report, or reason from those
      paths or from `.automation-worktree-allowlist`. Never edit, stage, or
      remove the planning artifacts; the integrator will include them in the

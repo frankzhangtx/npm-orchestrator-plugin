@@ -11,9 +11,9 @@ including product flavors, without a separate JSON file and bootstraps the
 human-owned worktree allowlist when it is missing. Version `0.6.0` makes that
 discovery reliable in repositories that enable Gradle Configuration Cache by
 disabling the cache only for the temporary discovery invocation.
-Version `0.6.1` gives managed long-running commands a configurable 30-minute
-default timeout and adds a bounded recovery path for baseline capture that was
-externally interrupted before evidence sealing.
+Version `0.7.0` adds repository-configured unit-test and lint verification
+policies, while retaining the configurable 30-minute timeout and bounded
+baseline-capture recovery path.
 
 ## Documentation
 
@@ -48,8 +48,8 @@ project builds retain their configured cache behavior.
 ## Quick start
 
 ```sh
-npx @frankzhang2026/opencode-android-orchestrator@0.6.1 init .
-npx @frankzhang2026/opencode-android-orchestrator@0.6.1 doctor .
+npx @frankzhang2026/opencode-android-orchestrator@0.7.0 init .
+npx @frankzhang2026/opencode-android-orchestrator@0.7.0 doctor .
 opencode --agent scheduled-planner .
 ```
 
@@ -59,7 +59,7 @@ a task contract without selecting a primary module. To intentionally restrict
 generated contracts to one module, opt into primary-module scope:
 
 ```sh
-npx @frankzhang2026/opencode-android-orchestrator@0.6.1 init . \
+npx @frankzhang2026/opencode-android-orchestrator@0.7.0 init . \
   --module-scope primary \
   --primary-module :mobile
 ```
@@ -80,6 +80,31 @@ cacheable `help` invocation. `--gradle-verification-config` remains available
 only for an intentional nonstandard policy override and is not part of the
 normal quick start.
 
+### Configurable unit-test and lint verification
+
+Verification policy lives in `automation/config.json`:
+
+```json
+{
+  "unitTestsEnabled": true,
+  "lintEnabled": false
+}
+```
+
+Unit-test verification is enabled by default. Setting `unitTestsEnabled` to
+`false` skips the baseline unit suite and the focused/full unit-test portions
+of task, review, and integration gates. The mandatory TDD RED evidence step is
+unchanged. Android lint is disabled by default; setting `lintEnabled` to `true`
+runs the discovered `lintTasks` in those gates. Assemble, scope, evidence, and
+required device-test checks are unaffected by either flag.
+
+These two booleans are the operator-editable exceptions in the otherwise
+managed configuration. Change their values in place and commit the file before
+starting orchestration. Doctor accepts these policy changes and a later
+upgrade preserves them. Do not reformat or edit unrelated generated fields.
+Legacy installations without the fields receive `true` for unit tests and
+`false` for lint during upgrade.
+
 ### Managed long-command timeout
 
 The plugin raises direct managed lifecycle commands such as `claim-task.sh`,
@@ -96,8 +121,9 @@ opencode-android-orchestrator upgrade . --long-command-timeout-ms 3600000
 
 The accepted range is `120000` through `7200000` milliseconds. Upgrade
 preserves an installed value; installations before `0.6.1` receive the
-30-minute default. The generated `automation/config.json` remains managed, so
-use the lifecycle option instead of editing it directly.
+30-minute default. Apart from the two verification-policy booleans, generated
+`automation/config.json` fields remain managed, so use the lifecycle option
+instead of editing the timeout directly.
 
 ### Allow intentional local worktree changes
 
@@ -162,8 +188,9 @@ defaults and stronger verification contracts, and `0.4.0` adds the bounded
 worktree allowlist described above. Version `0.5.0` added automatic registered
 Gradle-task discovery and safe allowlist bootstrapping during `init`; version
 `0.6.0` makes discovery independent of the target project's Configuration
-Cache setting, and `0.6.1` adds configurable long-command timeouts plus bounded
-baseline-interruption recovery.
+Cache setting, `0.6.1` adds configurable long-command timeouts plus bounded
+baseline-interruption recovery, and `0.7.0` makes unit-test and lint gates
+repository-configurable.
 
 The cross-version plugin entry, OpenCode version doctor, Android/Gradle project
 discovery, audited V3 resources, and all deterministic V3 Shell transactions
@@ -192,7 +219,8 @@ Implemented checks include:
   multi-module, custom `projectDir`, version-catalog plugin aliases, and Gradle
   Wrapper detection
 - one-pass, marker-bounded Gradle task discovery for unflavored and flavored
-  debug unit, build, lint, and connected-device verification tasks
+  debug unit, build, lint, and connected-device verification tasks, with unit
+  and lint execution controlled independently by repository policy
 - a plugin compatibility boundary restricted to API fields and hooks shared
   by both certified OpenCode versions
 - project-independent templates for the three V3 agents, five commands, and
@@ -303,7 +331,7 @@ preparation alone as resource installation;
 ## Init
 
 ```sh
-npx @frankzhang2026/opencode-android-orchestrator@0.6.1 init .
+npx @frankzhang2026/opencode-android-orchestrator@0.7.0 init .
 opencode --agent scheduled-planner .
 ```
 
@@ -395,7 +423,7 @@ preflight verifies both resolved permissions and tool discovery.
 ### Phase 2 mutating-tool decision
 
 The 2026-08-25 evaluation remains **NO-GO for mutating custom tools in
-`0.6.1`**.
+`0.7.0`**.
 The fixed Shell allowlist remains the only entry point for state transitions,
 Git mutations, and agent launches. OpenCode custom tools provide typed arguments
 and workspace context, but a normal permission prompt is not the workflow's
