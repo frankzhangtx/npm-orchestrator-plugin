@@ -1,7 +1,7 @@
 # Troubleshooting
 
 Use this guide for
-`@frankzhang2026/opencode-android-orchestrator@0.8.0`.
+`@frankzhang2026/opencode-android-orchestrator@0.8.1`.
 
 ## Start with read-only evidence
 
@@ -11,7 +11,7 @@ From the repository root, capture:
 git status --short --branch
 git rev-parse HEAD
 opencode --version
-npx @frankzhang2026/opencode-android-orchestrator@0.8.0 doctor . --json
+npx @frankzhang2026/opencode-android-orchestrator@0.8.1 doctor . --json
 ```
 
 If installation never completed, doctor will correctly report a missing or
@@ -30,6 +30,24 @@ The CLI uses these exit codes:
 `doctor --json` always emits a structured report. The `--json` option on
 `init`, `upgrade`, and `uninstall` structures successful results; thrown errors
 remain human-readable on stderr with a stable code such as `[FILE_CONFLICT]`.
+
+## Company npm Registry override
+
+If `npm config get registry` reports an internal Registry and a request fails
+against that internal hostname, verify and run the public package with a
+command-scoped override:
+
+```sh
+npm --registry=https://registry.npmjs.org/ view \
+  @frankzhang2026/opencode-android-orchestrator@0.8.1 version
+npx --yes --registry=https://registry.npmjs.org/ \
+  @frankzhang2026/opencode-android-orchestrator@0.8.1 upgrade . --json
+```
+
+This leaves the company's saved npm configuration unchanged. Use the option
+placement shown above; it is also suitable when GitHub is unavailable because
+the package contains its required workflow skills and does not fetch the old
+Git-backed Superpowers plugin at runtime.
 
 ## Prerequisite and discovery failures
 
@@ -50,7 +68,7 @@ remain human-readable on stderr with a stable code such as `[FILE_CONFLICT]`.
 | Invalid `--long-command-timeout-ms` | The value is not an integer from `120000` through `7200000`. | Use the `1800000` ms default or pass an intentional bounded value to `init`/`upgrade`; do not edit the generated config directly. |
 | Android SDK failure | No valid explicit SDK, `ANDROID_HOME`, `ANDROID_SDK_ROOT`, or `local.properties` `sdk.dir` was found. | Configure one real SDK root containing `platforms/` and `build-tools/`. Do not publish `local.properties`. |
 | Missing `git`, `jq`, `rg`, `shasum`, or Java | Required deterministic command is unavailable on `PATH`. | Install or restore the missing command, record its version, and rerun the read-only checks. |
-| `Bundled Orchestrator skill is unavailable` | The installed `0.8.0` package is incomplete, damaged, or loaded from an unsupported partial copy. | Reinstall the exact package, inspect its `resources/third-party/superpowers-v6.2.0/skills/` entries, restart OpenCode, and rerun `opencode debug skill`. Do not add an external Superpowers plugin as a fallback. |
+| `Bundled Orchestrator skill is unavailable` | The installed `0.8.1` package is incomplete, damaged, or loaded from an unsupported partial copy. | Reinstall the exact package, inspect its `resources/third-party/superpowers-v6.2.0/skills/` entries, restart OpenCode, and rerun `opencode debug skill`. Do not add an external Superpowers plugin as a fallback. |
 | The exact Superpowers v6.2.0 plugin remains after upgrade | That entry existed in the verified pre-install OpenCode file and is therefore user-owned. | Leave it in place or remove it as a separate reviewed configuration change. Upgrade only removes the old Orchestrator-managed entry. |
 
 Version `0.6.0` always passes `--no-configuration-cache` to its temporary
@@ -64,7 +82,7 @@ least `1800000` milliseconds. A higher timeout already supplied by the caller
 is preserved; unrelated Bash commands are unchanged. To configure one hour,
 run `upgrade . --long-command-timeout-ms 3600000` on a healthy installation.
 If a command still reports `120000 ms`, confirm that the project manifest and
-OpenCode plugin reference are both `0.8.0`, restart the OpenCode session so the
+OpenCode plugin reference are both `0.8.1`, restart the OpenCode session so the
 plugin reloads, and rerun doctor before attempting recovery.
 
 After installation, inspect OpenCode discovery separately:
@@ -119,7 +137,7 @@ Common fail-closed codes include:
 | `PLUGIN_VERSION_CONFLICT` | The same managed package identity has another reference/version. | Review and remove or migrate only the obsolete entry; never let init silently replace it. |
 | `DUPLICATE_PLUGIN` or `DUPLICATE_PROPERTY` | Configuration identity is ambiguous. | Correct the JSON/JSONC structure without discarding unrelated fields or comments. |
 | `INVALID_JSONC` or `ROOT_NOT_OBJECT` | OpenCode configuration cannot be merged safely. | Repair the user-owned file and validate it before retrying. |
-| `AGENTS_BLOCK_CONFLICT` or `AGENTS_MARKERS_INVALID` | The bounded managed block is modified, partial, or duplicated. | Restore one exact managed block; keep project-specific instructions outside its markers. |
+| `AGENTS_BLOCK_CONFLICT` or `AGENTS_MARKERS_INVALID` | During `init`, the bounded block was modified; or a lifecycle command found partial, out-of-order, or duplicate markers. | Keep project-specific instructions outside one valid marker pair. `0.8.1 upgrade` preserves marker-external changes and replaces the old managed block; malformed marker structure still requires manual repair. |
 | `FILE_SYMLINK`, `TARGET_SYMLINK`, or `CONFIG_SYMLINK` | A managed target or ancestor is a symbolic link. | Replace it only after understanding ownership and destination. The installer intentionally does not follow it. |
 | `PLAN_STALE` or `TARGET_MODIFIED` | A file changed between planning and application. | Stop concurrent edits, inspect the diff, and rerun from a stable state. |
 
@@ -138,8 +156,8 @@ configuration.
 | --- | --- | --- |
 | `MANIFEST_MISSING`, `MANIFEST_INVALID`, or `MANIFEST_STATE` | No trustworthy installed manifest is available. | Do not invent a manifest or copy one from another project. Determine whether this is an uninstalled/manual setup or an interrupted transaction. |
 | `EXISTING_INSTALLATION_DIFFERENT` | `init` found another installed inventory/version. | Use `upgrade` for a healthy older manifest. |
-| `EXISTING_INSTALLATION_INVALID` or `INSTALLATION_INVALID` | Manifest, installed files, or required backups failed validation. | Preserve the project and `.automation-plugin/`; inspect doctor details and recovery history. |
-| `INSTALLED_FILES_MODIFIED` | Upgrade found content, existence, mode, or backup drift. | Move intentional customization out of managed paths or choose manual recovery. Upgrade will not overwrite it. |
+| `EXISTING_INSTALLATION_INVALID` or `INSTALLATION_INVALID` | Manifest, installed files, or required backups failed structural or content validation. In `0.8.0`, this also reported an active manifest whose mode was not exactly `0600`. | Preserve the project and `.automation-plugin/`; use `0.8.1 upgrade` for mode-only drift, and inspect other doctor details or recovery history. |
+| `INSTALLED_FILES_MODIFIED` | Upgrade found content/existence drift in an ordinary managed file or missing/modified backup content. | Move intentional customization out of ordinary managed paths or choose manual recovery. `0.8.1` separately merges user-owned `AGENTS.md` content and does not reject mode-only drift. |
 | `VERSION_DOWNGRADE_REFUSED` | Target package is older than the installed manifest. | Use a newer fixed package version; never edit the manifest version. |
 | `UPGRADE_IN_PROGRESS` or `UNINSTALL_IN_PROGRESS` | `.automation-plugin/upgrade.json` or `uninstall.json` records an unfinished transaction. | Inspect the marker and matching recovery directory. Do not delete the marker merely to retry. |
 | `POST_UPGRADE_VERIFICATION_FAILED` | New resources failed verification. | The implementation attempts a complete old-version rollback; verify the old manifest and inspect upgrade evidence. |
@@ -149,7 +167,8 @@ configuration.
 
 Installer control paths are:
 
-- active manifest: `.automation-plugin/manifest.json` (`0600`);
+- active manifest: `.automation-plugin/manifest.json` (new manifests are
+  written as `0600`; mode-only drift does not block `0.8.1 upgrade`);
 - first-install/original backups: `.automation-plugin/backups/<id>/`;
 - upgrade marker and snapshots: `.automation-plugin/upgrade.json` and
   `.automation-plugin/upgrades/<id>/`;

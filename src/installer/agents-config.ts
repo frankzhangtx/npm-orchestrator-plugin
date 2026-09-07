@@ -43,6 +43,16 @@ export interface AgentsConfigMergePlan {
   changed: boolean;
 }
 
+export interface AgentsConfigUpgradeMerge {
+  content: string;
+  previousContent: string | null;
+}
+
+interface ManagedBlockRange {
+  begin: number;
+  end: number;
+}
+
 function filesystemErrorCode(error: unknown): string | null {
   if (
     typeof error === "object" &&
@@ -125,11 +135,11 @@ function appendManagedBlock(original: string, fragment: string): string {
   return `${original}${separator}${convertedFragment}`;
 }
 
-function mergeAgentsContent(original: string, fragment: string): string {
-  const beginCount = markerCount(original, AGENTS_MANAGED_BLOCK_BEGIN);
-  const endCount = markerCount(original, AGENTS_MANAGED_BLOCK_END);
+function managedBlockRange(content: string): ManagedBlockRange | null {
+  const beginCount = markerCount(content, AGENTS_MANAGED_BLOCK_BEGIN);
+  const endCount = markerCount(content, AGENTS_MANAGED_BLOCK_END);
   if (beginCount === 0 && endCount === 0) {
-    return appendManagedBlock(original, fragment);
+    return null;
   }
   if (beginCount !== 1 || endCount !== 1) {
     throw new AgentsConfigMergeError(
@@ -138,18 +148,29 @@ function mergeAgentsContent(original: string, fragment: string): string {
     );
   }
 
-  const begin = original.indexOf(AGENTS_MANAGED_BLOCK_BEGIN);
-  const end = original.indexOf(AGENTS_MANAGED_BLOCK_END);
-  if (begin < 0 || end < begin) {
+  const begin = content.indexOf(AGENTS_MANAGED_BLOCK_BEGIN);
+  const endMarker = content.indexOf(AGENTS_MANAGED_BLOCK_END);
+  if (begin < 0 || endMarker < begin) {
     throw new AgentsConfigMergeError(
       "AGENTS_MARKERS_INVALID",
       "AGENTS.md orchestrator markers are out of order.",
     );
   }
+  return {
+    begin,
+    end: endMarker + AGENTS_MANAGED_BLOCK_END.length,
+  };
+}
+
+function mergeAgentsContent(original: string, fragment: string): string {
+  const range = managedBlockRange(original);
+  if (range === null) {
+    return appendManagedBlock(original, fragment);
+  }
 
   const existingBlock = original.slice(
-    begin,
-    end + AGENTS_MANAGED_BLOCK_END.length,
+    range.begin,
+    range.end,
   );
   const expectedBlock = convertLineEndings(
     fragment.trimEnd(),
@@ -167,6 +188,40 @@ function mergeAgentsContent(original: string, fragment: string): string {
 
 export function mergeAgentsConfigText(source: string): string {
   return mergeAgentsContent(source, packagedFragment());
+}
+
+export function mergeAgentsConfigForUpgradeText(
+  currentContent: string,
+  originalContent: string | null,
+): AgentsConfigUpgradeMerge {
+  const range = managedBlockRange(currentContent);
+  if (range === null) {
+    return {
+      content: mergeAgentsConfigText(currentContent),
+      previousContent: currentContent,
+    };
+  }
+
+  const ending = lineEnding(currentContent);
+  const blockEnd = currentContent.startsWith(ending, range.end)
+    ? range.end + ending.length
+    : range.end;
+  const existingFragment = currentContent.slice(range.begin, blockEnd);
+  const original = originalContent ?? "";
+
+  if (currentContent === appendManagedBlock(original, existingFragment)) {
+    return {
+      content: mergeAgentsConfigText(original),
+      previousContent: originalContent,
+    };
+  }
+
+  const previousContent =
+    currentContent.slice(0, range.begin) + currentContent.slice(blockEnd);
+  return {
+    content: mergeAgentsConfigText(previousContent),
+    previousContent,
+  };
 }
 
 export function planAgentsConfigMerge(

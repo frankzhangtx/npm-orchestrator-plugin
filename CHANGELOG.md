@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.8.1 - Unreleased
+
+- Allow `upgrade` to proceed when the active manifest, managed files, or
+  original backups have Unix-mode drift, while retaining regular-file,
+  symlink, existence, SHA-256, size, stale-plan, and transactional checks.
+- Preserve the current user-owned content outside the single valid
+  Orchestrator block in `AGENTS.md`, replace only that managed block, and carry
+  the preserved content into the new uninstall backup lineage. If the markers
+  were removed, retain the whole current file before appending the new block.
+- Add regression coverage for permission drift, changed and malformed AGENTS
+  files, successful upgrades, and exact rollback of pre-upgrade bytes/modes.
+
 ## 0.8.0 - 2026-09-07
 
 - Bundle curated, namespaced derivatives of the five Superpowers v6.2.0

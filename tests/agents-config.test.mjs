@@ -16,6 +16,8 @@ import {
   AGENTS_MANAGED_BLOCK_BEGIN,
   AGENTS_MANAGED_BLOCK_END,
   AgentsConfigMergeError,
+  mergeAgentsConfigForUpgradeText,
+  mergeAgentsConfigText,
   planAgentsConfigMerge,
 } from "../dist/index.js";
 
@@ -92,6 +94,60 @@ test("refuses a modified or malformed managed block", () => {
       planAgentsConfigMerge(directory),
     );
   });
+});
+
+test("upgrade preserves user AGENTS changes outside the managed block", () => {
+  const original = "# Existing rules\n\nKeep this text.\n";
+  const userContent =
+    "# Existing rules\n\nKeep this text.\n\nUse the company review gate.\n";
+  const installed = mergeAgentsConfigText(original);
+  const legacy = installed.replace(
+    "## OpenCode Android Orchestrator",
+    "## OpenCode Android Orchestrator Legacy",
+  );
+  const changed = legacy.replace(original, userContent);
+  const userOwnedOutside = `${userContent}\n`;
+
+  const merged = mergeAgentsConfigForUpgradeText(changed, original);
+
+  assert.equal(merged.previousContent, userOwnedOutside);
+  assert.equal(merged.content, mergeAgentsConfigText(userOwnedOutside));
+  assert.doesNotMatch(merged.content, /Orchestrator Legacy/);
+  assert.equal(
+    merged.content.match(new RegExp(AGENTS_MANAGED_BLOCK_BEGIN, "g"))?.length,
+    1,
+  );
+  assert.equal(
+    merged.content.match(new RegExp(AGENTS_MANAGED_BLOCK_END, "g"))?.length,
+    1,
+  );
+});
+
+test("upgrade adopts an AGENTS file whose managed markers were removed", () => {
+  const current = "# Company rules\n\nUse the internal review gate.\n";
+
+  const merged = mergeAgentsConfigForUpgradeText(
+    current,
+    "# Rules before installation\n",
+  );
+
+  assert.equal(merged.previousContent, current);
+  assert.equal(merged.content, mergeAgentsConfigText(current));
+});
+
+test("upgrade refuses malformed or duplicate AGENTS markers", () => {
+  assertAgentsError("AGENTS_MARKERS_INVALID", () =>
+    mergeAgentsConfigForUpgradeText(
+      `${AGENTS_MANAGED_BLOCK_BEGIN}\npartial\n`,
+      null,
+    ),
+  );
+  assertAgentsError("AGENTS_MARKERS_INVALID", () =>
+    mergeAgentsConfigForUpgradeText(
+      `${AGENTS_MANAGED_BLOCK_BEGIN}\none\n${AGENTS_MANAGED_BLOCK_END}\n${AGENTS_MANAGED_BLOCK_BEGIN}\ntwo\n${AGENTS_MANAGED_BLOCK_END}\n`,
+      null,
+    ),
+  );
 });
 
 test("refuses symbolic-link and non-file AGENTS targets", () => {

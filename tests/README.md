@@ -37,10 +37,12 @@ permission drift and detects unsafe configuration or a self-consistent
 manifest rewrite.
 
 The upgrade suite covers read-only planning from a module directory, safe
-older-version replacement, reconstruction of AGENTS and OpenCode merges from
-their first-install originals, preserved recovery lineage, obsolete user-file
-restoration, same-version byte idempotence, managed-file and original-backup
-drift refusal, downgrade refusal, tampered-plan refusal, and complete
+older-version replacement, preservation of current user-owned AGENTS content,
+replacement of its managed block, reconstruction of the OpenCode merge from
+its first-install original, permission-drift tolerance, preserved recovery
+lineage, obsolete user-file restoration, same-version byte idempotence,
+ordinary managed-content and original-backup corruption refusal, malformed
+AGENTS-marker refusal, downgrade refusal, tampered-plan refusal, and complete
 old-version restoration after post-upgrade verification failure.
 
 The uninstall suite covers read-only planning from a module directory,

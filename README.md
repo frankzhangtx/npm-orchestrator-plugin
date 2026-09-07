@@ -15,7 +15,9 @@ Version `0.7.0` adds repository-configured unit-test and lint verification
 policies, while retaining the configurable 30-minute timeout and bounded
 baseline-capture recovery path. Version `0.8.0` bundles the five workflow
 skills used by the scheduled agents, registers them from the installed npm
-package, and removes the runtime GitHub/Superpowers plugin dependency.
+package, and removes the runtime GitHub/Superpowers plugin dependency. Version
+`0.8.1` makes upgrades tolerant of permission-mode drift and preserves
+project-specific `AGENTS.md` content outside the managed marker block.
 
 ## Documentation
 
@@ -50,8 +52,8 @@ project builds retain their configured cache behavior.
 ## Quick start
 
 ```sh
-npx @frankzhang2026/opencode-android-orchestrator@0.8.0 init .
-npx @frankzhang2026/opencode-android-orchestrator@0.8.0 doctor .
+npx @frankzhang2026/opencode-android-orchestrator@0.8.1 init .
+npx @frankzhang2026/opencode-android-orchestrator@0.8.1 doctor .
 opencode --agent scheduled-planner .
 ```
 
@@ -61,7 +63,7 @@ a task contract without selecting a primary module. To intentionally restrict
 generated contracts to one module, opt into primary-module scope:
 
 ```sh
-npx @frankzhang2026/opencode-android-orchestrator@0.8.0 init . \
+npx @frankzhang2026/opencode-android-orchestrator@0.8.1 init . \
   --module-scope primary \
   --primary-module :mobile
 ```
@@ -360,7 +362,7 @@ preparation alone as resource installation;
 ## Init
 
 ```sh
-npx @frankzhang2026/opencode-android-orchestrator@0.8.0 init .
+npx @frankzhang2026/opencode-android-orchestrator@0.8.1 init .
 opencode --agent scheduled-planner .
 ```
 
@@ -493,10 +495,12 @@ opencode-android-orchestrator upgrade . --module-scope all --json
 ```
 
 `upgrade` accepts either the Git root or a directory below it. It first validates
-the installed manifest, every managed file, and every original-file backup. It
-refuses downgrades, user-modified managed resources, damaged backups, ambiguous
-Android modules in restrictive `primary` scope, same-version resource rewrites,
-and an unfinished upgrade marker before creating recovery state.
+the installed manifest, managed content, and original-backup content. Unix-mode
+drift alone does not block an upgrade; the write transaction applies the target
+package modes. It still refuses downgrades, user-modified ordinary managed
+resources, damaged backup content, malformed or duplicate AGENTS markers,
+ambiguous Android modules in restrictive `primary` scope, same-version resource
+rewrites, and an unfinished upgrade marker before creating recovery state.
 
 Upgrade preserves the installed module scope. Installations created before the
 scope field existed are interpreted as `primary` so an upgrade cannot silently
@@ -505,8 +509,9 @@ opt in explicitly.
 
 For an older healthy installation, the command:
 
-1. reconstructs merged AGENTS and OpenCode configuration from the original
-   pre-install files rather than layering new output over an older merge;
+1. preserves current `AGENTS.md` content outside the old bounded marker block,
+   replaces that block with the target package content, and reconstructs the
+   OpenCode configuration from its verified pre-install file;
 2. saves the exact old manifest and immediate pre-upgrade file snapshots below
    `.automation-plugin/upgrades/<upgrade-id>/`;
 3. carries the first installation's original backups into a new verified

@@ -1,9 +1,9 @@
 # Security model
 
 This document describes the security properties of
-`@frankzhang2026/opencode-android-orchestrator@0.8.0`. The lifecycle foundation
+`@frankzhang2026/opencode-android-orchestrator@0.8.1`. The lifecycle foundation
 completed the real OpenCode `1.14.22` and `1.15.13` release matrix in `0.2.0`;
-`0.8.0` retains that compatibility boundary.
+`0.8.1` retains that compatibility boundary.
 
 ## Security goals and non-goals
 
@@ -116,8 +116,12 @@ Installation strategies are deliberately distinct:
 
 OpenCode JSON/JSONC merging preserves unrelated fields, comments, order, and
 plugin options. It rejects malformed/ambiguous files, duplicate identities,
-different managed-plugin versions, and symlinks. AGENTS merging owns only one
-marked block and rejects partial, duplicate, or modified markers.
+different managed-plugin versions, and symlinks. AGENTS initialization owns
+only one marked block and rejects partial, duplicate, or modified markers.
+During upgrade, a single well-formed old block is replaced while every byte
+outside it remains user-owned; if both markers are absent, the whole current
+file is retained before the new block is appended. Partial or duplicate
+markers still fail closed.
 
 New installations generate task examples in `all` module scope: every detected
 Android module's `src/main`, `src/test`, and `src/androidTest` path is eligible,
@@ -145,7 +149,10 @@ The installed manifest is `0600`. Installer control, backup, recovery, and
 history directories are created with private `0700` defaults; backup files
 preserve the original file mode where recovery requires it. Shell resources
 must be exact packaged bytes with `0755`; other copied templates are
-non-executable.
+non-executable. Upgrade does not treat mode drift in the active manifest,
+managed files, or original backups as content corruption. It snapshots and
+rechecks the actual pre-upgrade mode for stale-plan and rollback safety, then
+writes the target package modes.
 
 ## Transaction and recovery safety
 
@@ -155,10 +162,12 @@ run, verifies final hashes/modes, and only then marks the manifest installed.
 Failure before completion restores originals and removes safely unchanged new
 files.
 
-`upgrade` requires a healthy installed manifest and original backups. It saves
-the exact old manifest and immediate pre-upgrade snapshots, reconstructs merge
-targets from first-install originals, writes the new version, and replaces the
-manifest only after verification. Failure attempts a whole-version rollback.
+`upgrade` requires a structurally valid installed manifest plus intact managed
+and backup content; mode-only drift is accepted. It saves the exact old
+manifest and immediate pre-upgrade snapshots, preserves current user-owned
+AGENTS content, reconstructs the OpenCode merge from its first-install
+original, writes the new version, and replaces the manifest only after
+verification. Failure attempts a whole-version rollback.
 
 `uninstall` restores an original or removes a plugin-created path only when the
 current path still matches a safe known state. Content, permission, deletion,

@@ -76,10 +76,12 @@ export {
   AGENTS_MANAGED_BLOCK_BEGIN,
   AGENTS_MANAGED_BLOCK_END,
   AgentsConfigMergeError,
+  mergeAgentsConfigForUpgradeText,
   mergeAgentsConfigText,
   planAgentsConfigMerge,
   type AgentsConfigMergeErrorCode,
   type AgentsConfigMergePlan,
+  type AgentsConfigUpgradeMerge,
 } from "./installer/agents-config.js";
 export {
   AdaptiveProjectTemplateError,

@@ -1,7 +1,7 @@
 # Migration guide
 
 This guide covers migration to
-`@frankzhang2026/opencode-android-orchestrator@0.8.0`. Pin the exact version and
+`@frankzhang2026/opencode-android-orchestrator@0.8.1`. Pin the exact version and
 prove the migration in a disposable clone before changing a long-lived
 repository.
 
@@ -9,13 +9,13 @@ repository.
 
 | Current state | Correct command after release | Important distinction |
 | --- | --- | --- |
-| No orchestrator files or manifest | `npx @frankzhang2026/opencode-android-orchestrator@0.8.0 init .` | Normal new installation; all detected Android modules and registered debug verification tasks are discovered automatically. |
+| No orchestrator files or manifest | `npx @frankzhang2026/opencode-android-orchestrator@0.8.1 init .` | Normal new installation; all detected Android modules and registered debug verification tasks are discovered automatically. |
 | Published `0.1.0` scaffold only | Remove any project-local `@0.1.0` plugin reference after review, then run `init`. | `0.1.0` did not create a usable managed installation and cannot be upgraded. |
-| Healthy `0.2.0` through `0.7.0` manifest-managed installation | Run the fixed `0.8.0` doctor, then `upgrade`. | Existing module scope, verification tasks, and policy values are preserved. The old managed Superpowers plugin reference is replaced by bundled skills. Pre-`0.6.1` configurations receive the 30-minute long-command timeout default. |
+| `0.2.0` through `0.8.0` manifest-managed installation with intact managed/backup content | Run the fixed `0.8.1` `upgrade`. | Existing module scope, verification tasks, policy values, and user-owned AGENTS content are preserved. Mode-only drift is accepted. The old managed Superpowers plugin reference is replaced by bundled skills. Pre-`0.6.1` configurations receive the 30-minute long-command timeout default. |
 | Manually copied V3 files, no `.automation-plugin/manifest.json` | Finish active tasks, preserve historical evidence separately, then run `init`. | Exact files can be reused; differing managed files fail as conflicts. |
 | Healthy older manifest-managed installation | Run `doctor`, then the fixed target version's `upgrade`. | `upgrade` requires a valid installed manifest and intact original backups. |
 | Healthy current-version manifest | Run `doctor`; repeated `init` or same-version `upgrade` is verification-only and byte-idempotent. | Do not reinstall or delete the manifest. |
-| Damaged manifest, managed-file drift, or damaged backup | Stop and investigate. | `init` and `upgrade` intentionally refuse to overwrite this state. |
+| Damaged manifest, ordinary managed-content drift, or damaged backup content | Stop and investigate. | `init` and `upgrade` intentionally refuse to overwrite this state. AGENTS content outside its managed block and Unix-mode drift are handled by `0.8.1 upgrade`. |
 
 `uninstall` is not an upgrade shortcut. It restores verified pre-install files,
 removes unchanged plugin-created files, and retains drift for manual review.
@@ -33,13 +33,11 @@ removes unchanged plugin-created files, and retains drift for manual review.
    `.opencode/`, `automation/`, and `scripts/automation/` for review. Never
    include `.env`, signing keys, npm credentials, or `local.properties` in a
    support bundle.
-5. If a managed manifest already exists, run:
-
-   ```sh
-   npx @frankzhang2026/opencode-android-orchestrator@0.8.0 doctor . --json
-   ```
-
-   Do not proceed with `upgrade` unless the installation checks pass.
+5. If a managed manifest already exists, the installed version's doctor may be
+   used to collect read-only evidence. A mode warning/failure or an AGENTS
+   content mismatch does not by itself prevent `0.8.1 upgrade`; the target
+   upgrade performs its own content-safe checks. Do not edit manifest hashes to
+   make doctor pass.
 6. Prove the migration in a disposable clone or temporary Android fixture
    before applying it to the intended repository.
 
@@ -52,14 +50,14 @@ scaffold, not as an older managed installation.
 If the project OpenCode configuration contains an exact
 `@frankzhang2026/opencode-android-orchestrator@0.1.0` entry, save the file and
 remove only that obsolete entry in a reviewed Git change before running
-`0.8.0 init`. The merger deliberately rejects a different version of the same
+`0.8.1 init`. The merger deliberately rejects a different version of the same
 managed package; it will not silently replace the reference. A global npm
 installation of `0.1.0` alone does not require project-file cleanup.
 
 After release, initialize with the fixed version:
 
 ```sh
-npx @frankzhang2026/opencode-android-orchestrator@0.8.0 init .
+npx @frankzhang2026/opencode-android-orchestrator@0.8.1 init .
 ```
 
 New installations default to all-module scope, so multiple application modules
@@ -83,8 +81,9 @@ rules:
   target is a `FILE_CONFLICT`; there is no force flag.
 - Move legitimate local policy out of managed agent, command, skill, or Shell
   files before installation. Put project rules in the unmanaged portion of
-  `AGENTS.md` and product behavior in normal project sources. Editing managed
-  files after installation creates drift and blocks a future upgrade.
+  `AGENTS.md` and product behavior in normal project sources. Editing ordinary
+  managed file content after installation creates drift and blocks a future
+  upgrade.
 - `AGENTS.md` is merged through one bounded marker block. Existing content
   outside that block remains user-owned.
 - OpenCode JSON/JSONC is merged structurally. Existing fields, comments, plugin
@@ -105,15 +104,23 @@ installer to guess which customization should survive.
 Use the lifecycle command selected by the active manifest:
 
 ```sh
-   npx @frankzhang2026/opencode-android-orchestrator@0.8.0 doctor . --json
-npx @frankzhang2026/opencode-android-orchestrator@0.8.0 upgrade . --json
+npx --yes --registry=https://registry.npmjs.org/ \
+  @frankzhang2026/opencode-android-orchestrator@0.8.1 upgrade . --json
 ```
 
-`upgrade` verifies the installed manifest, every managed file, and every
-first-install backup before it creates recovery state. It reconstructs merged
-OpenCode and AGENTS content from the original pre-install files, carries that
-recovery lineage forward, snapshots the current version, writes the new
-resources, and reruns the 44 automation tests plus the shadow run.
+The command-level Registry option is useful when a company-wide npm Registry
+points to an internal host that cannot serve the public package. It does not
+change the saved npm configuration.
+
+`upgrade` verifies the installed manifest, ordinary managed-file content, and
+first-install backup content before it creates recovery state. It ignores
+Unix-mode differences during this preflight, snapshots the actual bytes and
+modes for rollback, and writes the target package modes. It reconstructs the
+OpenCode merge from its original pre-install file. For `AGENTS.md`, it removes
+the one well-formed old managed block, preserves all current content outside
+that block, appends the new managed block, and carries the preserved user
+content into the new uninstall backup. If both markers were removed, the whole
+current file is preserved before the new block is appended.
 
 Upgrade preserves an installed `androidProject.moduleScope`. A legacy
 manifest-managed configuration without that field is treated as `primary`,
@@ -146,8 +153,9 @@ The command refuses:
 
 - a downgrade or malformed semantic version;
 - a missing, non-installed, foreign-package, or modified manifest;
-- content, existence, or mode drift in managed files;
-- missing or modified original backups;
+- content or existence drift in ordinary managed files;
+- missing or content-modified original backups;
+- partial, out-of-order, or duplicate AGENTS markers;
 - an unfinished upgrade or uninstall marker;
 - a stale plan or changed file between planning and application.
 
@@ -159,7 +167,7 @@ the source of drift and use the recorded recovery data.
 Run all checks from the detected Git root:
 
 ```sh
-npx @frankzhang2026/opencode-android-orchestrator@0.8.0 doctor .
+npx @frankzhang2026/opencode-android-orchestrator@0.8.1 doctor .
 opencode debug config
 opencode debug skill
 opencode debug agent scheduled-planner

@@ -17,6 +17,8 @@ import test from "node:test";
 import { parse } from "jsonc-parser";
 
 import {
+  AGENTS_MANAGED_BLOCK_BEGIN,
+  AGENTS_MANAGED_BLOCK_END,
   INSTALLATION_MANIFEST_RELATIVE_PATH,
   ORCHESTRATOR_PLUGIN_REFERENCE,
   ProjectUpgradeError,
@@ -268,7 +270,7 @@ test("plans an older-version upgrade without writing recovery or managed files",
     assert.equal(plan.moduleScope, "all");
     assert.equal(plan.primaryModule, ":mobile");
     assert.equal(plan.fromVersion, "0.2.0");
-    assert.equal(plan.toVersion, "0.8.0");
+    assert.equal(plan.toVersion, "0.8.1");
     assert.equal(plan.desiredFiles.length, 47);
     assert.equal(plan.removedFiles.length, 0);
     assert.equal(existsSync(plan.recoveryDirectory), false);
@@ -368,7 +370,7 @@ test("upgrades unchanged managed files, preserves original merges, and restores 
     assert.equal(result.status, "upgraded");
     assert.equal(result.moduleScope, "all");
     assert.equal(result.fromVersion, "0.2.0");
-    assert.equal(result.toVersion, "0.8.0");
+    assert.equal(result.toVersion, "0.8.1");
     assert.equal(result.managedFileCount, 47);
     assert.equal(result.writtenFileCount, 6);
     assert.equal(result.reusedFileCount, 41);
@@ -387,7 +389,7 @@ test("upgrades unchanged managed files, preserves original merges, and restores 
     assert.equal(lstatSync(join(root, "legacy/user-note.txt")).mode & 0o777, 0o600);
 
     const manifest = readInstallationManifest(root);
-    assert.equal(manifest.package.version, "0.8.0");
+    assert.equal(manifest.package.version, "0.8.1");
     assert.equal(manifest.installation.id, "upgrade-success-001");
     assert.equal(manifest.installation.state, "installed");
     assert.equal(verifyInstallationIntegrity(root).ok, true);
@@ -429,7 +431,7 @@ test("upgrades unchanged managed files, preserves original merges, and restores 
     assert.equal(doctor.ok, true);
     assert.match(formatProjectUpgradeResult(result), /Result: UPGRADED/);
     assert.match(formatProjectUpgradeResult(result), /Module scope: all/);
-    assert.match(formatProjectUpgradeResult(result), /0\.2\.0 -> 0\.8\.0/);
+    assert.match(formatProjectUpgradeResult(result), /0\.2\.0 -> 0\.8\.1/);
   } finally {
     rmSync(root, { recursive: true, force: true });
   }
@@ -458,6 +460,72 @@ test("upgrade preserves a Superpowers reference that predates Orchestrator insta
       ORCHESTRATOR_PLUGIN_REFERENCE,
     ]);
     assert.equal(result.doctor.ok, true);
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
+});
+
+test("upgrade tolerates permission drift and preserves user AGENTS content", () => {
+  const { root, sdk } = createInstalledFixture();
+  try {
+    simulateOlderInstallation(root);
+    const manifest = readInstallationManifest(root);
+    const agentsEntry = manifest.files.find(({ path }) => path === "AGENTS.md");
+    assert.ok(agentsEntry?.previous.backupPath);
+
+    chmodSync(join(root, INSTALLATION_MANIFEST_RELATIVE_PATH), 0o644);
+    chmodSync(
+      join(root, ...agentsEntry.previous.backupPath.split("/")),
+      0o600,
+    );
+    chmodSync(join(root, "scripts/automation/preflight.sh"), 0o644);
+
+    const agentsPath = join(root, "AGENTS.md");
+    const companyRule = "Company repositories must use the internal review gate.";
+    const changedAgents = readFileSync(agentsPath, "utf8").replace(
+      "Keep this text.",
+      `Keep this text.\n\n${companyRule}`,
+    );
+    writeFileSync(agentsPath, changedAgents);
+    chmodSync(agentsPath, 0o600);
+
+    const result = runProjectUpgrade(
+      root,
+      upgradeOptions(
+        sdk,
+        successfulRunner(),
+        "upgrade-permissions-agents-001",
+      ),
+    );
+
+    assert.equal(result.status, "upgraded");
+    const upgradedAgents = readFileSync(agentsPath, "utf8");
+    assert.match(upgradedAgents, new RegExp(companyRule.replaceAll(".", "\\.")));
+    assert.equal(
+      upgradedAgents.match(new RegExp(AGENTS_MANAGED_BLOCK_BEGIN, "g"))?.length,
+      1,
+    );
+    assert.equal(
+      upgradedAgents.match(new RegExp(AGENTS_MANAGED_BLOCK_END, "g"))?.length,
+      1,
+    );
+    assert.doesNotMatch(upgradedAgents, /Orchestrator Legacy/);
+    assert.equal(lstatSync(agentsPath).mode & 0o777, 0o600);
+    assert.equal(
+      lstatSync(join(root, "scripts/automation/preflight.sh")).mode & 0o777,
+      0o755,
+    );
+
+    const preservedAgents = readFileSync(
+      join(result.backupDirectory, "AGENTS.md"),
+      "utf8",
+    );
+    assert.match(preservedAgents, new RegExp(companyRule.replaceAll(".", "\\.")));
+    assert.doesNotMatch(
+      preservedAgents,
+      /opencode-android-orchestrator:(?:begin|end)/,
+    );
+    assert.equal(verifyInstallationIntegrity(root).ok, true);
   } finally {
     rmSync(root, { recursive: true, force: true });
   }
@@ -702,6 +770,62 @@ test("post-upgrade verification failure restores the complete older installation
       ),
       false,
     );
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
+});
+
+test("failed upgrade restores permission drift and changed AGENTS content exactly", () => {
+  const { root, sdk } = createInstalledFixture();
+  try {
+    simulateOlderInstallation(root);
+    const manifestPath = join(root, INSTALLATION_MANIFEST_RELATIVE_PATH);
+    const agentsPath = join(root, "AGENTS.md");
+    const preflightPath = join(root, "scripts/automation/preflight.sh");
+    chmodSync(manifestPath, 0o644);
+    chmodSync(preflightPath, 0o644);
+    const changedAgents = readFileSync(agentsPath, "utf8").replace(
+      "Keep this text.",
+      "Keep this text.\n\nKeep the company-specific rule.",
+    );
+    writeFileSync(agentsPath, changedAgents);
+    chmodSync(agentsPath, 0o600);
+
+    const before = new Map(
+      [manifestPath, agentsPath, preflightPath].map((path) => [
+        path,
+        {
+          content: readFileSync(path),
+          mode: lstatSync(path).mode & 0o777,
+        },
+      ]),
+    );
+    const baseRunner = successfulRunner();
+    const failingRunner = (executable, args, options) =>
+      executable.endsWith("scripts/automation/tests/run-tests.sh")
+        ? commandResult(1, "not ok 1 - upgrade fixture\n", "verification failed\n")
+        : baseRunner(executable, args, options);
+
+    assert.throws(
+      () =>
+        runProjectUpgrade(
+          root,
+          upgradeOptions(
+            sdk,
+            failingRunner,
+            "upgrade-permission-rollback-001",
+          ),
+        ),
+      (error) =>
+        error instanceof ProjectUpgradeError &&
+        error.code === "POST_UPGRADE_VERIFICATION_FAILED",
+    );
+
+    for (const [path, snapshot] of before) {
+      assert.deepEqual(readFileSync(path), snapshot.content, path);
+      assert.equal(lstatSync(path).mode & 0o777, snapshot.mode, path);
+    }
+    assert.equal(existsSync(join(root, UPGRADE_MARKER_RELATIVE_PATH)), false);
   } finally {
     rmSync(root, { recursive: true, force: true });
   }

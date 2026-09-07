@@ -31,7 +31,7 @@ import {
   runDoctor,
   type DoctorReport,
 } from "../doctor/index.js";
-import { mergeAgentsConfigText } from "./agents-config.js";
+import { mergeAgentsConfigForUpgradeText } from "./agents-config.js";
 import { detectAndroidProject } from "./android-project.js";
 import {
   INSTALLATION_BACKUPS_DIRECTORY,
@@ -39,7 +39,6 @@ import {
   INSTALLATION_HISTORY_DIRECTORY,
   INSTALLATION_MANIFEST_RELATIVE_PATH,
   readInstallationManifest,
-  verifyInstallationIntegrity,
   type InstallationFileInput,
   type InstallationFileStrategy,
   type InstallationManifest,
@@ -71,6 +70,9 @@ export const UPGRADE_RECOVERY_DIRECTORY =
 
 const UNINSTALL_MARKER_RELATIVE_PATH =
   `${INSTALLATION_CONTROL_DIRECTORY}/uninstall.json`;
+
+const AGENTS_MERGE_SOURCE = "generated/agents-managed-block-merge";
+const OPENCODE_CONFIG_MERGE_SOURCE = "generated/opencode-config-merge";
 
 export type ProjectUpgradeErrorCode =
   | "DOCTOR_FAILED"
@@ -428,6 +430,17 @@ function snapshotsMatch(
   );
 }
 
+function snapshotContentMatches(
+  left: UpgradeFileSnapshot,
+  right: UpgradeFileSnapshot | PreviousInstallationFile,
+): boolean {
+  return (
+    left.existed === right.existed &&
+    left.sha256 === right.sha256 &&
+    left.size === right.size
+  );
+}
+
 function snapshotMatchesDesired(
   snapshot: UpgradeFileSnapshot,
   file: PlannedUpgradeFile,
@@ -464,10 +477,10 @@ function originalSnapshot(
     file.previous.backupPath,
     true,
   );
-  if (!snapshotsMatch(snapshot, file.previous)) {
+  if (!snapshotContentMatches(snapshot, file.previous)) {
     throw new ProjectUpgradeError(
       "INSTALLATION_INVALID",
-      `Original backup failed integrity verification: ${file.path}`,
+      `Original backup failed content integrity verification: ${file.path}`,
     );
   }
   return snapshot;
@@ -480,8 +493,7 @@ function manifestFileMatchesSnapshot(
   return (
     snapshot.existed &&
     snapshot.sha256 === file.sha256 &&
-    snapshot.size === file.size &&
-    snapshot.mode === file.mode
+    snapshot.size === file.size
   );
 }
 
@@ -496,7 +508,6 @@ function managedFileAcceptsSnapshot(
     file.path === AUTOMATION_CONFIG_RELATIVE_PATH &&
     snapshot.existed &&
     snapshot.content !== null &&
-    snapshot.mode === file.mode &&
     matchesManifestModuloVerificationPolicy(snapshot.content, {
       sha256: file.sha256,
       size: file.size,
@@ -522,12 +533,6 @@ function readStableManifest(targetDirectory: string): {
       "INSTALLATION_INVALID",
       "An installed manifest is required before upgrade.",
       ["Run init for a project that has never installed the orchestrator."],
-    );
-  }
-  if (manifestSnapshotBefore.mode !== 0o600) {
-    throw new ProjectUpgradeError(
-      "INSTALLATION_INVALID",
-      "The active installation manifest must have mode 0600.",
     );
   }
   const content = Buffer.from(manifestSnapshotBefore.content).toString("utf8");
@@ -605,7 +610,46 @@ function assertInstalledIntegrity(
       [manifest.package.name, ORCHESTRATOR_PACKAGE_NAME],
     );
   }
-  const integrity = verifyInstallationIntegrity(targetDirectory);
+  const failures: string[] = [];
+  for (const file of manifest.files) {
+    let installed = "match";
+    try {
+      const snapshot = snapshotFile(targetDirectory, file.path);
+      const accepted =
+        file.source === AGENTS_MERGE_SOURCE
+          ? snapshot.existed && snapshot.content !== null
+          : managedFileAcceptsSnapshot(file, snapshot);
+      installed = !snapshot.existed
+        ? "missing"
+        : accepted
+          ? "match"
+          : "mismatch";
+    } catch {
+      installed = "mismatch";
+    }
+
+    let backup = "not-required";
+    if (file.previous.existed && file.previous.backupPath !== null) {
+      try {
+        const snapshot = snapshotFile(
+          targetDirectory,
+          file.previous.backupPath,
+          true,
+        );
+        backup = !snapshot.existed
+          ? "missing"
+          : snapshotContentMatches(snapshot, file.previous)
+            ? "match"
+            : "mismatch";
+      } catch {
+        backup = "mismatch";
+      }
+    }
+
+    if (installed !== "match" || (backup !== "match" && backup !== "not-required")) {
+      failures.push(`${file.path}: installed=${installed}, backup=${backup}`);
+    }
+  }
   const changedManifest = snapshotFile(
     targetDirectory,
     INSTALLATION_MANIFEST_RELATIVE_PATH,
@@ -617,22 +661,11 @@ function assertInstalledIntegrity(
       "The installation manifest changed during integrity verification.",
     );
   }
-  if (!integrity.ok) {
+  if (failures.length > 0) {
     throw new ProjectUpgradeError(
       "INSTALLED_FILES_MODIFIED",
-      "Upgrade refused because managed files or original backups no longer match the installed manifest.",
-      integrity.checks
-        .filter(
-          (check) =>
-            check.installed === "missing" ||
-            check.installed === "mismatch" ||
-            check.backup === "missing" ||
-            check.backup === "mismatch",
-        )
-        .map(
-          (check) =>
-            `${check.path}: installed=${check.installed}, backup=${check.backup}`,
-        ),
+      "Upgrade refused because managed content or original backup content no longer matches the installed manifest.",
+      failures,
     );
   }
 }
@@ -751,38 +784,94 @@ function configuredAdaptiveOptions(
   return configured;
 }
 
-function desiredMergeInputs(
+interface DesiredMergePlan {
+  inputs: readonly InstallationFileInput[];
+  originalOverrides: ReadonlyMap<string, UpgradeFileSnapshot>;
+}
+
+function snapshotFromOptionalText(
+  content: string | null,
+  mode: number,
+): UpgradeFileSnapshot {
+  if (content === null) {
+    return {
+      existed: false,
+      content: null,
+      sha256: null,
+      size: null,
+      mode: null,
+    };
+  }
+  const value = bytes(content);
+  return {
+    existed: true,
+    content: value,
+    sha256: sha256(value),
+    size: value.byteLength,
+    mode,
+  };
+}
+
+function desiredMergePlan(
   targetDirectory: string,
   manifest: InstallationManifest,
-): readonly InstallationFileInput[] {
+): DesiredMergePlan {
   const agents = uniqueManifestFileBySource(
     manifest,
-    "generated/agents-managed-block-merge",
+    AGENTS_MERGE_SOURCE,
   );
   const openCode = uniqueManifestFileBySource(
     manifest,
-    "generated/opencode-config-merge",
+    OPENCODE_CONFIG_MERGE_SOURCE,
   );
-  return [
-    {
-      path: agents.path,
-      source: agents.source,
-      strategy: "merge",
-      content: mergeAgentsConfigText(
-        textFromOriginal(targetDirectory, agents, ""),
-      ),
-      mode: agents.mode,
-    },
-    {
-      path: openCode.path,
-      source: openCode.source,
-      strategy: "merge",
-      content: mergeOpenCodeConfigText(
-        textFromOriginal(targetDirectory, openCode, "{}\n"),
-      ).content,
-      mode: openCode.mode,
-    },
-  ];
+  const currentAgents = snapshotFile(targetDirectory, agents.path);
+  if (
+    !currentAgents.existed ||
+    currentAgents.content === null ||
+    currentAgents.mode === null
+  ) {
+    throw new ProjectUpgradeError(
+      "INSTALLED_FILES_MODIFIED",
+      "AGENTS.md must remain a readable regular file before upgrade.",
+    );
+  }
+  const originalAgents = originalSnapshot(targetDirectory, agents);
+  const mergedAgents = mergeAgentsConfigForUpgradeText(
+    Buffer.from(currentAgents.content).toString("utf8"),
+    originalAgents.content === null
+      ? null
+      : Buffer.from(originalAgents.content).toString("utf8"),
+  );
+
+  return {
+    inputs: [
+      {
+        path: agents.path,
+        source: agents.source,
+        strategy: "merge",
+        content: mergedAgents.content,
+        mode: currentAgents.mode,
+      },
+      {
+        path: openCode.path,
+        source: openCode.source,
+        strategy: "merge",
+        content: mergeOpenCodeConfigText(
+          textFromOriginal(targetDirectory, openCode, "{}\n"),
+        ).content,
+        mode: openCode.mode,
+      },
+    ],
+    originalOverrides: new Map([
+      [
+        agents.path,
+        snapshotFromOptionalText(
+          mergedAgents.previousContent,
+          currentAgents.mode,
+        ),
+      ],
+    ]),
+  };
 }
 
 function previousMetadata(
@@ -812,6 +901,7 @@ function planDesiredFiles(
   currentManifest: InstallationManifest,
   inputs: readonly InstallationFileInput[],
   upgradeId: string,
+  originalOverrides: ReadonlyMap<string, UpgradeFileSnapshot> = new Map(),
 ): readonly PlannedUpgradeFile[] {
   const currentByPath = new Map(
     currentManifest.files.map((file) => [file.path, file] as const),
@@ -830,7 +920,11 @@ function planDesiredFiles(
       const content = bytes(input.content);
       const before = snapshotFile(targetDirectory, path);
       const current = currentByPath.get(path);
-      if (current !== undefined && !managedFileAcceptsSnapshot(current, before)) {
+      if (
+        current !== undefined &&
+        current.source !== AGENTS_MERGE_SOURCE &&
+        !managedFileAcceptsSnapshot(current, before)
+      ) {
         throw new ProjectUpgradeError(
           "INSTALLED_FILES_MODIFIED",
           `Managed file changed before upgrade planning: ${path}`,
@@ -860,9 +954,10 @@ function planDesiredFiles(
         );
       }
       const original =
-        current === undefined
+        originalOverrides.get(path) ??
+        (current === undefined
           ? before
-          : originalSnapshot(targetDirectory, current);
+          : originalSnapshot(targetDirectory, current));
       return {
         path,
         source: input.source,
@@ -1061,14 +1156,16 @@ export function planProjectUpgrade(
   const upgradeId = validateUpgradeId(
     options.upgradeId ?? defaultUpgradeId(preparedAt),
   );
+  const merges = desiredMergePlan(requestedTarget, stable.manifest);
   const desiredFiles = planDesiredFiles(
     requestedTarget,
     stable.manifest,
     [
       ...resources.inputs,
-      ...desiredMergeInputs(requestedTarget, stable.manifest),
+      ...merges.inputs,
     ],
     upgradeId,
+    merges.originalOverrides,
   );
   const removedFiles = planRemovedFiles(
     requestedTarget,
@@ -1494,8 +1591,7 @@ function assertManifestUnchanged(plan: ProjectUpgradePlan): void {
   );
   if (
     !current.existed ||
-    current.sha256 !== plan.currentManifestSha256 ||
-    current.mode !== 0o600
+    current.sha256 !== plan.currentManifestSha256
   ) {
     throw new ProjectUpgradeError(
       "PLAN_STALE",
