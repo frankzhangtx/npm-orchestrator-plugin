@@ -1,6 +1,6 @@
 # Changelog
 
-## 0.8.0 - Unreleased
+## 0.8.0 - 2026-09-07
 
 - Bundle curated, namespaced derivatives of the five Superpowers v6.2.0
   workflow skills used by Orchestrator, together with only their required
