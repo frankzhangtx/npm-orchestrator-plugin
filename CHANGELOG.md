@@ -1,6 +1,6 @@
 # Changelog
 
-## 0.8.1 - Unreleased
+## 0.8.1 - 2026-09-07
 
 - Allow `upgrade` to proceed when the active manifest, managed files, or
   original backups have Unix-mode drift, while retaining regular-file,
