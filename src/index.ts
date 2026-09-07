@@ -1,5 +1,7 @@
 export {
   AndroidOrchestratorPlugin,
+  BUNDLED_SKILL_IDS,
+  BUNDLED_SKILLS_DIRECTORY,
   ORCHESTRATOR_DIRECTORY_ENV,
   ORCHESTRATOR_WORKTREE_ENV,
   createCompatiblePlugin,
@@ -212,7 +214,6 @@ export {
   ORCHESTRATOR_PLUGIN_REFERENCE,
   OPENCODE_CONFIG_SCHEMA_URL,
   REQUIRED_PLUGIN_REFERENCES,
-  SUPERPOWERS_PLUGIN_REFERENCE,
   OpenCodeConfigMergeError,
   mergeOpenCodeConfigText,
   planOpenCodeConfigMerge,

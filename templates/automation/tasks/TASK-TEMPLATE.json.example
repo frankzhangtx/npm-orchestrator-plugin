@@ -1,5 +1,5 @@
 {
-  "schemaVersion": 1,
+  "schemaVersion": 2,
   "id": "TASK-EXAMPLE-001",
   "title": "Replace with one small, observable behavior change",
   "designApproved": true,
@@ -31,10 +31,10 @@
     "**/build.gradle",
     "**/build.gradle.kts"
   ],
-  "allowedSuperpowers": [
-    "test-driven-development",
-    "systematic-debugging",
-    "verification-before-completion"
+  "allowedWorkflowSkills": [
+    "android-orchestrator-test-driven-development",
+    "android-orchestrator-systematic-debugging",
+    "android-orchestrator-verification-before-completion"
   ],
   "acceptanceCriteria": [
     "Replace with an observable input/output or UI behavior",

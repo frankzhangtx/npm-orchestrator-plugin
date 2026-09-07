@@ -9,8 +9,8 @@ metadata:
 
 # Scheduled quality coder
 
-Execute one task contract. This skill narrows Superpowers into a deterministic,
-non-interactive Android workflow. The scripts are the source of truth for state;
+Execute one task contract through the bundled, deterministic, non-interactive
+Android workflow. The scripts are the source of truth for state;
 your prose is never proof of completion.
 
 ## Required input
@@ -28,8 +28,8 @@ it with `./scripts/automation/block-task.sh <TASK-ID> <reason>` before stopping.
 
 ## Mandatory sequence
 
-1. Load `test-driven-development` and
-   `verification-before-completion`. Do not load any other implementation
+1. Load `android-orchestrator-test-driven-development` and
+   `android-orchestrator-verification-before-completion`. Do not load any other implementation
    workflow skill.
 2. Run `./scripts/automation/status.sh <TASK-ID>` and read the contract.
 3. Branch by deterministic state:
@@ -65,7 +65,7 @@ it with `./scripts/automation/block-task.sh <TASK-ID> <reason>` before stopping.
 7. Run `./scripts/automation/quality-gate.sh <TASK-ID>`.
 8. If the first gate attempt in the current coding cycle fails while state
    remains `CODING`, load
-   `systematic-debugging`, diagnose the root cause, and make at most one fix
+   `android-orchestrator-systematic-debugging`, diagnose the root cause, and make at most one fix
    loop. Then run the gate once more. If it fails again, stop in
    `TEST_FAILED`.
 9. When the gate succeeds, report the changed files and evidence paths. Do not
@@ -92,7 +92,8 @@ human can revise and requeue the contract.
 
 ## Forbidden capabilities
 
-Do not invoke `brainstorming`, `writing-plans`, `using-git-worktrees`,
+Do not invoke `android-orchestrator-brainstorming`,
+`android-orchestrator-writing-plans`, `using-git-worktrees`,
 `finishing-a-development-branch`, `requesting-code-review`, parallel agents, or
 subagent-driven development. Planning and approval happen before this session;
 review happens in a separate fresh read-only session.

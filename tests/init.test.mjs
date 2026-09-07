@@ -20,7 +20,6 @@ import {
   INSTALLATION_MANIFEST_RELATIVE_PATH,
   INITIAL_WORKTREE_ALLOWLIST_CONTENT,
   ORCHESTRATOR_PLUGIN_REFERENCE,
-  SUPERPOWERS_PLUGIN_REFERENCE,
   WORKTREE_ALLOWLIST_RELATIVE_PATH,
   InstallationManifestError,
   ProjectInitializationError,
@@ -260,10 +259,7 @@ test("plans and installs all managed resources in a Kotlin DSL project", () => {
     assert.match(agents, /opencode-android-orchestrator:begin/);
     const openCode = readFileSync(join(root, "opencode.jsonc"), "utf8");
     assert.match(openCode, /\/\/ keep this setting/);
-    assert.deepEqual(parse(openCode).plugin, [
-      SUPERPOWERS_PLUGIN_REFERENCE,
-      ORCHESTRATOR_PLUGIN_REFERENCE,
-    ]);
+    assert.deepEqual(parse(openCode).plugin, [ORCHESTRATOR_PLUGIN_REFERENCE]);
     assert.equal(
       lstatSync(join(root, "scripts/automation/preflight.sh")).mode & 0o777,
       0o755,

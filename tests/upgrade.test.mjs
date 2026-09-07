@@ -20,7 +20,6 @@ import {
   INSTALLATION_MANIFEST_RELATIVE_PATH,
   ORCHESTRATOR_PLUGIN_REFERENCE,
   ProjectUpgradeError,
-  SUPERPOWERS_PLUGIN_REFERENCE,
   UNINSTALL_MARKER_RELATIVE_PATH,
   UPGRADE_MARKER_RELATIVE_PATH,
   WORKTREE_ALLOWLIST_RELATIVE_PATH,
@@ -33,6 +32,9 @@ import {
   runProjectUpgrade,
   verifyInstallationIntegrity,
 } from "../dist/index.js";
+
+const LEGACY_SUPERPOWERS_PLUGIN_REFERENCE =
+  "superpowers@git+https://github.com/obra/superpowers.git#v6.2.0";
 
 const upgradePreparedAt = "2026-08-24T11:00:00.000Z";
 const upgradeInstalledAt = "2026-08-24T11:05:00.000Z";
@@ -86,7 +88,7 @@ function successfulRunner(calls = []) {
   };
 }
 
-function createInstalledFixture() {
+function createInstalledFixture({ userSuperpowers = false } = {}) {
   const root = mkdtempSync(join(tmpdir(), "orchestrator-upgrade-"));
   mkdirSync(join(root, ".git"));
   writeFixtureFile(
@@ -106,8 +108,9 @@ function createInstalledFixture() {
     "distributionUrl=fixture\n",
   );
   const originalAgents = "# Existing upgrade rules\n\nKeep this text.\n";
-  const originalOpenCode =
-    '{\n  // preserve upgrade fixture\n  "theme": "system",\n}\n';
+  const originalOpenCode = userSuperpowers
+    ? `{\n  // preserve upgrade fixture\n  "theme": "system",\n  "plugin": [\n    "${LEGACY_SUPERPOWERS_PLUGIN_REFERENCE}"\n  ]\n}\n`
+    : '{\n  // preserve upgrade fixture\n  "theme": "system",\n}\n';
   writeFixtureFile(root, "AGENTS.md", originalAgents, 0o644);
   writeFixtureFile(root, "opencode.jsonc", originalOpenCode, 0o600);
   const sdk = join(root, "fixture-sdk");
@@ -172,9 +175,12 @@ function simulateOlderInstallation(
   updateManifestEntry(manifest, "AGENTS.md", oldAgents);
 
   const openCodePath = join(root, "opencode.jsonc");
-  const oldOpenCode = readFileSync(openCodePath, "utf8").replace(
+  const currentOpenCode = readFileSync(openCodePath, "utf8");
+  const oldOpenCode = currentOpenCode.replace(
     ORCHESTRATOR_PLUGIN_REFERENCE,
-    "@frankzhang2026/opencode-android-orchestrator@0.2.0",
+    currentOpenCode.includes(LEGACY_SUPERPOWERS_PLUGIN_REFERENCE)
+      ? "@frankzhang2026/opencode-android-orchestrator@0.2.0"
+      : `${LEGACY_SUPERPOWERS_PLUGIN_REFERENCE}",\n    "@frankzhang2026/opencode-android-orchestrator@0.2.0`,
   );
   writeFileSync(openCodePath, oldOpenCode);
   chmodSync(openCodePath, 0o600);
@@ -262,7 +268,7 @@ test("plans an older-version upgrade without writing recovery or managed files",
     assert.equal(plan.moduleScope, "all");
     assert.equal(plan.primaryModule, ":mobile");
     assert.equal(plan.fromVersion, "0.2.0");
-    assert.equal(plan.toVersion, "0.7.0");
+    assert.equal(plan.toVersion, "0.8.0");
     assert.equal(plan.desiredFiles.length, 47);
     assert.equal(plan.removedFiles.length, 0);
     assert.equal(existsSync(plan.recoveryDirectory), false);
@@ -362,7 +368,7 @@ test("upgrades unchanged managed files, preserves original merges, and restores 
     assert.equal(result.status, "upgraded");
     assert.equal(result.moduleScope, "all");
     assert.equal(result.fromVersion, "0.2.0");
-    assert.equal(result.toVersion, "0.7.0");
+    assert.equal(result.toVersion, "0.8.0");
     assert.equal(result.managedFileCount, 47);
     assert.equal(result.writtenFileCount, 6);
     assert.equal(result.reusedFileCount, 41);
@@ -381,7 +387,7 @@ test("upgrades unchanged managed files, preserves original merges, and restores 
     assert.equal(lstatSync(join(root, "legacy/user-note.txt")).mode & 0o777, 0o600);
 
     const manifest = readInstallationManifest(root);
-    assert.equal(manifest.package.version, "0.7.0");
+    assert.equal(manifest.package.version, "0.8.0");
     assert.equal(manifest.installation.id, "upgrade-success-001");
     assert.equal(manifest.installation.state, "installed");
     assert.equal(verifyInstallationIntegrity(root).ok, true);
@@ -411,10 +417,7 @@ test("upgrades unchanged managed files, preserves original merges, and restores 
     assert.doesNotMatch(agents, /Legacy/);
     const openCode = readFileSync(join(root, "opencode.jsonc"), "utf8");
     assert.match(openCode, /preserve upgrade fixture/);
-    assert.deepEqual(parse(openCode).plugin, [
-      SUPERPOWERS_PLUGIN_REFERENCE,
-      ORCHESTRATOR_PLUGIN_REFERENCE,
-    ]);
+    assert.deepEqual(parse(openCode).plugin, [ORCHESTRATOR_PLUGIN_REFERENCE]);
 
     const doctor = runDoctor({
       androidSdkDirectory: sdk,
@@ -426,7 +429,35 @@ test("upgrades unchanged managed files, preserves original merges, and restores 
     assert.equal(doctor.ok, true);
     assert.match(formatProjectUpgradeResult(result), /Result: UPGRADED/);
     assert.match(formatProjectUpgradeResult(result), /Module scope: all/);
-    assert.match(formatProjectUpgradeResult(result), /0\.2\.0 -> 0\.7\.0/);
+    assert.match(formatProjectUpgradeResult(result), /0\.2\.0 -> 0\.8\.0/);
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
+});
+
+test("upgrade preserves a Superpowers reference that predates Orchestrator installation", () => {
+  const { root, sdk } = createInstalledFixture({ userSuperpowers: true });
+  try {
+    simulateOlderInstallation(root);
+
+    const result = runProjectUpgrade(
+      root,
+      upgradeOptions(
+        sdk,
+        successfulRunner(),
+        "upgrade-user-superpowers-001",
+      ),
+    );
+    const openCode = parse(
+      readFileSync(join(root, "opencode.jsonc"), "utf8"),
+    );
+
+    assert.equal(result.status, "upgraded");
+    assert.deepEqual(openCode.plugin, [
+      LEGACY_SUPERPOWERS_PLUGIN_REFERENCE,
+      ORCHESTRATOR_PLUGIN_REFERENCE,
+    ]);
+    assert.equal(result.doctor.ok, true);
   } finally {
     rmSync(root, { recursive: true, force: true });
   }
@@ -707,7 +738,7 @@ test("upgrade refuses to downgrade a newer installed package", () => {
     const manifest = JSON.parse(
       readFileSync(join(root, INSTALLATION_MANIFEST_RELATIVE_PATH), "utf8"),
     );
-    manifest.package.version = "0.8.0";
+    manifest.package.version = "0.9.0";
     writeManifest(root, manifest);
 
     assert.throws(

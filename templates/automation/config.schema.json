@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "urn:frankzhang2026:opencode-android-orchestrator:automation-config:v3",
+  "$id": "urn:frankzhang2026:opencode-android-orchestrator:automation-config:v4",
   "title": "OpenCode task orchestration configuration",
   "type": "object",
   "additionalProperties": false,
@@ -42,14 +42,13 @@
     "autoCleanupWorktrees",
     "pushAfterAcceptance",
     "approvalPhrases",
-    "plugins",
     "requiredSkills",
     "gradleVerification",
     "androidProject",
     "protectedPaths"
   ],
   "properties": {
-    "schemaVersion": { "const": 3 },
+    "schemaVersion": { "const": 4 },
     "enabled": { "type": "boolean" },
     "mode": { "enum": ["shadow", "orchestrated"] },
     "workspaceStrategy": {
@@ -79,14 +78,6 @@
         "acceptance": { "type": "string", "minLength": 4 },
         "abort": { "type": "string", "minLength": 4 },
         "resume": { "type": "string", "minLength": 4 }
-      }
-    },
-    "plugins": {
-      "type": "object",
-      "additionalProperties": false,
-      "required": ["superpowers"],
-      "properties": {
-        "superpowers": { "type": "string", "minLength": 1 }
       }
     },
     "requiredSkills": {

@@ -19,12 +19,14 @@ import {
   ORCHESTRATOR_PACKAGE_VERSION,
   ORCHESTRATOR_PLUGIN_REFERENCE,
   OPENCODE_CONFIG_SCHEMA_URL,
-  SUPERPOWERS_PLUGIN_REFERENCE,
   OpenCodeConfigMergeError,
   mergeOpenCodeConfigText,
   planOpenCodeConfigMerge,
   pluginPackageIdentity,
 } from "../dist/index.js";
+
+const LEGACY_SUPERPOWERS_PLUGIN_REFERENCE =
+  "superpowers@git+https://github.com/obra/superpowers.git#v6.2.0";
 
 function assertMergeError(code, operation) {
   assert.throws(operation, (error) => {
@@ -43,13 +45,13 @@ function withTemporaryDirectory(prefix, operation) {
   }
 }
 
-test("merges the fixed plugins without removing existing configuration", () => {
+test("merges the Orchestrator plugin without removing existing configuration", () => {
   const source = `${JSON.stringify(
     {
       $schema: "https://opencode.ai/config.json",
       plugin: [
         "opencode-scheduler@1.3.0",
-        SUPERPOWERS_PLUGIN_REFERENCE,
+        LEGACY_SUPERPOWERS_PLUGIN_REFERENCE,
       ],
       theme: "system",
     },
@@ -68,7 +70,7 @@ test("merges the fixed plugins without removing existing configuration", () => {
   assert.equal(config.theme, "system");
   assert.deepEqual(config.plugin, [
     "opencode-scheduler@1.3.0",
-    SUPERPOWERS_PLUGIN_REFERENCE,
+    LEGACY_SUPERPOWERS_PLUGIN_REFERENCE,
     ORCHESTRATOR_PLUGIN_REFERENCE,
   ]);
 });
@@ -89,7 +91,7 @@ test("preserves JSONC comments, trailing commas, order, and plugin options", () 
     "theme": "system",
     "plugin": [
         ["custom-plugin@2.0.0", { "enabled": true }], // keep options
-        "${SUPERPOWERS_PLUGIN_REFERENCE}",
+        "${LEGACY_SUPERPOWERS_PLUGIN_REFERENCE}",
     ],
 }
 `;
@@ -106,7 +108,7 @@ test("preserves JSONC comments, trailing commas, order, and plugin options", () 
   );
   assert.deepEqual(config.plugin, [
     ["custom-plugin@2.0.0", { enabled: true }],
-    SUPERPOWERS_PLUGIN_REFERENCE,
+    LEGACY_SUPERPOWERS_PLUGIN_REFERENCE,
     ORCHESTRATOR_PLUGIN_REFERENCE,
   ]);
 });
@@ -116,7 +118,7 @@ test("treats an exact plugin tuple reference as already installed", () => {
     {
       $schema: OPENCODE_CONFIG_SCHEMA_URL,
       plugin: [
-        [SUPERPOWERS_PLUGIN_REFERENCE, { enabled: true }],
+        [LEGACY_SUPERPOWERS_PLUGIN_REFERENCE, { enabled: true }],
         [ORCHESTRATOR_PLUGIN_REFERENCE, { mode: "safe" }],
       ],
     },
@@ -137,20 +139,15 @@ test("preserves CRLF, tabs, and the absence of a final newline", () => {
 
   assert.equal(result.content.endsWith("\n"), false);
   assert.equal(result.content.replaceAll("\r\n", "").includes("\n"), false);
-  assert.match(result.content, /\r\n\t"plugin": \[\r\n\t\t"superpowers/);
+  assert.ok(result.content.includes(`\r\n\t\t"${ORCHESTRATOR_PLUGIN_REFERENCE}"`));
 });
 
-test("rejects a different reference for either managed plugin", () => {
-  for (const reference of [
-    `${ORCHESTRATOR_PACKAGE_NAME}@0.0.9`,
-    "superpowers@6.2.0",
-  ]) {
-    assertMergeError("PLUGIN_VERSION_CONFLICT", () =>
-      mergeOpenCodeConfigText(
-        JSON.stringify({ plugin: [reference] }),
-      ),
-    );
-  }
+test("rejects a different reference for the managed plugin", () => {
+  assertMergeError("PLUGIN_VERSION_CONFLICT", () =>
+    mergeOpenCodeConfigText(
+      JSON.stringify({ plugin: [`${ORCHESTRATOR_PACKAGE_NAME}@0.0.9`] }),
+    ),
+  );
 });
 
 test("rejects duplicate plugins by package identity", () => {

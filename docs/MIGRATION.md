@@ -1,7 +1,7 @@
 # Migration guide
 
 This guide covers migration to
-`@frankzhang2026/opencode-android-orchestrator@0.7.0`. Pin the exact version and
+`@frankzhang2026/opencode-android-orchestrator@0.8.0`. Pin the exact version and
 prove the migration in a disposable clone before changing a long-lived
 repository.
 
@@ -9,9 +9,9 @@ repository.
 
 | Current state | Correct command after release | Important distinction |
 | --- | --- | --- |
-| No orchestrator files or manifest | `npx @frankzhang2026/opencode-android-orchestrator@0.7.0 init .` | Normal new installation; all detected Android modules and registered debug verification tasks are discovered automatically. |
+| No orchestrator files or manifest | `npx @frankzhang2026/opencode-android-orchestrator@0.8.0 init .` | Normal new installation; all detected Android modules and registered debug verification tasks are discovered automatically. |
 | Published `0.1.0` scaffold only | Remove any project-local `@0.1.0` plugin reference after review, then run `init`. | `0.1.0` did not create a usable managed installation and cannot be upgraded. |
-| Healthy `0.2.0` through `0.6.1` manifest-managed installation | Run the fixed `0.7.0` doctor, then `upgrade`. | Existing module scope, verification tasks, and policy values are preserved. Pre-`0.6.1` configurations receive the 30-minute long-command timeout default. |
+| Healthy `0.2.0` through `0.7.0` manifest-managed installation | Run the fixed `0.8.0` doctor, then `upgrade`. | Existing module scope, verification tasks, and policy values are preserved. The old managed Superpowers plugin reference is replaced by bundled skills. Pre-`0.6.1` configurations receive the 30-minute long-command timeout default. |
 | Manually copied V3 files, no `.automation-plugin/manifest.json` | Finish active tasks, preserve historical evidence separately, then run `init`. | Exact files can be reused; differing managed files fail as conflicts. |
 | Healthy older manifest-managed installation | Run `doctor`, then the fixed target version's `upgrade`. | `upgrade` requires a valid installed manifest and intact original backups. |
 | Healthy current-version manifest | Run `doctor`; repeated `init` or same-version `upgrade` is verification-only and byte-idempotent. | Do not reinstall or delete the manifest. |
@@ -36,7 +36,7 @@ removes unchanged plugin-created files, and retains drift for manual review.
 5. If a managed manifest already exists, run:
 
    ```sh
-   npx @frankzhang2026/opencode-android-orchestrator@0.7.0 doctor . --json
+   npx @frankzhang2026/opencode-android-orchestrator@0.8.0 doctor . --json
    ```
 
    Do not proceed with `upgrade` unless the installation checks pass.
@@ -52,14 +52,14 @@ scaffold, not as an older managed installation.
 If the project OpenCode configuration contains an exact
 `@frankzhang2026/opencode-android-orchestrator@0.1.0` entry, save the file and
 remove only that obsolete entry in a reviewed Git change before running
-`0.7.0 init`. The merger deliberately rejects a different version of the same
+`0.8.0 init`. The merger deliberately rejects a different version of the same
 managed package; it will not silently replace the reference. A global npm
 installation of `0.1.0` alone does not require project-file cleanup.
 
 After release, initialize with the fixed version:
 
 ```sh
-npx @frankzhang2026/opencode-android-orchestrator@0.7.0 init .
+npx @frankzhang2026/opencode-android-orchestrator@0.8.0 init .
 ```
 
 New installations default to all-module scope, so multiple application modules
@@ -105,8 +105,8 @@ installer to guess which customization should survive.
 Use the lifecycle command selected by the active manifest:
 
 ```sh
-   npx @frankzhang2026/opencode-android-orchestrator@0.7.0 doctor . --json
-npx @frankzhang2026/opencode-android-orchestrator@0.7.0 upgrade . --json
+   npx @frankzhang2026/opencode-android-orchestrator@0.8.0 doctor . --json
+npx @frankzhang2026/opencode-android-orchestrator@0.8.0 upgrade . --json
 ```
 
 `upgrade` verifies the installed manifest, every managed file, and every
@@ -133,6 +133,15 @@ configurations receive `unitTestsEnabled: true` and `lintEnabled: false`.
 After migration, change only those two values in place and commit the
 configuration; there are no `init` or `upgrade` flags for these policies.
 
+Upgrading a healthy `0.7.0` installation removes the exact managed Superpowers
+v6.2.0 plugin reference that the older Orchestrator added. Upgrade rebuilds the
+OpenCode merge from the verified original pre-install file, so ownership stays
+bounded: if that exact reference was already present before Orchestrator was
+installed, it remains user-owned and is preserved. Other Superpowers versions,
+plugin entries, options, comments, and configuration fields are not silently
+removed. Version `0.8.0` instead registers its five package-local,
+`android-orchestrator-*` workflow skills through the OpenCode `config` hook.
+
 The command refuses:
 
 - a downgrade or malformed semantic version;
@@ -150,8 +159,9 @@ the source of drift and use the recorded recovery data.
 Run all checks from the detected Git root:
 
 ```sh
-npx @frankzhang2026/opencode-android-orchestrator@0.7.0 doctor .
+npx @frankzhang2026/opencode-android-orchestrator@0.8.0 doctor .
 opencode debug config
+opencode debug skill
 opencode debug agent scheduled-planner
 opencode debug agent scheduled-coder
 opencode debug agent scheduled-reviewer
@@ -163,7 +173,8 @@ opencode debug agent scheduled-reviewer
 Verify all of the following before switching normal work to the plugin:
 
 - doctor has no failed check;
-- all three agents, five commands, and required skills are discoverable;
+- all three agents, five commands, three scheduled-quality skills, and five
+  `android-orchestrator-*` workflow skills are discoverable;
 - both read-only custom tools resolve for the scheduled agents;
 - the Shell suite ends with `1..44`;
 - shadow output contains `"mutationPerformed": false`;

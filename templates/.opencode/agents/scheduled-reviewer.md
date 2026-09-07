@@ -54,9 +54,8 @@ permission:
   list: allow
   skill:
     "*": deny
-    "using-superpowers": allow
     "scheduled-quality-reviewer": allow
-    "verification-before-completion": allow
+    "android-orchestrator-verification-before-completion": allow
   schedule_job: deny
   list_jobs: deny
   get_version: deny

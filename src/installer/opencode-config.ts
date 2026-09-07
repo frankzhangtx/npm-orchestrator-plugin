@@ -15,15 +15,12 @@ import {
 
 export const ORCHESTRATOR_PACKAGE_NAME =
   "@frankzhang2026/opencode-android-orchestrator";
-export const ORCHESTRATOR_PACKAGE_VERSION = "0.7.0";
+export const ORCHESTRATOR_PACKAGE_VERSION = "0.8.0";
 export const ORCHESTRATOR_PLUGIN_REFERENCE =
   `${ORCHESTRATOR_PACKAGE_NAME}@${ORCHESTRATOR_PACKAGE_VERSION}`;
 export const OPENCODE_CONFIG_SCHEMA_URL =
   "https://opencode.ai/config.json";
-export const SUPERPOWERS_PLUGIN_REFERENCE =
-  "superpowers@git+https://github.com/obra/superpowers.git#v6.2.0";
 export const REQUIRED_PLUGIN_REFERENCES = [
-  SUPERPOWERS_PLUGIN_REFERENCE,
   ORCHESTRATOR_PLUGIN_REFERENCE,
 ] as const;
 

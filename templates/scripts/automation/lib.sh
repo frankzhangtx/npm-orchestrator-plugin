@@ -111,7 +111,7 @@ automation_validate_config() {
             length > 0 and
             length == (unique | length) and
             all(.[]; gradle_task);
-        .schemaVersion == 3 and
+        .schemaVersion == 4 and
         (.enabled | type == "boolean") and
         (.mode == "shadow" or .mode == "orchestrated") and
         (.workspaceStrategy == "inPlaceExclusive" or .workspaceStrategy == "isolatedWorktree") and
@@ -130,8 +130,6 @@ automation_validate_config() {
         (.approvalPhrases.acceptance | type == "string" and length >= 4) and
         (.approvalPhrases.abort | type == "string" and length >= 4) and
         (.approvalPhrases.resume | type == "string" and length >= 4) and
-        (.plugins | type == "object" and keys == ["superpowers"]) and
-        (.plugins.superpowers | type == "string" and length > 0) and
         (.requiredSkills | type == "array" and length >= 6) and
         (.gradleVerification as $verification |
             ($verification | type == "object") and

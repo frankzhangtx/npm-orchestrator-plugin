@@ -1,7 +1,7 @@
 # Troubleshooting
 
 Use this guide for
-`@frankzhang2026/opencode-android-orchestrator@0.7.0`.
+`@frankzhang2026/opencode-android-orchestrator@0.8.0`.
 
 ## Start with read-only evidence
 
@@ -11,7 +11,7 @@ From the repository root, capture:
 git status --short --branch
 git rev-parse HEAD
 opencode --version
-npx @frankzhang2026/opencode-android-orchestrator@0.7.0 doctor . --json
+npx @frankzhang2026/opencode-android-orchestrator@0.8.0 doctor . --json
 ```
 
 If installation never completed, doctor will correctly report a missing or
@@ -50,6 +50,8 @@ remain human-readable on stderr with a stable code such as `[FILE_CONFLICT]`.
 | Invalid `--long-command-timeout-ms` | The value is not an integer from `120000` through `7200000`. | Use the `1800000` ms default or pass an intentional bounded value to `init`/`upgrade`; do not edit the generated config directly. |
 | Android SDK failure | No valid explicit SDK, `ANDROID_HOME`, `ANDROID_SDK_ROOT`, or `local.properties` `sdk.dir` was found. | Configure one real SDK root containing `platforms/` and `build-tools/`. Do not publish `local.properties`. |
 | Missing `git`, `jq`, `rg`, `shasum`, or Java | Required deterministic command is unavailable on `PATH`. | Install or restore the missing command, record its version, and rerun the read-only checks. |
+| `Bundled Orchestrator skill is unavailable` | The installed `0.8.0` package is incomplete, damaged, or loaded from an unsupported partial copy. | Reinstall the exact package, inspect its `resources/third-party/superpowers-v6.2.0/skills/` entries, restart OpenCode, and rerun `opencode debug skill`. Do not add an external Superpowers plugin as a fallback. |
+| The exact Superpowers v6.2.0 plugin remains after upgrade | That entry existed in the verified pre-install OpenCode file and is therefore user-owned. | Leave it in place or remove it as a separate reviewed configuration change. Upgrade only removes the old Orchestrator-managed entry. |
 
 Version `0.6.0` always passes `--no-configuration-cache` to its temporary
 Gradle task-discovery invocation. This overrides a repository-level
@@ -62,7 +64,7 @@ least `1800000` milliseconds. A higher timeout already supplied by the caller
 is preserved; unrelated Bash commands are unchanged. To configure one hour,
 run `upgrade . --long-command-timeout-ms 3600000` on a healthy installation.
 If a command still reports `120000 ms`, confirm that the project manifest and
-OpenCode plugin reference are both `0.7.0`, restart the OpenCode session so the
+OpenCode plugin reference are both `0.8.0`, restart the OpenCode session so the
 plugin reloads, and rerun doctor before attempting recovery.
 
 After installation, inspect OpenCode discovery separately:
@@ -75,8 +77,9 @@ opencode debug agent scheduled-coder
 opencode debug agent scheduled-reviewer
 ```
 
-Then run `./scripts/automation/preflight.sh --source`. It validates pinned
-plugins, required skills, agent permissions, and both read-only custom tools.
+Then run `./scripts/automation/preflight.sh --source`. It validates resolved
+configuration, required bundled and project skills, agent permissions, and
+both read-only custom tools.
 If it fails, preserve its exact output. Do not broaden an agent's default-deny
 permissions to make discovery pass.
 

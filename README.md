@@ -13,7 +13,9 @@ discovery reliable in repositories that enable Gradle Configuration Cache by
 disabling the cache only for the temporary discovery invocation.
 Version `0.7.0` adds repository-configured unit-test and lint verification
 policies, while retaining the configurable 30-minute timeout and bounded
-baseline-capture recovery path.
+baseline-capture recovery path. Version `0.8.0` bundles the five workflow
+skills used by the scheduled agents, registers them from the installed npm
+package, and removes the runtime GitHub/Superpowers plugin dependency.
 
 ## Documentation
 
@@ -23,8 +25,8 @@ baseline-capture recovery path.
   drift, OpenCode discovery, blocked tasks, and recovery evidence.
 - [Security model](docs/SECURITY.md) — trust boundaries, approval guarantees,
   file/Git protections, retained evidence, and residual risks.
-- [Third-party notices](THIRD_PARTY_NOTICES.md) — runtime, peer, external
-  companion, and development-only dependency relationships and licenses.
+- [Third-party notices](THIRD_PARTY_NOTICES.md) — runtime, peer, bundled
+  derivative, and development-only dependency relationships and licenses.
 
 ## Requirements
 
@@ -48,8 +50,8 @@ project builds retain their configured cache behavior.
 ## Quick start
 
 ```sh
-npx @frankzhang2026/opencode-android-orchestrator@0.7.0 init .
-npx @frankzhang2026/opencode-android-orchestrator@0.7.0 doctor .
+npx @frankzhang2026/opencode-android-orchestrator@0.8.0 init .
+npx @frankzhang2026/opencode-android-orchestrator@0.8.0 doctor .
 opencode --agent scheduled-planner .
 ```
 
@@ -59,7 +61,7 @@ a task contract without selecting a primary module. To intentionally restrict
 generated contracts to one module, opt into primary-module scope:
 
 ```sh
-npx @frankzhang2026/opencode-android-orchestrator@0.7.0 init . \
+npx @frankzhang2026/opencode-android-orchestrator@0.8.0 init . \
   --module-scope primary \
   --primary-module :mobile
 ```
@@ -79,6 +81,30 @@ with `--no-configuration-cache`, avoiding false empty results after a previous
 cacheable `help` invocation. `--gradle-verification-config` remains available
 only for an intentional nonstandard policy override and is not part of the
 normal quick start.
+
+### Bundled workflow skills
+
+Version `0.8.0` ships namespaced derivatives of the five Superpowers v6.2.0
+workflows that Orchestrator actually uses:
+
+- `android-orchestrator-brainstorming`
+- `android-orchestrator-writing-plans`
+- `android-orchestrator-test-driven-development`
+- `android-orchestrator-systematic-debugging`
+- `android-orchestrator-verification-before-completion`
+
+The plugin's compatible `config` hook registers their package-local directory
+with OpenCode. Project configuration therefore pins only the exact
+Orchestrator package. There is no `using-superpowers` bootstrap, runtime GitHub
+fetch, localhost brainstorming server, browser launcher, remote image, or
+telemetry path. Once npm has installed the Orchestrator package, skill
+discovery itself is offline.
+
+An upgrade reconstructs `opencode.json`/`opencode.jsonc` from the verified
+pre-install backup. The old exact Superpowers v6.2.0 reference disappears only
+when an earlier Orchestrator installation added it; a reference that already
+existed before Orchestrator was installed remains user-owned and is preserved.
+See the [migration guide](docs/MIGRATION.md) for the exact boundary.
 
 ### Configurable unit-test and lint verification
 
@@ -190,11 +216,12 @@ Gradle-task discovery and safe allowlist bootstrapping during `init`; version
 `0.6.0` makes discovery independent of the target project's Configuration
 Cache setting, `0.6.1` adds configurable long-command timeouts plus bounded
 baseline-interruption recovery, and `0.7.0` makes unit-test and lint gates
-repository-configurable.
+repository-configurable. Version `0.8.0` moves the five required workflow
+skills into the npm package and removes their external plugin dependency.
 
 The cross-version plugin entry, OpenCode version doctor, Android/Gradle project
-discovery, audited V3 resources, and all deterministic V3 Shell transactions
-are implemented. Read-only planning now renders project-relative automation
+discovery, audited V4 OpenCode/configuration resources, and all deterministic
+V3 Shell transactions are implemented. Read-only planning now renders project-relative automation
 configuration and a focused task example from the detected Android modules.
 Safe, comment-preserving OpenCode JSON/JSONC merge planning is also implemented.
 The installation transaction foundation now creates verified pre-install
@@ -223,7 +250,9 @@ Implemented checks include:
   and lint execution controlled independently by repository policy
 - a plugin compatibility boundary restricted to API fields and hooks shared
   by both certified OpenCode versions
-- project-independent templates for the three V3 agents, five commands, and
+- package-local registration of five namespaced workflow skills, with the
+  required supporting files and upstream MIT license/provenance
+- project-independent templates for the three V4 agents, five commands, and
   three scheduled-quality skills
 - all 29 automation Bash files with their `0755` modes; scope and test-change
   gates consume detected source-set paths instead of a fixed module name
@@ -237,7 +266,7 @@ Implemented checks include:
   shipped templates
 - read-only `opencode.json`/`opencode.jsonc` merge planning that preserves
   existing fields, comments, plugin order, and plugin options while adding
-  fixed Superpowers and orchestrator references
+  only the fixed Orchestrator reference
 - conflict guards for malformed or ambiguous configuration, duplicate plugin
   packages, different managed-plugin references, and symbolic links
 - a fail-closed installation preparation transaction that records package
@@ -331,7 +360,7 @@ preparation alone as resource installation;
 ## Init
 
 ```sh
-npx @frankzhang2026/opencode-android-orchestrator@0.7.0 init .
+npx @frankzhang2026/opencode-android-orchestrator@0.8.0 init .
 opencode --agent scheduled-planner .
 ```
 
@@ -390,7 +419,7 @@ Installation checks are deliberately read-only and cover:
 - each managed file's SHA-256, size, and mode, including all 29 executable
   automation scripts;
 - every original-file backup required for future recovery;
-- pinned OpenCode and Superpowers references, the exact bounded AGENTS block,
+- the pinned OpenCode Orchestrator reference, the exact bounded AGENTS block,
   and adaptive automation/task configuration against the currently detected
   Android modules.
 
@@ -423,7 +452,7 @@ preflight verifies both resolved permissions and tool discovery.
 ### Phase 2 mutating-tool decision
 
 The 2026-08-25 evaluation remains **NO-GO for mutating custom tools in
-`0.7.0`**.
+`0.8.0`**.
 The fixed Shell allowlist remains the only entry point for state transitions,
 Git mutations, and agent launches. OpenCode custom tools provide typed arguments
 and workspace context, but a normal permission prompt is not the workflow's
@@ -533,6 +562,7 @@ diagnostic APIs are available from
 ```sh
 npm run typecheck
 npm test
+npm run test:offline-discovery
 npm run pack:check
 ```
 
@@ -541,5 +571,6 @@ npm run pack:check
 This project is available under the [MIT License](LICENSE). Third-party
 software is licensed by its respective owners; see
 [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md) for dependency scope,
-copyright notices, and license texts. Superpowers is referenced as a pinned
-external plugin and is not bundled into this package.
+copyright notices, and license texts. The five adapted Superpowers v6.2.0
+workflow skills and their required support files are bundled with the upstream
+MIT license and provenance record.

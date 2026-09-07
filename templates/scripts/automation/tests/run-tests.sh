@@ -110,7 +110,7 @@ printf '%s\n' \
 chmod +x "$fixture/gradlew"
 
 jq -n '{
-    schemaVersion: 3,
+    schemaVersion: 4,
     enabled: true,
     mode: "orchestrated",
     workspaceStrategy: "inPlaceExclusive",
@@ -131,18 +131,15 @@ jq -n '{
         abort: "中止任务，封存修改并恢复原分支。",
         resume: "恢复任务，重新捕获基线并继续自动执行。"
     },
-    plugins: {
-        superpowers: "superpowers@git+https://github.com/obra/superpowers.git#v6.2.0"
-    },
     requiredSkills: [
-        "brainstorming",
-        "writing-plans",
+        "android-orchestrator-brainstorming",
+        "android-orchestrator-writing-plans",
         "scheduled-quality-orchestrator",
         "scheduled-quality-coder",
         "scheduled-quality-reviewer",
-        "test-driven-development",
-        "systematic-debugging",
-        "verification-before-completion"
+        "android-orchestrator-test-driven-development",
+        "android-orchestrator-systematic-debugging",
+        "android-orchestrator-verification-before-completion"
     ],
     gradleVerification: {
         fullUnitTestTasks: ["testDebugUnitTest"],
@@ -195,7 +192,7 @@ jq -n '{
 }' > "$fixture/automation/config.json"
 
 jq -n '{
-    schemaVersion: 1,
+    schemaVersion: 2,
     id: "TASK-TEST-001",
     title: "Add an observable greeting behavior",
     designApproved: true,
@@ -227,10 +224,10 @@ jq -n '{
         "**/build.gradle.kts",
         "mobile-client/build.gradle.kts"
     ],
-    allowedSuperpowers: [
-        "test-driven-development",
-        "systematic-debugging",
-        "verification-before-completion"
+    allowedWorkflowSkills: [
+        "android-orchestrator-test-driven-development",
+        "android-orchestrator-systematic-debugging",
+        "android-orchestrator-verification-before-completion"
     ],
     acceptanceCriteria: ["Greeting returns the approved value"],
     nonGoals: ["No unrelated refactoring"],

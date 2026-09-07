@@ -92,10 +92,12 @@ test("renders portable configuration and a focused task example from Kotlin proj
     assert.equal(plan.automationConfig.lintEnabled, true);
     assert.equal(plan.automationConfig.unitTestsEnabled, false);
     assert.equal(plan.automationConfig.longCommandTimeoutMs, 3_600_000);
-    assert.deepEqual(plan.automationConfig.plugins, {
-      superpowers:
-        "superpowers@git+https://github.com/obra/superpowers.git#v6.2.0",
-    });
+    assert.equal(Object.hasOwn(plan.automationConfig, "plugins"), false);
+    assert.ok(
+      plan.automationConfig.requiredSkills.includes(
+        "android-orchestrator-brainstorming",
+      ),
+    );
     assert.deepEqual(
       plan.automationConfig.gradleVerification,
       gradleVerification,

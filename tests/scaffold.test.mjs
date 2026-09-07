@@ -1,11 +1,13 @@
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import test from "node:test";
 
 import plugin, {
+  BUNDLED_SKILLS_DIRECTORY,
+  BUNDLED_SKILL_IDS,
   CERTIFIED_OPENCODE_VERSIONS,
   COMMON_HOOK_NAMES,
   DEFAULT_LONG_COMMAND_TIMEOUT_MS,
@@ -40,6 +42,7 @@ test("exports a loadable OpenCode plugin using only common hooks", async () => {
   });
 
   assert.deepEqual(Object.keys(hooks), [
+    "config",
     "tool",
     "shell.env",
     "tool.execute.before",
@@ -49,8 +52,16 @@ test("exports a loadable OpenCode plugin using only common hooks", async () => {
     ORCHESTRATOR_DOCTOR_TOOL_NAME,
   ]);
   assert.ok(COMMON_HOOK_NAMES.includes("tool"));
+  assert.ok(COMMON_HOOK_NAMES.includes("config"));
   assert.ok(COMMON_HOOK_NAMES.includes("shell.env"));
   assert.ok(Object.keys(hooks).every((name) => COMMON_HOOK_NAMES.includes(name)));
+
+  const config = {};
+  await hooks.config(config);
+  await hooks.config(config);
+  assert.deepEqual(config.skills.paths, [BUNDLED_SKILLS_DIRECTORY]);
+  assert.equal(existsSync(BUNDLED_SKILLS_DIRECTORY), true);
+  assert.equal(BUNDLED_SKILL_IDS.length, 5);
 
   const output = { env: {} };
   await hooks["shell.env"]({ cwd: process.cwd() }, output);

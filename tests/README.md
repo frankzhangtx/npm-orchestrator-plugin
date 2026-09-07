@@ -3,14 +3,14 @@
 The current suite covers the shared OpenCode plugin API boundary, semantic
 version compatibility, doctor reporting, Kotlin and Groovy Gradle projects,
 project names, namespaces/application IDs, multi-module discovery, custom
-module directories, negative discovery, and the audited V3 template inventory,
+module directories, negative discovery, and the audited V4 OpenCode template inventory,
 hashes, modes, portability constraints, and Bash syntax. It also covers
 read-only adaptive configuration rendering, primary-module selection and
 ambiguity guards, repository-relative output, and lossless JSON/JSONC plugin
 merging, idempotence,
-fixed references, plugin options, CRLF/tab preservation, malformed input,
+the fixed Orchestrator reference, plugin options, CRLF/tab preservation, malformed input,
 duplicates, version conflicts, ambiguous config files, and symbolic links. The
-infrastructure resource suite additionally locks the portable V3 configuration
+infrastructure resource suite additionally locks the portable V4 configuration
 source, Schemas, task example, plan guide, and bounded AGENTS managed block. The
 44-case Shell transaction suite runs against a non-default module path and
 verifies dynamic production/test scope classification.
@@ -58,6 +58,13 @@ expressions for the fixed script and task ID, fail-closed command and JSON
 handling, the 1 MiB output bound, and unchanged filesystem state when an
 installation is untrusted. Template tests also require explicit access to both
 read-only tools for every scheduled agent.
+
+The bundled-skill and package-content suites lock the five namespaced entry
+points, required support files, executable mode, upstream license/provenance,
+and exact npm tarball resource inventory. Run `npm run test:offline-discovery`
+to launch the locally built plugin with isolated OpenCode data/configuration and
+prove that all five skills are discoverable without the external Superpowers
+plugin or network access.
 
 The documentation suite locks the packaged migration, troubleshooting, and
 security inventory; verifies every local Markdown link; requires fixed-version

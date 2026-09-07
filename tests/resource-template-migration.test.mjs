@@ -10,19 +10,19 @@ const templatesRoot = fileURLToPath(new URL("../templates/", import.meta.url));
 const expectedBaselineHashes = new Map([
   [
     "automation/config.json",
-    "0d1412f68fc74399b5f64a269f8408a799d70a918314ede55480baa0e103a85d",
+    "809ff293288b79b58cacf8df4b928affd1c529c03d65b275c8d255a6250bff61",
   ],
   [
     "automation/config.schema.json",
-    "0e05fd74928f7ec43dfeabe411f218ea4c7ebc1a6a54a355119578f2460d68fd",
+    "89de2fee77bda5ca8885c39995b582c16e52b776332a5960e179338205d17203",
   ],
   [
     "automation/task-contract.schema.json",
-    "3399b9ab137805fdf58324961f02bfeee5b4e5421cbfb4494483ba3a6af13121",
+    "a9a37446396b2583c95b72c8c21e23ba668aecbeb29b2bd25b2b6268a269c8a8",
   ],
   [
     "automation/tasks/TASK-TEMPLATE.json.example",
-    "f85aa38f761d9a45cab9c8210a78c2c84c3ac2862960aa88a08ca9631f07290e",
+    "754f627040ee8e7ead08e8e5e1a4853564cae74e89732c600fde0fc390e4d07e",
   ],
   [
     "docs/plans/README.md",
@@ -71,7 +71,7 @@ test("ships the complete non-historical infrastructure template inventory", () =
   assert.deepEqual(actualPaths, expectedPaths);
 });
 
-test("locks the portable V3 infrastructure resources and file modes", () => {
+test("locks the portable V4 infrastructure resources and file modes", () => {
   for (const [relativePath, expectedHash] of expectedBaselineHashes) {
     const absolutePath = join(templatesRoot, relativePath);
     assert.equal(sha256(relativePath), expectedHash, relativePath);
@@ -161,7 +161,7 @@ test("keeps configuration, schemas, and contract example structurally aligned", 
     lintTasks: ["lint"],
     deviceTestTasks: ["connectedDebugAndroidTest"],
   });
-  assert.deepEqual(configSchema.properties.plugins.required, ["superpowers"]);
+  assert.equal(Object.hasOwn(configSchema.properties, "plugins"), false);
 });
 
 test("keeps the render sources project-independent and Scheduler-free", () => {
@@ -179,17 +179,14 @@ test("keeps the render sources project-independent and Scheduler-free", () => {
     )
     .join("\n");
 
-  assert.deepEqual(config.plugins, {
-    superpowers:
-      "superpowers@git+https://github.com/obra/superpowers.git#v6.2.0",
-  });
+  assert.equal(Object.hasOwn(config, "plugins"), false);
   assert.equal(
     configSchema.$id,
-    "urn:frankzhang2026:opencode-android-orchestrator:automation-config:v3",
+    "urn:frankzhang2026:opencode-android-orchestrator:automation-config:v4",
   );
   assert.equal(
     contractSchema.$id,
-    "urn:frankzhang2026:opencode-android-orchestrator:task-contract:v1",
+    "urn:frankzhang2026:opencode-android-orchestrator:task-contract:v2",
   );
   assert.deepEqual(contractExample.allowedPaths, [
     "**/src/main/**",

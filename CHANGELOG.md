@@ -1,6 +1,25 @@
 # Changelog
 
-## 0.7.0 - Unreleased
+## 0.8.0 - Unreleased
+
+- Bundle curated, namespaced derivatives of the five Superpowers v6.2.0
+  workflow skills used by Orchestrator, together with only their required
+  references/scripts and the upstream MIT license and provenance.
+- Register the bundled skill directory through the certified OpenCode `config`
+  hook, while failing clearly if a packaged skill entry point is missing.
+- Remove the external GitHub-backed Superpowers plugin from new installations,
+  Agent permissions, preflight checks, and automation configuration.
+- Advance automation configuration to schema v4 and new task contracts to
+  schema v2 with `allowedWorkflowSkills`; retain validation for sealed legacy
+  v1 task contracts during an in-place upgrade.
+- Reconstruct upgrades from the verified pre-install OpenCode configuration so
+  the old exact Orchestrator-managed Superpowers reference is removed while a
+  pre-existing user-owned reference remains untouched.
+- Add bundled-inventory, package-tarball, upgrade-ownership, and real offline
+  OpenCode skill-discovery coverage, and exclude the former brainstorming
+  localhost/browser companion from the package.
+
+## 0.7.0 - 2026-09-03
 
 - Make unit-test and Android lint gates explicit, repository-configured
   policies. `unitTestsEnabled` defaults to `true`, `lintEnabled` defaults to

@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "urn:frankzhang2026:opencode-android-orchestrator:task-contract:v1",
+  "$id": "urn:frankzhang2026:opencode-android-orchestrator:task-contract:v2",
   "title": "Scheduled coding task contract",
   "type": "object",
   "additionalProperties": false,
@@ -27,7 +27,7 @@
     "maxChangedFiles",
     "allowedPaths",
     "forbiddenPaths",
-    "allowedSuperpowers",
+    "allowedWorkflowSkills",
     "acceptanceCriteria",
     "nonGoals",
     "targetTests",
@@ -35,7 +35,7 @@
     "testPolicy"
   ],
   "properties": {
-    "schemaVersion": { "const": 1 },
+    "schemaVersion": { "const": 2 },
     "id": { "type": "string", "pattern": "^TASK-[A-Z0-9-]+$" },
     "title": { "type": "string", "minLength": 1 },
     "designApproved": { "const": true },
@@ -53,12 +53,12 @@
       "minItems": 1,
       "items": { "type": "string", "minLength": 1 }
     },
-    "allowedSuperpowers": {
+    "allowedWorkflowSkills": {
       "type": "array",
       "const": [
-        "test-driven-development",
-        "systematic-debugging",
-        "verification-before-completion"
+        "android-orchestrator-test-driven-development",
+        "android-orchestrator-systematic-debugging",
+        "android-orchestrator-verification-before-completion"
       ]
     },
     "acceptanceCriteria": {

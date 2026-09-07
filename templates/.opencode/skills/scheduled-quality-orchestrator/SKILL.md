@@ -20,7 +20,8 @@ approvals; state files, hashes, tests, and Git checks grant execution.
    If `ANDROID_HOME` is missing, the working tree is dirty, the branch is detached,
    Git identity is missing, or OpenCode discovery is unsafe, report the exact
    blocker and stop.
-2. Use brainstorming and writing-plans to produce one bounded proposal. After
+2. Use `android-orchestrator-brainstorming` and
+   `android-orchestrator-writing-plans` to produce one bounded proposal. After
    displaying it, immediately call `question` once with `multiple: false` and
    `custom: false`:
 

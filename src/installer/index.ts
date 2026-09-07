@@ -139,7 +139,6 @@ export {
   ORCHESTRATOR_PLUGIN_REFERENCE,
   OPENCODE_CONFIG_SCHEMA_URL,
   REQUIRED_PLUGIN_REFERENCES,
-  SUPERPOWERS_PLUGIN_REFERENCE,
   OpenCodeConfigMergeError,
   mergeOpenCodeConfigText,
   planOpenCodeConfigMerge,

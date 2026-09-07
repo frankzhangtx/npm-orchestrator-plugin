@@ -127,9 +127,6 @@ else
     if ! automation_resolve_opencode_config "$discovery_dir/config.json" "$discovery_dir/config.err"; then
         automation_die "OpenCode resolved config failed; see $discovery_dir/config.err"
     fi
-    superpowers_pin="$(jq -r '.plugins.superpowers' "$AUTOMATION_CONFIG")"
-    rg -F "$superpowers_pin" "$discovery_dir/config.json" >/dev/null || automation_die "resolved OpenCode config is missing pinned Superpowers"
-
     if ! opencode debug skill > "$discovery_dir/skills.txt" 2> "$discovery_dir/skills.err"; then
         automation_die "OpenCode skill discovery failed; see $discovery_dir/skills.err"
     fi

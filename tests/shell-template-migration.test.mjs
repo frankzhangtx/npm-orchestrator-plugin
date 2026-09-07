@@ -55,7 +55,7 @@ const expectedHashes = new Map([
   ],
   [
     "scripts/automation/lib.sh",
-    "2d85dab8f52d1bd0bad9e868b8573b70f192bbe16673c5bf451843bee013198c",
+    "806984052d40d584d4e67b96b45dbe72d9f88b75d02ee8fde61c07f62177ade6",
   ],
   [
     "scripts/automation/orchestrate-task.sh",
@@ -63,7 +63,7 @@ const expectedHashes = new Map([
   ],
   [
     "scripts/automation/preflight.sh",
-    "e04531b02530616632026b63e803be4764813d2d4a1469d1ea277e91f5190e08",
+    "1cb3938ae49b9d39a2ebbbcf3ae5a06c9788085a742bf70f250f80575e0abbc8",
   ],
   [
     "scripts/automation/prepare-contract-review.sh",
@@ -119,7 +119,7 @@ const expectedHashes = new Map([
   ],
   [
     "scripts/automation/tests/run-tests.sh",
-    "c2131184591888c372fe776d290f495abc3c775d4196f71d31781eaf02a51001",
+    "1ad54eafa915e9bcdbe5a489bbcab385c348fcd1674355cca7f640595fad5cb5",
   ],
   [
     "scripts/automation/transition-state.sh",
@@ -127,7 +127,7 @@ const expectedHashes = new Map([
   ],
   [
     "scripts/automation/validate-contract.sh",
-    "bc0f1e62be119b8bf3907f17b1787bb6c85906d8bcdb4cf1fb9ab0a9ed2836e1",
+    "762936699efb3a99345ad1d05bff05b8668ce022b166e3224783734120260200",
   ],
   [
     "scripts/automation/verify-integration.sh",

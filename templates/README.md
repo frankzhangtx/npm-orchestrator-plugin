@@ -14,7 +14,7 @@ Migrated template roots:
 - `.opencode/skills`: the three `scheduled-quality-*` skills
 - `scripts/automation`: all 29 deterministic V3 Bash transactions and their
   test runner, preserved as executable files
-- `automation`: the portable V3 configuration render source, both JSON Schemas,
+- `automation`: the portable V4 configuration render source, both JSON Schemas,
   and the task contract example
 - `docs/plans/README.md`: the human-approved plan authoring contract
 - `AGENTS.md.fragment`: a bounded managed block for non-destructive
@@ -50,7 +50,11 @@ resource manifest so its exact-path entries can change without causing package
 integrity drift; failed first-install verification removes a newly bootstrapped
 file during rollback.
 
-The legacy Scheduler field has been removed while Superpowers remains pinned.
+The legacy Scheduler field and external Superpowers plugin dependency have
+been removed. Five namespaced workflow skills are loaded directly from the
+Orchestrator npm package; the optional Superpowers browser companion is not
+distributed.
+
 The scope gates consume generated source-set arrays, and the Shell test fixture
 uses a neutral custom module and package. No shipped template contains a local
 absolute path or project-specific package name.

@@ -1,6 +1,6 @@
 {
   "name": "@frankzhang2026/opencode-android-orchestrator",
-  "version": "0.7.0",
+  "version": "0.8.0",
   "description": "Reusable OpenCode orchestration for Android projects",
   "license": "MIT",
   "author": "frankzhang2026",
@@ -31,6 +31,7 @@
   "files": [
     "dist/",
     "docs/",
+    "resources/",
     "templates/",
     "README.md",
     "CHANGELOG.md",
@@ -45,6 +46,7 @@
     "build": "tsc -p tsconfig.json",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "test": "npm run build && node --test tests/*.test.mjs",
+    "test:offline-discovery": "npm run build && node --test tests/offline-skill-discovery.integration.mjs",
     "pack:check": "npm pack --dry-run",
     "prepack": "npm run build"
   },

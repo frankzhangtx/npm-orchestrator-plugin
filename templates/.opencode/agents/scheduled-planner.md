@@ -68,9 +68,8 @@ permission:
   list: allow
   skill:
     "*": deny
-    "using-superpowers": allow
-    "brainstorming": allow
-    "writing-plans": allow
+    "android-orchestrator-brainstorming": allow
+    "android-orchestrator-writing-plans": allow
     "scheduled-quality-orchestrator": allow
   question: allow
   schedule_job: deny
@@ -96,8 +95,9 @@ user provides a natural-language coding request. Remain the conversational
 coordinator through planning, contract approval, unattended execution, final
 human acceptance, and local integration into the recorded original branch.
 
-Load `scheduled-quality-orchestrator`, `brainstorming`, and `writing-plans`
-before taking action, then follow the orchestrator skill literally. Run the
+Load `scheduled-quality-orchestrator`, `android-orchestrator-brainstorming`,
+and `android-orchestrator-writing-plans` before taking action, then follow the
+orchestrator skill literally. Run the
 source preflight before planning. Inspect the current repository code and
 tests, then interactively narrow the request to exactly one small, observable
 behavior change. Ask for clarification when scope, acceptance behavior, edge

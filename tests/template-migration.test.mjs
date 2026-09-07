@@ -11,15 +11,15 @@ const opencodeTemplateRoot = join(templatesRoot, ".opencode");
 const expectedHashes = new Map([
   [
     ".opencode/agents/scheduled-coder.md",
-    "ff76cddd22aaf5974c7a2b88bb75a4ffce67eb8ab0fdce79f781a7e7d8203d45",
+    "0ddbae54fea9763fa04003ec2e5b08f658334f8b5d1555bcbcf4302db721a90f",
   ],
   [
     ".opencode/agents/scheduled-planner.md",
-    "d47c9c6e1c50e71003560fa70013cea5a91485b571a46b6149b48e520e85a06d",
+    "d55303927ee5bbb2fc73f90930b36368a0893473fb072916f0f2052e50135807",
   ],
   [
     ".opencode/agents/scheduled-reviewer.md",
-    "a681c0d0c7ee34a039ed7ff28c962c04e0818237e554f5ddf61b7ae447fa5f49",
+    "47f3f83eab2d7d96b483f34f90fbd2847f9d5d67c4b9d382f5273ea740a3f7ca",
   ],
   [
     ".opencode/commands/abort-task.md",
@@ -43,15 +43,15 @@ const expectedHashes = new Map([
   ],
   [
     ".opencode/skills/scheduled-quality-coder/SKILL.md",
-    "882a45d9f1a4d144202bda0e372170c6d3f008f3196d386d827b06d5e33cbb4a",
+    "79a212f551af2181fd922ea05573d38ad7fd9281a21b3db56ef9b51501884b16",
   ],
   [
     ".opencode/skills/scheduled-quality-orchestrator/SKILL.md",
-    "291dd653e4dd7db833cde47d49aaf8fe8e4d6e7779f8c9400fa2aa4f8f21c907",
+    "649a5b34e5cffa390456e755f4e6723498c1ea4b625dd50e7dc1e5ada239790d",
   ],
   [
     ".opencode/skills/scheduled-quality-reviewer/SKILL.md",
-    "11473d32863f717780eff97380ea100a922a8e14479fbe106c9283f44cb67e1e",
+    "7657ad3cf1d1a8b1ad557b94f4ee4c2701dc2a51d49b80cc59a4dd8354a81c80",
   ],
 ]);
 
@@ -66,7 +66,7 @@ function templatePath(path) {
   return relative(templatesRoot, path).split(sep).join("/");
 }
 
-test("ships the exact audited OpenCode V3 agent, command, and skill inventory", () => {
+test("ships the exact audited OpenCode V4 agent, command, and skill inventory", () => {
   const actualPaths = listFiles(opencodeTemplateRoot)
     .map(templatePath)
     .sort();
@@ -74,7 +74,7 @@ test("ships the exact audited OpenCode V3 agent, command, and skill inventory", 
   assert.deepEqual(actualPaths, [...expectedHashes.keys()].sort());
 });
 
-test("preserves the audited V3 template bytes and non-executable modes", () => {
+test("preserves the audited V4 template bytes and non-executable modes", () => {
   for (const [path, expectedHash] of expectedHashes) {
     const absolutePath = join(templatesRoot, path);
     const contents = readFileSync(absolutePath);

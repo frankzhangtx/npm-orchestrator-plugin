@@ -1,9 +1,9 @@
 # Security model
 
 This document describes the security properties of
-`@frankzhang2026/opencode-android-orchestrator@0.7.0`. The lifecycle foundation
+`@frankzhang2026/opencode-android-orchestrator@0.8.0`. The lifecycle foundation
 completed the real OpenCode `1.14.22` and `1.15.13` release matrix in `0.2.0`;
-`0.7.0` retains that compatibility boundary.
+`0.8.0` retains that compatibility boundary.
 
 ## Security goals and non-goals
 
@@ -53,7 +53,7 @@ modify local files; this package does not claim to protect against that actor.
 
 OpenCode permission prompts are also not semantic workflow approval. They can
 be accepted for the remainder of a session and may be auto-approved. For that
-reason `0.7.0` exposes only `android_orchestrator_status` and
+reason `0.8.0` exposes only `android_orchestrator_status` and
 `android_orchestrator_doctor` as custom tools. State-changing wrappers remain a
 NO-GO until a one-use, non-model-forgeable receipt can bind the approval kind,
 task, session/message, sealed SHA or branch, time, and nonce.
@@ -90,6 +90,13 @@ for a fixed list of direct managed long-running scripts. Its generated config
 value is an integer from `120000` through `7200000` milliseconds, defaults to
 `1800000`, never shortens a larger caller timeout, and does not rewrite the
 command or authorize a state change.
+
+The five namespaced bundled workflow skills are loaded from a fixed directory
+inside the installed npm package. The compatible `config` hook only appends
+that directory to `skills.paths`, and plugin startup verifies that every
+expected `SKILL.md` is a regular file. The package omits the upstream
+`using-superpowers` bootstrap, localhost/browser companion, remote branding,
+telemetry, and unrelated skills.
 
 ## Filesystem and configuration safety
 
@@ -196,14 +203,16 @@ surface. Review them before running a workflow in an untrusted project.
 
 ## Dependencies and network behavior
 
-Use fixed package references. The installer adds the exact orchestrator
-version and the configured pinned Superpowers Git tag; it does not use
-`latest`. The package is compiled against `@opencode-ai/plugin@1.14.22` and
+Use fixed package references. The installer adds only the exact Orchestrator
+version; it does not use `latest` or install a GitHub-backed Superpowers
+plugin. The five required Superpowers-derived skills and their supporting
+files are part of the reviewed npm tarball with the upstream MIT license and
+provenance. The package is compiled against `@opencode-ai/plugin@1.14.22` and
 declares the bounded peer range `>=1.14.22 <1.16.0`.
 
 The orchestrator does not contain a telemetry uploader and the deterministic
 Shell flow forbids Git push. Network activity can still occur outside that
-code when npm/npx downloads a package, OpenCode resolves a pinned plugin,
+code when npm/npx downloads a package, OpenCode resolves another configured plugin,
 OpenCode contacts the configured model provider, or project build/test tooling
 uses the network. Apply the host organization's normal npm, Git, OpenCode,
 provider, proxy, certificate, and dependency-review policy.

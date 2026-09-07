@@ -106,13 +106,12 @@ export interface AdaptiveAndroidProjectConfiguration {
 
 export interface AdaptiveAutomationConfiguration {
   readonly [key: string]: unknown;
-  schemaVersion: 3;
+  schemaVersion: 4;
   androidProject: AdaptiveAndroidProjectConfiguration;
   gradleVerification: GradleVerificationConfiguration;
   lintEnabled: boolean;
   unitTestsEnabled: boolean;
   longCommandTimeoutMs: number;
-  plugins: Readonly<{ superpowers: string }>;
   protectedPaths: readonly string[];
 }
 
@@ -123,7 +122,7 @@ export interface AdaptiveTargetTest {
 
 export interface AdaptiveTaskContractExample {
   readonly [key: string]: unknown;
-  schemaVersion: 1;
+  schemaVersion: 2;
   allowedPaths: readonly string[];
   forbiddenPaths: readonly string[];
   targetTests: readonly AdaptiveTargetTest[];

@@ -15,7 +15,7 @@ you review.
 
 ## Mandatory sequence
 
-1. Load `verification-before-completion`.
+1. Load `android-orchestrator-verification-before-completion`.
 2. Require exactly one task ID or the compatibility token
    `NEXT_REVIEWING`. For the selector token, first run
    `./scripts/automation/select-task.sh REVIEWING` and continue only if

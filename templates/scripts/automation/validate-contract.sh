@@ -27,7 +27,7 @@ fi
 jq -e . "$contract" >/dev/null || automation_die "contract is not valid JSON: $contract"
 
 jq -e '
-    .schemaVersion == 1 and
+    (.schemaVersion == 1 or .schemaVersion == 2) and
     (.id | type == "string" and test("^TASK-[A-Z0-9-]+$")) and
     (.title | type == "string" and length > 0) and
     .designApproved == true and
@@ -37,7 +37,12 @@ jq -e '
     (.maxChangedFiles | type == "number" and . >= 1 and . <= 12 and floor == .) and
     (.allowedPaths | type == "array" and length > 0) and
     (.forbiddenPaths | type == "array" and length > 0) and
-    (.allowedSuperpowers == ["test-driven-development", "systematic-debugging", "verification-before-completion"]) and
+    (if .schemaVersion == 1 then
+        .allowedSuperpowers == ["test-driven-development", "systematic-debugging", "verification-before-completion"]
+     else
+        .allowedWorkflowSkills == ["android-orchestrator-test-driven-development", "android-orchestrator-systematic-debugging", "android-orchestrator-verification-before-completion"] and
+        (has("allowedSuperpowers") | not)
+     end) and
     (.acceptanceCriteria | type == "array" and length > 0) and
     (.nonGoals | type == "array" and length > 0) and
     (.targetTests | type == "array" and length > 0 and all(.[];

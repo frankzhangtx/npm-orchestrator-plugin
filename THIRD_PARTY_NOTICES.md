@@ -1,13 +1,13 @@
 # Third-Party Notices
 
-Last reviewed for `0.6.0` on 2026-09-01.
+Last reviewed for `0.8.0` on 2026-09-04.
 
-The published package does not vendor `node_modules`, third-party binaries, or
-third-party Skill source. Its compiled JavaScript imports the direct runtime
-dependency below, declares the OpenCode plugin API as a peer dependency, and
-installs a pinned external Superpowers reference into the target project's
-OpenCode configuration. Those relationships and their upstream notices are
-recorded here.
+The published package does not vendor `node_modules` or third-party binaries.
+Its compiled JavaScript imports the direct runtime dependency below and
+declares the OpenCode plugin API as a peer dependency. A curated,
+Orchestrator-specific derivative of five Superpowers v6.2.0 skills is bundled
+into this package tarball under `resources/third-party/`; its relationship and
+upstream notice are recorded here.
 
 ## jsonc-parser 3.3.1
 
@@ -75,10 +75,14 @@ SOFTWARE.
 
 ## Superpowers v6.2.0
 
-- Relationship: external companion plugin pinned as
-  `superpowers@git+https://github.com/obra/superpowers.git#v6.2.0`. The
-  initializer writes only this reference; Superpowers files are fetched and
-  managed by OpenCode and are not copied into this package tarball.
+- Relationship: selected skill source and required supporting files are
+  bundled into this package tarball, namespaced, and adapted to the sealed
+  Orchestrator workflow. The initializer no longer installs the Superpowers
+  plugin or requires GitHub access. The visual companion, localhost server,
+  browser launcher, remote branding, telemetry, bootstrap, and unrelated
+  skills are excluded. See
+  `resources/third-party/superpowers-v6.2.0/PROVENANCE.md` for the adaptation
+  record.
 - Source: <https://github.com/obra/superpowers/tree/v6.2.0>
 - License: MIT
 - Copyright: 2025 Jesse Vincent
