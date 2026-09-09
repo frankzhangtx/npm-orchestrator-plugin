@@ -107,11 +107,15 @@ export {
   type GradleWrapperDetection,
 } from "./installer/android-project.js";
 export {
+  GRADLE_PROJECT_DISCOVERY_INIT_SCRIPT,
   GRADLE_TASK_DISCOVERY_INIT_SCRIPT,
   GradleVerificationDiscoveryError,
+  discoverGradleProjectConfiguration,
   discoverGradleVerificationConfiguration,
   inferGradleVerificationConfiguration,
+  parseGradleAndroidModules,
   parseGradleTaskPaths,
+  type GradleProjectDiscovery,
   type GradleVerificationDiscoveryErrorCode,
   type GradleVerificationDiscoveryOptions,
   type GradleVerificationProcessOptions,

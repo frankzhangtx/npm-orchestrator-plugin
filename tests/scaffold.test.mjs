@@ -226,7 +226,12 @@ test("CLI exposes upgrade options and rejects an incomplete module selection", (
   assert.match(help.stdout, /--module-scope <all\|primary>/);
   assert.match(help.stdout, /legacy installations default to primary/);
   assert.match(help.stdout, /--primary-module <gradle-path>/);
+  assert.match(help.stdout, /--refresh-gradle-discovery/);
   assert.match(help.stdout, /--gradle-verification-config <json-path>/);
+  assert.match(
+    help.stdout,
+    /rebuild Android modules, source paths, and task allowlists/,
+  );
   assert.doesNotMatch(help.stdout, /--enable-lint|--disable-lint/);
   assert.match(help.stdout, /unit tests enabled and lint disabled/);
   assert.match(help.stdout, /--long-command-timeout-ms <milliseconds>/);

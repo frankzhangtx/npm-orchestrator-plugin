@@ -52,6 +52,8 @@ export class AdaptiveProjectTemplateError extends Error {
 }
 
 export interface AdaptiveProjectTemplateOptions {
+  /** Reuse an authoritative Gradle runtime detection instead of static settings/build parsing. */
+  projectDetection?: AndroidProjectDetection;
   /** Select whether generated task contracts can modify every detected module or one primary module. */
   moduleScope?: ModuleScope;
   /** Select the only editable module in primary scope or the focused-test default in all scope. */
@@ -350,7 +352,8 @@ export function planAdaptiveProjectTemplates(
   targetDirectory: string,
   options: AdaptiveProjectTemplateOptions = {},
 ): AdaptiveProjectTemplatePlan {
-  const detection = detectAndroidProject(targetDirectory);
+  const detection =
+    options.projectDetection ?? detectAndroidProject(targetDirectory);
   if (
     !detection.isAndroidProject ||
     detection.gitRoot === null ||

@@ -1,5 +1,24 @@
 # Changelog
 
+## 0.9.0 - 2026-09-09
+
+- Make Gradle's evaluated project model authoritative for Android module
+  discovery, including modules added by dynamic settings logic, custom project
+  directories, and company convention plugins.
+- Discover module metadata and registered verification task names in one
+  bounded `help --no-configuration-cache` invocation without materializing the
+  large `tasks --all` report.
+- Generate `androidProject.modules`, production/test paths, protected build
+  files, and all Gradle verification task lists from the same runtime snapshot,
+  preventing real tasks such as `:component_me:testDebugUnitTest` from being
+  dropped by a partial static module set.
+- Add `upgrade --refresh-gradle-discovery` to transactionally rebuild derived
+  module/task configuration for older or current installations while
+  preserving the prior task policy when the flag is omitted.
+- Seal refreshed discovery inputs into upgrade consistency checks and add
+  regression coverage for dynamic convention-plugin projects with more than
+  30 Android modules.
+
 ## 0.8.1 - 2026-09-07
 
 - Allow `upgrade` to proceed when the active manifest, managed files, or

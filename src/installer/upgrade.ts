@@ -32,7 +32,14 @@ import {
   type DoctorReport,
 } from "../doctor/index.js";
 import { mergeAgentsConfigForUpgradeText } from "./agents-config.js";
-import { detectAndroidProject } from "./android-project.js";
+import {
+  detectAndroidProject,
+  type AndroidProjectDetection,
+} from "./android-project.js";
+import {
+  GradleVerificationDiscoveryError,
+  discoverGradleProjectConfiguration,
+} from "./gradle-verification.js";
 import {
   INSTALLATION_BACKUPS_DIRECTORY,
   INSTALLATION_CONTROL_DIRECTORY,
@@ -59,6 +66,7 @@ import {
 } from "./opencode-config.js";
 import {
   isModuleScope,
+  type AdaptiveProjectTemplateOptions,
   type GradleVerificationConfiguration,
   type ModuleScope,
 } from "./adaptive-templates.js";
@@ -76,6 +84,7 @@ const OPENCODE_CONFIG_MERGE_SOURCE = "generated/opencode-config-merge";
 
 export type ProjectUpgradeErrorCode =
   | "DOCTOR_FAILED"
+  | "GRADLE_DISCOVERY_FAILED"
   | "INSTALLED_FILES_MODIFIED"
   | "INSTALLATION_INVALID"
   | "PACKAGE_MISMATCH"
@@ -115,6 +124,9 @@ export interface ProjectUpgradeOptions {
   preparedAt?: string;
   primaryModule?: string;
   processRunner?: InitProcessRunner;
+  /** Precomputed runtime model used to make transactional replanning deterministic. */
+  projectDetection?: AndroidProjectDetection;
+  refreshGradleDiscovery?: boolean;
   upgradeId?: string;
 }
 
@@ -150,6 +162,9 @@ export interface ProjectUpgradePlan {
   targetDirectory: string;
   moduleScope: ModuleScope;
   primaryModule: string;
+  projectDetection: AndroidProjectDetection | null;
+  gradleVerification: GradleVerificationConfiguration;
+  longCommandTimeoutMs: number | undefined;
   fromVersion: string;
   toVersion: string;
   upgradeId: string;
@@ -1112,7 +1127,7 @@ export function planProjectUpgrade(
     requestedTarget,
     stable.manifest,
   );
-  const adaptiveOptions: ConfiguredAdaptiveOptions = {};
+  const adaptiveOptions: AdaptiveProjectTemplateOptions = {};
   const moduleScope =
     options.moduleScope ?? configured.moduleScope ?? "primary";
   adaptiveOptions.moduleScope = moduleScope;
@@ -1120,8 +1135,39 @@ export function planProjectUpgrade(
   if (primaryModule !== undefined) {
     adaptiveOptions.primaryModule = primaryModule;
   }
+  let runtimeProjectDetection = options.projectDetection;
+  let refreshedGradle:
+    | ReturnType<typeof discoverGradleProjectConfiguration>
+    | undefined;
+  if (
+    options.refreshGradleDiscovery === true &&
+    runtimeProjectDetection === undefined
+  ) {
+    try {
+      refreshedGradle = discoverGradleProjectConfiguration(
+        requestedTarget,
+        options.processRunner ?? runInitProcess,
+        primaryModule === undefined ? {} : { primaryModule },
+      );
+      runtimeProjectDetection = refreshedGradle.detection;
+    } catch (error) {
+      if (error instanceof GradleVerificationDiscoveryError) {
+        throw new ProjectUpgradeError(
+          "GRADLE_DISCOVERY_FAILED",
+          error.message,
+          error.details,
+        );
+      }
+      throw error;
+    }
+  }
+  if (runtimeProjectDetection !== undefined) {
+    adaptiveOptions.projectDetection = runtimeProjectDetection;
+  }
   const gradleVerification =
-    options.gradleVerification ?? configured.gradleVerification;
+    options.gradleVerification ??
+    refreshedGradle?.gradleVerification ??
+    configured.gradleVerification;
   if (gradleVerification !== undefined) {
     adaptiveOptions.gradleVerification = gradleVerification;
   }
@@ -1181,7 +1227,11 @@ export function planProjectUpgrade(
   const paths = upgradeControlPaths(requestedTarget, upgradeId);
   const sameVersion = relation === 0;
   const resourcesMatch = desiredFilesMatchCurrent(stable.manifest, manifest);
-  if (sameVersion && !resourcesMatch) {
+  if (
+    sameVersion &&
+    !resourcesMatch &&
+    runtimeProjectDetection === undefined
+  ) {
     throw new ProjectUpgradeError(
       "UPGRADE_NOT_REQUIRED",
       "The installed package has the same version but different managed resources.",
@@ -1192,10 +1242,13 @@ export function planProjectUpgrade(
   }
 
   return {
-    status: sameVersion ? "already-current" : "upgrade",
+    status: sameVersion && resourcesMatch ? "already-current" : "upgrade",
     targetDirectory: requestedTarget,
     moduleScope: resources.adaptiveTemplates.moduleScope,
     primaryModule: resources.adaptiveTemplates.primaryModule.gradlePath,
+    projectDetection: runtimeProjectDetection ?? null,
+    gradleVerification: resources.adaptiveTemplates.automationConfig.gradleVerification,
+    longCommandTimeoutMs,
     fromVersion: stable.manifest.package.version,
     toVersion: ORCHESTRATOR_PACKAGE_VERSION,
     upgradeId,
@@ -1224,6 +1277,9 @@ function planFingerprint(plan: ProjectUpgradePlan): string {
     targetDirectory: plan.targetDirectory,
     moduleScope: plan.moduleScope,
     primaryModule: plan.primaryModule,
+    projectDetection: plan.projectDetection,
+    gradleVerification: plan.gradleVerification,
+    longCommandTimeoutMs: plan.longCommandTimeoutMs,
     fromVersion: plan.fromVersion,
     toVersion: plan.toVersion,
     upgradeId: plan.upgradeId,
@@ -1262,6 +1318,13 @@ function assertPlanConsistent(plan: ProjectUpgradePlan): void {
   const replanned = planProjectUpgrade(plan.targetDirectory, {
     moduleScope: plan.moduleScope,
     primaryModule: plan.primaryModule,
+    ...(plan.projectDetection === null
+      ? {}
+      : { projectDetection: plan.projectDetection }),
+    gradleVerification: plan.gradleVerification,
+    ...(plan.longCommandTimeoutMs === undefined
+      ? {}
+      : { longCommandTimeoutMs: plan.longCommandTimeoutMs }),
     upgradeId: plan.upgradeId,
     preparedAt: plan.preparedAt,
     installedAt: plan.installedAt,
@@ -1899,6 +1962,9 @@ function doctorForUpgrade(
   runner: InitProcessRunner,
 ): DoctorReport {
   const report = runDoctor({
+    ...(options.projectDetection === undefined
+      ? {}
+      : { androidProjectDetection: options.projectDetection }),
     ...(options.androidSdkDirectory === undefined
       ? {}
       : { androidSdkDirectory: options.androidSdkDirectory }),
@@ -1939,8 +2005,14 @@ export function runProjectUpgrade(
   options: ProjectUpgradeOptions = {},
 ): ProjectUpgradeResult {
   const runner = options.processRunner ?? runInitProcess;
-  const doctor = doctorForUpgrade(directory, options, runner);
   const plan = planProjectUpgrade(directory, options);
+  const doctor = doctorForUpgrade(
+    directory,
+    plan.projectDetection === null
+      ? options
+      : { ...options, projectDetection: plan.projectDetection },
+    runner,
+  );
 
   if (plan.status === "already-current") {
     const verification = verifyInitializedProject(plan.targetDirectory, runner);

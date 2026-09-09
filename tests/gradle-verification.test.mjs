@@ -16,12 +16,34 @@ import test from "node:test";
 import {
   GradleVerificationDiscoveryError,
   detectAndroidProject,
+  discoverGradleProjectConfiguration,
   discoverGradleVerificationConfiguration,
   inferGradleVerificationConfiguration,
+  parseGradleAndroidModules,
   parseGradleTaskPaths,
 } from "../dist/index.js";
 
 const marker = "OPENCODE_ANDROID_ORCHESTRATOR_TASK=";
+const moduleMarker = "OPENCODE_ANDROID_ORCHESTRATOR_MODULE=";
+
+function runtimeModuleLine({
+  gradlePath,
+  directory,
+  buildFile,
+  pluginId,
+  namespace = "",
+  applicationId = "",
+}) {
+  const fields = [
+    gradlePath,
+    directory,
+    buildFile,
+    pluginId,
+    namespace,
+    applicationId,
+  ].map((value) => Buffer.from(value, "utf8").toString("base64"));
+  return `${moduleMarker}${fields.join(",")}`;
+}
 
 function writeFixtureFile(root, relativePath, content, mode) {
   const path = join(root, relativePath);
@@ -156,6 +178,20 @@ test("disables configuration cache and discovers marker output on repeated calls
         status: 0,
         stdout: [
           "Gradle heading that must be ignored",
+          runtimeModuleLine({
+            gradlePath: ":WordPress",
+            directory: join(root, "WordPress"),
+            buildFile: join(root, "WordPress/build.gradle"),
+            pluginId: "com.android.application",
+            namespace: "org.wordpress.android",
+          }),
+          runtimeModuleLine({
+            gradlePath: ":libs:networking",
+            directory: join(root, "libs/networking"),
+            buildFile: join(root, "libs/networking/build.gradle"),
+            pluginId: "com.android.library",
+            namespace: "org.wordpress.networking",
+          }),
           ...flavoredTaskPaths.map((path) => `${marker}${path}`),
           `${marker}:unsafe task`,
           "",
@@ -165,7 +201,7 @@ test("disables configuration cache and discovers marker output on repeated calls
       };
     };
 
-    const firstConfiguration = discoverGradleVerificationConfiguration(
+    const firstDiscovery = discoverGradleProjectConfiguration(
       root,
       runner,
     );
@@ -174,7 +210,17 @@ test("disables configuration cache and discovers marker output on repeated calls
       runner,
     );
 
-    assert.deepEqual(firstConfiguration, expectedConfiguration);
+    assert.deepEqual(firstDiscovery.gradleVerification, expectedConfiguration);
+    assert.deepEqual(
+      firstDiscovery.detection.modules.map(({ gradlePath, type }) => ({
+        gradlePath,
+        type,
+      })),
+      [
+        { gradlePath: ":WordPress", type: "application" },
+        { gradlePath: ":libs:networking", type: "library" },
+      ],
+    );
     assert.deepEqual(secondConfiguration, expectedConfiguration);
     assert.equal(initScripts.length, 2);
     assert.notEqual(initScripts[0], initScripts[1]);
@@ -184,6 +230,118 @@ test("disables configuration cache and discovers marker output on repeated calls
   } finally {
     rmSync(root, { recursive: true, force: true });
   }
+});
+
+test("uses Gradle runtime modules for dynamic includes and convention plugins", () => {
+  const root = mkdtempSync(join(tmpdir(), "orchestrator-runtime-modules-"));
+  const gradlePaths = [
+    ":app",
+    ":component_me",
+    ...Array.from({ length: 32 }, (_, index) =>
+      `:feature_${String(index + 1).padStart(2, "0")}`,
+    ),
+  ];
+  try {
+    mkdirSync(join(root, ".git"));
+    writeFixtureFile(
+      root,
+      "settings.gradle.kts",
+      [
+        'rootProject.name = "Runtime Discovery"',
+        `val companyModules = listOf(${gradlePaths
+          .map((path) => `"${path.slice(1)}"`)
+          .join(", ")})`,
+        'companyModules.forEach { include(":$it") }',
+        "",
+      ].join("\n"),
+    );
+    for (const gradlePath of gradlePaths) {
+      const directory = gradlePath.slice(1);
+      writeFixtureFile(
+        root,
+        `${directory}/build.gradle.kts`,
+        'plugins { id("company.android.convention") }\n',
+      );
+    }
+    writeFixtureFile(root, "gradlew", "#!/bin/sh\n", 0o755);
+    writeFixtureFile(
+      root,
+      "gradle/wrapper/gradle-wrapper.properties",
+      "distributionUrl=fixture\n",
+    );
+
+    assert.equal(detectAndroidProject(root).modules.length, 0);
+    const runner = (_executable, _args, _options) => ({
+      status: 0,
+      stdout: gradlePaths
+        .flatMap((gradlePath) => {
+          const directory = join(root, gradlePath.slice(1));
+          const pluginId =
+            gradlePath === ":app"
+              ? "com.android.application"
+              : "com.android.library";
+          return [
+            runtimeModuleLine({
+              gradlePath,
+              directory,
+              buildFile: join(directory, "build.gradle.kts"),
+              pluginId,
+              namespace: `dev.runtime.${gradlePath.slice(1)}`,
+            }),
+            `${marker}${gradlePath}:assembleDebug`,
+            `${marker}${gradlePath}:connectedDebugAndroidTest`,
+            `${marker}${gradlePath}:lint`,
+            `${marker}${gradlePath}:testDebugUnitTest`,
+          ];
+        })
+        .join("\n"),
+      stderr: "",
+      error: null,
+    });
+
+    const discovery = discoverGradleProjectConfiguration(root, runner);
+
+    assert.equal(discovery.detection.modules.length, gradlePaths.length);
+    assert.ok(
+      discovery.detection.modules.some(
+        ({ gradlePath }) => gradlePath === ":component_me",
+      ),
+    );
+    assert.equal(
+      discovery.gradleVerification.focusedTestTasks.length,
+      gradlePaths.length,
+    );
+    assert.ok(
+      discovery.gradleVerification.focusedTestTasks.includes(
+        ":component_me:testDebugUnitTest",
+      ),
+    );
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
+});
+
+test("rejects malformed runtime module markers", () => {
+  assert.deepEqual(
+    parseGradleAndroidModules(
+      [
+        `${moduleMarker}not-base64`,
+        runtimeModuleLine({
+          gradlePath: ":valid",
+          directory: "/project/valid",
+          buildFile: "/project/valid/build.gradle.kts",
+          pluginId: "com.android.library",
+        }),
+        runtimeModuleLine({
+          gradlePath: ":invalid:",
+          directory: "/project/invalid",
+          buildFile: "/project/invalid/build.gradle",
+          pluginId: "com.android.library",
+        }),
+      ].join("\n"),
+    ).map(({ gradlePath }) => gradlePath),
+    [":valid"],
+  );
 });
 
 test("fails clearly when discovered tasks cannot form every required group", () => {

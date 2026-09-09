@@ -59,6 +59,24 @@ function commandResult(status, stdout = "", stderr = "", error = null) {
   return { status, stdout, stderr, error };
 }
 
+function runtimeModuleLine(
+  gradlePath,
+  directory,
+  buildFile,
+  pluginId,
+  namespace,
+) {
+  const fields = [
+    gradlePath,
+    directory,
+    buildFile,
+    pluginId,
+    namespace,
+    "",
+  ].map((value) => Buffer.from(value, "utf8").toString("base64"));
+  return `OPENCODE_ANDROID_ORCHESTRATOR_MODULE=${fields.join(",")}`;
+}
+
 function successfulRunner(calls = []) {
   return (executable, args, options) => {
     calls.push({ executable, args: [...args], options });
@@ -270,7 +288,7 @@ test("plans an older-version upgrade without writing recovery or managed files",
     assert.equal(plan.moduleScope, "all");
     assert.equal(plan.primaryModule, ":mobile");
     assert.equal(plan.fromVersion, "0.2.0");
-    assert.equal(plan.toVersion, "0.8.1");
+    assert.equal(plan.toVersion, "0.9.0");
     assert.equal(plan.desiredFiles.length, 47);
     assert.equal(plan.removedFiles.length, 0);
     assert.equal(existsSync(plan.recoveryDirectory), false);
@@ -370,7 +388,7 @@ test("upgrades unchanged managed files, preserves original merges, and restores 
     assert.equal(result.status, "upgraded");
     assert.equal(result.moduleScope, "all");
     assert.equal(result.fromVersion, "0.2.0");
-    assert.equal(result.toVersion, "0.8.1");
+    assert.equal(result.toVersion, "0.9.0");
     assert.equal(result.managedFileCount, 47);
     assert.equal(result.writtenFileCount, 6);
     assert.equal(result.reusedFileCount, 41);
@@ -389,7 +407,7 @@ test("upgrades unchanged managed files, preserves original merges, and restores 
     assert.equal(lstatSync(join(root, "legacy/user-note.txt")).mode & 0o777, 0o600);
 
     const manifest = readInstallationManifest(root);
-    assert.equal(manifest.package.version, "0.8.1");
+    assert.equal(manifest.package.version, "0.9.0");
     assert.equal(manifest.installation.id, "upgrade-success-001");
     assert.equal(manifest.installation.state, "installed");
     assert.equal(verifyInstallationIntegrity(root).ok, true);
@@ -431,7 +449,98 @@ test("upgrades unchanged managed files, preserves original merges, and restores 
     assert.equal(doctor.ok, true);
     assert.match(formatProjectUpgradeResult(result), /Result: UPGRADED/);
     assert.match(formatProjectUpgradeResult(result), /Module scope: all/);
-    assert.match(formatProjectUpgradeResult(result), /0\.2\.0 -> 0\.8\.1/);
+    assert.match(formatProjectUpgradeResult(result), /0\.2\.0 -> 0\.9\.0/);
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
+});
+
+test("upgrade refresh rebuilds modules, paths, and task allowlists from Gradle", () => {
+  const { root, sdk } = createInstalledFixture();
+  try {
+    writeFileSync(
+      join(root, "clients/mobile/build.gradle.kts"),
+      'plugins { id("company.android.application") }\n',
+    );
+    writeFixtureFile(
+      root,
+      "component_me/build.gradle.kts",
+      'plugins { id("company.android.library") }\n',
+    );
+    writeFileSync(
+      join(root, "settings.gradle.kts"),
+      [
+        readFileSync(join(root, "settings.gradle.kts"), "utf8").trimEnd(),
+        'val dynamicModule = ":component_me"',
+        "include(dynamicModule)",
+        "",
+      ].join("\n"),
+    );
+    const baseRunner = successfulRunner();
+    const runner = (executable, args, options) => {
+      if (executable.endsWith("gradlew") && args[0] === "help") {
+        return commandResult(
+          0,
+          [
+            runtimeModuleLine(
+              ":mobile",
+              join(root, "clients/mobile"),
+              join(root, "clients/mobile/build.gradle.kts"),
+              "com.android.application",
+              "dev.upgrade.fixture",
+            ),
+            runtimeModuleLine(
+              ":component_me",
+              join(root, "component_me"),
+              join(root, "component_me/build.gradle.kts"),
+              "com.android.library",
+              "dev.upgrade.component_me",
+            ),
+            ...[":mobile", ":component_me"].flatMap((module) => [
+              `OPENCODE_ANDROID_ORCHESTRATOR_TASK=${module}:assembleDebug`,
+              `OPENCODE_ANDROID_ORCHESTRATOR_TASK=${module}:connectedDebugAndroidTest`,
+              `OPENCODE_ANDROID_ORCHESTRATOR_TASK=${module}:lint`,
+              `OPENCODE_ANDROID_ORCHESTRATOR_TASK=${module}:testDebugUnitTest`,
+            ]),
+            "",
+          ].join("\n"),
+        );
+      }
+      return baseRunner(executable, args, options);
+    };
+
+    const result = runProjectUpgrade(root, {
+      ...upgradeOptions(sdk, runner, "upgrade-refresh-gradle-001"),
+      refreshGradleDiscovery: true,
+    });
+    const config = JSON.parse(
+      readFileSync(join(root, "automation/config.json"), "utf8"),
+    );
+
+    assert.equal(result.status, "upgraded");
+    assert.equal(result.doctor.ok, true);
+    assert.equal(result.fromVersion, "0.9.0");
+    assert.equal(result.toVersion, "0.9.0");
+    assert.deepEqual(
+      config.androidProject.modules.map(({ gradlePath }) => gradlePath),
+      [":component_me", ":mobile"],
+    );
+    assert.ok(
+      config.androidProject.productionPaths.includes(
+        "component_me/src/main/**",
+      ),
+    );
+    assert.ok(
+      config.gradleVerification.focusedTestTasks.includes(
+        ":component_me:testDebugUnitTest",
+      ),
+    );
+    const repeated = runProjectUpgrade(root, {
+      ...upgradeOptions(sdk, runner, "upgrade-refresh-gradle-noop-001"),
+      refreshGradleDiscovery: true,
+    });
+    assert.equal(repeated.status, "already-current");
+    assert.equal(repeated.writtenFileCount, 0);
   } finally {
     rmSync(root, { recursive: true, force: true });
   }
@@ -862,7 +971,7 @@ test("upgrade refuses to downgrade a newer installed package", () => {
     const manifest = JSON.parse(
       readFileSync(join(root, INSTALLATION_MANIFEST_RELATIVE_PATH), "utf8"),
     );
-    manifest.package.version = "0.9.0";
+    manifest.package.version = "0.10.0";
     writeManifest(root, manifest);
 
     assert.throws(

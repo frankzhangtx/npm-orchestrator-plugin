@@ -51,28 +51,95 @@ export interface GradleVerificationDiscoveryOptions {
   timeoutMs?: number;
 }
 
-const DISCOVERY_MARKER = "OPENCODE_ANDROID_ORCHESTRATOR_TASK=";
+export interface GradleProjectDiscovery {
+  detection: AndroidProjectDetection;
+  gradleVerification: GradleVerificationConfiguration;
+  taskPaths: readonly string[];
+}
+
+const TASK_DISCOVERY_MARKER = "OPENCODE_ANDROID_ORCHESTRATOR_TASK=";
+const MODULE_DISCOVERY_MARKER = "OPENCODE_ANDROID_ORCHESTRATOR_MODULE=";
 const DEFAULT_DISCOVERY_TIMEOUT_MS = 180_000;
 
-export const GRADLE_TASK_DISCOVERY_INIT_SCRIPT = [
+const runtimeAndroidPluginTypes = {
+  "com.android.application": "application",
+  "com.android.library": "library",
+  "com.android.dynamic-feature": "dynamic-feature",
+  "com.android.test": "test",
+  "com.android.asset-pack": "asset-pack",
+} as const satisfies Record<string, AndroidModuleDetection["type"]>;
+
+type RuntimeAndroidPluginId = keyof typeof runtimeAndroidPluginTypes;
+
+export const GRADLE_PROJECT_DISCOVERY_INIT_SCRIPT = [
+  "def orchestratorAndroidPlugins = [",
+  '    "com.android.application",',
+  '    "com.android.library",',
+  '    "com.android.dynamic-feature",',
+  '    "com.android.test",',
+  '    "com.android.asset-pack",',
+  "]",
+  "def orchestratorEncode = { value ->",
+  '    def text = value == null ? "" : value.toString()',
+  '    java.util.Base64.encoder.encodeToString(text.getBytes("UTF-8"))',
+  "}",
+  "def orchestratorProperty = { owner, propertyName ->",
+  "    try {",
+  "        if (owner == null || owner.metaClass.hasProperty(owner, propertyName) == null) {",
+  "            return null",
+  "        }",
+  '        def value = owner."${propertyName}"',
+  '        if (value != null && value.metaClass.respondsTo(value, "getOrNull")) {',
+  "            value = value.getOrNull()",
+  "        }",
+  "        return value",
+  "    } catch (Exception ignored) {",
+  "        return null",
+  "    }",
+  "}",
   "gradle.projectsEvaluated {",
   "    gradle.rootProject.allprojects.each { project ->",
-  "        project.tasks.each { task ->",
-  "            def name = task.name",
-  "            def relevant =",
-  '                (name.startsWith("test") && name.endsWith("DebugUnitTest")) ||',
-  '                name == "assembleDebug" ||',
-  '                (name.startsWith("assemble") && name.endsWith("Debug")) ||',
-  '                name == "lint" ||',
-  '                (name.startsWith("connected") && name.endsWith("DebugAndroidTest"))',
-  "            if (relevant) {",
-  `                println("${DISCOVERY_MARKER}" + task.path)`,
+  "        def androidPluginId = orchestratorAndroidPlugins.find { pluginId ->",
+  "            project.pluginManager.hasPlugin(pluginId)",
+  "        }",
+  "        if (androidPluginId != null) {",
+  '            def android = project.extensions.findByName("android")',
+  '            def namespace = orchestratorProperty(android, "namespace")',
+  '            def defaultConfig = orchestratorProperty(android, "defaultConfig")',
+  '            def applicationId = orchestratorProperty(defaultConfig, "applicationId")',
+  "            def moduleFields = [",
+  "                project.path,",
+  "                project.projectDir.absolutePath,",
+  "                project.buildFile.absolutePath,",
+  "                androidPluginId,",
+  "                namespace,",
+  "                applicationId,",
+  "            ]",
+  `            println("${MODULE_DISCOVERY_MARKER}" + moduleFields.collect(orchestratorEncode).join(","))`,
+  "",
+  // Reading TaskContainer.names avoids realizing every task, which is notably
+  // cheaper than `tasks --all` in large company repositories.
+  "            project.tasks.names.each { name ->",
+  "                def relevant =",
+  '                    (name.startsWith("test") && name.endsWith("DebugUnitTest")) ||',
+  '                    name == "assembleDebug" ||',
+  '                    (name.startsWith("assemble") && name.endsWith("Debug")) ||',
+  '                    name == "lint" ||',
+  '                    (name.startsWith("connected") && name.endsWith("DebugAndroidTest"))',
+  "                if (relevant) {",
+  '                    def taskPath = project.path == ":" ? ":" + name : project.path + ":" + name',
+  `                    println("${TASK_DISCOVERY_MARKER}" + taskPath)`,
+  "                }",
   "            }",
   "        }",
   "    }",
   "}",
   "",
 ].join("\n");
+
+/** @deprecated Use GRADLE_PROJECT_DISCOVERY_INIT_SCRIPT. */
+export const GRADLE_TASK_DISCOVERY_INIT_SCRIPT =
+  GRADLE_PROJECT_DISCOVERY_INIT_SCRIPT;
 
 interface GradleTaskRecord {
   path: string;
@@ -99,10 +166,136 @@ function normalizeTaskPath(value: string): string | null {
 export function parseGradleTaskPaths(stdout: string): readonly string[] {
   const paths = stdout
     .split(/\r?\n/)
-    .filter((line) => line.startsWith(DISCOVERY_MARKER))
-    .map((line) => normalizeTaskPath(line.slice(DISCOVERY_MARKER.length)))
+    .filter((line) => line.startsWith(TASK_DISCOVERY_MARKER))
+    .map((line) =>
+      normalizeTaskPath(line.slice(TASK_DISCOVERY_MARKER.length)),
+    )
     .filter((path): path is string => path !== null);
   return unique(paths).sort(compareStrings);
+}
+
+function decodeDiscoveryField(value: string): string | null {
+  try {
+    const decoded = Buffer.from(value, "base64");
+    if (decoded.toString("base64") !== value) {
+      return null;
+    }
+    const text = decoded.toString("utf8");
+    return text.includes("\0") ||
+      !Buffer.from(text, "utf8").equals(decoded)
+      ? null
+      : text;
+  } catch {
+    return null;
+  }
+}
+
+function normalizeModulePath(value: string): string | null {
+  return value === ":" ||
+    /^:[A-Za-z0-9_.-]+(?::[A-Za-z0-9_.-]+)*$/.test(value)
+    ? value
+    : null;
+}
+
+export function parseGradleAndroidModules(
+  stdout: string,
+): readonly AndroidModuleDetection[] {
+  const modules = new Map<string, AndroidModuleDetection>();
+  for (const line of stdout.split(/\r?\n/)) {
+    if (!line.startsWith(MODULE_DISCOVERY_MARKER)) {
+      continue;
+    }
+    const encodedFields = line
+      .slice(MODULE_DISCOVERY_MARKER.length)
+      .split(",");
+    if (encodedFields.length !== 6) {
+      continue;
+    }
+    const fields = encodedFields.map(decodeDiscoveryField);
+    if (fields.some((field) => field === null)) {
+      continue;
+    }
+    const [rawGradlePath, directory, buildFile, rawPluginId, namespace, applicationId] =
+      fields as string[];
+    const gradlePath = normalizeModulePath(rawGradlePath ?? "");
+    const pluginId = rawPluginId as RuntimeAndroidPluginId;
+    if (
+      gradlePath === null ||
+      (directory ?? "").length === 0 ||
+      (buildFile ?? "").length === 0 ||
+      !Object.hasOwn(runtimeAndroidPluginTypes, pluginId)
+    ) {
+      continue;
+    }
+    modules.set(gradlePath, {
+      gradlePath,
+      directory: directory as string,
+      buildFile: buildFile as string,
+      dsl: (buildFile as string).endsWith(".kts") ? "kotlin" : "groovy",
+      type: runtimeAndroidPluginTypes[pluginId],
+      pluginIds: [pluginId],
+      namespace: namespace === "" ? null : (namespace as string),
+      applicationId:
+        applicationId === "" ? null : (applicationId as string),
+    });
+  }
+  return [...modules.values()].sort((left, right) =>
+    compareStrings(left.gradlePath, right.gradlePath),
+  );
+}
+
+function detectedDsl(
+  detection: AndroidProjectDetection,
+  modules: readonly AndroidModuleDetection[],
+): AndroidProjectDetection["dsl"] {
+  const dialects = new Set<"kotlin" | "groovy">(
+    modules.map((module) => module.dsl),
+  );
+  if (detection.settingsFile !== null) {
+    dialects.add(
+      detection.settingsFile.endsWith(".kts") ? "kotlin" : "groovy",
+    );
+  }
+  if (dialects.size > 1) {
+    return "mixed";
+  }
+  return [...dialects][0] ?? "unknown";
+}
+
+function detectionWithRuntimeModules(
+  detection: AndroidProjectDetection,
+  runtimeModules: readonly AndroidModuleDetection[],
+): AndroidProjectDetection {
+  if (runtimeModules.length === 0) {
+    return detection;
+  }
+  const staticModules = new Map(
+    detection.modules.map((module) => [module.gradlePath, module]),
+  );
+  const modules = runtimeModules.map((module) => {
+    const staticModule = staticModules.get(module.gradlePath);
+    return {
+      ...module,
+      pluginIds: unique([
+        ...module.pluginIds,
+        ...(staticModule?.pluginIds ?? []),
+      ]),
+      namespace: module.namespace ?? staticModule?.namespace ?? null,
+      applicationId:
+        module.applicationId ?? staticModule?.applicationId ?? null,
+    };
+  });
+  return {
+    ...detection,
+    dsl: detectedDsl(detection, modules),
+    modules,
+    isAndroidProject: detection.gitRoot !== null,
+    errors: detection.errors.filter(
+      (error) =>
+        error !==
+        "No included Gradle module applying a supported com.android plugin was found.",
+    ),
+  };
 }
 
 function taskRecord(path: string): GradleTaskRecord {
@@ -352,37 +545,38 @@ export function inferGradleVerificationConfiguration(
   return configuration;
 }
 
-export function discoverGradleVerificationConfiguration(
+export function discoverGradleProjectConfiguration(
   targetDirectory: string,
   runner: GradleVerificationProcessRunner,
   options: GradleVerificationDiscoveryOptions = {},
-): GradleVerificationConfiguration {
-  const detection = detectAndroidProject(targetDirectory);
+): GradleProjectDiscovery {
+  const staticDetection = detectAndroidProject(targetDirectory);
   if (
-    !detection.isAndroidProject ||
-    detection.projectRoot === null ||
-    detection.gradleWrapper === null ||
-    !detection.gradleWrapper.complete
+    staticDetection.gitRoot === null ||
+    staticDetection.projectRoot === null ||
+    staticDetection.settingsFile === null ||
+    staticDetection.gradleWrapper === null ||
+    !staticDetection.gradleWrapper.complete
   ) {
     throw new GradleVerificationDiscoveryError(
       "GRADLE_PROJECT_INVALID",
-      "A complete Android Gradle project is required for task discovery.",
-      [...detection.errors, ...detection.warnings],
+      "A complete Android Gradle project is required for module/task discovery.",
+      [...staticDetection.errors, ...staticDetection.warnings],
     );
   }
 
   const temporaryDirectory = mkdtempSync(
     join(tmpdir(), "opencode-android-orchestrator-gradle-"),
   );
-  const initScript = join(temporaryDirectory, "discover-tasks.init.gradle");
+  const initScript = join(temporaryDirectory, "discover-project.init.gradle");
   try {
-    writeFileSync(initScript, GRADLE_TASK_DISCOVERY_INIT_SCRIPT, {
+    writeFileSync(initScript, GRADLE_PROJECT_DISCOVERY_INIT_SCRIPT, {
       encoding: "utf8",
       flag: "wx",
       mode: 0o600,
     });
     const result = runner(
-      detection.gradleWrapper.script,
+      staticDetection.gradleWrapper.script,
       [
         "help",
         // Task enumeration is a configuration-phase side effect. A cache hit
@@ -394,24 +588,52 @@ export function discoverGradleVerificationConfiguration(
         "--quiet",
       ],
       {
-        cwd: detection.projectRoot,
+        cwd: staticDetection.projectRoot,
         timeoutMs: options.timeoutMs ?? DEFAULT_DISCOVERY_TIMEOUT_MS,
       },
     );
     if (result.error !== null || result.status !== 0) {
       throw new GradleVerificationDiscoveryError(
         "GRADLE_TASK_DISCOVERY_FAILED",
-        "Gradle could not enumerate Android verification tasks.",
+        "Gradle could not enumerate Android modules and verification tasks.",
         commandDetails(result),
       );
     }
+    const runtimeModules = parseGradleAndroidModules(result.stdout);
+    const detection = detectionWithRuntimeModules(
+      staticDetection,
+      runtimeModules,
+    );
+    if (!detection.isAndroidProject || detection.modules.length === 0) {
+      throw new GradleVerificationDiscoveryError(
+        "GRADLE_PROJECT_INVALID",
+        "Gradle did not report any project applying a supported Android plugin.",
+        [...detection.errors, ...detection.warnings],
+      );
+    }
     const taskPaths = parseGradleTaskPaths(result.stdout);
-    return inferGradleVerificationConfiguration(
+    return {
       detection,
       taskPaths,
-      options.primaryModule,
-    );
+      gradleVerification: inferGradleVerificationConfiguration(
+        detection,
+        taskPaths,
+        options.primaryModule,
+      ),
+    };
   } finally {
     rmSync(temporaryDirectory, { recursive: true, force: true });
   }
+}
+
+export function discoverGradleVerificationConfiguration(
+  targetDirectory: string,
+  runner: GradleVerificationProcessRunner,
+  options: GradleVerificationDiscoveryOptions = {},
+): GradleVerificationConfiguration {
+  return discoverGradleProjectConfiguration(
+    targetDirectory,
+    runner,
+    options,
+  ).gradleVerification;
 }

@@ -46,6 +46,7 @@ export type CommandRunner = (
 ) => CommandResult;
 
 export interface DoctorOptions {
+  androidProjectDetection?: AndroidProjectDetection;
   androidSdkDirectory?: string;
   checkDependencies?: boolean;
   checkInstallation?: boolean;
@@ -296,7 +297,9 @@ export function runDoctor(options: DoctorOptions = {}): DoctorReport {
       : resolve(options.targetDirectory);
 
   if (options.targetDirectory !== undefined) {
-    const detection = detectAndroidProject(options.targetDirectory);
+    const detection =
+      options.androidProjectDetection ??
+      detectAndroidProject(options.targetDirectory);
     checks.push(...androidProjectChecks(detection));
     resolvedTarget = detection.gitRoot ?? resolvedTarget;
   }

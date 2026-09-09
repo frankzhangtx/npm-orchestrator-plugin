@@ -29,7 +29,7 @@ import {
 } from "./adaptive-templates.js";
 import {
   GradleVerificationDiscoveryError,
-  discoverGradleVerificationConfiguration,
+  discoverGradleProjectConfiguration,
 } from "./gradle-verification.js";
 import {
   planAgentsConfigMerge,
@@ -510,6 +510,9 @@ export function planProjectInitialization(
   if (options.gradleVerification !== undefined) {
     adaptiveOptions.gradleVerification = options.gradleVerification;
   }
+  if (options.projectDetection !== undefined) {
+    adaptiveOptions.projectDetection = options.projectDetection;
+  }
   if (options.longCommandTimeoutMs !== undefined) {
     adaptiveOptions.longCommandTimeoutMs = options.longCommandTimeoutMs;
   }
@@ -620,6 +623,9 @@ function doctorForInitialization(
   runner: InitProcessRunner,
 ): DoctorReport {
   const baseReport = runDoctor({
+    ...(options.projectDetection === undefined
+      ? {}
+      : { androidProjectDetection: options.projectDetection }),
     ...(options.androidSdkDirectory === undefined
       ? {}
       : { androidSdkDirectory: options.androidSdkDirectory }),
@@ -667,15 +673,17 @@ function optionsWithAutomaticGradleVerification(
     return options;
   }
   try {
+    const discovery = discoverGradleProjectConfiguration(
+      directory,
+      runner,
+      options.primaryModule === undefined
+        ? {}
+        : { primaryModule: options.primaryModule },
+    );
     return {
       ...options,
-      gradleVerification: discoverGradleVerificationConfiguration(
-        directory,
-        runner,
-        options.primaryModule === undefined
-          ? {}
-          : { primaryModule: options.primaryModule },
-      ),
+      projectDetection: discovery.detection,
+      gradleVerification: discovery.gradleVerification,
     };
   } catch (error) {
     if (error instanceof GradleVerificationDiscoveryError) {
@@ -802,12 +810,12 @@ export function runProjectInitialization(
   options: ProjectInitializationOptions = {},
 ): ProjectInitializationResult {
   const runner = options.processRunner ?? runInitProcess;
-  const doctor = doctorForInitialization(directory, options, runner);
   const resolvedOptions = optionsWithAutomaticGradleVerification(
     directory,
     options,
     runner,
   );
+  const doctor = doctorForInitialization(directory, resolvedOptions, runner);
   const plan = planProjectInitialization(directory, resolvedOptions);
   const existing = existingManifest(plan.targetDirectory);
 

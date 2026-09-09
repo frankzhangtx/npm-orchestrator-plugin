@@ -1,9 +1,9 @@
 # Security model
 
 This document describes the security properties of
-`@frankzhang2026/opencode-android-orchestrator@0.8.1`. The lifecycle foundation
+`@frankzhang2026/opencode-android-orchestrator@0.9.0`. The lifecycle foundation
 completed the real OpenCode `1.14.22` and `1.15.13` release matrix in `0.2.0`;
-`0.8.1` retains that compatibility boundary.
+`0.9.0` retains that compatibility boundary.
 
 ## Security goals and non-goals
 

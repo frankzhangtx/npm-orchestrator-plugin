@@ -1,7 +1,7 @@
 # Migration guide
 
 This guide covers migration to
-`@frankzhang2026/opencode-android-orchestrator@0.8.1`. Pin the exact version and
+`@frankzhang2026/opencode-android-orchestrator@0.9.0`. Pin the exact version and
 prove the migration in a disposable clone before changing a long-lived
 repository.
 
@@ -9,13 +9,13 @@ repository.
 
 | Current state | Correct command after release | Important distinction |
 | --- | --- | --- |
-| No orchestrator files or manifest | `npx @frankzhang2026/opencode-android-orchestrator@0.8.1 init .` | Normal new installation; all detected Android modules and registered debug verification tasks are discovered automatically. |
+| No orchestrator files or manifest | `npx @frankzhang2026/opencode-android-orchestrator@0.9.0 init .` | Normal new installation; all runtime-detected Android modules and registered debug verification tasks are discovered automatically. |
 | Published `0.1.0` scaffold only | Remove any project-local `@0.1.0` plugin reference after review, then run `init`. | `0.1.0` did not create a usable managed installation and cannot be upgraded. |
-| `0.2.0` through `0.8.0` manifest-managed installation with intact managed/backup content | Run the fixed `0.8.1` `upgrade`. | Existing module scope, verification tasks, policy values, and user-owned AGENTS content are preserved. Mode-only drift is accepted. The old managed Superpowers plugin reference is replaced by bundled skills. Pre-`0.6.1` configurations receive the 30-minute long-command timeout default. |
+| `0.2.0` through `0.8.1` manifest-managed installation with intact managed/backup content | Run the `0.9.0` `upgrade`; add `--refresh-gradle-discovery` when generated module/task lists are incomplete. | Refresh replaces all derived module metadata, source paths, protected build files, and task allowlists from one Gradle runtime snapshot. Module scope, boolean verification policies, and user-owned AGENTS content remain preserved. |
 | Manually copied V3 files, no `.automation-plugin/manifest.json` | Finish active tasks, preserve historical evidence separately, then run `init`. | Exact files can be reused; differing managed files fail as conflicts. |
 | Healthy older manifest-managed installation | Run `doctor`, then the fixed target version's `upgrade`. | `upgrade` requires a valid installed manifest and intact original backups. |
 | Healthy current-version manifest | Run `doctor`; repeated `init` or same-version `upgrade` is verification-only and byte-idempotent. | Do not reinstall or delete the manifest. |
-| Damaged manifest, ordinary managed-content drift, or damaged backup content | Stop and investigate. | `init` and `upgrade` intentionally refuse to overwrite this state. AGENTS content outside its managed block and Unix-mode drift are handled by `0.8.1 upgrade`. |
+| Damaged manifest, ordinary managed-content drift, or damaged backup content | Stop and investigate. | `init` and `upgrade` intentionally refuse to overwrite this state. AGENTS content outside its managed block and Unix-mode drift are handled by `0.9.0 upgrade`. |
 
 `uninstall` is not an upgrade shortcut. It restores verified pre-install files,
 removes unchanged plugin-created files, and retains drift for manual review.
@@ -35,7 +35,7 @@ removes unchanged plugin-created files, and retains drift for manual review.
    support bundle.
 5. If a managed manifest already exists, the installed version's doctor may be
    used to collect read-only evidence. A mode warning/failure or an AGENTS
-   content mismatch does not by itself prevent `0.8.1 upgrade`; the target
+   content mismatch does not by itself prevent `0.9.0 upgrade`; the target
    upgrade performs its own content-safe checks. Do not edit manifest hashes to
    make doctor pass.
 6. Prove the migration in a disposable clone or temporary Android fixture
@@ -50,14 +50,14 @@ scaffold, not as an older managed installation.
 If the project OpenCode configuration contains an exact
 `@frankzhang2026/opencode-android-orchestrator@0.1.0` entry, save the file and
 remove only that obsolete entry in a reviewed Git change before running
-`0.8.1 init`. The merger deliberately rejects a different version of the same
+`0.9.0 init`. The merger deliberately rejects a different version of the same
 managed package; it will not silently replace the reference. A global npm
 installation of `0.1.0` alone does not require project-file cleanup.
 
 After release, initialize with the fixed version:
 
 ```sh
-npx @frankzhang2026/opencode-android-orchestrator@0.8.1 init .
+npx @frankzhang2026/opencode-android-orchestrator@0.9.0 init .
 ```
 
 New installations default to all-module scope, so multiple application modules
@@ -105,7 +105,7 @@ Use the lifecycle command selected by the active manifest:
 
 ```sh
 npx --yes --registry=https://registry.npmjs.org/ \
-  @frankzhang2026/opencode-android-orchestrator@0.8.1 upgrade . --json
+  @frankzhang2026/opencode-android-orchestrator@0.9.0 upgrade . --json
 ```
 
 The command-level Registry option is useful when a company-wide npm Registry
@@ -127,6 +127,27 @@ manifest-managed configuration without that field is treated as `primary`,
 which prevents an upgrade from silently expanding its editable module set. To
 adopt all-module scope during a version upgrade, pass `--module-scope all` and
 review the regenerated task example before approving automation.
+
+Versions through `0.8.1` could undercount modules when `settings.gradle[.kts]`
+computed includes dynamically or a company convention plugin applied
+`com.android.*` indirectly. If `androidProject.modules` or
+`gradleVerification.focusedTestTasks` is incomplete, use the one-shot refresh:
+
+```sh
+npx --yes --registry=https://registry.npmjs.org/ \
+  @frankzhang2026/opencode-android-orchestrator@0.9.0 upgrade . \
+  --refresh-gradle-discovery --json
+```
+
+This does not run or parse `tasks --all`. It configures Gradle once with a
+temporary init script, asks each evaluated project which Android plugin is
+actually applied, and reads registered task names without realizing the full
+task report. The resulting module/path/task configuration is written through
+the normal verified upgrade transaction. Omit the flag when the installed task
+matrix was intentionally supplied with `--gradle-verification-config` and must
+remain unchanged. An explicit refresh may be rerun on an already installed
+`0.9.0` after the Gradle module graph changes; if its generated resources are
+unchanged, the operation remains byte-idempotent.
 
 Upgrade also preserves an installed `longCommandTimeoutMs`. Installations from
 before `0.6.1` have no value to preserve and receive `1800000` milliseconds.
@@ -167,7 +188,7 @@ the source of drift and use the recorded recovery data.
 Run all checks from the detected Git root:
 
 ```sh
-npx @frankzhang2026/opencode-android-orchestrator@0.8.1 doctor .
+npx @frankzhang2026/opencode-android-orchestrator@0.9.0 doctor .
 opencode debug config
 opencode debug skill
 opencode debug agent scheduled-planner

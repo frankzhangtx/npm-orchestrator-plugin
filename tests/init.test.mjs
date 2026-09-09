@@ -23,6 +23,7 @@ import {
   WORKTREE_ALLOWLIST_RELATIVE_PATH,
   InstallationManifestError,
   ProjectInitializationError,
+  detectAndroidProject,
   planProjectInitialization,
   readInstallationManifest,
   runProjectInitialization,
@@ -109,6 +110,24 @@ function createMultiApplicationFixture() {
 
 function commandResult(status, stdout = "", stderr = "", error = null) {
   return { status, stdout, stderr, error };
+}
+
+function runtimeModuleLine(
+  gradlePath,
+  directory,
+  buildFile,
+  pluginId,
+  namespace,
+) {
+  const fields = [
+    gradlePath,
+    directory,
+    buildFile,
+    pluginId,
+    namespace,
+    "",
+  ].map((value) => Buffer.from(value, "utf8").toString("base64"));
+  return `OPENCODE_ANDROID_ORCHESTRATOR_MODULE=${fields.join(",")}`;
 }
 
 function gradleDiscoveryOutput() {
@@ -297,6 +316,90 @@ test("installs a multi-application project in all-module mode without primary se
     assert.ok(taskExample.allowedPaths.includes("tablet/src/main/**"));
     assert.ok(taskExample.allowedPaths.includes("phone/src/test/**"));
     assert.ok(taskExample.allowedPaths.includes("tablet/src/androidTest/**"));
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
+});
+
+test("init renders runtime-discovered dynamic modules and their focused tasks", () => {
+  const root = createKotlinFixture();
+  try {
+    writeFileSync(
+      join(root, "clients/mobile/build.gradle.kts"),
+      'plugins { id("company.android.application") }\n',
+    );
+    writeFixtureFile(
+      root,
+      "component_me/build.gradle.kts",
+      'plugins { id("company.android.library") }\n',
+    );
+    writeFileSync(
+      join(root, "settings.gradle.kts"),
+      [
+        readFileSync(join(root, "settings.gradle.kts"), "utf8").trimEnd(),
+        'val dynamicModule = ":component_me"',
+        "include(dynamicModule)",
+        "",
+      ].join("\n"),
+    );
+    assert.equal(detectAndroidProject(root).modules.length, 0);
+    const baseRunner = successfulRunner();
+    const runner = (executable, args, options) => {
+      if (executable.endsWith("gradlew") && args[0] === "help") {
+        return commandResult(
+          0,
+          [
+            runtimeModuleLine(
+              ":mobile",
+              join(root, "clients/mobile"),
+              join(root, "clients/mobile/build.gradle.kts"),
+              "com.android.application",
+              "dev.init.kotlin",
+            ),
+            runtimeModuleLine(
+              ":component_me",
+              join(root, "component_me"),
+              join(root, "component_me/build.gradle.kts"),
+              "com.android.library",
+              "dev.init.component_me",
+            ),
+            ...[":mobile", ":component_me"].flatMap((module) => [
+              `OPENCODE_ANDROID_ORCHESTRATOR_TASK=${module}:assembleDebug`,
+              `OPENCODE_ANDROID_ORCHESTRATOR_TASK=${module}:connectedDebugAndroidTest`,
+              `OPENCODE_ANDROID_ORCHESTRATOR_TASK=${module}:lint`,
+              `OPENCODE_ANDROID_ORCHESTRATOR_TASK=${module}:testDebugUnitTest`,
+            ]),
+            "",
+          ].join("\n"),
+        );
+      }
+      return baseRunner(executable, args, options);
+    };
+
+    const result = runProjectInitialization(
+      root,
+      initOptions(runner, "init-runtime-modules-001"),
+    );
+    const config = JSON.parse(
+      readFileSync(join(root, "automation/config.json"), "utf8"),
+    );
+
+    assert.equal(result.status, "installed");
+    assert.equal(result.doctor.ok, true);
+    assert.deepEqual(
+      config.androidProject.modules.map(({ gradlePath }) => gradlePath),
+      [":component_me", ":mobile"],
+    );
+    assert.ok(
+      config.androidProject.productionPaths.includes(
+        "component_me/src/main/**",
+      ),
+    );
+    assert.ok(
+      config.gradleVerification.focusedTestTasks.includes(
+        ":component_me:testDebugUnitTest",
+      ),
+    );
   } finally {
     rmSync(root, { recursive: true, force: true });
   }

@@ -74,13 +74,16 @@ function printUpgradeHelp(): void {
   process.stdout.write(`OpenCode Android Orchestrator upgrade\n\n`);
   process.stdout.write(`Usage:\n`);
   process.stdout.write(
-    `  opencode-android-orchestrator upgrade [directory] [--module-scope <all|primary>] [--primary-module <gradle-path>] [--gradle-verification-config <json-path>] [--long-command-timeout-ms <milliseconds>] [--json]\n`,
+    `  opencode-android-orchestrator upgrade [directory] [--module-scope <all|primary>] [--primary-module <gradle-path>] [--refresh-gradle-discovery] [--gradle-verification-config <json-path>] [--long-command-timeout-ms <milliseconds>] [--json]\n`,
   );
   process.stdout.write(
     `\nPreserves the installed module scope; legacy installations default to primary.\n`,
   );
   process.stdout.write(
     `Preserves verification policy from automation/config.json; legacy defaults are unit tests enabled and lint disabled.\n`,
+  );
+  process.stdout.write(
+    `Use --refresh-gradle-discovery to rebuild Android modules, source paths, and task allowlists from Gradle's runtime model.\n`,
   );
   process.stdout.write(
     `Preserves the installed long-command timeout; legacy installations default to ${DEFAULT_LONG_COMMAND_TIMEOUT_MS} ms.\n`,
@@ -294,6 +297,7 @@ if (command === undefined || command === "--help" || command === "-h") {
     let primaryModule: string | undefined;
     let gradleVerificationConfigPath: string | undefined;
     let longCommandTimeoutMs: number | undefined;
+    let refreshGradleDiscovery = false;
     let json = false;
     const unexpected: string[] = [];
 
@@ -301,6 +305,8 @@ if (command === undefined || command === "--help" || command === "-h") {
       const argument = commandArguments[index] ?? "";
       if (argument === "--json") {
         json = true;
+      } else if (argument === "--refresh-gradle-discovery") {
+        refreshGradleDiscovery = true;
       } else if (argument === "--module-scope") {
         const value = commandArguments[index + 1];
         if (value === undefined || value.startsWith("-")) {
@@ -400,6 +406,9 @@ if (command === undefined || command === "--help" || command === "-h") {
         }
         if (longCommandTimeoutMs !== undefined) {
           options.longCommandTimeoutMs = longCommandTimeoutMs;
+        }
+        if (refreshGradleDiscovery) {
+          options.refreshGradleDiscovery = true;
         }
         const result = runProjectUpgrade(
           targetDirectory ?? process.cwd(),
