@@ -16,8 +16,10 @@ import test from "node:test";
 import { parse } from "jsonc-parser";
 
 import {
+  COMMIT_MESSAGE_PREFIX_RELATIVE_PATH,
   INSTALLATION_CONTROL_DIRECTORY,
   INSTALLATION_MANIFEST_RELATIVE_PATH,
+  INITIAL_COMMIT_MESSAGE_PREFIX_CONTENT,
   INITIAL_WORKTREE_ALLOWLIST_CONTENT,
   ORCHESTRATOR_PLUGIN_REFERENCE,
   WORKTREE_ALLOWLIST_RELATIVE_PATH,
@@ -154,7 +156,7 @@ function successfulRunner(calls = []) {
       return commandResult(0, `${gradleDiscoveryOutput()}\n`);
     }
     if (executable.endsWith("scripts/automation/tests/run-tests.sh")) {
-      return commandResult(0, "ok 44 - fixture\n1..44\n");
+      return commandResult(0, "ok 46 - fixture\n1..46\n");
     }
     if (executable.endsWith("scripts/automation/shadow-run.sh")) {
       return commandResult(
@@ -198,6 +200,11 @@ test("plans and installs all managed resources in a Kotlin DSL project", () => {
       "planning must not create the worktree allowlist",
     );
     assert.equal(
+      existsSync(join(root, COMMIT_MESSAGE_PREFIX_RELATIVE_PATH)),
+      false,
+      "planning must not create the commit-message prefix file",
+    );
+    assert.equal(
       existsSync(join(root, INSTALLATION_CONTROL_DIRECTORY)),
       false,
       "planning must be read-only",
@@ -216,6 +223,15 @@ test("plans and installs all managed resources in a Kotlin DSL project", () => {
     assert.equal(result.writtenFileCount, 47);
     assert.equal(result.reusedFileCount, 0);
     assert.equal(result.worktreeAllowlistStatus, "created");
+    assert.equal(result.commitMessagePrefixStatus, "created-unconfigured");
+    assert.equal(
+      result.commitMessagePrefixPath,
+      join(root, COMMIT_MESSAGE_PREFIX_RELATIVE_PATH),
+    );
+    assert.equal(
+      readFileSync(join(root, COMMIT_MESSAGE_PREFIX_RELATIVE_PATH), "utf8"),
+      INITIAL_COMMIT_MESSAGE_PREFIX_CONTENT,
+    );
     assert.equal(
       result.worktreeAllowlistPath,
       join(root, WORKTREE_ALLOWLIST_RELATIVE_PATH),
@@ -231,6 +247,13 @@ test("plans and installs all managed resources in a Kotlin DSL project", () => {
       false,
       "the human-maintained allowlist must remain outside managed-file hashes",
     );
+    assert.equal(
+      result.manifest.files.some(
+        ({ path }) => path === COMMIT_MESSAGE_PREFIX_RELATIVE_PATH,
+      ),
+      false,
+      "the human-maintained commit prefix must remain outside managed-file hashes",
+    );
     assert.equal(result.doctor.ok, true);
     assert.equal(result.verification.ok, true);
     assert.deepEqual(
@@ -245,6 +268,8 @@ test("plans and installs all managed resources in a Kotlin DSL project", () => {
       readFileSync(join(root, "automation/config.json"), "utf8"),
     );
     assert.equal(automationConfig.androidProject.name, "Init Kotlin");
+    assert.equal(automationConfig.schemaVersion, 5);
+    assert.equal(automationConfig.commitMessagePrefixMode, "required");
     assert.equal(automationConfig.androidProject.moduleScope, "all");
     assert.equal(automationConfig.androidProject.primaryModule, ":mobile");
     assert.equal(automationConfig.lintEnabled, false);
@@ -290,6 +315,33 @@ test("plans and installs all managed resources in a Kotlin DSL project", () => {
     assert.equal(readInstallationManifest(root).installation.state, "installed");
     assert.equal(verifyInstallationIntegrity(root).ok, true);
     assert.equal(calls.length, 9);
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
+});
+
+test("initialization honors an explicitly disabled commit-prefix policy", () => {
+  const root = createKotlinFixture();
+  try {
+    const options = {
+      ...initOptions(successfulRunner(), "init-prefix-disabled-001"),
+      commitMessagePrefixMode: "disabled",
+    };
+    const result = runProjectInitialization(root, options);
+    const repeated = runProjectInitialization(root, options);
+    const config = JSON.parse(
+      readFileSync(join(root, "automation/config.json"), "utf8"),
+    );
+
+    assert.equal(result.status, "installed");
+    assert.equal(result.commitMessagePrefixStatus, "disabled");
+    assert.equal(repeated.status, "already-installed");
+    assert.equal(repeated.commitMessagePrefixStatus, "disabled");
+    assert.equal(config.commitMessagePrefixMode, "disabled");
+    assert.equal(
+      existsSync(join(root, COMMIT_MESSAGE_PREFIX_RELATIVE_PATH)),
+      false,
+    );
   } finally {
     rmSync(root, { recursive: true, force: true });
   }
@@ -418,9 +470,14 @@ test("repeated init is byte-idempotent for an unchanged installation", () => {
     );
     const configBefore = readFileSync(join(root, "automation/config.json"));
     const customAllowlist = "local/operator-note.txt\n";
+    const customCommitPrefix = "本周迭代\n";
     writeFileSync(
       join(root, WORKTREE_ALLOWLIST_RELATIVE_PATH),
       customAllowlist,
+    );
+    writeFileSync(
+      join(root, COMMIT_MESSAGE_PREFIX_RELATIVE_PATH),
+      customCommitPrefix,
     );
 
     const repeated = runProjectInitialization(root, options);
@@ -430,10 +487,16 @@ test("repeated init is byte-idempotent for an unchanged installation", () => {
     assert.equal(repeated.writtenFileCount, 0);
     assert.equal(repeated.reusedFileCount, 47);
     assert.equal(repeated.worktreeAllowlistStatus, "existing");
+    assert.equal(repeated.commitMessagePrefixStatus, "existing-configured");
     assert.equal(
       readFileSync(join(root, WORKTREE_ALLOWLIST_RELATIVE_PATH), "utf8"),
       customAllowlist,
       "repeated init must preserve human-maintained entries",
+    );
+    assert.equal(
+      readFileSync(join(root, COMMIT_MESSAGE_PREFIX_RELATIVE_PATH), "utf8"),
+      customCommitPrefix,
+      "repeated init must preserve the human-maintained commit prefix",
     );
     assert.equal(
       readFileSync(join(root, INSTALLATION_MANIFEST_RELATIVE_PATH), "utf8"),
@@ -638,6 +701,11 @@ test("init restores original files when post-install verification fails", () => 
     );
     assert.equal(existsSync(join(root, ".opencode")), false);
     assert.equal(existsSync(join(root, "automation")), false);
+    assert.equal(
+      existsSync(join(root, COMMIT_MESSAGE_PREFIX_RELATIVE_PATH)),
+      false,
+      "the init-created commit prefix must roll back with a failed installation",
+    );
     assert.equal(existsSync(join(root, "scripts")), false);
     assert.equal(existsSync(join(root, "docs")), false);
     assert.equal(

@@ -89,6 +89,8 @@ test("renders portable configuration and a focused task example from Kotlin proj
     assert.equal(plan.projectRoot, root);
     assert.equal(plan.moduleScope, "all");
     assert.equal(plan.primaryModule.gradlePath, ":mobile");
+    assert.equal(plan.automationConfig.schemaVersion, 5);
+    assert.equal(plan.automationConfig.commitMessagePrefixMode, "required");
     assert.equal(plan.automationConfig.lintEnabled, true);
     assert.equal(plan.automationConfig.unitTestsEnabled, false);
     assert.equal(plan.automationConfig.longCommandTimeoutMs, 3_600_000);
@@ -203,6 +205,10 @@ test("defaults multi-application projects to all-module scope without requiring 
     const allModulePlan = planAdaptiveProjectTemplates(root);
     assert.equal(allModulePlan.automationConfig.lintEnabled, false);
     assert.equal(allModulePlan.automationConfig.unitTestsEnabled, true);
+    assert.equal(
+      allModulePlan.automationConfig.commitMessagePrefixMode,
+      "required",
+    );
     assert.equal(allModulePlan.automationConfig.longCommandTimeoutMs, 1_800_000);
     assert.equal(allModulePlan.moduleScope, "all");
     assert.equal(allModulePlan.primaryModule.gradlePath, ":phone");
@@ -304,6 +310,23 @@ test("rejects a non-boolean unit-test policy", () => {
       (error) =>
         error instanceof AdaptiveProjectTemplateError &&
         error.code === "UNIT_TESTS_ENABLED_INVALID",
+    );
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
+});
+
+test("rejects an unsupported commit-message prefix mode", () => {
+  const root = createAdaptiveKotlinFixture();
+  try {
+    assert.throws(
+      () =>
+        planAdaptiveProjectTemplates(root, {
+          commitMessagePrefixMode: "sometimes",
+        }),
+      (error) =>
+        error instanceof AdaptiveProjectTemplateError &&
+        error.code === "COMMIT_MESSAGE_PREFIX_MODE_INVALID",
     );
   } finally {
     rmSync(root, { recursive: true, force: true });

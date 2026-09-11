@@ -10,10 +10,11 @@ ambiguity guards, repository-relative output, and lossless JSON/JSONC plugin
 merging, idempotence,
 the fixed Orchestrator reference, plugin options, CRLF/tab preservation, malformed input,
 duplicates, version conflicts, ambiguous config files, and symbolic links. The
-infrastructure resource suite additionally locks the portable V4 configuration
+infrastructure resource suite additionally locks the portable V5 configuration
 source, Schemas, task example, plan guide, and bounded AGENTS managed block. The
-44-case Shell transaction suite runs against a non-default module path and
-verifies dynamic production/test scope classification.
+46-case Shell transaction suite runs against a non-default module path and
+verifies dynamic production/test scope classification, required-prefix startup
+blocking, dynamic prefix changes, and commit/evidence isolation.
 
 The installation transaction suite covers read-only SHA-256 planning,
 backup-before-manifest ordering, stale and tampered plans, unsafe and symbolic
@@ -26,7 +27,8 @@ The init suite installs the complete 47-file inventory into temporary Kotlin
 and Groovy Android fixtures. It covers dynamic rendering, JSONC and AGENTS
 merges, executable modes, write-before-complete verification, dependency
 failure before control-state creation, repeated-init idempotence, conflict
-abort, and automatic restoration after post-install verification failure.
+abort, commit-prefix sidecar creation/preservation, and automatic restoration
+after post-install verification failure.
 
 The installed-doctor suite verifies a healthy installation from a module
 directory, command and SDK discovery, the exact versioned inventory, packaged
@@ -34,7 +36,7 @@ template authentication, managed content and executable modes, backups,
 OpenCode/AGENTS/adaptive configuration, fail-closed missing-manifest behavior,
 and JSON CLI failure exit codes. It also distinguishes file-content drift from
 permission drift and detects unsafe configuration or a self-consistent
-manifest rewrite.
+manifest rewrite, while reporting an unfilled required prefix as a warning.
 
 The upgrade suite covers read-only planning from a module directory, safe
 older-version replacement, preservation of current user-owned AGENTS content,
@@ -42,16 +44,18 @@ replacement of its managed block, reconstruction of the OpenCode merge from
 its first-install original, permission-drift tolerance, preserved recovery
 lineage, obsolete user-file restoration, same-version byte idempotence,
 ordinary managed-content and original-backup corruption refusal, malformed
-AGENTS-marker refusal, downgrade refusal, tampered-plan refusal, and complete
-old-version restoration after post-upgrade verification failure.
+AGENTS-marker refusal, downgrade refusal, tampered-plan refusal, complete
+old-version restoration after post-upgrade verification failure, V4-to-V5
+defaulting, and commit-prefix sidecar preservation.
 
 The uninstall suite covers read-only planning from a module directory,
 verified restoration of original merged files, removal of unchanged
 plugin-created files, retention and reporting of content, permission, and
 deletion drift, corrupted-backup refusal, upgrade/uninstall marker exclusion,
 tampered-plan refusal, recovery and history evidence, JSON CLI output, and
-complete installed-state rollback after a post-write failure. Only the full
-real OpenCode compatibility matrix remains outside this suite.
+complete installed-state rollback after a post-write failure. The human-owned
+commit-prefix file is explicitly preserved. Only the full real OpenCode
+compatibility matrix remains outside this suite.
 
 The custom-tool suite verifies exact tool registration, task-ID schema and
 runtime validation, worktree and abort boundaries, structured doctor output,

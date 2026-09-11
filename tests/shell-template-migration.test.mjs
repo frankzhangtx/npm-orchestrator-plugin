@@ -23,11 +23,11 @@ const automationRoot = join(templatesRoot, "scripts", "automation");
 const expectedHashes = new Map([
   [
     "scripts/automation/abort-task.sh",
-    "734c05f82db7f77dba7b0ac8ae1fc92d3c02cb8e877b9309944269cbd853464d",
+    "644194ca949cb4a5be2be4ac157273bea70984520f4834dcd112ca76650c9b4a",
   ],
   [
     "scripts/automation/accept-and-integrate.sh",
-    "b1fc65b31b275de79621714d48175bf00cd63647db92d9aeb4841fd382c055fa",
+    "376617529539648b6c9cd5149d6ba4ff3b0d657a83a4b69ed33ce56396944507",
   ],
   [
     "scripts/automation/acceptance-report.sh",
@@ -35,7 +35,7 @@ const expectedHashes = new Map([
   ],
   [
     "scripts/automation/approve-and-run.sh",
-    "6f15ce1a95dd3886fc053d7f00d0b6d1c6ef58e38bd93fe2a1fa98e92fa56f2b",
+    "64943afcd6c1b21ed4bb7d47af96830dfab0b4e47854910664ecf5cf8b639d7a",
   ],
   [
     "scripts/automation/begin-review.sh",
@@ -55,15 +55,15 @@ const expectedHashes = new Map([
   ],
   [
     "scripts/automation/lib.sh",
-    "806984052d40d584d4e67b96b45dbe72d9f88b75d02ee8fde61c07f62177ade6",
+    "6dcddb2911149e4fd38c2aa2bdedcdd8a0826f6cf0c52bcfd9e6100f1fc24494",
   ],
   [
     "scripts/automation/orchestrate-task.sh",
-    "6bd0ad1a5dd185c91e94baaa55e20244a71b87e93a2c9e312087ef1f64610fdf",
+    "713cc9152abc973bad824bcbb678bb5362617219b3bd19bcecb3670cbb9213db",
   ],
   [
     "scripts/automation/preflight.sh",
-    "1cb3938ae49b9d39a2ebbbcf3ae5a06c9788085a742bf70f250f80575e0abbc8",
+    "3382698a1406d4884f398fea99ef908a8444bd6b0fd959bdcdce117f8c4b8837",
   ],
   [
     "scripts/automation/prepare-contract-review.sh",
@@ -107,7 +107,7 @@ const expectedHashes = new Map([
   ],
   [
     "scripts/automation/show-acceptance-review.sh",
-    "5586bfcf240eea11f738829deff8a4d21fa6ab7a378c574a79b958caaa08a18b",
+    "e8aff58b5b5080f9fee437b4c76c46546fb456117fcfd4f396250a97261c0225",
   ],
   [
     "scripts/automation/status.sh",
@@ -119,7 +119,7 @@ const expectedHashes = new Map([
   ],
   [
     "scripts/automation/tests/run-tests.sh",
-    "1ad54eafa915e9bcdbe5a489bbcab385c348fcd1674355cca7f640595fad5cb5",
+    "fa692f2447ad375845cda5721493013c1c82878b366543ca31c921dccadb4181",
   ],
   [
     "scripts/automation/transition-state.sh",

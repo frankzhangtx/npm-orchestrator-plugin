@@ -80,7 +80,7 @@ test("documents fixed-version migration, recovery, and security boundaries porta
   assert.match(migration, /manifest-managed version/);
   assert.match(
     allDocumentation,
-    /@frankzhang2026\/opencode-android-orchestrator@0\.9\.0/,
+    /@frankzhang2026\/opencode-android-orchestrator@0\.10\.0/,
   );
   assert.doesNotMatch(
     allDocumentation,
@@ -93,11 +93,13 @@ test("documents fixed-version migration, recovery, and security boundaries porta
   assert.match(migration, /Never delete .*upgrade\.json/s);
   assert.match(troubleshooting, /\| `2` \| Unknown command or invalid CLI arguments/);
   assert.match(troubleshooting, /Bundled Orchestrator skill is unavailable/);
+  assert.match(troubleshooting, /automation\/automation-commit-prefix/);
   assert.match(troubleshooting, /UNTRUSTED_INSTALLATION/);
   assert.match(troubleshooting, /do not run `git reset --hard`/);
   assert.match(security, /It is not a privilege boundary/);
   assert.match(security, /five namespaced[\s\S]*bundled workflow skills/);
   assert.match(security, /never pushes/i);
+  assert.match(security, /manual Git commits remain outside this enforcement boundary/);
   assert.match(security, /NO-GO/);
   assert.match(security, /Real dual-version end-to-end acceptance/);
   assert.doesNotMatch(allDocumentation, /\/Users\/|zhanglong|cctest/i);

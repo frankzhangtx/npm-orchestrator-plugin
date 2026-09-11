@@ -19,7 +19,9 @@ import { parse } from "jsonc-parser";
 import {
   AGENTS_MANAGED_BLOCK_BEGIN,
   AGENTS_MANAGED_BLOCK_END,
+  COMMIT_MESSAGE_PREFIX_RELATIVE_PATH,
   INSTALLATION_MANIFEST_RELATIVE_PATH,
+  INITIAL_COMMIT_MESSAGE_PREFIX_CONTENT,
   ORCHESTRATOR_PLUGIN_REFERENCE,
   ProjectUpgradeError,
   UNINSTALL_MARKER_RELATIVE_PATH,
@@ -84,7 +86,7 @@ function successfulRunner(calls = []) {
       return commandResult(0, "1.15.13\n");
     }
     if (executable.endsWith("scripts/automation/tests/run-tests.sh")) {
-      return commandResult(0, "ok 44 - fixture\n1..44\n");
+      return commandResult(0, "ok 46 - fixture\n1..46\n");
     }
     if (executable.endsWith("scripts/automation/shadow-run.sh")) {
       return commandResult(0, '{"mutationPerformed":false}\n');
@@ -209,6 +211,8 @@ function simulateOlderInstallation(
   {
     const configPath = join(root, "automation/config.json");
     const config = JSON.parse(readFileSync(configPath, "utf8"));
+    config.schemaVersion = 4;
+    delete config.commitMessagePrefixMode;
     delete config.unitTestsEnabled;
     delete config.lintEnabled;
     delete config.longCommandTimeoutMs;
@@ -220,6 +224,7 @@ function simulateOlderInstallation(
     writeFileSync(configPath, configContent);
     updateManifestEntry(manifest, "automation/config.json", configContent);
   }
+  rmSync(join(root, COMMIT_MESSAGE_PREFIX_RELATIVE_PATH), { force: true });
 
   if (legacyFile) {
     const path = "legacy/user-note.txt";
@@ -288,7 +293,7 @@ test("plans an older-version upgrade without writing recovery or managed files",
     assert.equal(plan.moduleScope, "all");
     assert.equal(plan.primaryModule, ":mobile");
     assert.equal(plan.fromVersion, "0.2.0");
-    assert.equal(plan.toVersion, "0.9.0");
+    assert.equal(plan.toVersion, "0.10.0");
     assert.equal(plan.desiredFiles.length, 47);
     assert.equal(plan.removedFiles.length, 0);
     assert.equal(existsSync(plan.recoveryDirectory), false);
@@ -364,6 +369,16 @@ test("upgrades legacy configurations without moduleScope in primary mode", () =>
     assert.equal(config.unitTestsEnabled, false);
     assert.equal(config.lintEnabled, true);
     assert.equal(config.longCommandTimeoutMs, 1_800_000);
+    assert.equal(result.commitMessagePrefixStatus, "created-unconfigured");
+    assert.equal(
+      result.commitMessagePrefixPath,
+      join(root, COMMIT_MESSAGE_PREFIX_RELATIVE_PATH),
+    );
+    assert.equal(
+      readFileSync(result.commitMessagePrefixPath, "utf8"),
+      INITIAL_COMMIT_MESSAGE_PREFIX_CONTENT,
+    );
+    assert.equal(lstatSync(result.commitMessagePrefixPath).mode & 0o777, 0o644);
     assert.equal(result.doctor.ok, true);
   } finally {
     rmSync(root, { recursive: true, force: true });
@@ -374,11 +389,16 @@ test("upgrades unchanged managed files, preserves original merges, and restores 
   const { root, sdk, originalAgents, originalOpenCode } = createInstalledFixture();
   try {
     const customAllowlist = "config/developer-overrides.json\n";
+    const customCommitPrefix = "升级保留批次\n";
     writeFileSync(
       join(root, WORKTREE_ALLOWLIST_RELATIVE_PATH),
       customAllowlist,
     );
     const old = simulateOlderInstallation(root, { legacyFile: true });
+    writeFileSync(
+      join(root, COMMIT_MESSAGE_PREFIX_RELATIVE_PATH),
+      customCommitPrefix,
+    );
 
     const result = runProjectUpgrade(
       join(root, "clients/mobile"),
@@ -388,7 +408,8 @@ test("upgrades unchanged managed files, preserves original merges, and restores 
     assert.equal(result.status, "upgraded");
     assert.equal(result.moduleScope, "all");
     assert.equal(result.fromVersion, "0.2.0");
-    assert.equal(result.toVersion, "0.9.0");
+    assert.equal(result.toVersion, "0.10.0");
+    assert.equal(result.commitMessagePrefixStatus, "existing-configured");
     assert.equal(result.managedFileCount, 47);
     assert.equal(result.writtenFileCount, 6);
     assert.equal(result.reusedFileCount, 41);
@@ -407,7 +428,7 @@ test("upgrades unchanged managed files, preserves original merges, and restores 
     assert.equal(lstatSync(join(root, "legacy/user-note.txt")).mode & 0o777, 0o600);
 
     const manifest = readInstallationManifest(root);
-    assert.equal(manifest.package.version, "0.9.0");
+    assert.equal(manifest.package.version, "0.10.0");
     assert.equal(manifest.installation.id, "upgrade-success-001");
     assert.equal(manifest.installation.state, "installed");
     assert.equal(verifyInstallationIntegrity(root).ok, true);
@@ -415,6 +436,11 @@ test("upgrades unchanged managed files, preserves original merges, and restores 
       readFileSync(join(root, WORKTREE_ALLOWLIST_RELATIVE_PATH), "utf8"),
       customAllowlist,
       "upgrade must preserve the human-maintained allowlist",
+    );
+    assert.equal(
+      readFileSync(join(root, COMMIT_MESSAGE_PREFIX_RELATIVE_PATH), "utf8"),
+      customCommitPrefix,
+      "upgrade must preserve the human-maintained commit prefix",
     );
     assert.equal(existsSync(join(root, UPGRADE_MARKER_RELATIVE_PATH)), false);
     assert.equal(existsSync(result.recoveryDirectory), true);
@@ -449,7 +475,7 @@ test("upgrades unchanged managed files, preserves original merges, and restores 
     assert.equal(doctor.ok, true);
     assert.match(formatProjectUpgradeResult(result), /Result: UPGRADED/);
     assert.match(formatProjectUpgradeResult(result), /Module scope: all/);
-    assert.match(formatProjectUpgradeResult(result), /0\.2\.0 -> 0\.9\.0/);
+    assert.match(formatProjectUpgradeResult(result), /0\.2\.0 -> 0\.10\.0/);
   } finally {
     rmSync(root, { recursive: true, force: true });
   }
@@ -519,8 +545,8 @@ test("upgrade refresh rebuilds modules, paths, and task allowlists from Gradle",
 
     assert.equal(result.status, "upgraded");
     assert.equal(result.doctor.ok, true);
-    assert.equal(result.fromVersion, "0.9.0");
-    assert.equal(result.toVersion, "0.9.0");
+    assert.equal(result.fromVersion, "0.10.0");
+    assert.equal(result.toVersion, "0.10.0");
     assert.deepEqual(
       config.androidProject.modules.map(({ gradlePath }) => gradlePath),
       [":component_me", ":mobile"],
@@ -653,6 +679,7 @@ test("repeated upgrade is byte-idempotent for the current version", () => {
     );
 
     assert.equal(result.status, "already-current");
+    assert.equal(result.commitMessagePrefixStatus, "existing-unconfigured");
     assert.equal(result.moduleScope, "all");
     assert.equal(result.writtenFileCount, 0);
     assert.equal(result.reusedFileCount, 47);
@@ -861,6 +888,10 @@ test("post-upgrade verification failure restores the complete older installation
     assert.equal(verifyInstallationIntegrity(root).ok, true);
     assert.equal(existsSync(join(root, UPGRADE_MARKER_RELATIVE_PATH)), false);
     assert.equal(
+      existsSync(join(root, COMMIT_MESSAGE_PREFIX_RELATIVE_PATH)),
+      false,
+    );
+    assert.equal(
       existsSync(join(root, ".automation-plugin/backups/upgrade-rollback-001")),
       false,
     );
@@ -971,7 +1002,7 @@ test("upgrade refuses to downgrade a newer installed package", () => {
     const manifest = JSON.parse(
       readFileSync(join(root, INSTALLATION_MANIFEST_RELATIVE_PATH), "utf8"),
     );
-    manifest.package.version = "0.10.0";
+    manifest.package.version = "0.11.0";
     writeManifest(root, manifest);
 
     assert.throws(

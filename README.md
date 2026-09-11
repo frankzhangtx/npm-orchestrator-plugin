@@ -20,7 +20,9 @@ package, and removes the runtime GitHub/Superpowers plugin dependency. Version
 project-specific `AGENTS.md` content outside the managed marker block. Version
 `0.9.0` discovers Android modules from Gradle's evaluated runtime model, so
 dynamic settings logic and company convention plugins no longer leave modules
-or their focused-test tasks out of generated configuration.
+or their focused-test tasks out of generated configuration. Version `0.10.0`
+adds a user-maintained commit-message prefix that is read automatically for
+each task commit and blocks task startup until the required value is filled.
 
 ## Documentation
 
@@ -55,8 +57,9 @@ project builds retain their configured cache behavior.
 ## Quick start
 
 ```sh
-npx @frankzhang2026/opencode-android-orchestrator@0.9.0 init .
-npx @frankzhang2026/opencode-android-orchestrator@0.9.0 doctor .
+npx @frankzhang2026/opencode-android-orchestrator@0.10.0 init .
+$EDITOR automation/automation-commit-prefix
+npx @frankzhang2026/opencode-android-orchestrator@0.10.0 doctor .
 opencode --agent scheduled-planner .
 ```
 
@@ -66,7 +69,7 @@ a task contract without selecting a primary module. To intentionally restrict
 generated contracts to one module, opt into primary-module scope:
 
 ```sh
-npx @frankzhang2026/opencode-android-orchestrator@0.9.0 init . \
+npx @frankzhang2026/opencode-android-orchestrator@0.10.0 init . \
   --module-scope primary \
   --primary-module :mobile
 ```
@@ -94,14 +97,14 @@ For an existing manifest-managed installation whose generated module/task
 lists are incomplete, refresh all derived Gradle data in one upgrade:
 
 ```sh
-npx @frankzhang2026/opencode-android-orchestrator@0.9.0 upgrade . \
+npx @frankzhang2026/opencode-android-orchestrator@0.10.0 upgrade . \
   --refresh-gradle-discovery
 ```
 
 The refresh updates `androidProject.modules`, production/test paths, protected
 build files, and all five Gradle task groups together. Without the flag,
 upgrade preserves an intentionally customized task matrix. The explicit
-refresh is also allowed on an already installed `0.9.0` when the evaluated
+refresh is also allowed on an already installed `0.10.0` when the evaluated
 Gradle model has changed; an unchanged refresh remains byte-idempotent.
 
 ### Bundled workflow skills
@@ -146,12 +149,46 @@ unchanged. Android lint is disabled by default; setting `lintEnabled` to `true`
 runs the discovered `lintTasks` in those gates. Assemble, scope, evidence, and
 required device-test checks are unaffected by either flag.
 
-These two booleans are the operator-editable exceptions in the otherwise
-managed configuration. Change their values in place and commit the file before
+These two booleans and `commitMessagePrefixMode` are the operator-editable
+exceptions in the otherwise managed configuration. Change their values in
+place and commit the file before
 starting orchestration. Doctor accepts these policy changes and a later
 upgrade preserves them. Do not reformat or edit unrelated generated fields.
 Legacy installations without the fields receive `true` for unit tests and
 `false` for lint during upgrade.
+
+### Automatic commit-message prefix
+
+Automation configuration schema V5 adds this repository policy:
+
+```json
+{
+  "commitMessagePrefixMode": "required"
+}
+```
+
+`required` is the default. During `init` or `upgrade`, the plugin creates
+`automation/automation-commit-prefix` only when it does not already exist. The
+initial file contains comments but no value, so installation or upgrade still
+succeeds while new task startup remains blocked. Edit it once and put the
+current company text on exactly one non-comment line, for example:
+
+```text
+本周研发批次
+```
+
+The plugin reads that file automatically; it never asks for the value on each
+commit. A successful task commit becomes, for example,
+`本周研发批次 Implement Add profile validation (TASK-123)`, and an abort
+recovery commit receives the same current prefix. Change the one line whenever
+the company text changes; the next plugin-created commit uses the new value.
+
+The prefix file is human-owned, excluded from the 47 managed-file hashes and
+from task diffs, evidence, automated staging, and plugin-created commits, and
+preserved by upgrade and uninstall. Set `commitMessagePrefixMode` to `disabled`
+only when repository policy explicitly does not require a prefix. This setting
+governs commits made by the orchestrator; use a repository Git hook if manually
+created commits must also be enforced.
 
 ### Managed long-command timeout
 
@@ -220,7 +257,10 @@ The install transaction manages 47 project-local paths:
 | Android automation config and task example | 2 | Generate from detected modules. |
 | `AGENTS.md` and OpenCode JSON/JSONC | 2 | Merge bounded content without replacing unrelated settings. |
 
-After installation, start the `scheduled-planner` and use its interactive flow.
+After installation or upgrade, fill the required commit-prefix file before
+starting `scheduled-planner`; preflight rejects a missing, comments-only,
+multi-value, oversized, or symbolic-link prefix file. Then use the planner's
+interactive flow.
 The `/acceptance <TASK-ID>`, `/resume-task <TASK-ID>`,
 `/resume-review <TASK-ID>`, and `/abort-task <TASK-ID>` commands are
 recovery/re-entry points; they do not replace the required fresh approval
@@ -240,6 +280,8 @@ Cache setting, `0.6.1` adds configurable long-command timeouts plus bounded
 baseline-interruption recovery, and `0.7.0` makes unit-test and lint gates
 repository-configurable. Version `0.8.0` moves the five required workflow
 skills into the npm package and removes their external plugin dependency.
+Version `0.9.0` makes Gradle's evaluated module model authoritative, and
+`0.10.0` adds the required user-maintained commit prefix and task-start gate.
 
 The cross-version plugin entry, OpenCode version doctor, Android/Gradle project
 discovery, audited V4 OpenCode/configuration resources, and all deterministic
@@ -304,7 +346,7 @@ Implemented checks include:
   Shell executable modes, merges OpenCode JSON/JSONC and one bounded AGENTS
   block, bootstraps the optional human-owned worktree allowlist when missing,
   and is byte-idempotent for an unchanged installed version
-- write-before-complete verification using the 44-case automation suite and a
+- write-before-complete verification using the 46-case automation suite and a
   read-only shadow run; any failure restores original files before reporting
   the error
 - an installation-aware, read-only doctor that authenticates the 47-file
@@ -382,7 +424,8 @@ preparation alone as resource installation;
 ## Init
 
 ```sh
-npx @frankzhang2026/opencode-android-orchestrator@0.9.0 init .
+npx @frankzhang2026/opencode-android-orchestrator@0.10.0 init .
+$EDITOR automation/automation-commit-prefix
 opencode --agent scheduled-planner .
 ```
 
@@ -503,7 +546,7 @@ the immediately preceding `question` result and bind at least the approval
 kind, task ID, session, message, relevant sealed SHA/branch, timestamp, and
 nonce. It must also retain fixed-script authentication, strict state
 preconditions, project/worktree bounds, abort propagation that terminates child
-processes, bounded structured output, exact per-agent permissions, the 44-case
+processes, bounded structured output, exact per-agent permissions, the 46-case
 transaction suite, and real `1.14.22`/`1.15.13` integration tests. Internal
 Coder/Reviewer transition scripts remain private orchestration details rather
 than public tools.

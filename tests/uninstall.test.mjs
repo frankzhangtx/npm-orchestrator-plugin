@@ -17,6 +17,7 @@ import { fileURLToPath } from "node:url";
 import test from "node:test";
 
 import {
+  COMMIT_MESSAGE_PREFIX_RELATIVE_PATH,
   INSTALLATION_MANIFEST_RELATIVE_PATH,
   UNINSTALL_MARKER_RELATIVE_PATH,
   InstallationManifestError,
@@ -71,7 +72,7 @@ function successfulRunner() {
       );
     }
     if (executable.endsWith("scripts/automation/tests/run-tests.sh")) {
-      return commandResult(0, "ok 44 - fixture\n1..44\n");
+      return commandResult(0, "ok 46 - fixture\n1..46\n");
     }
     if (executable.endsWith("scripts/automation/shadow-run.sh")) {
       return commandResult(
@@ -144,9 +145,14 @@ test("plans read-only and safely uninstalls unchanged managed resources", () => 
   );
   try {
     const customAllowlist = "local/operator-note.txt\n";
+    const customCommitPrefix = "卸载保留批次\n";
     writeFileSync(
       join(root, WORKTREE_ALLOWLIST_RELATIVE_PATH),
       customAllowlist,
+    );
+    writeFileSync(
+      join(root, COMMIT_MESSAGE_PREFIX_RELATIVE_PATH),
+      customCommitPrefix,
     );
     const manifestBefore = readFileSync(
       join(root, INSTALLATION_MANIFEST_RELATIVE_PATH),
@@ -193,6 +199,11 @@ test("plans read-only and safely uninstalls unchanged managed resources", () => 
       readFileSync(join(root, WORKTREE_ALLOWLIST_RELATIVE_PATH), "utf8"),
       customAllowlist,
       "uninstall must preserve the human-owned allowlist",
+    );
+    assert.equal(
+      readFileSync(join(root, COMMIT_MESSAGE_PREFIX_RELATIVE_PATH), "utf8"),
+      customCommitPrefix,
+      "uninstall must preserve the human-owned commit prefix",
     );
     assertManifestMissing(root);
     assert.equal(existsSync(join(root, UNINSTALL_MARKER_RELATIVE_PATH)), false);

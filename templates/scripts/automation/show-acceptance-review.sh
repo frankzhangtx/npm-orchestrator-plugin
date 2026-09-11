@@ -45,6 +45,8 @@ report_diff_sha="$(jq -er '.sealedDiffSha256' "$report_file")"
 changed_count="$(jq -er '.changedPaths | length' "$report_file")"
 max_changed_files="$(jq -er '.maxChangedFiles' "$report_file")"
 device_tests_required="$(jq -r '.deviceTestsRequired' "$report_file")"
+title="$(jq -er '.title' "$report_file")"
+commit_message="$(automation_commit_message_at "$source_root" "Implement $title ($task_id)")"
 
 printf '# 🔔 人工验收提醒\n\n'
 printf '自动执行已停在 `AWAITING_HUMAN`。下面内容已重新核对 sealed diff；此时代码、计划与任务合同均尚未提交或集成。\n\n'
@@ -58,6 +60,7 @@ printf '| 任务分支收尾 | 成功集成后自动删除；失败或阻塞时�
 printf '| sealed diff SHA | `%s` |\n' "$report_diff_sha"
 printf '| 变更范围 | 实际 %s 个 / 合同上限 %s 个 |\n' "$changed_count" "$max_changed_files"
 printf '| 提交策略 | 代码、测试、计划与任务合同合并为一个提交 |\n'
+printf '| 预计提交信息 | `%s` |\n' "$commit_message"
 printf '| 自动证据 | Baseline ✓ · RED ✓ · G1–G6 ✓ · Reviewer APPROVED ✓ |\n'
 printf '\n## 必须重点复核\n\n'
 printf '### P0 · 真实行为是否满足合同\n\n'

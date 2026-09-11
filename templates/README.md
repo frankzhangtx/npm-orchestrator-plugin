@@ -14,7 +14,7 @@ Migrated template roots:
 - `.opencode/skills`: the three `scheduled-quality-*` skills
 - `scripts/automation`: all 29 deterministic V3 Bash transactions and their
   test runner, preserved as executable files
-- `automation`: the portable V4 configuration render source, both JSON Schemas,
+- `automation`: the portable V5 configuration render source, both JSON Schemas,
   and the task contract example
 - `docs/plans/README.md`: the human-approved plan authoring contract
 - `AGENTS.md.fragment`: a bounded managed block for non-destructive
@@ -42,6 +42,14 @@ policy. Verification switches live in `automation/config.json`:
 `unitTestsEnabled` defaults to true and `lintEnabled` defaults to false.
 Discovered task lists are retained even while their corresponding gate is
 disabled.
+
+Schema V5 also sets `commitMessagePrefixMode` to `required`. After managed
+resources are written, init/upgrade creates the human-owned
+`automation/automation-commit-prefix` comments-only template when missing.
+That sidecar is not a packaged template or manifest-managed resource: users
+fill one active line, may change it between commits, and upgrade/uninstall
+preserve it. An unconfigured required file blocks task startup but remains a
+warning during install/upgrade shadow verification.
 
 After read-only planning succeeds, `init` creates a comment-only
 `.automation-worktree-allowlist` if it is missing and preserves any existing

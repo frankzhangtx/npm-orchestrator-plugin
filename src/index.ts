@@ -30,6 +30,24 @@ export {
   type ToolExecutionOutput,
 } from "./config/long-command-timeout.js";
 export {
+  COMMIT_MESSAGE_PREFIX_FILE_MAX_BYTES,
+  COMMIT_MESSAGE_PREFIX_MAX_BYTES,
+  COMMIT_MESSAGE_PREFIX_RELATIVE_PATH,
+  DEFAULT_COMMIT_MESSAGE_PREFIX_MODE,
+  INITIAL_COMMIT_MESSAGE_PREFIX_CONTENT,
+  CommitMessagePrefixError,
+  initializeCommitMessagePrefix,
+  inspectCommitMessagePrefix,
+  isCommitMessagePrefixMode,
+  rollbackCommitMessagePrefixInitialization,
+  type CommitMessagePrefixErrorCode,
+  type CommitMessagePrefixInitialization,
+  type CommitMessagePrefixInitializationStatus,
+  type CommitMessagePrefixInspection,
+  type CommitMessagePrefixInspectionStatus,
+  type CommitMessagePrefixMode,
+} from "./config/commit-message-prefix.js";
+export {
   ORCHESTRATOR_DOCTOR_TOOL_NAME,
   ORCHESTRATOR_STATUS_TOOL_NAME,
   READ_ONLY_TOOL_NAMES,

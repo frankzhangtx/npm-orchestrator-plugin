@@ -8,6 +8,13 @@ import { fileURLToPath } from "node:url";
 
 import { DEFAULT_LONG_COMMAND_TIMEOUT_MS } from "../config/long-command-timeout.js";
 import {
+  COMMIT_MESSAGE_PREFIX_RELATIVE_PATH,
+  DEFAULT_COMMIT_MESSAGE_PREFIX_MODE,
+  inspectCommitMessagePrefix,
+  isCommitMessagePrefixMode,
+  type CommitMessagePrefixMode,
+} from "../config/commit-message-prefix.js";
+import {
   AUTOMATION_CONFIG_RELATIVE_PATH,
   DEFAULT_LINT_ENABLED,
   DEFAULT_UNIT_TESTS_ENABLED,
@@ -355,6 +362,7 @@ function blockedInstallationChecks(reason: string): readonly DoctorCheck[] {
     blockedCheck("managed-permissions", "Managed permissions", reason),
     blockedCheck("installation-backups", "Installation backups", reason),
     blockedCheck("managed-configuration", "Managed configuration", reason),
+    blockedCheck("commit-message-prefix", "Commit-message prefix", reason),
   ];
 }
 
@@ -598,6 +606,20 @@ function managedConfigurationCheck(
         unitTestsEnabled,
       };
     }
+    const commitMessagePrefixMode =
+      automationConfig.commitMessagePrefixMode ??
+      DEFAULT_COMMIT_MESSAGE_PREFIX_MODE;
+    if (!isCommitMessagePrefixMode(commitMessagePrefixMode)) {
+      throw new Error(
+        "commitMessagePrefixMode must be either required or disabled",
+      );
+    }
+    if (automationConfig.commitMessagePrefixMode === undefined) {
+      comparableAutomationConfig = {
+        ...comparableAutomationConfig,
+        commitMessagePrefixMode,
+      };
+    }
     const longCommandTimeoutMs =
       automationConfig.longCommandTimeoutMs ?? DEFAULT_LONG_COMMAND_TIMEOUT_MS;
     if (typeof longCommandTimeoutMs !== "number") {
@@ -616,6 +638,7 @@ function managedConfigurationCheck(
         automationConfig.gradleVerification as unknown as GradleVerificationConfiguration,
       lintEnabled,
       unitTestsEnabled,
+      commitMessagePrefixMode,
       longCommandTimeoutMs,
     });
     if (!jsonMatches(comparableAutomationConfig, expected.automationConfig)) {
@@ -629,6 +652,7 @@ function managedConfigurationCheck(
         `Unit-test verification: ${unitTestsEnabled ? "enabled" : "disabled"}`,
       );
       details.push(`Android lint verification: ${lintEnabled ? "enabled" : "disabled"}`);
+      details.push(`Commit-message prefix mode: ${commitMessagePrefixMode}`);
     }
 
     const taskExample = JSON.parse(
@@ -655,6 +679,77 @@ function managedConfigurationCheck(
         ? "OpenCode, AGENTS, and adaptive Android configuration are consistent."
         : `${failures.length} managed configuration issue(s) were found.`,
     details: failures.length === 0 ? details : failures,
+  };
+}
+
+function commitMessagePrefixCheck(
+  targetDirectory: string,
+  inspections: ReadonlyMap<string, FileInspection>,
+): DoctorCheck {
+  let mode: CommitMessagePrefixMode;
+  try {
+    const automationConfig = JSON.parse(
+      inspectedText(AUTOMATION_CONFIG_RELATIVE_PATH, inspections),
+    ) as unknown;
+    if (!isRecord(automationConfig)) {
+      throw new Error("automation config must be a JSON object");
+    }
+    const configuredMode =
+      automationConfig.commitMessagePrefixMode ??
+      DEFAULT_COMMIT_MESSAGE_PREFIX_MODE;
+    if (!isCommitMessagePrefixMode(configuredMode)) {
+      throw new Error(
+        "commitMessagePrefixMode must be either required or disabled",
+      );
+    }
+    mode = configuredMode;
+  } catch (error) {
+    return {
+      id: "commit-message-prefix",
+      label: "Commit-message prefix",
+      status: "fail",
+      summary: "Commit-message prefix policy could not be inspected.",
+      details: errorDetails(error),
+    };
+  }
+
+  const inspection = inspectCommitMessagePrefix(targetDirectory, mode);
+  if (inspection.status === "disabled") {
+    return {
+      id: "commit-message-prefix",
+      label: "Commit-message prefix",
+      status: "pass",
+      summary: "Commit-message prefixing is disabled by automation configuration.",
+      details: [],
+    };
+  }
+  if (inspection.status === "configured") {
+    return {
+      id: "commit-message-prefix",
+      label: "Commit-message prefix",
+      status: "pass",
+      summary: "The required user-maintained commit-message prefix is configured.",
+      details: [inspection.path],
+    };
+  }
+  if (inspection.status === "missing" || inspection.status === "unconfigured") {
+    return {
+      id: "commit-message-prefix",
+      label: "Commit-message prefix",
+      status: "warn",
+      summary: "New automation tasks are blocked until the commit-message prefix is filled.",
+      details: [
+        inspection.path,
+        `Put exactly one non-comment prefix line in ${COMMIT_MESSAGE_PREFIX_RELATIVE_PATH}.`,
+      ],
+    };
+  }
+  return {
+    id: "commit-message-prefix",
+    label: "Commit-message prefix",
+    status: "fail",
+    summary: "The required commit-message prefix file is invalid.",
+    details: [inspection.path, ...inspection.details],
   };
 }
 
@@ -719,5 +814,6 @@ export function installationDoctorChecks(
     managedPermissionCheck(manifest, inspections),
     installationBackupCheck(targetDirectory, manifest),
     managedConfigurationCheck(targetDirectory, manifest, inspections),
+    commitMessagePrefixCheck(targetDirectory, inspections),
   ];
 }

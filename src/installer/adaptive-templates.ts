@@ -22,9 +22,15 @@ import {
   DEFAULT_LINT_ENABLED,
   DEFAULT_UNIT_TESTS_ENABLED,
 } from "../config/verification-policy.js";
+import {
+  DEFAULT_COMMIT_MESSAGE_PREFIX_MODE,
+  isCommitMessagePrefixMode,
+  type CommitMessagePrefixMode,
+} from "../config/commit-message-prefix.js";
 
 export type AdaptiveProjectTemplateErrorCode =
   | "INVALID_ANDROID_PROJECT"
+  | "COMMIT_MESSAGE_PREFIX_MODE_INVALID"
   | "LINT_ENABLED_INVALID"
   | "LONG_COMMAND_TIMEOUT_INVALID"
   | "MODULE_SCOPE_INVALID"
@@ -64,6 +70,8 @@ export interface AdaptiveProjectTemplateOptions {
   lintEnabled?: boolean;
   /** Run focused and full unit tests as part of managed verification. */
   unitTestsEnabled?: boolean;
+  /** Require the user-maintained commit prefix file or disable prefixing. */
+  commitMessagePrefixMode?: CommitMessagePrefixMode;
   /** Timeout applied by the plugin to managed long-running shell commands. */
   longCommandTimeoutMs?: number;
 }
@@ -108,11 +116,12 @@ export interface AdaptiveAndroidProjectConfiguration {
 
 export interface AdaptiveAutomationConfiguration {
   readonly [key: string]: unknown;
-  schemaVersion: 4;
+  schemaVersion: 5;
   androidProject: AdaptiveAndroidProjectConfiguration;
   gradleVerification: GradleVerificationConfiguration;
   lintEnabled: boolean;
   unitTestsEnabled: boolean;
+  commitMessagePrefixMode: CommitMessagePrefixMode;
   longCommandTimeoutMs: number;
   protectedPaths: readonly string[];
 }
@@ -459,6 +468,16 @@ export function planAdaptiveProjectTemplates(
       "Unit-test verification must be enabled or disabled with a boolean value.",
     );
   }
+  const commitMessagePrefixMode =
+    options.commitMessagePrefixMode ??
+    configTemplate.commitMessagePrefixMode ??
+    DEFAULT_COMMIT_MESSAGE_PREFIX_MODE;
+  if (!isCommitMessagePrefixMode(commitMessagePrefixMode)) {
+    throw new AdaptiveProjectTemplateError(
+      "COMMIT_MESSAGE_PREFIX_MODE_INVALID",
+      "Commit-message prefix mode must be either required or disabled.",
+    );
+  }
   const longCommandTimeoutMs =
     options.longCommandTimeoutMs ??
     configTemplate.longCommandTimeoutMs ??
@@ -483,6 +502,7 @@ export function planAdaptiveProjectTemplates(
     ...configTemplate,
     lintEnabled,
     unitTestsEnabled,
+    commitMessagePrefixMode,
     longCommandTimeoutMs,
     gradleVerification,
     androidProject,

@@ -10,11 +10,11 @@ const templatesRoot = fileURLToPath(new URL("../templates/", import.meta.url));
 const expectedBaselineHashes = new Map([
   [
     "automation/config.json",
-    "809ff293288b79b58cacf8df4b928affd1c529c03d65b275c8d255a6250bff61",
+    "7f058b0de555340a25153c5ded9e114ced0d837d2976f784f17cb3b1938f012b",
   ],
   [
     "automation/config.schema.json",
-    "89de2fee77bda5ca8885c39995b582c16e52b776332a5960e179338205d17203",
+    "3007f61d797c80df3f93a1525b20baf5e56c5affeeb3797cbe9e508da5451637",
   ],
   [
     "automation/task-contract.schema.json",
@@ -71,7 +71,7 @@ test("ships the complete non-historical infrastructure template inventory", () =
   assert.deepEqual(actualPaths, expectedPaths);
 });
 
-test("locks the portable V4 infrastructure resources and file modes", () => {
+test("locks the portable V5 infrastructure resources and file modes", () => {
   for (const [relativePath, expectedHash] of expectedBaselineHashes) {
     const absolutePath = join(templatesRoot, relativePath);
     assert.equal(sha256(relativePath), expectedHash, relativePath);
@@ -126,6 +126,12 @@ test("keeps configuration, schemas, and contract example structurally aligned", 
   assert.deepEqual(configSchema.properties.lintEnabled, {
     type: "boolean",
     default: false,
+  });
+  assert.ok(configSchema.required.includes("commitMessagePrefixMode"));
+  assert.equal(config.commitMessagePrefixMode, "required");
+  assert.deepEqual(configSchema.properties.commitMessagePrefixMode, {
+    enum: ["required", "disabled"],
+    default: "required",
   });
   assert.ok(configSchema.required.includes("longCommandTimeoutMs"));
   assert.equal(config.longCommandTimeoutMs, 1_800_000);
@@ -182,7 +188,7 @@ test("keeps the render sources project-independent and Scheduler-free", () => {
   assert.equal(Object.hasOwn(config, "plugins"), false);
   assert.equal(
     configSchema.$id,
-    "urn:frankzhang2026:opencode-android-orchestrator:automation-config:v4",
+    "urn:frankzhang2026:opencode-android-orchestrator:automation-config:v5",
   );
   assert.equal(
     contractSchema.$id,

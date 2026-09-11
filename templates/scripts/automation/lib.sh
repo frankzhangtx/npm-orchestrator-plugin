@@ -50,6 +50,9 @@ AUTOMATION_WORKSPACES_DIR="$AUTOMATION_RUNTIME_ROOT/workspaces"
 AUTOMATION_WORKTREE_ALLOWLIST_RELATIVE_PATH=".automation-worktree-allowlist"
 AUTOMATION_WORKTREE_ALLOWLIST_MAX_BYTES=65536
 AUTOMATION_WORKTREE_ALLOWLIST_MAX_ENTRIES=256
+AUTOMATION_COMMIT_MESSAGE_PREFIX_RELATIVE_PATH="automation/automation-commit-prefix"
+AUTOMATION_COMMIT_MESSAGE_PREFIX_FILE_MAX_BYTES=4096
+AUTOMATION_COMMIT_MESSAGE_PREFIX_MAX_BYTES=256
 
 automation_info() {
     printf '[automation] %s\n' "$*"
@@ -111,7 +114,7 @@ automation_validate_config() {
             length > 0 and
             length == (unique | length) and
             all(.[]; gradle_task);
-        .schemaVersion == 4 and
+        .schemaVersion == 5 and
         (.enabled | type == "boolean") and
         (.mode == "shadow" or .mode == "orchestrated") and
         (.workspaceStrategy == "inPlaceExclusive" or .workspaceStrategy == "isolatedWorktree") and
@@ -122,6 +125,7 @@ automation_validate_config() {
         (.maxReviewerRestarts | type == "number" and . >= 0 and . <= 3 and floor == .) and
         (.unitTestsEnabled | type == "boolean") and
         (.lintEnabled | type == "boolean") and
+        (.commitMessagePrefixMode == "required" or .commitMessagePrefixMode == "disabled") and
         (.longCommandTimeoutMs | type == "number" and . >= 120000 and . <= 7200000 and floor == .) and
         (.autoCleanupWorktrees | type == "boolean") and
         .pushAfterAcceptance == false and
@@ -244,6 +248,92 @@ automation_read_state() {
 automation_config_value() {
     local query="$1"
     jq -r "$query" "$AUTOMATION_CONFIG"
+}
+
+automation_read_commit_message_prefix_at() {
+    local root="$1"
+    local config_file="$root/automation/config.json"
+    local prefix_file="$root/$AUTOMATION_COMMIT_MESSAGE_PREFIX_RELATIVE_PATH"
+    local mode byte_count line prefix prefix_bytes
+    local active_count=0
+
+    if [[ -L "$config_file" || ! -f "$config_file" ]]; then
+        automation_die "missing or unsafe automation configuration: $config_file"
+        return 1
+    fi
+    mode="$(jq -er '.commitMessagePrefixMode' "$config_file")" || {
+        automation_die "commitMessagePrefixMode is missing from $config_file"
+        return 1
+    }
+    case "$mode" in
+        disabled) return 0 ;;
+        required) ;;
+        *)
+            automation_die "unsupported commitMessagePrefixMode: $mode"
+            return 1
+            ;;
+    esac
+
+    if [[ ! -e "$prefix_file" && ! -L "$prefix_file" ]]; then
+        automation_die "commit-message prefix is required; fill $prefix_file before starting a task"
+        return 1
+    fi
+    if [[ -L "$prefix_file" || ! -f "$prefix_file" ]]; then
+        automation_die "commit-message prefix must be a regular file, not a symlink: $prefix_file"
+        return 1
+    fi
+    byte_count="$(wc -c < "$prefix_file" | tr -d '[:space:]')"
+    if [[ ! "$byte_count" =~ ^[0-9]+$ ]] || \
+       [[ "$byte_count" -gt "$AUTOMATION_COMMIT_MESSAGE_PREFIX_FILE_MAX_BYTES" ]]; then
+        automation_die "commit-message prefix file exceeds $AUTOMATION_COMMIT_MESSAGE_PREFIX_FILE_MAX_BYTES bytes: $prefix_file"
+        return 1
+    fi
+
+    while IFS= read -r line || [[ -n "$line" ]]; do
+        line="${line%$'\r'}"
+        [[ -z "$line" || "$line" =~ ^[[:space:]]*$ || "$line" =~ ^[[:space:]]*# ]] && continue
+        active_count=$((active_count + 1))
+        if [[ "$active_count" -gt 1 ]]; then
+            automation_die "commit-message prefix must contain exactly one non-comment line: $prefix_file"
+            return 1
+        fi
+        if [[ "$line" == [[:space:]]* || "$line" == *[[:space:]] ]]; then
+            automation_die "commit-message prefix must not have leading or trailing whitespace"
+            return 1
+        fi
+        case "$line" in
+            *[[:cntrl:]]*)
+                automation_die "commit-message prefix must not contain control characters"
+                return 1
+                ;;
+        esac
+        prefix="$line"
+    done < "$prefix_file"
+
+    if [[ "$active_count" -eq 0 ]]; then
+        automation_die "commit-message prefix is not configured; fill $prefix_file before starting a task"
+        return 1
+    fi
+    prefix_bytes="$(printf '%s' "$prefix" | wc -c | tr -d '[:space:]')"
+    if [[ ! "$prefix_bytes" =~ ^[0-9]+$ ]] || \
+       [[ "$prefix_bytes" -gt "$AUTOMATION_COMMIT_MESSAGE_PREFIX_MAX_BYTES" ]]; then
+        automation_die "commit-message prefix exceeds $AUTOMATION_COMMIT_MESSAGE_PREFIX_MAX_BYTES UTF-8 bytes"
+        return 1
+    fi
+    printf '%s\n' "$prefix"
+}
+
+automation_commit_message_at() {
+    local root="$1"
+    local base_message="$2"
+    local prefix
+
+    prefix="$(automation_read_commit_message_prefix_at "$root")" || return 1
+    if [[ -n "$prefix" ]]; then
+        printf '%s %s\n' "$prefix" "$base_message"
+    else
+        printf '%s\n' "$base_message"
+    fi
 }
 
 automation_validate_gradle_task() {
@@ -453,7 +543,7 @@ automation_validate_worktree_allowlist_entry_at() {
             ;;
     esac
     case "$path" in
-        /*|./*|.|..|.git|.git/*|docs/plans|docs/plans/*|"$AUTOMATION_WORKTREE_ALLOWLIST_RELATIVE_PATH")
+        /*|./*|.|..|.git|.git/*|docs/plans|docs/plans/*|"$AUTOMATION_WORKTREE_ALLOWLIST_RELATIVE_PATH"|"$AUTOMATION_COMMIT_MESSAGE_PREFIX_RELATIVE_PATH")
             automation_die "worktree allowlist entry is reserved or unsafe: $path"
             return 1
             ;;
@@ -608,6 +698,7 @@ automation_worktree_path_is_allowlisted() {
     local entry
 
     [[ "$path" == "$AUTOMATION_WORKTREE_ALLOWLIST_RELATIVE_PATH" ]] && return 0
+    [[ "$path" == "$AUTOMATION_COMMIT_MESSAGE_PREFIX_RELATIVE_PATH" ]] && return 0
     while IFS= read -r entry; do
         [[ -n "$entry" ]] || continue
         [[ "$path" == "$entry" ]] && return 0

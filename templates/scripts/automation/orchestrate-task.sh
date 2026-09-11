@@ -19,6 +19,7 @@ source_root="$(jq -er '.sourceRoot' "$workspace_file")"
 if [[ "$(jq -r '.repositoryLeaseRequired // false' "$workspace_file")" == "true" ]]; then
     automation_require_repository_lease "$task_id" "$source_root" "$workspace_strategy"
 fi
+automation_read_commit_message_prefix_at "$source_root" >/dev/null
 
 automation_acquire_run_lock "$task_id"
 trap 'automation_release_run_lock' EXIT

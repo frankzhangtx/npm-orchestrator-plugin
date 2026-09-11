@@ -1,5 +1,5 @@
 {
-  "schemaVersion": 4,
+  "schemaVersion": 5,
   "enabled": true,
   "mode": "orchestrated",
   "workspaceStrategy": "inPlaceExclusive",
@@ -10,6 +10,7 @@
   "maxReviewerRestarts": 2,
   "unitTestsEnabled": true,
   "lintEnabled": false,
+  "commitMessagePrefixMode": "required",
   "longCommandTimeoutMs": 1800000,
   "autoCleanupWorktrees": true,
   "pushAfterAcceptance": false,

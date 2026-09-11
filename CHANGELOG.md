@@ -1,5 +1,21 @@
 # Changelog
 
+## 0.10.0 - 2026-09-11
+
+- Add automation configuration schema v5 with
+  `commitMessagePrefixMode`, defaulting to `required`.
+- Create and preserve the human-maintained
+  `automation/automation-commit-prefix` sidecar during init and upgrade without
+  adding it to the managed installation manifest.
+- Block new orchestrated tasks until the required prefix file contains exactly
+  one valid non-comment line, while keeping init, upgrade, doctor, and shadow
+  verification usable with the initial comments-only template.
+- Prefix both accepted task commits and abort recovery commits automatically,
+  read the latest value from the source worktree, and show the resulting message
+  in the human acceptance card without prompting on each commit.
+- Exclude the prefix sidecar from task scope, evidence, cleanliness, automated
+  staging, and plugin-created commits, including isolated-worktree execution.
+
 ## 0.9.0 - 2026-09-09
 
 - Make Gradle's evaluated project model authoritative for Android module

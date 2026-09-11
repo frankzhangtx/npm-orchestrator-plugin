@@ -16,6 +16,7 @@ import test from "node:test";
 import { fileURLToPath } from "node:url";
 
 import {
+  COMMIT_MESSAGE_PREFIX_RELATIVE_PATH,
   EXPECTED_MANAGED_FILE_COUNT,
   INSTALLATION_MANIFEST_RELATIVE_PATH,
   formatDoctorReport,
@@ -44,7 +45,7 @@ function successfulCommandRunner(executable, args) {
     return commandResult(0, "1.15.13\n");
   }
   if (executable.endsWith("scripts/automation/tests/run-tests.sh")) {
-    return commandResult(0, "ok 44 - fixture\n1..44\n");
+    return commandResult(0, "ok 46 - fixture\n1..46\n");
   }
   if (executable.endsWith("scripts/automation/shadow-run.sh")) {
     return commandResult(0, '{"mutationPerformed":false}\n');
@@ -105,6 +106,10 @@ function createInstalledFixture() {
     installedAt: "2026-08-24T10:05:00.000Z",
     processRunner: successfulCommandRunner,
   });
+  writeFileSync(
+    join(root, COMMIT_MESSAGE_PREFIX_RELATIVE_PATH),
+    "医生测试批次\n",
+  );
   return { root, sdk };
 }
 
@@ -131,7 +136,7 @@ test("installed doctor validates dependencies, inventory, files, modes, backups,
     const report = installedDoctor(root);
 
     assert.equal(report.ok, true);
-    assert.equal(report.checks.length, 15);
+    assert.equal(report.checks.length, 16);
     assert.equal(report.checks.every((candidate) => candidate.status === "pass"), true);
     assert.match(
       check(report, "installation-manifest").summary,
@@ -139,7 +144,29 @@ test("installed doctor validates dependencies, inventory, files, modes, backups,
     );
     assert.match(check(report, "managed-permissions").summary, /29 automation scripts/);
     assert.match(check(report, "managed-configuration").summary, /consistent/);
+    assert.equal(check(report, "commit-message-prefix").status, "pass");
     assert.match(formatDoctorReport(report), /Result: OK/);
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
+});
+
+test("installed doctor warns without failing while the required prefix is unconfigured", () => {
+  const { root } = createInstalledFixture();
+  try {
+    writeFileSync(
+      join(root, COMMIT_MESSAGE_PREFIX_RELATIVE_PATH),
+      "# 请填写当前提交前缀\n",
+    );
+
+    const report = installedDoctor(root);
+
+    assert.equal(report.ok, true);
+    assert.equal(check(report, "commit-message-prefix").status, "warn");
+    assert.match(
+      check(report, "commit-message-prefix").summary,
+      /tasks are blocked/,
+    );
   } finally {
     rmSync(root, { recursive: true, force: true });
   }
@@ -152,6 +179,7 @@ test("installed doctor accepts repository verification-policy changes", () => {
     const config = JSON.parse(readFileSync(path, "utf8"));
     config.unitTestsEnabled = false;
     config.lintEnabled = true;
+    config.commitMessagePrefixMode = "disabled";
     writeFileSync(path, `${JSON.stringify(config, null, 2)}\n`);
 
     assert.equal(verifyInstallationIntegrity(root).ok, true);
@@ -164,6 +192,11 @@ test("installed doctor accepts repository verification-policy changes", () => {
       check(report, "managed-configuration").details.join("\n"),
       /Unit-test verification: disabled[\s\S]*Android lint verification: enabled/,
     );
+    assert.match(
+      check(report, "managed-configuration").details.join("\n"),
+      /Commit-message prefix mode: disabled/,
+    );
+    assert.equal(check(report, "commit-message-prefix").status, "pass");
   } finally {
     rmSync(root, { recursive: true, force: true });
   }
@@ -299,7 +332,7 @@ test("installed doctor rejects a self-consistent manifest rewrite of a packaged 
     assert.equal(check(report, "installation-manifest").status, "fail");
     assert.match(
       check(report, "installation-manifest").details.join("\n"),
-      /does not match the packaged 0\.9\.0 template/,
+      /does not match the packaged 0\.10\.0 template/,
     );
     assert.equal(
       check(report, "managed-resources").status,

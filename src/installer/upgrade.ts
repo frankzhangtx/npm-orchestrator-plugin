@@ -27,6 +27,15 @@ import {
   matchesManifestModuloVerificationPolicy,
 } from "../config/verification-policy.js";
 import {
+  DEFAULT_COMMIT_MESSAGE_PREFIX_MODE,
+  initializeCommitMessagePrefix,
+  isCommitMessagePrefixMode,
+  rollbackCommitMessagePrefixInitialization,
+  type CommitMessagePrefixInitialization,
+  type CommitMessagePrefixInitializationStatus,
+  type CommitMessagePrefixMode,
+} from "../config/commit-message-prefix.js";
+import {
   formatDoctorReport,
   runDoctor,
   type DoctorReport,
@@ -85,6 +94,7 @@ const OPENCODE_CONFIG_MERGE_SOURCE = "generated/opencode-config-merge";
 export type ProjectUpgradeErrorCode =
   | "DOCTOR_FAILED"
   | "GRADLE_DISCOVERY_FAILED"
+  | "COMMIT_MESSAGE_PREFIX_ROLLBACK_FAILED"
   | "INSTALLED_FILES_MODIFIED"
   | "INSTALLATION_INVALID"
   | "PACKAGE_MISMATCH"
@@ -164,6 +174,7 @@ export interface ProjectUpgradePlan {
   primaryModule: string;
   projectDetection: AndroidProjectDetection | null;
   gradleVerification: GradleVerificationConfiguration;
+  commitMessagePrefixMode: CommitMessagePrefixMode;
   longCommandTimeoutMs: number | undefined;
   fromVersion: string;
   toVersion: string;
@@ -207,6 +218,8 @@ export interface ProjectUpgradeResult {
   reusedFileCount: number;
   restoredOrRemovedFileCount: number;
   cleanupWarnings: readonly string[];
+  commitMessagePrefixPath: string;
+  commitMessagePrefixStatus: CommitMessagePrefixInitializationStatus;
   manifest: InstallationManifest;
   doctor: DoctorReport;
   verification: InitVerificationReport;
@@ -712,6 +725,7 @@ function textFromOriginal(
 }
 
 interface ConfiguredAdaptiveOptions {
+  commitMessagePrefixMode?: CommitMessagePrefixMode;
   moduleScope?: ModuleScope;
   primaryModule?: string;
   gradleVerification?: GradleVerificationConfiguration;
@@ -740,6 +754,7 @@ function configuredAdaptiveOptions(
   let value: {
     androidProject?: { moduleScope?: unknown; primaryModule?: unknown };
     gradleVerification?: unknown;
+    commitMessagePrefixMode?: unknown;
     lintEnabled?: unknown;
     unitTestsEnabled?: unknown;
     longCommandTimeoutMs?: unknown;
@@ -757,6 +772,15 @@ function configuredAdaptiveOptions(
   }
 
   const configured: ConfiguredAdaptiveOptions = {};
+  const commitMessagePrefixMode =
+    value.commitMessagePrefixMode ?? DEFAULT_COMMIT_MESSAGE_PREFIX_MODE;
+  if (!isCommitMessagePrefixMode(commitMessagePrefixMode)) {
+    throw new ProjectUpgradeError(
+      "INSTALLATION_INVALID",
+      "commitMessagePrefixMode must be either required or disabled.",
+    );
+  }
+  configured.commitMessagePrefixMode = commitMessagePrefixMode;
   const configuredModuleScope = value.androidProject?.moduleScope;
   if (configuredModuleScope === undefined) {
     configured.moduleScope = "primary";
@@ -1177,6 +1201,10 @@ export function planProjectUpgrade(
   if (configured.unitTestsEnabled !== undefined) {
     adaptiveOptions.unitTestsEnabled = configured.unitTestsEnabled;
   }
+  if (configured.commitMessagePrefixMode !== undefined) {
+    adaptiveOptions.commitMessagePrefixMode =
+      configured.commitMessagePrefixMode;
+  }
   const longCommandTimeoutMs =
     options.longCommandTimeoutMs ?? configured.longCommandTimeoutMs;
   if (longCommandTimeoutMs !== undefined) {
@@ -1248,6 +1276,8 @@ export function planProjectUpgrade(
     primaryModule: resources.adaptiveTemplates.primaryModule.gradlePath,
     projectDetection: runtimeProjectDetection ?? null,
     gradleVerification: resources.adaptiveTemplates.automationConfig.gradleVerification,
+    commitMessagePrefixMode:
+      resources.adaptiveTemplates.automationConfig.commitMessagePrefixMode,
     longCommandTimeoutMs,
     fromVersion: stable.manifest.package.version,
     toVersion: ORCHESTRATOR_PACKAGE_VERSION,
@@ -1279,6 +1309,7 @@ function planFingerprint(plan: ProjectUpgradePlan): string {
     primaryModule: plan.primaryModule,
     projectDetection: plan.projectDetection,
     gradleVerification: plan.gradleVerification,
+    commitMessagePrefixMode: plan.commitMessagePrefixMode,
     longCommandTimeoutMs: plan.longCommandTimeoutMs,
     fromVersion: plan.fromVersion,
     toVersion: plan.toVersion,
@@ -2000,6 +2031,28 @@ function assertVerificationPassed(report: InitVerificationReport): void {
   }
 }
 
+function rollbackUpgradeCommitMessagePrefix(
+  initialization: CommitMessagePrefixInitialization | null,
+  originalError: unknown,
+): never {
+  if (initialization !== null) {
+    try {
+      rollbackCommitMessagePrefixInitialization(initialization);
+    } catch (error) {
+      throw new ProjectUpgradeError(
+        "COMMIT_MESSAGE_PREFIX_ROLLBACK_FAILED",
+        "Upgrade failed and the commit-message prefix sidecar could not be rolled back safely.",
+        [
+          `Original failure: ${originalError instanceof Error ? originalError.message : String(originalError)}`,
+          `Prefix rollback failure: ${error instanceof Error ? error.message : String(error)}`,
+          `Preserved path: ${initialization.path}`,
+        ],
+      );
+    }
+  }
+  throw originalError;
+}
+
 export function runProjectUpgrade(
   directory: string,
   options: ProjectUpgradeOptions = {},
@@ -2015,8 +2068,24 @@ export function runProjectUpgrade(
   );
 
   if (plan.status === "already-current") {
-    const verification = verifyInitializedProject(plan.targetDirectory, runner);
-    assertVerificationPassed(verification);
+    let commitMessagePrefix: CommitMessagePrefixInitialization | null = null;
+    let verification: InitVerificationReport;
+    try {
+      commitMessagePrefix = initializeCommitMessagePrefix(
+        plan.targetDirectory,
+        plan.commitMessagePrefixMode,
+      );
+      verification = verifyInitializedProject(plan.targetDirectory, runner);
+      assertVerificationPassed(verification);
+    } catch (error) {
+      rollbackUpgradeCommitMessagePrefix(commitMessagePrefix, error);
+    }
+    if (commitMessagePrefix === null) {
+      throw new ProjectUpgradeError(
+        "POST_UPGRADE_VERIFICATION_FAILED",
+        "Commit-message prefix initialization did not produce a result.",
+      );
+    }
     return {
       status: "already-current",
       targetDirectory: plan.targetDirectory,
@@ -2036,18 +2105,57 @@ export function runProjectUpgrade(
       reusedFileCount: plan.currentManifest.files.length,
       restoredOrRemovedFileCount: 0,
       cleanupWarnings: [],
+      commitMessagePrefixPath: commitMessagePrefix.path,
+      commitMessagePrefixStatus: commitMessagePrefix.status,
       manifest: plan.currentManifest,
       doctor,
       verification,
     };
   }
 
-  let verification: InitVerificationReport | null = null;
-  const applied = applyProjectUpgrade(plan, () => {
-    verification = verifyInitializedProject(plan.targetDirectory, runner);
-    assertVerificationPassed(verification);
-  });
-  if (verification === null) {
+  const lifecycle: {
+    verification: InitVerificationReport | null;
+    commitMessagePrefix: CommitMessagePrefixInitialization | null;
+  } = { verification: null, commitMessagePrefix: null };
+  let applied: AppliedProjectUpgrade;
+  try {
+    applied = applyProjectUpgrade(plan, () => {
+      lifecycle.commitMessagePrefix = initializeCommitMessagePrefix(
+        plan.targetDirectory,
+        plan.commitMessagePrefixMode,
+      );
+      try {
+        lifecycle.verification = verifyInitializedProject(
+          plan.targetDirectory,
+          runner,
+        );
+        assertVerificationPassed(lifecycle.verification);
+      } catch (error) {
+        try {
+          rollbackCommitMessagePrefixInitialization(
+            lifecycle.commitMessagePrefix,
+          );
+        } catch (rollbackError) {
+          throw new ProjectUpgradeError(
+            "COMMIT_MESSAGE_PREFIX_ROLLBACK_FAILED",
+            "Upgrade verification failed and the commit-message prefix sidecar could not be rolled back safely.",
+            [
+              `Original failure: ${error instanceof Error ? error.message : String(error)}`,
+              `Prefix rollback failure: ${rollbackError instanceof Error ? rollbackError.message : String(rollbackError)}`,
+              `Preserved path: ${lifecycle.commitMessagePrefix.path}`,
+            ],
+          );
+        }
+        throw error;
+      }
+    });
+  } catch (error) {
+    rollbackUpgradeCommitMessagePrefix(lifecycle.commitMessagePrefix, error);
+  }
+  if (
+    lifecycle.verification === null ||
+    lifecycle.commitMessagePrefix === null
+  ) {
     throw new ProjectUpgradeError(
       "POST_UPGRADE_VERIFICATION_FAILED",
       "Upgrade verification did not produce a report.",
@@ -2069,9 +2177,11 @@ export function runProjectUpgrade(
     reusedFileCount: applied.reusedFileCount,
     restoredOrRemovedFileCount: applied.restoredOrRemovedFileCount,
     cleanupWarnings: applied.cleanupWarnings,
+    commitMessagePrefixPath: lifecycle.commitMessagePrefix.path,
+    commitMessagePrefixStatus: lifecycle.commitMessagePrefix.status,
     manifest: applied.manifest,
     doctor,
-    verification,
+    verification: lifecycle.verification,
   };
 }
 
@@ -2090,6 +2200,7 @@ export function formatProjectUpgradeResult(result: ProjectUpgradeResult): string
     `Restored/removed obsolete files: ${String(result.restoredOrRemovedFileCount)}`,
     `Manifest: ${result.manifestPath}`,
     `Original-file backups: ${result.backupDirectory}`,
+    `Commit prefix: ${result.commitMessagePrefixPath} (${result.commitMessagePrefixStatus})`,
     ...(result.recoveryDirectory === null
       ? []
       : [`Upgrade recovery: ${result.recoveryDirectory}`]),
@@ -2104,7 +2215,12 @@ export function formatProjectUpgradeResult(result: ProjectUpgradeResult): string
       (check) => `[${check.status.toUpperCase()}] ${check.summary}`,
     ),
     "",
-    `Next: opencode --agent scheduled-planner ${result.targetDirectory}`,
+    ...(result.commitMessagePrefixStatus === "created-unconfigured" ||
+    result.commitMessagePrefixStatus === "existing-unconfigured"
+      ? [
+          `Next: fill ${result.commitMessagePrefixPath}; new automation tasks remain blocked until it contains one prefix line.`,
+        ]
+      : [`Next: opencode --agent scheduled-planner ${result.targetDirectory}`]),
   ];
   return `${lines.join("\n")}\n`;
 }

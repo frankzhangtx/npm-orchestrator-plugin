@@ -1,9 +1,9 @@
 # Security model
 
 This document describes the security properties of
-`@frankzhang2026/opencode-android-orchestrator@0.9.0`. The lifecycle foundation
+`@frankzhang2026/opencode-android-orchestrator@0.10.0`. The lifecycle foundation
 completed the real OpenCode `1.14.22` and `1.15.13` release matrix in `0.2.0`;
-`0.9.0` retains that compatibility boundary.
+`0.10.0` retains that compatibility boundary.
 
 ## Security goals and non-goals
 
@@ -130,13 +130,22 @@ while Gradle settings/build files and orchestration resources remain protected.
 legacy configuration with no scope field as `primary`, preventing an implicit
 permission expansion.
 
-`unitTestsEnabled` and `lintEnabled` are the only operator-editable fields in
-the otherwise manifest-managed `automation/config.json`. Upgrade authenticates
+`unitTestsEnabled`, `lintEnabled`, and `commitMessagePrefixMode` are the
+operator-editable fields in the otherwise manifest-managed
+`automation/config.json`. Upgrade authenticates
 the remaining generated content before preserving those values, and doctor
 validates the resulting adaptive configuration. Task agents still cannot edit
 the protected file. Unit tests default on and lint defaults off; disabling unit
 verification does not remove the mandatory RED evidence step. Assemble, scope,
 evidence, and required device-test gates are unaffected.
+
+When commit prefix mode is `required`, the regular UTF-8 sidecar
+`automation/automation-commit-prefix` must contain exactly one active line.
+The installer creates a comments-only template without failing installation;
+normal preflight and contract execution then block until a human fills it.
+The file is not manifest-managed and is excluded from worktree, evidence, and
+commit pathsets. Accepted and abort-recovery commits read it from the recorded
+source worktree; manual Git commits remain outside this enforcement boundary.
 
 The optional repository-root `.automation-worktree-allowlist` is controlled by
 the local human operator, not by task agents. It accepts at most 256 exact,
@@ -157,7 +166,7 @@ writes the target package modes.
 ## Transaction and recovery safety
 
 `init` writes original-file backups before publishing a prepared manifest. It
-then applies validated files, runs the 44-case transaction suite and a shadow
+then applies validated files, runs the 46-case transaction suite and a shadow
 run, verifies final hashes/modes, and only then marks the manifest installed.
 Failure before completion restores originals and removes safely unchanged new
 files.

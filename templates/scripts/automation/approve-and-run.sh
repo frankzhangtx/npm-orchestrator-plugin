@@ -33,6 +33,7 @@ plan="$source_root/$plan_rel"
 [[ "$(git -C "$source_root" rev-parse HEAD)" == "$original_head" ]] || automation_die "original HEAD changed after contract review began"
 [[ "$(automation_file_sha256 "$contract")" == "$(jq -er '.contractSha256' "$origin_file")" ]] || automation_die "contract changed after proposal approval"
 [[ "$(automation_file_sha256 "$plan")" == "$(jq -er '.planSha256' "$origin_file")" ]] || automation_die "plan changed after proposal approval"
+automation_read_commit_message_prefix_at "$source_root" >/dev/null
 
 changed_paths=()
 while IFS= read -r path; do

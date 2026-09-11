@@ -6,6 +6,25 @@ export interface InstallerRequest {
 }
 
 export {
+  COMMIT_MESSAGE_PREFIX_FILE_MAX_BYTES,
+  COMMIT_MESSAGE_PREFIX_MAX_BYTES,
+  COMMIT_MESSAGE_PREFIX_RELATIVE_PATH,
+  DEFAULT_COMMIT_MESSAGE_PREFIX_MODE,
+  INITIAL_COMMIT_MESSAGE_PREFIX_CONTENT,
+  CommitMessagePrefixError,
+  initializeCommitMessagePrefix,
+  inspectCommitMessagePrefix,
+  isCommitMessagePrefixMode,
+  rollbackCommitMessagePrefixInitialization,
+  type CommitMessagePrefixErrorCode,
+  type CommitMessagePrefixInitialization,
+  type CommitMessagePrefixInitializationStatus,
+  type CommitMessagePrefixInspection,
+  type CommitMessagePrefixInspectionStatus,
+  type CommitMessagePrefixMode,
+} from "../config/commit-message-prefix.js";
+
+export {
   AGENTS_MANAGED_BLOCK_BEGIN,
   AGENTS_MANAGED_BLOCK_END,
   AgentsConfigMergeError,

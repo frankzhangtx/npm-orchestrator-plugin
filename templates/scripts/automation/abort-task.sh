@@ -86,8 +86,9 @@ if [[ -d "$task_root" ]]; then
                 fi
             done
             if [[ "$product_path_count" -gt 0 ]]; then
+                commit_message="$(automation_commit_message_at "$source_root" "Archive aborted work for $task_id")"
                 git -C "$task_root" add -- "${changed_paths[@]}"
-                git -C "$task_root" commit --only -m "Archive aborted work for $task_id" -- "${changed_paths[@]}"
+                git -C "$task_root" commit --only -m "$commit_message" -- "${changed_paths[@]}"
                 recovery_commit="$(git -C "$task_root" rev-parse HEAD)"
             else
                 plan_rel="$(jq -er '.planPath' "$origin_file")"

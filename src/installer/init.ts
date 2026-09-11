@@ -54,6 +54,12 @@ import {
   planOpenCodeConfigMerge,
   type OpenCodeConfigMergePlan,
 } from "./opencode-config.js";
+import {
+  initializeCommitMessagePrefix,
+  rollbackCommitMessagePrefixInitialization,
+  type CommitMessagePrefixInitialization,
+  type CommitMessagePrefixInitializationStatus,
+} from "../config/commit-message-prefix.js";
 
 const TEMPLATE_COPY_ROOTS = [
   ".opencode",
@@ -78,6 +84,7 @@ export type ProjectInitializationErrorCode =
   | "EXISTING_INSTALLATION_DIFFERENT"
   | "EXISTING_INSTALLATION_INVALID"
   | "GRADLE_DISCOVERY_FAILED"
+  | "COMMIT_MESSAGE_PREFIX_ROLLBACK_FAILED"
   | "POST_INSTALL_VERIFICATION_FAILED"
   | "TEMPLATE_INVALID"
   | "WORKTREE_ALLOWLIST_INVALID"
@@ -164,6 +171,8 @@ export interface ProjectInitializationResult {
   reusedFileCount: number;
   worktreeAllowlistPath: string;
   worktreeAllowlistStatus: WorktreeAllowlistInitializationStatus;
+  commitMessagePrefixPath: string;
+  commitMessagePrefixStatus: CommitMessagePrefixInitializationStatus;
   manifest: InstallationManifest;
   doctor: DoctorReport;
   verification: InitVerificationReport;
@@ -307,6 +316,29 @@ function rollbackWorktreeAllowlistInitialization(
     }
   }
   throw originalError;
+}
+
+function rollbackInitializationSidecars(
+  worktreeAllowlist: WorktreeAllowlistInitialization,
+  commitMessagePrefix: CommitMessagePrefixInitialization | null,
+  originalError: unknown,
+): never {
+  if (commitMessagePrefix !== null) {
+    try {
+      rollbackCommitMessagePrefixInitialization(commitMessagePrefix);
+    } catch (error) {
+      throw new ProjectInitializationError(
+        "COMMIT_MESSAGE_PREFIX_ROLLBACK_FAILED",
+        "Initialization failed and the commit-message prefix sidecar could not be rolled back safely.",
+        [
+          `Original failure: ${originalError instanceof Error ? originalError.message : String(originalError)}`,
+          `Prefix rollback failure: ${error instanceof Error ? error.message : String(error)}`,
+          `Preserved path: ${commitMessagePrefix.path}`,
+        ],
+      );
+    }
+  }
+  rollbackWorktreeAllowlistInitialization(worktreeAllowlist, originalError);
 }
 
 function templateRoot(): string {
@@ -516,6 +548,9 @@ export function planProjectInitialization(
   if (options.longCommandTimeoutMs !== undefined) {
     adaptiveOptions.longCommandTimeoutMs = options.longCommandTimeoutMs;
   }
+  if (options.commitMessagePrefixMode !== undefined) {
+    adaptiveOptions.commitMessagePrefixMode = options.commitMessagePrefixMode;
+  }
   const resources = planProjectResourceInputs(directory, adaptiveOptions);
   const { adaptiveTemplates, targetDirectory } = resources;
   const agentsMerge = planAgentsConfigMerge(targetDirectory);
@@ -602,7 +637,7 @@ export function verifyInitializedProject(
       "automation-tests",
       "Automation transaction tests",
       automationTests,
-      (stdout) => /(?:^|\n)1\.\.44(?:\n|$)/.test(stdout),
+      (stdout) => /(?:^|\n)1\.\.46(?:\n|$)/.test(stdout),
     ),
     processCheck(
       "shadow-run",
@@ -786,6 +821,7 @@ function resultFromApplied(
   doctor: DoctorReport,
   verification: InitVerificationReport,
   worktreeAllowlist: WorktreeAllowlistInitialization,
+  commitMessagePrefix: CommitMessagePrefixInitialization,
 ): ProjectInitializationResult {
   return {
     status: "installed",
@@ -799,6 +835,8 @@ function resultFromApplied(
     reusedFileCount: applied.reusedFileCount,
     worktreeAllowlistPath: worktreeAllowlist.path,
     worktreeAllowlistStatus: worktreeAllowlist.status,
+    commitMessagePrefixPath: commitMessagePrefix.path,
+    commitMessagePrefixStatus: commitMessagePrefix.status,
     manifest: applied.manifest,
     doctor,
     verification,
@@ -822,8 +860,13 @@ export function runProjectInitialization(
   if (existing !== null) {
     assertExistingInstallationIsCurrent(plan, existing);
     const worktreeAllowlist = initializeWorktreeAllowlist(plan.targetDirectory);
+    let commitMessagePrefix: CommitMessagePrefixInitialization | null = null;
     let verification: InitVerificationReport;
     try {
+      commitMessagePrefix = initializeCommitMessagePrefix(
+        plan.targetDirectory,
+        plan.adaptiveTemplates.automationConfig.commitMessagePrefixMode,
+      );
       verification = verifyInitializedProject(plan.targetDirectory, runner);
       if (!verification.ok) {
         throw new ProjectInitializationError(
@@ -835,7 +878,17 @@ export function runProjectInitialization(
         );
       }
     } catch (error) {
-      rollbackWorktreeAllowlistInitialization(worktreeAllowlist, error);
+      rollbackInitializationSidecars(
+        worktreeAllowlist,
+        commitMessagePrefix,
+        error,
+      );
+    }
+    if (commitMessagePrefix === null) {
+      throw new ProjectInitializationError(
+        "POST_INSTALL_VERIFICATION_FAILED",
+        "Commit-message prefix initialization did not produce a result.",
+      );
     }
     return {
       status: "already-installed",
@@ -855,6 +908,8 @@ export function runProjectInitialization(
       reusedFileCount: existing.files.length,
       worktreeAllowlistPath: worktreeAllowlist.path,
       worktreeAllowlistStatus: worktreeAllowlist.status,
+      commitMessagePrefixPath: commitMessagePrefix.path,
+      commitMessagePrefixStatus: commitMessagePrefix.status,
       manifest: existing,
       doctor,
       verification,
@@ -862,6 +917,7 @@ export function runProjectInitialization(
   }
 
   const worktreeAllowlist = initializeWorktreeAllowlist(plan.targetDirectory);
+  let commitMessagePrefix: CommitMessagePrefixInitialization | null = null;
   let verification: InitVerificationReport | null = null;
   let applied: AppliedInstallation;
   try {
@@ -870,14 +926,39 @@ export function runProjectInitialization(
         ? {}
         : { installedAt: options.installedAt }),
       verify: () => {
-        verification = verifyInitializedProject(plan.targetDirectory, runner);
-        assertVerificationPassed(verification);
+        commitMessagePrefix = initializeCommitMessagePrefix(
+          plan.targetDirectory,
+          plan.adaptiveTemplates.automationConfig.commitMessagePrefixMode,
+        );
+        try {
+          verification = verifyInitializedProject(plan.targetDirectory, runner);
+          assertVerificationPassed(verification);
+        } catch (error) {
+          try {
+            rollbackCommitMessagePrefixInitialization(commitMessagePrefix);
+          } catch (rollbackError) {
+            throw new ProjectInitializationError(
+              "COMMIT_MESSAGE_PREFIX_ROLLBACK_FAILED",
+              "Installation verification failed and the commit-message prefix sidecar could not be rolled back safely.",
+              [
+                `Original failure: ${error instanceof Error ? error.message : String(error)}`,
+                `Prefix rollback failure: ${rollbackError instanceof Error ? rollbackError.message : String(rollbackError)}`,
+                `Preserved path: ${commitMessagePrefix.path}`,
+              ],
+            );
+          }
+          throw error;
+        }
       },
     });
   } catch (error) {
-    rollbackWorktreeAllowlistInitialization(worktreeAllowlist, error);
+    rollbackInitializationSidecars(
+      worktreeAllowlist,
+      commitMessagePrefix,
+      error,
+    );
   }
-  if (verification === null) {
+  if (verification === null || commitMessagePrefix === null) {
     throw new ProjectInitializationError(
       "POST_INSTALL_VERIFICATION_FAILED",
       "Installation verification did not produce a report.",
@@ -889,6 +970,7 @@ export function runProjectInitialization(
     doctor,
     verification,
     worktreeAllowlist,
+    commitMessagePrefix,
   );
 }
 
@@ -906,6 +988,7 @@ export function formatProjectInitializationResult(
     `Written files: ${String(result.writtenFileCount)}`,
     `Reused files: ${String(result.reusedFileCount)}`,
     `Worktree allowlist: ${result.worktreeAllowlistPath} (${result.worktreeAllowlistStatus})`,
+    `Commit prefix: ${result.commitMessagePrefixPath} (${result.commitMessagePrefixStatus})`,
     `Manifest: ${result.manifestPath}`,
     `Recovery backups: ${result.backupDirectory}`,
     "Failure rollback: automatic until the manifest is marked installed",
@@ -917,7 +1000,12 @@ export function formatProjectInitializationResult(
         `[${check.status.toUpperCase()}] ${check.summary}`,
     ),
     "",
-    `Next: opencode --agent scheduled-planner ${result.targetDirectory}`,
+    ...(result.commitMessagePrefixStatus === "created-unconfigured" ||
+    result.commitMessagePrefixStatus === "existing-unconfigured"
+      ? [
+          `Next: fill ${result.commitMessagePrefixPath}; new automation tasks remain blocked until it contains one prefix line.`,
+        ]
+      : [`Next: opencode --agent scheduled-planner ${result.targetDirectory}`]),
   ];
   return `${lines.join("\n")}\n`;
 }

@@ -110,7 +110,7 @@ printf '%s\n' \
 chmod +x "$fixture/gradlew"
 
 jq -n '{
-    schemaVersion: 4,
+    schemaVersion: 5,
     enabled: true,
     mode: "orchestrated",
     workspaceStrategy: "inPlaceExclusive",
@@ -121,6 +121,7 @@ jq -n '{
     maxReviewerRestarts: 2,
     unitTestsEnabled: true,
     lintEnabled: false,
+    commitMessagePrefixMode: "required",
     longCommandTimeoutMs: 1800000,
     autoCleanupWorktrees: true,
     pushAfterAcceptance: false,
@@ -249,6 +250,8 @@ jq -n '{
     git commit -qm 'Create automation fixture'
 )
 
+printf '%s\n' '批次甲' > "$fixture/automation/automation-commit-prefix"
+
 printf '%s\n' \
     '# Exact repository-relative paths intentionally kept local' \
     'local/operator-note.txt' \
@@ -259,6 +262,37 @@ printf '%s\n' 'generated local state' > "$fixture/local/generated-note.txt"
 run_fixture ./scripts/automation/preflight.sh --source >/dev/null
 allowlisted_changes="$(run_fixture bash -c 'source ./scripts/automation/lib.sh; automation_changed_paths')"
 [[ -z "$allowlisted_changes" ]] || fail "allowlisted paths remained visible: $allowlisted_changes"
+
+printf '%s\n' \
+    '# 必填：请在下一行填写当前 Git 提交文案前缀' \
+    '# 示例：XXX' \
+    > "$fixture/automation/automation-commit-prefix"
+if run_fixture ./scripts/automation/preflight.sh --source >/dev/null 2>&1; then
+    fail 'normal preflight accepted an unconfigured required commit prefix'
+fi
+run_fixture ./scripts/automation/preflight.sh --shadow >/dev/null 2>&1 || \
+    fail 'shadow preflight rejected the intentionally unconfigured installation template'
+rm "$fixture/automation/automation-commit-prefix"
+if run_fixture ./scripts/automation/preflight.sh --source >/dev/null 2>&1; then
+    fail 'normal preflight accepted a missing required commit prefix'
+fi
+run_fixture ./scripts/automation/preflight.sh --shadow >/dev/null 2>&1 || \
+    fail 'shadow preflight rejected a missing required commit prefix'
+printf '%s\n' '批次甲' > "$fixture/automation/automation-commit-prefix"
+pass 'required missing or unconfigured commit prefix blocks task startup but not shadow verification'
+
+printf '%s\n' '批次甲' '第二行无效' > "$fixture/automation/automation-commit-prefix"
+if run_fixture ./scripts/automation/preflight.sh --source >/dev/null 2>&1; then
+    fail 'preflight accepted more than one active commit-prefix line'
+fi
+rm "$fixture/automation/automation-commit-prefix"
+ln -s ../local/operator-note.txt "$fixture/automation/automation-commit-prefix"
+if run_fixture ./scripts/automation/preflight.sh --source >/dev/null 2>&1; then
+    fail 'preflight accepted a symbolic-link commit-prefix file'
+fi
+rm "$fixture/automation/automation-commit-prefix"
+printf '%s\n' '批次甲' > "$fixture/automation/automation-commit-prefix"
+pass 'invalid and symbolic-link commit-prefix files fail closed'
 
 printf '%s\n' \
     'local/operator-note.txt' \
@@ -287,6 +321,10 @@ pass 'a non-allowlisted worktree change still blocks orchestration startup'
 printf '%s\n' 'automation/config.json' > "$fixture/.automation-worktree-allowlist"
 if run_fixture bash -c 'source ./scripts/automation/lib.sh; automation_changed_paths >/dev/null' 2>/dev/null; then
     fail 'worktree allowlist accepted a protected automation path'
+fi
+printf '%s\n' 'automation/automation-commit-prefix' > "$fixture/.automation-worktree-allowlist"
+if run_fixture bash -c 'source ./scripts/automation/lib.sh; automation_changed_paths >/dev/null' 2>/dev/null; then
+    fail 'worktree allowlist accepted the reserved commit-prefix control file'
 fi
 printf '%s\n' 'local/*.json' > "$fixture/.automation-worktree-allowlist"
 if run_fixture bash -c 'source ./scripts/automation/lib.sh; automation_changed_paths >/dev/null' 2>/dev/null; then
@@ -595,6 +633,11 @@ approved_baseline="$(jq -er '.baselineHead' "$runtime_root/workspaces/TASK-TEST-
 [[ "$(git -C "$fixture" rev-list --count "$approved_baseline..automation/task-test-004")" -eq 0 ]] || fail 'contract approval created a planning-only commit'
 [[ "$(jq -r '.contractCommit' "$runtime_root/evidence/TASK-TEST-004/origin.json")" == "null" ]] || fail 'contract approval recorded a commit before product integration'
 [[ "$(git -C "$fixture" status --porcelain --untracked-files=all -- docs/plans/TASK-TEST-004.md automation/tasks/TASK-TEST-004.json | wc -l | tr -d ' ')" -eq 2 ]] || fail 'sealed planning artifacts were not left pending on the task branch'
+printf '%s\n' '# 尚未填写提交前缀' > "$fixture/automation/automation-commit-prefix"
+if run_task "$task_root" env AUTOMATION_SKIP_AGENT_RUN=1 ./scripts/automation/orchestrate-task.sh TASK-TEST-004 >/dev/null 2>&1; then
+    fail 'direct task launcher bypassed the required commit-prefix gate'
+fi
+printf '%s\n' '批次甲' > "$fixture/automation/automation-commit-prefix"
 [[ -f "$runtime_root/locks/repository.workspace.lease/lease.json" ]] || fail 'persistent repository lease was not created'
 leased_status="$(run_fixture ./scripts/automation/status.sh TASK-TEST-004)"
 [[ "$(jq -r '.runtime.repositoryLeaseMatches' <<< "$leased_status")" == "true" ]] || fail 'status did not verify the repository lease'
@@ -611,6 +654,7 @@ pass 'contract approval switches to a leased task branch while deferring the sea
 
 git -C "$fixture" add -- \
     .automation-worktree-allowlist \
+    automation/automation-commit-prefix \
     local/operator-note.txt \
     local/generated-note.txt
 run_task "$task_root" ./scripts/automation/claim-task.sh TASK-TEST-004 >/dev/null
@@ -628,7 +672,8 @@ if jq -e '.changedPaths | any(. == "local/operator-note.txt" or . == "local/gene
 fi
 if rg -F 'diff --git a/local/operator-note.txt b/local/operator-note.txt' "$runtime_root/evidence/TASK-TEST-004/sealed.diff" >/dev/null || \
    rg -F 'diff --git a/local/generated-note.txt b/local/generated-note.txt' "$runtime_root/evidence/TASK-TEST-004/sealed.diff" >/dev/null || \
-   rg -F 'diff --git a/.automation-worktree-allowlist b/.automation-worktree-allowlist' "$runtime_root/evidence/TASK-TEST-004/sealed.diff" >/dev/null; then
+   rg -F 'diff --git a/.automation-worktree-allowlist b/.automation-worktree-allowlist' "$runtime_root/evidence/TASK-TEST-004/sealed.diff" >/dev/null || \
+   rg -F 'diff --git a/automation/automation-commit-prefix b/automation/automation-commit-prefix' "$runtime_root/evidence/TASK-TEST-004/sealed.diff" >/dev/null; then
     fail 'sealed diff included allowlisted local content'
 fi
 [[ "$(jq -r '.evidence.qualityGate' "$runtime_root/evidence/TASK-TEST-004/acceptance-report.json")" == "PASSED" ]] || fail 'acceptance package omitted quality-gate status'
@@ -637,6 +682,7 @@ acceptance_card="$(run_fixture ./scripts/automation/show-acceptance-review.sh TA
 [[ "$acceptance_card" == *"P0 · 真实行为是否满足合同"* ]] || fail 'acceptance review omitted behavioral focus'
 [[ "$acceptance_card" == *"P0 · 旧行为与范围是否被误伤"* ]] || fail 'acceptance review omitted regression and scope focus'
 [[ "$acceptance_card" == *"sealed diff SHA"* ]] || fail 'acceptance review omitted sealed binding'
+[[ "$acceptance_card" == *"批次甲 Implement"* ]] || fail 'acceptance review omitted the current prefixed commit message'
 [[ "$acceptance_card" == *"成功集成后自动删除；失败或阻塞时保留"* ]] || fail 'acceptance review omitted task branch cleanup policy'
 pass 'automated evidence becomes one focused, SHA-verified human acceptance card'
 
@@ -654,8 +700,10 @@ if run_fixture env AUTOMATION_FAKE_GREEN=1 ./scripts/automation/accept-and-integ
 fi
 pass 'integrator requires final acceptance bound to the sealed diff'
 
+printf '%s\n' '批次甲-提交时' > "$fixture/automation/automation-commit-prefix"
 run_fixture env AUTOMATION_FAKE_GREEN=1 ./scripts/automation/accept-and-integrate.sh TASK-TEST-004 '验收通过，提交到原分支。' >/dev/null
 combined_commit="$(jq -er '.productCommit' "$runtime_root/workspaces/TASK-TEST-004.json")"
+[[ "$(git -C "$fixture" show -s --format=%s "$combined_commit")" == "批次甲-提交时 Implement "* ]] || fail 'combined task commit did not re-read the latest prefix at commit time'
 [[ "$(jq -r '.state' "$runtime_root/state/TASK-TEST-004.json")" == "COMPLETED" ]] || fail 'final integration did not reach COMPLETED'
 [[ "$(git -C "$fixture" symbolic-ref --short HEAD)" == "$original_branch" ]] || fail 'integrator changed the original branch identity'
 [[ -f "$fixture/mobile-client/src/main/java/dev/example/orchestratorfixture/OrchestratedFlow.kt" ]] || fail 'product change was not integrated into original branch'
@@ -670,7 +718,7 @@ for combined_path in \
         fail "combined task commit omitted $combined_path"
 done
 if git -C "$fixture" diff-tree --no-commit-id --name-only -r "$combined_commit" | \
-    rg -x 'local/(operator-note|generated-note)\.txt|\.automation-worktree-allowlist' >/dev/null; then
+    rg -x 'local/(operator-note|generated-note)\.txt|\.automation-worktree-allowlist|automation/automation-commit-prefix' >/dev/null; then
     fail 'combined task commit included an allowlisted local path or its control file'
 fi
 [[ "$(cat "$fixture/local/operator-note.txt")" == "operator local edit" ]] || fail 'tracked allowlisted content changed during integration'
@@ -678,6 +726,7 @@ fi
 staged_allowlist_paths="$(git -C "$fixture" diff --cached --name-only HEAD -- | LC_ALL=C sort)"
 for staged_allowlist_path in \
     .automation-worktree-allowlist \
+    automation/automation-commit-prefix \
     local/generated-note.txt \
     local/operator-note.txt; do
     printf '%s\n' "$staged_allowlist_paths" | \
@@ -688,6 +737,7 @@ run_fixture bash -c 'source ./scripts/automation/lib.sh; automation_worktree_is_
 pass 'in-place integration preserves allowlisted local state without evidence or commit leakage'
 git -C "$fixture" restore --staged -- \
     .automation-worktree-allowlist \
+    automation/automation-commit-prefix \
     local/operator-note.txt \
     local/generated-note.txt
 [[ "$(jq -r '.contractCommit' "$runtime_root/evidence/TASK-TEST-004/origin.json")" == "$combined_commit" ]] || fail 'origin evidence did not bind the contract to the combined task commit'
@@ -714,8 +764,10 @@ jq \
     > "$fixture/automation/tasks/TASK-TEST-008.json"
 run_fixture ./scripts/automation/prepare-contract-review.sh TASK-TEST-008 '批准方案，生成计划和任务合同。' >/dev/null
 run_fixture env AUTOMATION_SKIP_AGENT_RUN=1 ./scripts/automation/approve-and-run.sh TASK-TEST-008 '合同已复核，批准自动执行到人工验收阶段。' >/dev/null
+printf '%s\n' '批次乙' > "$fixture/automation/automation-commit-prefix"
 git -C "$fixture" add -- \
     .automation-worktree-allowlist \
+    automation/automation-commit-prefix \
     local/operator-note.txt \
     local/generated-note.txt
 printf '%s\n' 'class AbortArchive { fun value() = "preserved" }' > "$fixture/mobile-client/src/main/java/dev/example/orchestratorfixture/AbortArchive.kt"
@@ -728,16 +780,18 @@ fi
 rm "$fixture/out-of-contract.txt"
 run_fixture ./scripts/automation/abort-task.sh TASK-TEST-008 '中止任务，封存修改并恢复原分支。' >/dev/null
 abort_recovery_commit="$(jq -er '.recoveryCommit' "$runtime_root/evidence/TASK-TEST-008/abort.json")"
+[[ "$(git -C "$fixture" show -s --format=%s "$abort_recovery_commit")" == "批次乙 Archive aborted work for TASK-TEST-008" ]] || fail 'abort recovery commit did not read the updated prefix'
 git -C "$fixture" cat-file -e "$abort_recovery_commit:mobile-client/src/main/java/dev/example/orchestratorfixture/AbortArchive.kt" || fail 'abort recovery commit omitted the allowed change'
 git -C "$fixture" cat-file -e "$abort_recovery_commit:docs/plans/TASK-TEST-008.md" || fail 'abort recovery commit omitted the sealed plan'
 git -C "$fixture" cat-file -e "$abort_recovery_commit:automation/tasks/TASK-TEST-008.json" || fail 'abort recovery commit omitted the sealed contract'
 if git -C "$fixture" diff-tree --no-commit-id --name-only -r "$abort_recovery_commit" | \
-    rg -x 'local/(operator-note|generated-note)\.txt|\.automation-worktree-allowlist' >/dev/null; then
+    rg -x 'local/(operator-note|generated-note)\.txt|\.automation-worktree-allowlist|automation/automation-commit-prefix' >/dev/null; then
     fail 'abort recovery commit included an allowlisted local path or its control file'
 fi
 staged_abort_allowlist_paths="$(git -C "$fixture" diff --cached --name-only HEAD -- | LC_ALL=C sort)"
 for staged_allowlist_path in \
     .automation-worktree-allowlist \
+    automation/automation-commit-prefix \
     local/generated-note.txt \
     local/operator-note.txt; do
     printf '%s\n' "$staged_abort_allowlist_paths" | \
@@ -750,6 +804,7 @@ done
 pass 'abort refuses unrelated files and archives allowed uncommitted changes in a recovery commit'
 git -C "$fixture" restore --staged -- \
     .automation-worktree-allowlist \
+    automation/automation-commit-prefix \
     local/operator-note.txt \
     local/generated-note.txt
 

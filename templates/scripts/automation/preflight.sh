@@ -47,6 +47,17 @@ mode="$(automation_config_value '.mode')"
 
 [[ "$enabled" == "true" ]] || fail_or_warn "automation is disabled"
 [[ "$mode" == "orchestrated" ]] || fail_or_warn "automation mode is $mode, not orchestrated"
+prefix_validation_error=""
+prefix_root="$AUTOMATION_ROOT"
+if [[ -n "$task_id" ]]; then
+    prefix_workspace_file="$(automation_workspace_path "$task_id")"
+    if [[ -f "$prefix_workspace_file" ]]; then
+        prefix_root="$(jq -er '.sourceRoot' "$prefix_workspace_file")"
+    fi
+fi
+if ! prefix_validation_error="$(automation_read_commit_message_prefix_at "$prefix_root" 2>&1 >/dev/null)"; then
+    fail_or_warn "$prefix_validation_error"
+fi
 
 if [[ "${AUTOMATION_TEST_MODE:-0}" != "1" ]]; then
     [[ -n "${ANDROID_HOME:-}" ]] || fail_or_warn "ANDROID_HOME is not set; configure the Android SDK environment before running OpenCode"
