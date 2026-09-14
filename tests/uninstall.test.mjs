@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { execFileSync } from "node:child_process";
 import { spawnSync } from "node:child_process";
 import {
   chmodSync,
@@ -86,7 +87,7 @@ function successfulRunner() {
 
 function createInstalledFixture(installationId) {
   const root = mkdtempSync(join(tmpdir(), "orchestrator-uninstall-"));
-  mkdirSync(join(root, ".git"));
+  execFileSync("git", ["init", "-q", "-b", "main", root]);
   writeFixtureFile(
     root,
     "settings.gradle.kts",

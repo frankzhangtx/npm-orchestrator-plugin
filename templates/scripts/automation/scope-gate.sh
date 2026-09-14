@@ -17,9 +17,17 @@ baseline_meta="$evidence_dir/baseline.json"
 
 baseline_head="$(jq -er '.head' "$baseline_meta")"
 current_head="$(git -C "$AUTOMATION_ROOT" rev-parse HEAD)"
-[[ "$baseline_head" == "$current_head" ]] || { automation_die "HEAD changed after baseline"; exit 40; }
-
 workspace_file="$(automation_workspace_path "$task_id")"
+if [[ "$baseline_head" != "$current_head" ]]; then
+    automation_require_queue_execution "$task_id"
+    jq -e --arg original "$baseline_head" --arg current "$current_head" \
+        '.queueKey != null and .workspaceStrategy == "isolatedWorktree" and
+         .originalBaselineHead == $original and .baselineHead == $current and
+         .revalidationRunId != null' "$workspace_file" >/dev/null || {
+        automation_die "HEAD changed after baseline"
+        exit 40
+    }
+fi
 planning_commit_policy="$(jq -r '.planningArtifactsCommitPolicy // "legacyCommittedSeparately"' "$workspace_file")"
 if [[ "$planning_commit_policy" == "withProductChanges" ]]; then
     automation_assert_planning_artifacts_sealed "$task_id" "$AUTOMATION_ROOT" || exit 40

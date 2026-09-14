@@ -8,6 +8,7 @@ source "$SCRIPT_DIR/lib.sh"
 task_id="${1:-}"
 [[ "$#" -eq 1 ]] || { printf 'Usage: %s TASK-ID\n' "$0" >&2; exit 2; }
 automation_validate_task_id "$task_id"
+automation_require_queue_execution "$task_id"
 automation_require_orchestrated
 
 workspace_file="$(automation_workspace_path "$task_id")"
@@ -63,6 +64,12 @@ run_agent() {
 }
 
 for _step in 1 2 3 4 5 6 7 8; do
+    if [[ -n "${AUTOMATION_QUEUE_RUN_ID:-}" ]] && jq -e --arg id "$task_id" \
+        'any(.items[]; .taskId == $id and .request.kind == "abort")' \
+        "$AUTOMATION_RUNTIME_ROOT/inbox/queue.json" >/dev/null; then
+        automation_info "$task_id has an approved abort request; returning at a safe agent boundary"
+        exit 0
+    fi
     state="$(automation_read_state "$task_id")"
     case "$state" in
         PENDING|CODING)
@@ -98,6 +105,10 @@ for _step in 1 2 3 4 5 6 7 8; do
                 cd "$task_root"
                 ./scripts/automation/resume-review-fix.sh "$task_id"
             ) || true
+            ;;
+        READY_TO_COMMIT)
+            automation_info "$task_id reached READY_TO_COMMIT; queue executor will verify the sealed authorization"
+            exit 0
             ;;
         AWAITING_HUMAN)
             automation_info "$task_id reached AWAITING_HUMAN"

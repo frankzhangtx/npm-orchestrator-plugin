@@ -66,11 +66,15 @@ if [[ "${AUTOMATION_TEST_MODE:-0}" != "1" ]]; then
     fi
 fi
 
-if [[ -z "$task_id" ]] && ! automation_worktree_is_clean; then
+intake_mode=0
+if [[ "$source_mode" == "1" && "$(automation_config_value '.schemaVersion')" == "6" ]]; then
+    intake_mode=1
+fi
+if [[ -z "$task_id" && "$intake_mode" != "1" ]] && ! automation_worktree_is_clean; then
     fail_or_warn "Git worktree is dirty"
 fi
 
-if [[ "$source_mode" == "1" ]]; then
+if [[ "$source_mode" == "1" && "$intake_mode" != "1" ]]; then
     repository_lease_file="$(automation_repository_lease_dir)/lease.json"
     if [[ -f "$repository_lease_file" ]]; then
         fail_or_warn "repository workspace is leased by $(jq -r '.taskId // "an unknown task"' "$repository_lease_file")"
@@ -158,7 +162,7 @@ else
         def last_rule($permission; $pattern):
             [.permission[] | select(.permission == $permission and .pattern == $pattern) | .action][-1];
         (last_rule("*"; "*") == "deny") and
-        (last_rule("edit"; "docs/plans/**") == "allow") and
+        (((last_rule("edit"; "docs/plans/**") == "allow") and
         (last_rule("edit"; "automation/tasks/**") == "allow") and
         (last_rule("edit"; "**/src/**") == "deny") and
         (last_rule("bash"; "./scripts/automation/prepare-contract-review.sh *") == "allow") and
@@ -166,7 +170,13 @@ else
         (last_rule("bash"; "./scripts/automation/resume-task.sh *") == "allow") and
         (last_rule("bash"; "./scripts/automation/resume-review.sh *") == "allow") and
         (last_rule("bash"; "./scripts/automation/accept-and-integrate.sh *") == "allow") and
-        (last_rule("bash"; "./scripts/automation/abort-task.sh *") == "allow") and
+        (last_rule("bash"; "./scripts/automation/abort-task.sh *") == "allow")) or
+         ((last_rule("read"; "*") == "deny") and
+          (last_rule("edit"; "*") == "deny") and
+          (last_rule("bash"; "*") == "deny") and
+          (last_rule("android_orchestrator_snapshot"; "*") == "allow") and
+          (last_rule("android_orchestrator_intake"; "*") == "allow") and
+          (last_rule("android_orchestrator_queue"; "*") == "allow"))) and
         (last_rule("android_orchestrator_status"; "*") == "allow") and
         (last_rule("android_orchestrator_doctor"; "*") == "allow") and
         (last_rule("schedule_job"; "*") == "deny") and

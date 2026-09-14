@@ -1,5 +1,5 @@
 {
-  "schemaVersion": 5,
+  "schemaVersion": 6,
   "enabled": true,
   "mode": "orchestrated",
   "workspaceStrategy": "inPlaceExclusive",
@@ -66,5 +66,11 @@
     "build.gradle.kts",
     "**/build.gradle",
     "**/build.gradle.kts"
-  ]
+  ],
+  "commitPolicy": "humanApproval",
+  "queue": {
+    "scanIntervalMs": 5000,
+    "maxWorkspaces": 3,
+    "maxWorkspaceBytes": 21474836480
+  }
 }

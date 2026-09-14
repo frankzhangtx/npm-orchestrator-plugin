@@ -1,3 +1,4 @@
+import { assertQueueIdle, withQueueLifecycleLock } from "../queue/lifecycle.js";
 import { createHash, randomUUID } from "node:crypto";
 import {
   chmodSync,
@@ -601,6 +602,7 @@ export function planProjectUninstall(
   options: ProjectUninstallOptions = {},
 ): ProjectUninstallPlan {
   const targetDirectory = locateInstallationRoot(directory);
+  assertQueueIdle(targetDirectory);
   const stable = readStableManifest(targetDirectory);
   assertNoTransactionMarkers(targetDirectory);
   const preparedAt = validateTimestamp(
@@ -1070,6 +1072,13 @@ function rollbackUninstall(
 }
 
 export function applyProjectUninstall(
+  plan: ProjectUninstallPlan,
+  verify?: () => void,
+): AppliedProjectUninstall {
+  return withQueueLifecycleLock(plan.targetDirectory, () => applyProjectUninstallUnlocked(plan, verify));
+}
+
+function applyProjectUninstallUnlocked(
   plan: ProjectUninstallPlan,
   verify?: () => void,
 ): AppliedProjectUninstall {

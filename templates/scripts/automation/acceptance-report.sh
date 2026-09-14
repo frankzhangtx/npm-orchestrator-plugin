@@ -8,7 +8,8 @@ source "$SCRIPT_DIR/lib.sh"
 task_id="${1:-}"
 [[ "$#" -eq 1 ]] || { printf 'Usage: %s TASK-ID\n' "$0" >&2; exit 2; }
 automation_validate_task_id "$task_id"
-[[ "$(automation_read_state "$task_id")" == "AWAITING_HUMAN" ]] || automation_die "$task_id is not AWAITING_HUMAN"
+report_state="$(automation_read_state "$task_id")"
+[[ "$report_state" == "AWAITING_HUMAN" || ( "$report_state" == "READY_TO_COMMIT" && -n "${AUTOMATION_QUEUE_RUN_ID:-}" ) ]] || automation_die "$task_id is not ready for acceptance or authorized local commit"
 
 contract="$(automation_contract_path "$task_id")"
 workspace_file="$(automation_workspace_path "$task_id")"
@@ -60,6 +61,7 @@ automation_worktree_patch_at "$AUTOMATION_ROOT" > "$sealed_diff"
 report_file="$evidence_dir/acceptance-report.json"
 jq -n \
     --arg taskId "$task_id" \
+    --arg state "$report_state" \
     --arg title "$(jq -er '.title' "$contract")" \
     --arg generatedAt "$(automation_now)" \
     --arg originalBranch "$original_branch" \
@@ -88,7 +90,7 @@ jq -n \
     --argjson acceptanceCriteria "$(jq -c '.acceptanceCriteria' "$contract")" \
     --argjson nonGoals "$(jq -c '.nonGoals' "$contract")" \
     --argjson targetTests "$(jq -c '.targetTests' "$contract")" \
-    '{taskId: $taskId, title: $title, state: "AWAITING_HUMAN",
+    '{taskId: $taskId, title: $title, state: $state,
       generatedAt: $generatedAt, originalBranch: $originalBranch,
       originalHeadBeforeContract: $originalHeadBeforeContract,
       baselineHead: $baselineHead, originalHeadCurrent: $originalHeadCurrent,

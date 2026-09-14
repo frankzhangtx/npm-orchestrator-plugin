@@ -10,11 +10,11 @@ const templatesRoot = fileURLToPath(new URL("../templates/", import.meta.url));
 const expectedBaselineHashes = new Map([
   [
     "automation/config.json",
-    "7f058b0de555340a25153c5ded9e114ced0d837d2976f784f17cb3b1938f012b",
+    "f53ffef792ee63f17b520f86d18a619c3097dc09f301abd9e76de19fad01c14e",
   ],
   [
     "automation/config.schema.json",
-    "3007f61d797c80df3f93a1525b20baf5e56c5affeeb3797cbe9e508da5451637",
+    "0169b244ad9b8d49ead2687682aec321791d8a836c3d599699a15f7400bacca4",
   ],
   [
     "automation/task-contract.schema.json",
@@ -32,7 +32,7 @@ const expectedBaselineHashes = new Map([
 
 const agentsFragmentPath = "AGENTS.md.fragment";
 const expectedAgentsFragmentHash =
-  "84f320a639307e1acb44fa73eb349bd7f556542390a96c45485dad8e60a241c5";
+  "ee83cff641cfb3179685253d4440163a991c169abf1aab1909c4b2be68c736fc";
 
 function listFiles(directory) {
   return readdirSync(directory, { withFileTypes: true }).flatMap((entry) => {
@@ -71,7 +71,7 @@ test("ships the complete non-historical infrastructure template inventory", () =
   assert.deepEqual(actualPaths, expectedPaths);
 });
 
-test("locks the portable V5 infrastructure resources and file modes", () => {
+test("locks the portable V6 infrastructure resources and file modes", () => {
   for (const [relativePath, expectedHash] of expectedBaselineHashes) {
     const absolutePath = join(templatesRoot, relativePath);
     assert.equal(sha256(relativePath), expectedHash, relativePath);
@@ -188,7 +188,7 @@ test("keeps the render sources project-independent and Scheduler-free", () => {
   assert.equal(Object.hasOwn(config, "plugins"), false);
   assert.equal(
     configSchema.$id,
-    "urn:frankzhang2026:opencode-android-orchestrator:automation-config:v5",
+    "urn:frankzhang2026:opencode-android-orchestrator:automation-config:v6",
   );
   assert.equal(
     contractSchema.$id,

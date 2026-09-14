@@ -8,6 +8,7 @@ source "$SCRIPT_DIR/lib.sh"
 task_id="${1:-}"
 [[ "$#" -eq 1 ]] || { printf 'Usage: %s TASK-ID\n' "$0" >&2; exit 2; }
 automation_validate_task_id "$task_id"
+automation_require_queue_execution "$task_id"
 [[ "$(automation_read_state "$task_id")" == "READY_FOR_REVIEW" ]] || automation_die "$task_id is not READY_FOR_REVIEW"
 
 ready_file="$(automation_evidence_path "$task_id")/ready.json"

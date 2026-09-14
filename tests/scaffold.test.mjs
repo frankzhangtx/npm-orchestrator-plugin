@@ -46,10 +46,14 @@ test("exports a loadable OpenCode plugin using only common hooks", async () => {
     "tool",
     "shell.env",
     "tool.execute.before",
+    "tool.execute.after",
   ]);
   assert.deepEqual(Object.keys(hooks.tool), [
     ORCHESTRATOR_STATUS_TOOL_NAME,
     ORCHESTRATOR_DOCTOR_TOOL_NAME,
+    "android_orchestrator_snapshot",
+    "android_orchestrator_intake",
+    "android_orchestrator_queue",
   ]);
   assert.ok(COMMON_HOOK_NAMES.includes("tool"));
   assert.ok(COMMON_HOOK_NAMES.includes("config"));

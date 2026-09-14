@@ -1,3 +1,4 @@
+import { queuePolicy } from "../config/queue-policy.js";
 import { createHash } from "node:crypto";
 import {
   lstatSync,
@@ -388,6 +389,7 @@ function managedResourceCheck(
       matchesManifestModuloVerificationPolicy(inspection.file.content, {
         sha256: file.sha256,
         size: file.size,
+        queuePolicySha256: file.queuePolicySha256,
       });
     if (contentChanged && !supportedPolicyOverride) {
       failures.push(
@@ -632,6 +634,7 @@ function managedConfigurationCheck(
       };
     }
     const expected = planAdaptiveProjectTemplates(targetDirectory, {
+      queuePolicy: queuePolicy(automationConfig),
       moduleScope,
       primaryModule,
       gradleVerification:

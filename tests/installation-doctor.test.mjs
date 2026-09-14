@@ -332,7 +332,7 @@ test("installed doctor rejects a self-consistent manifest rewrite of a packaged 
     assert.equal(check(report, "installation-manifest").status, "fail");
     assert.match(
       check(report, "installation-manifest").details.join("\n"),
-      /does not match the packaged 0\.10\.0 template/,
+      /does not match the packaged 1\.0\.0 template/,
     );
     assert.equal(
       check(report, "managed-resources").status,
@@ -398,6 +398,73 @@ test("doctor CLI enables installation checks in JSON mode and exits unsuccessful
     assert.equal(check(report, "git-command").status, "pass");
     assert.equal(check(report, "installation-manifest").status, "fail");
   } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
+});
+
+test("installed doctor accepts bounded queue policy changes and rejects unsupported combinations", () => {
+  const { root } = createInstalledFixture();
+  try {
+    const path = join(root, 'automation/config.json');
+    const config = JSON.parse(readFileSync(path, 'utf8'));
+    config.workspaceStrategy = 'isolatedWorktree';
+    config.queue = { scanIntervalMs: 1000, maxWorkspaces: 2, maxWorkspaceBytes: 1024 ** 3 };
+    writeFileSync(path, JSON.stringify(config, null, 2) + '\n');
+    const valid = runDoctor({ targetDirectory: root, checkInstallation: true, checkDependencies: false });
+    assert.equal(valid.checks.find(check => check.id === 'managed-configuration').status, 'pass', JSON.stringify(valid));
+    assert.equal(valid.checks.find(check => check.id === 'managed-resources').status, 'pass', JSON.stringify(valid));
+    config.commitPolicy = 'autoCommit';
+    writeFileSync(path, JSON.stringify(config, null, 2) + '\n');
+    const invalid = runDoctor({ targetDirectory: root, checkInstallation: true, checkDependencies: false });
+    assert.equal(invalid.checks.find(check => check.id === 'managed-configuration').status, 'fail');
+  } finally { rmSync(root, { recursive: true, force: true }); }
+});
+
+test("installed Planner tools consume real question-hook receipts and reject approval prose", { timeout: 30000 }, async () => {
+  const { root } = createInstalledFixture();
+  const { TaskQueue } = await import('../dist/queue/queue.js');
+  const { serviceStatus, stopService } = await import('../dist/queue/service.js');
+  const { default: plugin } = await import('../dist/index.js');
+  let queue;
+  try {
+    const git = args => { const result = spawnSync('git', ['-C', root, ...args], { encoding: 'utf8' }); assert.equal(result.status, 0, result.stderr); return result.stdout.trim(); };
+    git(['init', '-q', '-b', 'main']); git(['config', 'user.name', 'Queue Test']); git(['config', 'user.email', 'queue@example.invalid']);
+    writeFileSync(join(root, '.gitignore'), '.automation-plugin/\n');
+    git(['add', '.']); git(['commit', '-qm', 'Installed fixture']);
+    queue = new TaskQueue(root); queue.control('pause');
+    const hooks = await plugin({ directory: root, worktree: root, $: () => { throw new Error('No arbitrary shell expected'); } });
+    const context = { sessionID: 'real-hook-session', messageID: 'tool-call-message', agent: 'scheduled-planner', directory: root, worktree: root, abort: new AbortController().signal };
+    const intake = hooks.tool.android_orchestrator_intake;
+    const contract = JSON.parse(readFileSync(join(root, 'automation/tasks/TASK-TEMPLATE.json.example'), 'utf8'));
+    Object.assign(contract, { id: 'TASK-RECEIPT-001', title: 'Add a bounded regression behavior', planPath: 'docs/plans/TASK-RECEIPT-001.md', acceptanceCriteria: ['The approved behavior passes its regression test'], targetTests: [{ gradleTask: queue.config().gradleVerification.focusedTestTasks[0], filter: 'dev.doctor.RegressionTest' }] });
+    const draftJson = JSON.stringify({ contract, plan: '# Approved plan\n\nAdd the bounded behavior and its regression test.\n', ...queue.snapshot() });
+    await assert.rejects(intake.execute({ action: 'draft', draftJson }, context), /fresh, matching/);
+    const answer = async (question, selection, callID) => {
+      const input = { tool: 'question', sessionID: context.sessionID, callID, args: question };
+      await hooks['tool.execute.before'](input, { args: question });
+      await hooks['tool.execute.after'](input, { title: 'Question answered', output: '', metadata: { answers: [[selection]] } });
+    };
+    await answer({ questions: [{ header: '方案确认', question: 'Approve the displayed bounded proposal?', options: [{ label: '批准方案，生成计划和任务合同。' }, { label: '调整方案。' }] }] }, '批准方案，生成计划和任务合同。', 'proposal-call');
+    const draft = JSON.parse(await intake.execute({ action: 'draft', draftJson }, context));
+    const enqueueArgs = { action: 'enqueue', key: draft.key, digest: draft.digest, approval: draft.approvalText };
+    await assert.rejects(intake.execute(enqueueArgs, context), /fresh, matching/);
+    assert.equal(queue.storage.read().items.length, 0);
+    await answer(draft.question, draft.approvalText, 'contract-call');
+    const result = JSON.parse(await intake.execute(enqueueArgs, context));
+    assert.equal(result.state, 'QUEUED');
+    assert.equal(queue.item(draft.key).authorization.proof.questionCallID, 'contract-call');
+    assert.equal(queue.item(draft.key).proposalApproval.questionCallID, 'proposal-call');
+    await intake.execute(enqueueArgs, context);
+    assert.equal(queue.storage.read().items.length, 1);
+    assert.equal(git(['status', '--porcelain']), '');
+  } finally {
+    if (queue && queue.storage.read().items.length > 0) {
+      // Enqueue starts a detached scheduler even while consumption is paused.
+      const deadline = Date.now() + 10000;
+      while (!serviceStatus(queue).running && Date.now() < deadline) await new Promise(done => setTimeout(done, 100));
+      stopService(queue);
+      while (serviceStatus(queue).running && Date.now() < deadline + 5000) await new Promise(done => setTimeout(done, 100));
+    }
     rmSync(root, { recursive: true, force: true });
   }
 });

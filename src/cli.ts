@@ -3,6 +3,7 @@
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import process from "node:process";
+import { queueCli } from "./queue/cli.js";
 
 import {
   DEFAULT_LONG_COMMAND_TIMEOUT_MS,
@@ -39,6 +40,7 @@ function printHelp(): void {
   process.stdout.write(`  doctor     Diagnose an existing installation\n`);
   process.stdout.write(`  upgrade    Upgrade unchanged managed resources\n`);
   process.stdout.write(`  uninstall  Remove unchanged managed resources\n`);
+  process.stdout.write(`  queue      Manage durable contract intake and background execution\n`);
 }
 
 function printInitHelp(): void {
@@ -152,7 +154,12 @@ function readGradleVerificationConfiguration(
 
 const [command, ...commandArguments] = process.argv.slice(2);
 
-if (command === undefined || command === "--help" || command === "-h") {
+if (command === "queue") {
+  try {
+    const result = await queueCli(commandArguments);
+    if (result !== undefined) process.stdout.write(`${JSON.stringify(result, null, 2)}\n`);
+  } catch (error) { printCommandError(error); process.exitCode = 1; }
+} else if (command === undefined || command === "--help" || command === "-h") {
   printHelp();
 } else if (command === "init") {
   if (commandArguments.includes("--help") || commandArguments.includes("-h")) {

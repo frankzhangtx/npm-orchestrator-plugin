@@ -13,6 +13,7 @@ if [[ "$#" -ne 2 ]]; then
 fi
 
 automation_validate_task_id "$task_id"
+automation_require_queue_execution "$task_id"
 automation_require_orchestrated
 automation_require_approval resume "$approval"
 

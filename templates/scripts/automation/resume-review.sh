@@ -8,6 +8,7 @@ source "$SCRIPT_DIR/lib.sh"
 task_id="${1:-}"
 [[ "$#" -eq 1 ]] || { printf 'Usage: %s TASK-ID\n' "$0" >&2; exit 2; }
 automation_validate_task_id "$task_id"
+automation_require_queue_execution "$task_id"
 automation_require_orchestrated
 
 workspace_file="$(automation_workspace_path "$task_id")"

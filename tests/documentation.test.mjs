@@ -6,6 +6,7 @@ import { fileURLToPath } from "node:url";
 
 const repositoryRoot = fileURLToPath(new URL("../", import.meta.url));
 const documents = [
+  "docs/QUEUE.md",
   "docs/MIGRATION.md",
   "docs/SECURITY.md",
   "docs/TROUBLESHOOTING.md",
@@ -80,7 +81,7 @@ test("documents fixed-version migration, recovery, and security boundaries porta
   assert.match(migration, /manifest-managed version/);
   assert.match(
     allDocumentation,
-    /@frankzhang2026\/opencode-android-orchestrator@0\.10\.0/,
+    /@frankzhang2026\/opencode-android-orchestrator@1\.0\.0/,
   );
   assert.doesNotMatch(
     allDocumentation,

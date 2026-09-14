@@ -1,4 +1,5 @@
 import { createHash } from "node:crypto";
+import { queuePolicy } from "./queue-policy.js";
 import {
   DEFAULT_COMMIT_MESSAGE_PREFIX_MODE,
   isCommitMessagePrefixMode,
@@ -18,6 +19,7 @@ export interface VerificationPolicy {
 interface ContentFingerprint {
   sha256: string;
   size: number;
+  queuePolicySha256?: string | undefined;
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -26,6 +28,16 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 
 function sha256(content: Uint8Array): string {
   return createHash("sha256").update(content).digest("hex");
+}
+
+/** Authenticate managed settings independently of operator-owned queue values. */
+export function queuePolicyFingerprint(path: string, content: Uint8Array): { queuePolicySha256?: string } {
+  if (path !== AUTOMATION_CONFIG_RELATIVE_PATH) return {};
+  let value: unknown;
+  try { value = JSON.parse(Buffer.from(content).toString("utf8")); } catch { return {}; }
+  if (!isRecord(value) || value.schemaVersion !== 6) return {};
+  queuePolicy(value);
+  return { queuePolicySha256: sha256(Buffer.from(`${JSON.stringify({ ...value, ...queuePolicy({}) }, null, 2)}\n`)) };
 }
 
 function setOptionalBoolean(
@@ -53,9 +65,9 @@ function setOptionalCommitMessagePrefixMode(
 
 /**
  * Accept an otherwise byte-identical generated configuration when an operator
- * changed only supported operator policy fields. Enumerating prior states lets
- * upgrades authenticate the remaining managed content against the installed
- * manifest without storing another file copy.
+ * changed only supported operator policy fields. New manifests authenticate
+ * managed content with queue values normalized; older manifests retain the
+ * finite-state fallback. Neither path ignores changes to protected settings.
  */
 export function matchesManifestModuloVerificationPolicy(
   content: Uint8Array,
@@ -87,24 +99,37 @@ export function matchesManifestModuloVerificationPolicy(
   }
 
   const states: readonly (boolean | undefined)[] = [undefined, false, true];
+  if (parsed.schemaVersion === 6) {
+    try { queuePolicy(parsed); } catch { return false; }
+  }
+  const queueCandidates = parsed.schemaVersion === 6
+    ? [parsed, ...["inPlaceExclusive", "isolatedWorktree"].flatMap(workspaceStrategy =>
+      ["humanApproval", "autoCommit"].flatMap(commitPolicy => [
+        { ...parsed, workspaceStrategy, commitPolicy },
+        { ...parsed, workspaceStrategy, commitPolicy, worktreeBase: "", queue: { scanIntervalMs: 5000, maxWorkspaces: 3, maxWorkspaceBytes: 20 * 1024 ** 3 } },
+      ]))]
+    : [parsed];
   const prefixModes: readonly (CommitMessagePrefixMode | undefined)[] = [
     undefined,
     DEFAULT_COMMIT_MESSAGE_PREFIX_MODE,
     "disabled",
   ];
-  for (const commitMessagePrefixMode of prefixModes) {
-    for (const unitTestsEnabled of states) {
-      for (const lintEnabled of states) {
-        const candidate = { ...parsed };
-        setOptionalCommitMessagePrefixMode(candidate, commitMessagePrefixMode);
-        setOptionalBoolean(candidate, "unitTestsEnabled", unitTestsEnabled);
-        setOptionalBoolean(candidate, "lintEnabled", lintEnabled);
-        const rendered = Buffer.from(`${JSON.stringify(candidate, null, 2)}\n`);
-        if (
-          rendered.byteLength === expected.size &&
-          sha256(rendered) === expected.sha256
-        ) {
-          return true;
+  for (const policyCandidate of queueCandidates) {
+    for (const commitMessagePrefixMode of prefixModes) {
+      for (const unitTestsEnabled of states) {
+        for (const lintEnabled of states) {
+          const candidate = { ...policyCandidate };
+          setOptionalCommitMessagePrefixMode(candidate, commitMessagePrefixMode);
+          setOptionalBoolean(candidate, "unitTestsEnabled", unitTestsEnabled);
+          setOptionalBoolean(candidate, "lintEnabled", lintEnabled);
+          const rendered = Buffer.from(`${JSON.stringify(candidate, null, 2)}\n`);
+          if (
+            (rendered.byteLength === expected.size && sha256(rendered) === expected.sha256) ||
+            (expected.queuePolicySha256 !== undefined &&
+              sha256(Buffer.from(`${JSON.stringify({ ...candidate, ...queuePolicy({}) }, null, 2)}\n`)) === expected.queuePolicySha256)
+          ) {
+            return true;
+          }
         }
       }
     }

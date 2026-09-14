@@ -1,3 +1,5 @@
+import { queuePolicy, type QueuePolicy } from "../config/queue-policy.js";
+import { assertQueueIdle, withQueueLifecycleLock } from "../queue/lifecycle.js";
 import { createHash, randomUUID } from "node:crypto";
 import {
   chmodSync,
@@ -25,6 +27,7 @@ import {
 import {
   AUTOMATION_CONFIG_RELATIVE_PATH,
   matchesManifestModuloVerificationPolicy,
+  queuePolicyFingerprint,
 } from "../config/verification-policy.js";
 import {
   DEFAULT_COMMIT_MESSAGE_PREFIX_MODE,
@@ -539,6 +542,7 @@ function managedFileAcceptsSnapshot(
     matchesManifestModuloVerificationPolicy(snapshot.content, {
       sha256: file.sha256,
       size: file.size,
+      queuePolicySha256: file.queuePolicySha256,
     })
   );
 }
@@ -725,6 +729,7 @@ function textFromOriginal(
 }
 
 interface ConfiguredAdaptiveOptions {
+  queuePolicy?: QueuePolicy;
   commitMessagePrefixMode?: CommitMessagePrefixMode;
   moduleScope?: ModuleScope;
   primaryModule?: string;
@@ -752,6 +757,10 @@ function configuredAdaptiveOptions(
     );
   }
   let value: {
+    workspaceStrategy?: unknown;
+    commitPolicy?: unknown;
+    worktreeBase?: unknown;
+    queue?: unknown;
     androidProject?: { moduleScope?: unknown; primaryModule?: unknown };
     gradleVerification?: unknown;
     commitMessagePrefixMode?: unknown;
@@ -772,6 +781,7 @@ function configuredAdaptiveOptions(
   }
 
   const configured: ConfiguredAdaptiveOptions = {};
+  configured.queuePolicy = queuePolicy(value);
   const commitMessagePrefixMode =
     value.commitMessagePrefixMode ?? DEFAULT_COMMIT_MESSAGE_PREFIX_MODE;
   if (!isCommitMessagePrefixMode(commitMessagePrefixMode)) {
@@ -1067,6 +1077,7 @@ function desiredManifest(
       size: file.size,
       mode: file.mode,
       previous: file.previous,
+      ...queuePolicyFingerprint(file.path, file.content),
     })),
   };
 }
@@ -1086,6 +1097,7 @@ function desiredFilesMatchCurrent(
         file.strategy === next.strategy &&
         file.sha256 === next.sha256 &&
         file.size === next.size &&
+        file.queuePolicySha256 === next.queuePolicySha256 &&
         file.mode === next.mode
       );
     })
@@ -1126,6 +1138,7 @@ export function planProjectUpgrade(
     detection.gitRoot ?? directory,
   );
   const stable = readStableManifest(requestedTarget);
+  assertQueueIdle(requestedTarget);
   assertNoUpgradeMarker(requestedTarget);
   assertInstalledIntegrity(
     requestedTarget,
@@ -1201,6 +1214,7 @@ export function planProjectUpgrade(
   if (configured.unitTestsEnabled !== undefined) {
     adaptiveOptions.unitTestsEnabled = configured.unitTestsEnabled;
   }
+  if (configured.queuePolicy !== undefined) adaptiveOptions.queuePolicy = configured.queuePolicy;
   if (configured.commitMessagePrefixMode !== undefined) {
     adaptiveOptions.commitMessagePrefixMode =
       configured.commitMessagePrefixMode;
@@ -1838,6 +1852,13 @@ function verifyPlannedState(plan: ProjectUpgradePlan): void {
 }
 
 export function applyProjectUpgrade(
+  plan: ProjectUpgradePlan,
+  verify?: () => void,
+): AppliedProjectUpgrade {
+  return withQueueLifecycleLock(plan.targetDirectory, () => applyProjectUpgradeUnlocked(plan, verify));
+}
+
+function applyProjectUpgradeUnlocked(
   plan: ProjectUpgradePlan,
   verify?: () => void,
 ): AppliedProjectUpgrade {

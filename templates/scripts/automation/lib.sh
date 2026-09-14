@@ -114,7 +114,9 @@ automation_validate_config() {
             length > 0 and
             length == (unique | length) and
             all(.[]; gradle_task);
-        .schemaVersion == 5 and
+        (.schemaVersion == 5 or .schemaVersion == 6) and
+        ((.commitPolicy // "humanApproval") == "humanApproval" or .commitPolicy == "autoCommit") and
+        (.workspaceStrategy != "isolatedWorktree" or (.commitPolicy // "humanApproval") == "humanApproval") and
         (.enabled | type == "boolean") and
         (.mode == "shadow" or .mode == "orchestrated") and
         (.workspaceStrategy == "inPlaceExclusive" or .workspaceStrategy == "isolatedWorktree") and
@@ -215,6 +217,26 @@ automation_evidence_path() {
 automation_workspace_path() {
     local task_id="$1"
     printf '%s/%s.json\n' "$AUTOMATION_WORKSPACES_DIR" "$task_id"
+}
+
+automation_require_queue_execution() {
+    local task_id="$1"
+    local workspace_file queue_key group
+    workspace_file="$(automation_workspace_path "$task_id")"
+    [[ -f "$workspace_file" ]] || return 0
+    queue_key="$(jq -r '.queueKey // empty' "$workspace_file")"
+    [[ -n "$queue_key" ]] || return 0
+    [[ -n "${AUTOMATION_QUEUE_RUN_ID:-}" ]] || {
+        automation_die "queued tasks must use the repository queue for execution, integration and recovery"
+        return 1
+    }
+    group="$(ps -o pgid= -p "$$" | tr -d ' ')"
+    jq -e --arg key "$queue_key" --arg run "$AUTOMATION_QUEUE_RUN_ID" --argjson group "$group" \
+        '.active.key == $key and .active.id == $run and .active.worker.pid == $group' \
+        "$AUTOMATION_RUNTIME_ROOT/inbox/queue.json" >/dev/null || {
+            automation_die "current process does not own this task queue execution"
+            return 1
+        }
 }
 
 automation_workspace_strategy() {
@@ -386,10 +408,73 @@ automation_run_gradle_group() {
         return 1
     }
 
+    if [[ "$group" == "fullUnitTestTasks" && -n "${AUTOMATION_QUEUE_RUN_ID:-}" ]]; then
+        automation_run_fresh_unit_tests "$root" "${tasks[@]}"
+        return $?
+    fi
     (
         cd "$root"
         ./gradlew "${tasks[@]}"
     )
+}
+
+# Queue execution reruns Test tasks while preserving compilation/build caches.
+# The init script disables only Test output reuse, including FROM-CACHE, and
+# emits actual test counts. No clean task or model polling is involved.
+automation_run_fresh_unit_tests() {
+    local root="$1"
+    shift
+    local init_file log_file result elapsed start
+    mkdir -p "$AUTOMATION_RUNTIME_ROOT/gradle"
+    init_file="$(mktemp "$AUTOMATION_RUNTIME_ROOT/gradle/fresh-tests.XXXXXX")"
+    log_file="${init_file}.log"
+    cat > "$init_file" <<'GRADLE'
+gradle.allprojects { project ->
+    project.tasks.withType(org.gradle.api.tasks.testing.Test).configureEach { testTask ->
+        outputs.upToDateWhen { false }
+        outputs.doNotCacheIf('Orchestrator requires fresh unit-test execution') { true }
+        if (testTask.hasProperty('dryRun')) testTask.dryRun = false
+        afterSuite { descriptor, result ->
+            if (descriptor.parent == null) {
+                logger.lifecycle("ORCHESTRATOR_TEST_RESULT|${testTask.path}|${result.testCount}|${result.failedTestCount}|${result.skippedTestCount}")
+            }
+        }
+    }
+}
+gradle.taskGraph.whenReady { graph ->
+    graph.allTasks.findAll { it instanceof org.gradle.api.tasks.testing.Test }.each { task ->
+        task.logger.lifecycle("ORCHESTRATOR_TEST_EXPECTED|${task.path}")
+    }
+}
+gradle.taskGraph.afterTask { task, state ->
+    if (task instanceof org.gradle.api.tasks.testing.Test && state.noSource) {
+        task.logger.lifecycle("ORCHESTRATOR_TEST_NO_SOURCE|${task.path}")
+    }
+}
+GRADLE
+    start="$(date +%s)"
+    set +e
+    (cd "$root" && ./gradlew "$@" --no-configuration-cache --console=plain --init-script "$init_file") 2>&1 | tee "$log_file"
+    result=${PIPESTATUS[0]}
+    set -e
+    elapsed=$(( $(date +%s) - start ))
+    [[ "$result" -eq 0 ]] || return "$result"
+    # A successful build with only cached, skipped or empty suites is not proof
+    # that the required regression tests actually executed.
+    awk -F '|' '
+      /^ORCHESTRATOR_TEST_EXPECTED\|/ { expected[$2] = 1; count++ }
+      /^ORCHESTRATOR_TEST_RESULT\|/ { verified[$2] = 1; total += $3 - $5; failed += $4 }
+      /^ORCHESTRATOR_TEST_NO_SOURCE\|/ { verified[$2] = 1 }
+      END {
+        for (task in expected) if (!verified[task]) missing++
+        exit !(count > 0 && total > 0 && failed == 0 && missing == 0)
+      }' "$log_file" || {
+        automation_die "full unit tests produced no fresh successful test results"
+        return 1
+    }
+    AUTOMATION_FULL_TEST_LOG="$log_file"
+    AUTOMATION_FULL_TEST_ELAPSED="$elapsed"
+    automation_info "fresh full unit tests executed in ${elapsed}s; log: $log_file"
 }
 
 automation_run_configured_unit_tests() {
@@ -399,6 +484,12 @@ automation_run_configured_unit_tests() {
 
     [[ -n "$contract" && -f "$contract" ]] || automation_die "unit-test contract does not exist: $contract"
     automation_validate_config || return 1
+    if [[ -n "${AUTOMATION_QUEUE_RUN_ID:-}" ]]; then
+        [[ "$(automation_config_value '.unitTestsEnabled')" == "true" ]] || {
+            automation_die "queued execution requires full unit tests"
+            return 1
+        }
+    fi
     if [[ "$(automation_config_value '.unitTestsEnabled')" != "true" ]]; then
         automation_info "skipping ${context}unit tests (unitTestsEnabled=false)"
         return 0
@@ -1062,6 +1153,7 @@ automation_transition_allowed() {
         READY_FOR_REVIEW:REVIEWING:orchestrator) return 0 ;;
         READY_FOR_REVIEW:BLOCKED:orchestrator) return 0 ;;
         REVIEWING:AWAITING_HUMAN:reviewer) return 0 ;;
+        REVIEWING:READY_TO_COMMIT:reviewer) return 0 ;;
         REVIEWING:CHANGES_REQUESTED:reviewer) return 0 ;;
         REVIEWING:BLOCKED:orchestrator) return 0 ;;
         BLOCKED:REVIEWING:human) return 0 ;;
@@ -1070,6 +1162,7 @@ automation_transition_allowed() {
         AWAITING_HUMAN:INTEGRATING:integrator) return 0 ;;
         INTEGRATING:COMPLETED:integrator) return 0 ;;
         INTEGRATING:INTEGRATION_BLOCKED:integrator) return 0 ;;
+        READY_TO_COMMIT:ABORTED:human) return 0 ;;
         PREPARING:ABORTED:human|PENDING:ABORTED:human|CODING:ABORTED:human|READY_FOR_REVIEW:ABORTED:human|REVIEWING:ABORTED:human|CHANGES_REQUESTED:ABORTED:human|AWAITING_HUMAN:ABORTED:human|BLOCKED:ABORTED:human|TEST_FAILED:ABORTED:human|NEEDS_HUMAN:ABORTED:human|INTEGRATION_BLOCKED:ABORTED:human) return 0 ;;
         *) return 1 ;;
     esac

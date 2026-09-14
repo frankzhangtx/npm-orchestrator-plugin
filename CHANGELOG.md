@@ -1,5 +1,23 @@
 # Changelog
 
+
+## 1.0.0 - Unreleased
+
+- Add durable contract intake and a detached per-repository queue executor.
+  New approvals return immediately and do not touch the active coding diff.
+- Default to fixed-directory execution with final human acceptance. Explicit
+  contract approval can seal automatic local commit/integration; isolated
+  worktrees retain human acceptance and continue independent queued work.
+- Bind Planner mutations to one-use receipts from actual question selections.
+- Serialize deadlines, dependencies, priority, capacity, recovery and integration;
+  retain workspace ownership until safe completion or approved archival.
+- Require fresh full Gradle Test execution, build and independent Review, while
+  preserving compilation caches and avoiding clean between contracts.
+- Recover durable local commit transactions without duplicate visible commits.
+  Keep no-push enforcement on automatic, human, failure and recovery paths.
+- Ship schema V6, queue CLI/tools, upgraded Planner instructions and operator docs.
+
+
 ## 0.10.0 - 2026-09-11
 
 - Add automation configuration schema v5 with

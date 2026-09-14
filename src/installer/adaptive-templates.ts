@@ -1,3 +1,4 @@
+import { queuePolicy, type QueuePolicy } from "../config/queue-policy.js";
 import { readFileSync } from "node:fs";
 import {
   isAbsolute,
@@ -58,6 +59,7 @@ export class AdaptiveProjectTemplateError extends Error {
 }
 
 export interface AdaptiveProjectTemplateOptions {
+  queuePolicy?: QueuePolicy;
   /** Reuse an authoritative Gradle runtime detection instead of static settings/build parsing. */
   projectDetection?: AndroidProjectDetection;
   /** Select whether generated task contracts can modify every detected module or one primary module. */
@@ -116,7 +118,7 @@ export interface AdaptiveAndroidProjectConfiguration {
 
 export interface AdaptiveAutomationConfiguration {
   readonly [key: string]: unknown;
-  schemaVersion: 5;
+  schemaVersion: 6;
   androidProject: AdaptiveAndroidProjectConfiguration;
   gradleVerification: GradleVerificationConfiguration;
   lintEnabled: boolean;
@@ -500,6 +502,7 @@ export function planAdaptiveProjectTemplates(
   ]);
   const automationConfig = {
     ...configTemplate,
+    ...queuePolicy(options.queuePolicy ?? configTemplate),
     lintEnabled,
     unitTestsEnabled,
     commitMessagePrefixMode,

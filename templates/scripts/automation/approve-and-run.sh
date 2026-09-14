@@ -14,6 +14,10 @@ fi
 
 automation_validate_task_id "$task_id"
 automation_require_orchestrated
+[[ "$(automation_config_value '.schemaVersion')" != "6" ]] || {
+    automation_die "contract approval now enqueues through android_orchestrator_intake or the queue enqueue CLI"
+    exit 1
+}
 automation_require_approval contract "$approval"
 "$SCRIPT_DIR/validate-contract.sh" "$task_id" >/dev/null
 [[ "$(automation_read_state "$task_id")" == "CONTRACT_REVIEW" ]] || automation_die "$task_id is not awaiting contract review"

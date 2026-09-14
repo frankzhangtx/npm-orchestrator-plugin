@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { execFileSync } from "node:child_process";
 import { createHash } from "node:crypto";
 import {
   chmodSync,
@@ -112,7 +113,7 @@ function successfulRunner(calls = []) {
 
 function createInstalledFixture({ userSuperpowers = false } = {}) {
   const root = mkdtempSync(join(tmpdir(), "orchestrator-upgrade-"));
-  mkdirSync(join(root, ".git"));
+  execFileSync("git", ["init", "-q", "-b", "main", root]);
   writeFixtureFile(
     root,
     "settings.gradle.kts",
@@ -293,7 +294,7 @@ test("plans an older-version upgrade without writing recovery or managed files",
     assert.equal(plan.moduleScope, "all");
     assert.equal(plan.primaryModule, ":mobile");
     assert.equal(plan.fromVersion, "0.2.0");
-    assert.equal(plan.toVersion, "0.10.0");
+    assert.equal(plan.toVersion, "1.0.0");
     assert.equal(plan.desiredFiles.length, 47);
     assert.equal(plan.removedFiles.length, 0);
     assert.equal(existsSync(plan.recoveryDirectory), false);
@@ -408,7 +409,7 @@ test("upgrades unchanged managed files, preserves original merges, and restores 
     assert.equal(result.status, "upgraded");
     assert.equal(result.moduleScope, "all");
     assert.equal(result.fromVersion, "0.2.0");
-    assert.equal(result.toVersion, "0.10.0");
+    assert.equal(result.toVersion, "1.0.0");
     assert.equal(result.commitMessagePrefixStatus, "existing-configured");
     assert.equal(result.managedFileCount, 47);
     assert.equal(result.writtenFileCount, 6);
@@ -428,7 +429,7 @@ test("upgrades unchanged managed files, preserves original merges, and restores 
     assert.equal(lstatSync(join(root, "legacy/user-note.txt")).mode & 0o777, 0o600);
 
     const manifest = readInstallationManifest(root);
-    assert.equal(manifest.package.version, "0.10.0");
+    assert.equal(manifest.package.version, "1.0.0");
     assert.equal(manifest.installation.id, "upgrade-success-001");
     assert.equal(manifest.installation.state, "installed");
     assert.equal(verifyInstallationIntegrity(root).ok, true);
@@ -475,7 +476,7 @@ test("upgrades unchanged managed files, preserves original merges, and restores 
     assert.equal(doctor.ok, true);
     assert.match(formatProjectUpgradeResult(result), /Result: UPGRADED/);
     assert.match(formatProjectUpgradeResult(result), /Module scope: all/);
-    assert.match(formatProjectUpgradeResult(result), /0\.2\.0 -> 0\.10\.0/);
+    assert.match(formatProjectUpgradeResult(result), /0\.2\.0 -> 1\.0\.0/);
   } finally {
     rmSync(root, { recursive: true, force: true });
   }
@@ -545,8 +546,8 @@ test("upgrade refresh rebuilds modules, paths, and task allowlists from Gradle",
 
     assert.equal(result.status, "upgraded");
     assert.equal(result.doctor.ok, true);
-    assert.equal(result.fromVersion, "0.10.0");
-    assert.equal(result.toVersion, "0.10.0");
+    assert.equal(result.fromVersion, "1.0.0");
+    assert.equal(result.toVersion, "1.0.0");
     assert.deepEqual(
       config.androidProject.modules.map(({ gradlePath }) => gradlePath),
       [":component_me", ":mobile"],
@@ -1002,7 +1003,7 @@ test("upgrade refuses to downgrade a newer installed package", () => {
     const manifest = JSON.parse(
       readFileSync(join(root, INSTALLATION_MANIFEST_RELATIVE_PATH), "utf8"),
     );
-    manifest.package.version = "0.11.0";
+    manifest.package.version = "1.1.0";
     writeManifest(root, manifest);
 
     assert.throws(
@@ -1019,4 +1020,40 @@ test("upgrade refuses to downgrade a newer installed package", () => {
   } finally {
     rmSync(root, { recursive: true, force: true });
   }
+});
+
+
+test("custom queue policies stay editable after repeated upgrade without accepting managed drift", () => {
+  const { root, sdk } = createInstalledFixture();
+  try {
+    const path = join(root, "automation/config.json");
+    const config = JSON.parse(readFileSync(path, "utf8"));
+    config.workspaceStrategy = "isolatedWorktree";
+    config.worktreeBase = join(root, "../queue-candidates");
+    config.queue = { scanIntervalMs: 1500, maxWorkspaces: 4, maxWorkspaceBytes: 1024 ** 3 };
+    writeFileSync(path, `${JSON.stringify(config, null, 2)}\n`);
+    const markPriorRelease = () => {
+      const manifestPath = join(root, INSTALLATION_MANIFEST_RELATIVE_PATH);
+      const manifest = JSON.parse(readFileSync(manifestPath, "utf8"));
+      manifest.package.version = "0.99.0";
+      writeFileSync(manifestPath, `${JSON.stringify(manifest, null, 2)}\n`);
+    };
+    markPriorRelease();
+    const first = runProjectUpgrade(root, upgradeOptions(sdk, successfulRunner(), "queue-policy-first"));
+    assert.equal(first.status, "upgraded");
+    const revised = JSON.parse(readFileSync(path, "utf8"));
+    revised.queue.maxWorkspaces = 7;
+    revised.worktreeBase = join(root, "../other-candidates");
+    writeFileSync(path, `${JSON.stringify(revised, null, 2)}\n`);
+    assert.equal(verifyInstallationIntegrity(root).ok, true);
+    markPriorRelease();
+    const second = runProjectUpgrade(root, upgradeOptions(sdk, successfulRunner(), "queue-policy-second"));
+    assert.equal(second.status, "upgraded");
+    assert.equal(JSON.parse(readFileSync(path, "utf8")).queue.maxWorkspaces, 7);
+    const drifted = JSON.parse(readFileSync(path, "utf8"));
+    drifted.protectedPaths = [];
+    writeFileSync(path, `${JSON.stringify(drifted, null, 2)}\n`);
+    assert.equal(verifyInstallationIntegrity(root).ok, false);
+    assert.throws(() => planProjectUpgrade(root, upgradeOptions(sdk, successfulRunner(), "queue-policy-drift")), /no longer matches the installed manifest/);
+  } finally { rmSync(root, { recursive: true, force: true }); }
 });

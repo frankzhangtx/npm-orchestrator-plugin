@@ -8,6 +8,7 @@ source "$SCRIPT_DIR/lib.sh"
 task_id="${1:-}"
 [[ -n "$task_id" ]] || { printf 'Usage: %s TASK-ID\n' "$0" >&2; exit 2; }
 automation_validate_task_id "$task_id"
+automation_require_queue_execution "$task_id"
 [[ "$(automation_read_state "$task_id")" == "CODING" ]] || automation_die "$task_id is not CODING"
 "$SCRIPT_DIR/validate-contract.sh" "$task_id" >/dev/null
 

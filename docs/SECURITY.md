@@ -1,9 +1,9 @@
 # Security model
 
 This document describes the security properties of
-`@frankzhang2026/opencode-android-orchestrator@0.10.0`. The lifecycle foundation
+`@frankzhang2026/opencode-android-orchestrator@1.0.0`. The lifecycle foundation
 completed the real OpenCode `1.14.22` and `1.15.13` release matrix in `0.2.0`;
-`0.10.0` retains that compatibility boundary.
+`1.0.0` retains that compatibility boundary.
 
 ## Security goals and non-goals
 
@@ -38,31 +38,34 @@ perform actions outside the orchestrator's intended scope.
 
 ## Human approval boundary
 
-The normal workflow has three fresh OpenCode `question` selections: proposal,
-sealed contract, and final result. Direct chat prose, silence, a dismissed
-question, or a copied option label is not a normal-path approval. Baseline-only
-recovery and exceptional abort each have their own fresh status/question
-boundary.
+Proposal and contract approval always require fresh OpenCode `question`
+selections. The default `humanApproval` policy additionally requires final
+candidate acceptance. Explicit `autoCommit` authorization is sealed during
+contract approval and replaces only the final human question; build, actual
+full unit tests and independent Review remain mandatory.
 
-Approval phrases stored in `automation/config.json` are validation tokens, not
-secrets or cryptographic proof. Security depends on the scheduled planner
-showing the current review material, the user acting at that boundary, and the
-fixed Shell script independently verifying state, hashes, refs, scope, and
-leases. Anyone with direct shell and repository write access can invoke or
-modify local files; this package does not claim to protect against that actor.
+The plugin observes the host's question arguments and completed answer
+metadata through the common before/after hooks. Its one-use receipt binds
+session, consuming message, question call, operation, task/digest and candidate.
+Changed questions, multi-select answers, ordinary chat, copied labels, another
+session and already consumed receipts cannot authorize a tool mutation. A new
+candidate requires a new acceptance question. Receipts expire after 15 minutes
+and are lost on plugin restart; completed enqueue and consumed proof are stored
+in the durable queue. Repeated enqueue cannot create a second execution.
 
-OpenCode permission prompts are also not semantic workflow approval. They can
-be accepted for the remainder of a session and may be auto-approved. For that
-reason `0.8.0` exposes only `android_orchestrator_status` and
-`android_orchestrator_doctor` as custom tools. State-changing wrappers remain a
-NO-GO until a one-use, non-model-forgeable receipt can bind the approval kind,
-task, session/message, sealed SHA or branch, time, and nonce.
+The older mutating-wrapper NO-GO decision is superseded only by the bounded
+1.0.0 queue interfaces and these receipts. Permission prompts still do not grant
+semantic workflow approval. Direct CLI use is a trusted local-operator surface;
+Planner/Coder/Reviewer cannot call arbitrary CLI commands. An actor who can
+modify the package, host hooks, repository or runtime files remains outside
+this enforcement boundary.
 
 ## Agent and tool permissions
 
 All three installed agents start with `"*": deny` and add exact permissions.
-The planner can write only new planning artifacts and invoke the small set of
-orchestration scripts. The Coder can edit detected production/test source sets
+The Planner reads committed Git objects through snapshot and writes only
+the independent inbox through authenticated intake tools. It cannot directly
+read/edit the active working files, run Bash or call execution scripts. The Coder can edit detected production/test source sets
 but not Gradle, OpenCode, automation, or control files. Reviewer edit access is
 denied. Subagents, Scheduler/job tools, external directories, web access, push,
 merge/rebase, destructive Git commands, shell composition, and launchd are
@@ -85,7 +88,8 @@ The read-only status tool additionally:
 Doctor invokes read-only project, dependency, SDK, and installation checks and
 returns their failures instead of repairing the project.
 
-The compatible `tool.execute.before` hook may only raise the timeout argument
+The compatible `tool.execute.before` hook validates unattended shell commands,
+records approval challenges and may raise the timeout argument
 for a fixed list of direct managed long-running scripts. Its generated config
 value is an integer from `120000` through `7200000` milliseconds, defaults to
 `1800000`, never shortens a larger caller timeout, and does not rewrite the
@@ -130,13 +134,14 @@ while Gradle settings/build files and orchestration resources remain protected.
 legacy configuration with no scope field as `primary`, preventing an implicit
 permission expansion.
 
-`unitTestsEnabled`, `lintEnabled`, and `commitMessagePrefixMode` are the
-operator-editable fields in the otherwise manifest-managed
+`unitTestsEnabled`, `lintEnabled`, `commitMessagePrefixMode` and bounded
+queue/workspace policies are the operator-editable fields in the otherwise manifest-managed
 `automation/config.json`. Upgrade authenticates
 the remaining generated content before preserving those values, and doctor
 validates the resulting adaptive configuration. Task agents still cannot edit
 the protected file. Unit tests default on and lint defaults off; disabling unit
-verification does not remove the mandatory RED evidence step. Assemble, scope,
+verification blocks queue consumption and does not remove the mandatory RED
+evidence step for legacy non-queue tasks. Assemble, scope,
 evidence, and required device-test gates are unaffected.
 
 When commit prefix mode is `required`, the regular UTF-8 sidecar
@@ -191,14 +196,15 @@ the recorded before/after hashes and Git refs.
 ## Git and orchestration invariants
 
 - The source repository must have an identifiable original branch and baseline
-  HEAD. Original-branch drift blocks integration.
+  HEAD. Fixed-directory branch drift blocks integration; isolated drift
+  requires new full verification, independent Review and human acceptance.
 - The persistent repository lease prevents concurrent orchestrated tasks from
   sharing a mutable repository workspace.
 - Planning artifacts remain uncommitted until the verified product change is
   ready. Successful integration creates exactly one combined local commit.
 - Scope gates inspect tracked and untracked changes, reject protected paths and
   obvious test weakening, and bind the accepted result to a diff SHA.
-- An approved task snapshots the validated worktree allowlist. Listed local
+- Workspace preparation snapshots the validated worktree allowlist. Listed local
   changes are excluded consistently from cleanliness, scope, hashes, evidence,
   archival, and commits; explicit commit pathsets preserve allowlisted staged
   entries, and rename detection cannot hide an unlisted source path. Changing
@@ -216,8 +222,9 @@ the recorded before/after hashes and Git refs.
 - Abort rejects out-of-contract/protected paths, archives the diff, and avoids
   changing the original branch ref.
 
-Git hooks and Git configuration remain part of the host repository's trust
-surface. Review them before running a workflow in an untrusted project.
+Queue-controlled Git writes disable hooks and create local commit objects
+from a sealed tree. Git configuration and project-executed code still remain
+part of the host repository's trust surface. Review them before running a workflow in an untrusted project.
 
 ## Dependencies and network behavior
 

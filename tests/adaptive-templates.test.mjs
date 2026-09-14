@@ -89,7 +89,7 @@ test("renders portable configuration and a focused task example from Kotlin proj
     assert.equal(plan.projectRoot, root);
     assert.equal(plan.moduleScope, "all");
     assert.equal(plan.primaryModule.gradlePath, ":mobile");
-    assert.equal(plan.automationConfig.schemaVersion, 5);
+    assert.equal(plan.automationConfig.schemaVersion, 6);
     assert.equal(plan.automationConfig.commitMessagePrefixMode, "required");
     assert.equal(plan.automationConfig.lintEnabled, true);
     assert.equal(plan.automationConfig.unitTestsEnabled, false);

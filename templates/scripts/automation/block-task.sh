@@ -15,6 +15,7 @@ if [[ -z "$task_id" || ${#reason} -lt 12 ]]; then
 fi
 
 automation_validate_task_id "$task_id"
+automation_require_queue_execution "$task_id"
 current="$(automation_read_state "$task_id")"
 case "$current" in
     PENDING|CODING)

@@ -14,6 +14,10 @@ fi
 
 automation_validate_task_id "$task_id"
 automation_require_orchestrated
+[[ "$(automation_config_value '.schemaVersion')" != "6" ]] || {
+    automation_die "use android_orchestrator_intake draft to seal artifacts in the independent inbox"
+    exit 1
+}
 automation_require_approval proposal "$approval"
 automation_assert_repository_lease_available "$task_id"
 "$SCRIPT_DIR/validate-contract.sh" "$task_id" >/dev/null

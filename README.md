@@ -24,8 +24,17 @@ or their focused-test tasks out of generated configuration. Version `0.10.0`
 adds a user-maintained commit-message prefix that is read automatically for
 each task commit and blocks task startup until the required value is filled.
 
+Version `1.0.0` separates interactive planning from a durable background task
+queue. The default is `inPlaceExclusive` + `humanApproval`; explicitly approved
+fixed-directory tasks may use `autoCommit`. Optional isolated worktrees keep
+human acceptance while allowing independent tasks to proceed. Every queued
+execution requires build, fresh full unit tests and independent Review. All
+completion and recovery paths remain local and never push.
+
 ## Documentation
 
+- [Queue and background execution](docs/QUEUE.md) — intake, scheduling,
+  workspace/commit policies, acceptance, pause, capacity and recovery.
 - [Migration guide](docs/MIGRATION.md) — choose the correct path for the
   `0.1.0` scaffold, a manually copied V3 setup, or a manifest-managed install.
 - [Troubleshooting](docs/TROUBLESHOOTING.md) — diagnose CLI failures, resource
@@ -57,9 +66,9 @@ project builds retain their configured cache behavior.
 ## Quick start
 
 ```sh
-npx @frankzhang2026/opencode-android-orchestrator@0.10.0 init .
+npx @frankzhang2026/opencode-android-orchestrator@1.0.0 init .
 $EDITOR automation/automation-commit-prefix
-npx @frankzhang2026/opencode-android-orchestrator@0.10.0 doctor .
+npx @frankzhang2026/opencode-android-orchestrator@1.0.0 doctor .
 opencode --agent scheduled-planner .
 ```
 
@@ -69,7 +78,7 @@ a task contract without selecting a primary module. To intentionally restrict
 generated contracts to one module, opt into primary-module scope:
 
 ```sh
-npx @frankzhang2026/opencode-android-orchestrator@0.10.0 init . \
+npx @frankzhang2026/opencode-android-orchestrator@1.0.0 init . \
   --module-scope primary \
   --primary-module :mobile
 ```
@@ -97,7 +106,7 @@ For an existing manifest-managed installation whose generated module/task
 lists are incomplete, refresh all derived Gradle data in one upgrade:
 
 ```sh
-npx @frankzhang2026/opencode-android-orchestrator@0.10.0 upgrade . \
+npx @frankzhang2026/opencode-android-orchestrator@1.0.0 upgrade . \
   --refresh-gradle-discovery
 ```
 
@@ -142,15 +151,15 @@ Verification policy lives in `automation/config.json`:
 }
 ```
 
-Unit-test verification is enabled by default. Setting `unitTestsEnabled` to
-`false` skips the baseline unit suite and the focused/full unit-test portions
-of task, review, and integration gates. The mandatory TDD RED evidence step is
+Unit-test verification is enabled by default. Queued execution requires
+`unitTestsEnabled: true`; disabling it blocks consumption while intake remains
+available. Legacy non-queue Shell tasks retain the old opt-out behavior. The mandatory TDD RED evidence step is
 unchanged. Android lint is disabled by default; setting `lintEnabled` to `true`
 runs the discovered `lintTasks` in those gates. Assemble, scope, evidence, and
 required device-test checks are unaffected by either flag.
 
-These two booleans and `commitMessagePrefixMode` are the operator-editable
-exceptions in the otherwise managed configuration. Change their values in
+These two booleans, `commitMessagePrefixMode`, and the bounded queue policies
+are the operator-editable exceptions in the otherwise managed configuration. Change their values in
 place and commit the file before
 starting orchestration. Doctor accepts these policy changes and a later
 upgrade preserves them. Do not reformat or edit unrelated generated fields.
@@ -241,8 +250,7 @@ consumed by task or recovery commits. A rename has two paths, so both the old
 and new exact path must be listed if the whole rename should remain local.
 Protected orchestration, Gradle, Git, and planning paths cannot be allowlisted.
 Use this only for files that the task must not modify; remove an entry before
-starting a task that should change that file. The list is snapshotted at
-contract approval, so edits made during a running task apply to the next task.
+starting a task that should change that file. The list is snapshotted when the queued task prepares its workspace, so edits made during a running task apply to the next task.
 Task status exposes the effective snapshot to Coder and Reviewer sessions; an
 isolated task worktree receives an empty effective list so task-local edits are
 never hidden by source-worktree exclusions.
@@ -364,7 +372,7 @@ Implemented checks include:
   evidence, and automatically restores the installed state on pre-commit
   failure
 
-The planners deliberately avoid filesystem writes. The adaptive planner blocks
+The installation planners deliberately avoid filesystem writes. The adaptive planner blocks
 ambiguous primary-module selections only in `primary` scope, as well as paths
 outside the Git root and nested Gradle roots that the current root-relative
 transaction scripts cannot safely run.
@@ -424,7 +432,7 @@ preparation alone as resource installation;
 ## Init
 
 ```sh
-npx @frankzhang2026/opencode-android-orchestrator@0.10.0 init .
+npx @frankzhang2026/opencode-android-orchestrator@1.0.0 init .
 $EDITOR automation/automation-commit-prefix
 opencode --agent scheduled-planner .
 ```
@@ -454,7 +462,7 @@ Android Gradle project, an executable Gradle Wrapper, `git`, `jq`, `rg`,
    preserving any existing regular file;
 5. backs up every existing managed path and publishes a `prepared` manifest;
 6. writes missing or approved merged files with verified hashes and modes;
-7. runs the 44 automation tests and `shadow-run.sh`;
+7. runs the 46 automation tests and `shadow-run.sh`;
 8. marks the manifest `installed` only after both checks pass.
 
 Verification failure automatically restores originals and records rollback
@@ -496,7 +504,7 @@ rewrites the project.
 
 ## Read-only OpenCode tools
 
-Loading the plugin registers two project-scoped custom tools:
+Two project-scoped diagnostic tools remain available to all scheduled agents:
 
 - `android_orchestrator_status` accepts one required `taskId` matching
   `TASK-[A-Z0-9-]+` and returns the task contract, runtime state, and evidence
@@ -515,41 +523,27 @@ project state. The installed planner, coder, and reviewer agents explicitly
 allow these two tool names while retaining their default-deny policy; source
 preflight verifies both resolved permissions and tool discovery.
 
-### Phase 2 mutating-tool decision
+### Planner queue tools and approval receipts
 
-The 2026-08-25 evaluation remains **NO-GO for mutating custom tools in
-`0.8.0`**.
-The fixed Shell allowlist remains the only entry point for state transitions,
-Git mutations, and agent launches. OpenCode custom tools provide typed arguments
-and workspace context, but a normal permission prompt is not the workflow's
-fresh semantic approval: permission requests can be approved for the rest of a
-session and can be auto-approved unless explicitly denied. In addition, the
-certified SDK declarations disagree on `ToolContext.ask` (`Effect.Effect<void>`
-in `1.14.22`, `Promise<void>` in `1.15.13`), so it is not part of this plugin's
-two-version common execution surface. See the OpenCode documentation for
-[custom-tool context](https://opencode.ai/docs/custom-tools) and
-[permission behavior](https://opencode.ai/docs/permissions/).
+The plugin also registers `android_orchestrator_snapshot`,
+`android_orchestrator_intake` and `android_orchestrator_queue`, available only
+to the interactive Planner. Snapshot reads a fixed committed planning baseline.
+Intake seals artifacts in the Git common directory, approves one version and
+returns immediately. Queue controls manage status, durable notifications,
+pausing, recovery, revalidation and local integration through the same executor.
+Planner has no direct read/edit/Bash permission over the active Coder checkout.
 
-| Existing entry point | Material effects | Decision before a later phase |
-| --- | --- | --- |
-| `prepare-contract-review.sh` | Writes approval/origin evidence and initializes `CONTRACT_REVIEW` | Defer until a fresh proposal selection can produce a one-use receipt. |
-| `approve-and-run.sh` | Acquires a repository lease, creates or switches a task branch/worktree, and launches agents | Do not wrap without a contract-approval receipt and cancellable long-running execution. |
-| `show-acceptance-review.sh` | Reads sealed evidence but may regenerate `acceptance-report.json` | First split out a genuinely read-only, in-memory preview; that preview is the earliest suitable candidate. |
-| `resume-task.sh` | Records one baseline-only resumption, changes a narrowly proven `BLOCKED` state to `PENDING`, and relaunches normal orchestration | Keep behind the fresh command question and fixed Shell allowlist; do not expose as a custom mutating tool without a one-use receipt. |
-| `resume-review.sh` | Records a bounded resumption, changes `BLOCKED` to `REVIEWING`, and launches Reviewer | Consider only after command-bound authorization and subprocess cancellation are proven on both versions. |
-| `accept-and-integrate.sh` | Creates the combined commit, fast-forwards the original branch, removes a worktree, and deletes the task branch | Do not wrap until final acceptance is bound to task ID, sealed diff, branch, session, and a consumed nonce. |
-| `abort-task.sh` | Archives work, may create a recovery commit, switches/removes worktrees, and releases the lease | Do not wrap until an equally bound, one-use abort receipt exists. |
+The earlier mutating-wrapper **NO-GO** decision is superseded for these bounded
+1.0.0 queue tools. The host's completed `question` hook must return the selected
+single-choice answer. A one-use receipt binds session/message, question call,
+operation, contract digest and candidate as applicable. Supplying an approval
+phrase as a model argument cannot create this receipt. Unconsumed receipts
+expire after 15 minutes and are lost on plugin restart; the next mutation needs
+a fresh question. Approved contracts and consumed proof remain durable.
 
-A future mutating tool must never accept an approval phrase as a model-provided
-argument. It must atomically consume a machine-verifiable receipt created from
-the immediately preceding `question` result and bind at least the approval
-kind, task ID, session, message, relevant sealed SHA/branch, timestamp, and
-nonce. It must also retain fixed-script authentication, strict state
-preconditions, project/worktree bounds, abort propagation that terminates child
-processes, bounded structured output, exact per-agent permissions, the 46-case
-transaction suite, and real `1.14.22`/`1.15.13` integration tests. Internal
-Coder/Reviewer transition scripts remain private orchestration details rather
-than public tools.
+Direct CLI calls are trusted local-operator commands; scheduled agents cannot
+invoke that CLI or arbitrary shell commands. See [Security](docs/SECURITY.md)
+and the [queue guide](docs/QUEUE.md) for the operating boundary.
 
 ## Upgrade
 
@@ -589,7 +583,7 @@ For an older healthy installation, the command:
    backup set;
 4. writes only changed managed resources and restores or removes resources no
    longer managed by the new version;
-5. runs the 44 automation tests and a mutation-free shadow run before swapping
+5. runs the 46 automation tests and a mutation-free shadow run before swapping
    the active manifest;
 6. records upgrade history below `.automation-plugin/history/`.
 

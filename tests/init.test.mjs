@@ -268,7 +268,7 @@ test("plans and installs all managed resources in a Kotlin DSL project", () => {
       readFileSync(join(root, "automation/config.json"), "utf8"),
     );
     assert.equal(automationConfig.androidProject.name, "Init Kotlin");
-    assert.equal(automationConfig.schemaVersion, 5);
+    assert.equal(automationConfig.schemaVersion, 6);
     assert.equal(automationConfig.commitMessagePrefixMode, "required");
     assert.equal(automationConfig.androidProject.moduleScope, "all");
     assert.equal(automationConfig.androidProject.primaryModule, ":mobile");

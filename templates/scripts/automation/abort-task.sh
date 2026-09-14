@@ -13,12 +13,13 @@ if [[ "$#" -ne 2 ]]; then
 fi
 
 automation_validate_task_id "$task_id"
+automation_require_queue_execution "$task_id"
 automation_require_orchestrated
 automation_require_approval abort "$approval"
 
 current_state="$(automation_read_state "$task_id")"
 case "$current_state" in
-    PREPARING|PENDING|CODING|READY_FOR_REVIEW|REVIEWING|CHANGES_REQUESTED|AWAITING_HUMAN|BLOCKED|TEST_FAILED|NEEDS_HUMAN|INTEGRATION_BLOCKED) ;;
+    PREPARING|PENDING|CODING|READY_FOR_REVIEW|REVIEWING|CHANGES_REQUESTED|AWAITING_HUMAN|READY_TO_COMMIT|BLOCKED|TEST_FAILED|NEEDS_HUMAN|INTEGRATION_BLOCKED) ;;
     *) automation_die "cannot abort $task_id from state $current_state" ;;
 esac
 

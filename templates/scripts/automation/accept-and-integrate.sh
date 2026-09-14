@@ -14,6 +14,11 @@ fi
 
 automation_validate_task_id "$task_id"
 automation_require_orchestrated
+queued_workspace="$(automation_workspace_path "$task_id")"
+if [[ -f "$queued_workspace" && -n "$(jq -r '.queueKey // empty' "$queued_workspace")" ]]; then
+    automation_die "queued acceptance must request integration through the repository queue"
+    exit 1
+fi
 automation_require_approval acceptance "$approval"
 [[ "$(automation_read_state "$task_id")" == "AWAITING_HUMAN" ]] || automation_die "$task_id is not awaiting human acceptance"
 [[ "$(automation_config_value '.pushAfterAcceptance')" == "false" ]] || automation_die "automatic push is forbidden"

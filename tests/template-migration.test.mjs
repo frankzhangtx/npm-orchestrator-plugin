@@ -15,7 +15,7 @@ const expectedHashes = new Map([
   ],
   [
     ".opencode/agents/scheduled-planner.md",
-    "d55303927ee5bbb2fc73f90930b36368a0893473fb072916f0f2052e50135807",
+    "9745066a5d40b80e310f6edfb9c628457871c82eb3a12aa37dd8d952200993a1",
   ],
   [
     ".opencode/agents/scheduled-reviewer.md",
@@ -23,23 +23,23 @@ const expectedHashes = new Map([
   ],
   [
     ".opencode/commands/abort-task.md",
-    "c7fcd3b08d30526d9311c8dba47787d6354ae677522d55f360ecaa3e4556f212",
+    "d35ebe358916280e151fad06de290be02b35785472396bc8d46a4af29b0ce1f7",
   ],
   [
     ".opencode/commands/acceptance.md",
-    "43db19cb558fc73f69184cc0c75914009512c745cd726af4bd939e97e057f749",
+    "b910108e63244eaa9dfcfe859ea7e8127ff21e808eb9fbed4fc439db2add573f",
   ],
   [
     ".opencode/commands/change.md",
-    "23b576d5f1556829bc3e666599e4bbd0fcd8dd383bec4022e3e76c26ada93e79",
+    "096bf0487e64b0a2bf79d4845e67e4d6f54a06c1dc147693a12a0249df7ff3b2",
   ],
   [
     ".opencode/commands/resume-review.md",
-    "be85c63d766785f77f0d03ce31761999efd3bde8eb74cdcfcaa99d05ba177bd8",
+    "f2b9cd32bbcd545e26dd2510640b243b1af7977fd3a617093c722624d7342e14",
   ],
   [
     ".opencode/commands/resume-task.md",
-    "524108e44dc7384cffd3333c29a42b4de139f76a927faca795158cd2ea6f7834",
+    "9f32fb95b13081ea18a5af4e07ec97a595b6b56292ef282fb3c9231554d41a7b",
   ],
   [
     ".opencode/skills/scheduled-quality-coder/SKILL.md",
@@ -47,7 +47,7 @@ const expectedHashes = new Map([
   ],
   [
     ".opencode/skills/scheduled-quality-orchestrator/SKILL.md",
-    "649a5b34e5cffa390456e755f4e6723498c1ea4b625dd50e7dc1e5ada239790d",
+    "96003e23977dea7fe39bc769f1bf8863224c9cf8831d842abfa2c4e6ddb6fe5c",
   ],
   [
     ".opencode/skills/scheduled-quality-reviewer/SKILL.md",
@@ -66,7 +66,7 @@ function templatePath(path) {
   return relative(templatesRoot, path).split(sep).join("/");
 }
 
-test("ships the exact audited OpenCode V4 agent, command, and skill inventory", () => {
+test("ships the exact audited OpenCode queue agent, command, and skill inventory", () => {
   const actualPaths = listFiles(opencodeTemplateRoot)
     .map(templatePath)
     .sort();
@@ -74,7 +74,7 @@ test("ships the exact audited OpenCode V4 agent, command, and skill inventory", 
   assert.deepEqual(actualPaths, [...expectedHashes.keys()].sort());
 });
 
-test("preserves the audited V4 template bytes and non-executable modes", () => {
+test("preserves the audited queue template bytes and non-executable modes", () => {
   for (const [path, expectedHash] of expectedHashes) {
     const absolutePath = join(templatesRoot, path);
     const contents = readFileSync(absolutePath);

@@ -16,6 +16,7 @@ if [[ -z "$task_id" || -z "$expected" || "$separator" != "--" || -z "$filter" ||
 fi
 
 automation_validate_task_id "$task_id"
+automation_require_queue_execution "$task_id"
 automation_validate_test_filter "$filter"
 [[ ${#expected} -ge 3 ]] || automation_die "expected failure text is too short"
 [[ "$(automation_read_state "$task_id")" == "CODING" ]] || automation_die "$task_id is not CODING"

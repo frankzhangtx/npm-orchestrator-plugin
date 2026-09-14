@@ -30,3 +30,16 @@ if [[ "$(jq -r '.deviceTestsRequired' "$contract")" == "true" ]]; then
 fi
 
 automation_info "all deterministic verification commands passed"
+if [[ -n "${AUTOMATION_QUEUE_RUN_ID:-}" ]]; then
+    [[ -n "${AUTOMATION_FULL_TEST_LOG:-}" ]] || automation_die "fresh full unit-test evidence is missing"
+    jq -n \
+        --arg taskId "$task_id" \
+        --arg runId "$AUTOMATION_QUEUE_RUN_ID" \
+        --arg diffSha256 "$(automation_worktree_diff_sha)" \
+        --arg log "$AUTOMATION_FULL_TEST_LOG" \
+        --argjson elapsedSeconds "$AUTOMATION_FULL_TEST_ELAPSED" \
+        --argjson tasks "$(jq -c '.gradleVerification.fullUnitTestTasks' "$AUTOMATION_CONFIG")" \
+        '{taskId: $taskId, runId: $runId, diffSha256: $diffSha256,
+          fullTestsExecuted: true, tasks: $tasks, log: $log, elapsedSeconds: $elapsedSeconds}' \
+        | automation_record_json "$evidence_dir/full-test-verification.json"
+fi

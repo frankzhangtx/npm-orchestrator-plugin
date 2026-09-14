@@ -1,252 +1,73 @@
 ---
 name: scheduled-quality-orchestrator
-description: Use when the interactive planner must turn one approved request into a sealed contract, automatically guide contract and result review, notify the user at human acceptance, redisplay a sealed acceptance card, or integrate an exactly approved result locally
-compatibility: opencode
-metadata:
-  audience: interactive-planner
-  workflow: end-to-end-coding-orchestration
+description: Plan stable committed code, approve independent inbox contracts, and control one durable background executor per repository
 ---
 
-# Scheduled quality orchestrator
+# Durable contract workflow
 
-Keep the user in one conversational flow while deterministic scripts own every
-Git mutation and runtime transition. Human prose grants intent, but only a
-fresh OpenCode `question` option selection grants one of the three normal-path
-approvals; state files, hashes, tests, and Git checks grant execution.
+1. Call `android_orchestrator_snapshot` with `action: snapshot`. Keep its
+   `planningHead` and `targetBranch` for all reads and the complete contract.
+   Read the committed contract example, configuration, implementation and tests
+   through `action: read`. The live product checkout may be occupied.
+2. Describe one observable behavior change, exact allowed paths, acceptance,
+   test filters, file limit and non-goals. Ask a fresh single-choice `question`
+   titled `方案确认`, with `批准方案，生成计划和任务合同。` and `调整方案。`.
+   Initial request text and direct chat approval phrases are never approval.
+3. After the approval option is selected, compose a plan and a valid contract.
+   Call `android_orchestrator_intake` action `draft`, with `draftJson` containing
+   `{contract, plan, planningHead, targetBranch, workspaceStrategy, commitPolicy,
+   notBefore?, dependsOn?, priority?}`. Plan paths remain
+   `docs/plans/<TASK-ID>.md`; contracts retain their TASK ID. Artifacts are
+   sealed in the Git common directory inbox and materialized only on execution.
+4. Default to `inPlaceExclusive` + `humanApproval`. If the user explicitly wants
+   automatic local commits, show this choice in the proposal and seal
+   `autoCommit`. The unsupported `isolatedWorktree` + `autoCommit` combination
+   must fail. Older approvals never inherit automatic submission rights.
+5. Display the returned full plan, contract and review card: task ID/version,
+   digest, target local branch/planningHead, allowed paths/file count, tests,
+   acceptance/non-goals, dependencies/notBefore, workspace and commit policies.
+   Human policy says “执行后等待人工确认提交”; automatic policy says
+   “通过构建、全量单测和独立 Review 后自动本地提交并集成，不推送远程”.
+6. Immediately call `question` with the exact `question` arguments returned
+   by `draft` (header `合同确认`). Only the selected approval may call intake `enqueue` with
+   `{key, digest, approval}`. A new version requires a new approval.
+7. Report durable enqueue success and return. Execution is asynchronous, one
+   repository slot; the foreground may plan/approve B and C while A runs.
 
-## Before planning
+# Acceptance and controls
 
-1. Run `./scripts/automation/preflight.sh --source` before creating artifacts.
-   If `ANDROID_HOME` is missing, the working tree is dirty, the branch is detached,
-   Git identity is missing, or OpenCode discovery is unsafe, report the exact
-   blocker and stop.
-2. Use `android-orchestrator-brainstorming` and
-   `android-orchestrator-writing-plans` to produce one bounded proposal. After
-   displaying it, immediately call `question` once with `multiple: false` and
-   `custom: false`:
+Read `android_orchestrator_queue` status for durable notifications. Do not poll
+with a model while idle. Human tasks reach `AWAITING_HUMAN`; automatic tasks
+reach `READY_TO_COMMIT` and are finalized by the executor with their sealed
+contract authorization. Never create a final human approval for autoCommit.
 
-   - header: `方案确认`
-   - question: `这个方案是否准确，可以生成计划和任务合同吗？`
-   - option 1 label: `批准方案，生成计划和任务合同。`
-   - option 1 description: `确认当前方案并生成两份待复核的规划文件。`
-   - option 2 label: `需要调整方案`
-   - option 2 description: `不生成文件；随后说明需要调整的目标、范围或验证方式。`
+`/acceptance <TASK-ID>` reads the current item and acceptance report. Present
+the candidate/diff hash, target branch, baseline, build, actual full-test results,
+independent Review, scope and commit policy. If the local target has advanced
+for an isolated candidate, request `revalidate`. That job waits for the same
+execution slot, runs fresh verification/Review and invalidates old acceptance.
+After a fresh candidate exists, call queue `review` with
+`operation: integrate` and the task key. Present its evidence, then call
+`question` with its exact returned arguments (header `最终验收`). Only the selected approve option requests
+queue `integrate` with the latest `candidateId` as `candidate` and exact approval.
 
-   Create no files unless option 1 is selected in that question. A direct chat
-   message is never proposal approval, even if it exactly repeats an option
-   label. If option 2 is selected, ask only for the requested adjustments,
-   revise the proposal, and show a fresh `方案确认` question.
+Before `/resume-task`, `/resume-review` or `/abort-task`, call queue `review`
+with the matching `operation` and task key, then use the exact returned
+`question` arguments. Only the actual answer creates the one-use receipt;
+ordinary chat text and model-provided approval strings cannot substitute.
 
-## Contract-review boundary
+`/resume-task` and `/resume-review` use a fresh `恢复确认` question containing
+`恢复任务，重新捕获基线并继续自动执行。`; then request the matching queue action.
+`/abort-task` uses a fresh `中止确认` question containing
+`中止任务，封存修改并恢复原分支。`; queue `abort` only after that selection.
+Running processes must reach a recorded safe stop before recovery/abort begins.
+Unstarted contracts may be cancelled through `cancel` without touching files.
 
-After proposal approval, create only `docs/plans/<TASK-ID>.md` and
-`automation/tasks/<TASK-ID>.json`, validate the contract, then run:
+Pause prevents new claims. Resume does not discard public faults. Display the
+fault before an explicit clear-fault. A mode change is blocked while a workspace
+is retained. Fixed workspaces remain occupied through acceptance, integration
+and failure; isolated sealed stopped candidates retain their directories while
+independent tasks run. Dependencies complete only after local integration.
 
-`./scripts/automation/prepare-contract-review.sh <TASK-ID> "批准方案，生成计划和任务合同。"`
-
-Continue automatically after successful preparation; never require the user to
-enter a task ID, list contract fields, or ask for a fuller display. Confirm the
-state is `CONTRACT_REVIEW`, then read the sealed plan, contract, and origin
-evidence rather than relying on the earlier proposal or conversation memory.
-Present one human-readable review card containing:
-
-- task ID, title, validation result, and `CONTRACT_REVIEW` state;
-- the full plan plus current and desired observable behavior;
-- acceptance criteria and edge cases;
-- allowed and forbidden paths, maximum changed-file count, and non-goals;
-- focused tests, test policy, and device-test requirement with its reason;
-- original branch, `originalHeadBeforeContract`, artifact paths, and confirmation
-  that both artifact hashes are sealed and product code is still untouched.
-
-Immediately after the card, call `question` once with `multiple: false` and
-`custom: false`:
-
-- header: `合同复核`
-- question: `计划和任务合同是否准确，可以开始自动执行吗？`
-- option 1 label: `合同已复核，批准自动执行到人工验收阶段。`
-- option 1 description: `确认当前封存内容并自动执行到人工验收。`
-- option 2 label: `需要调整计划或任务合同`
-- option 2 description: `保持停止状态，并说明需要修改的内容。`
-
-Only selecting option 1 in this fresh question is explicit contract approval.
-A direct chat message is never contract approval, even if it exactly repeats
-the option label. A rejected or dismissed question, option 2, silence, or any
-prose answer is not approval. For option 2, ask only for the changes, do not
-start execution, and do not edit sealed artifacts in place or reuse their task
-ID.
-
-Then run only:
-
-`./scripts/automation/approve-and-run.sh <TASK-ID> "合同已复核，批准自动执行到人工验收阶段。"`
-
-The command may take time. It keeps the sealed planning artifacts uncommitted,
-acquires the persistent repository workspace lease, prepares the configured
-transactional workspace from the unchanged pre-task HEAD, launches the
-restricted Coder, launches a fresh
-read-only Reviewer, performs at most the configured review-fix cycle, and stops
-at `AWAITING_HUMAN` or a hard failure state. The default
-`inPlaceExclusive` strategy switches the existing source directory to the task
-branch and does not copy the repository. `isolatedWorktree` is an explicit
-fallback. Do not reproduce any of those Git or agent operations manually.
-
-## Human acceptance boundary
-
-When `approve-and-run.sh` reaches `AWAITING_HUMAN`, do not wait for another user
-message. Treat that state transition as an active human-review notification.
-Immediately run:
-
-`./scripts/automation/show-acceptance-review.sh <TASK-ID>`
-
-Present its fresh, SHA-verified review card without collapsing the four focus
-groups: observable behavior, regression/scope, automated evidence, and
-binding/remaining risk. Do not ask the user to provide the task ID again, list
-fields, inspect raw JSON, or compose a display prompt.
-
-Immediately after the card, call `question` once with `multiple: false` and
-`custom: false`:
-
-- header: `成果验收`
-- question: `请按上方重点完成复核。这个封存成果是否通过人工验收？`
-- option 1 label: `验收通过，提交到原分支。`
-- option 1 description: `确认当前 sealed diff，并开始经过复验的本地集成。`
-- option 2 label: `验收不通过，需要说明失败项`
-- option 2 description: `保持封存，不集成；随后说明失败的条件或观察结果。`
-- option 3 label: `暂不决定，保持封存`
-- option 3 description: `继续停在 AWAITING_HUMAN，稍后可用 /acceptance 再次查看。`
-
-The acceptance is bound to the task ID, sealed diff SHA, and recorded original
-branch. Only selecting option 1 in this fresh question grants acceptance. A
-direct chat message is never final acceptance, even if it exactly repeats the
-option label.
-
-For option 2, ask only which acceptance criterion or observed behavior failed;
-do not edit the sealed task root, start integration, or infer a new contract.
-For option 3, stop with no state change. A dismissed question, prose answer,
-silence, or any other response is not acceptance.
-
-After option 1 is selected in the fresh `成果验收` question, run only:
-
-`./scripts/automation/accept-and-integrate.sh <TASK-ID> "验收通过，提交到原分支。"`
-
-The deterministic integrator must create exactly one commit containing the
-sealed plan, task contract, and all authorized product changes; it must not
-create an earlier planning-only commit. Only after the recorded original branch
-safely reaches that verified commit, it must remove or detach any task worktree
-that still owns the task branch and safely delete the integrated local task
-branch. A failed or blocked integration must retain the task branch for
-recovery. Report the resulting local branch, integrated commit, task-branch
-deletion, verification result, and `pushed: false`. Never treat acceptance as
-permission to push.
-
-If the automatic card was missed, or the user invokes `/acceptance <TASK-ID>`,
-run the same display script and repeat the same review card and `question`.
-Never substitute remembered conversation content for the fresh script output.
-
-## Baseline-only recovery
-
-If a task is `BLOCKED` because the `claim-task.sh` Gradle baseline capture was
-externally interrupted before `baseline.json` was sealed, offer:
-
-`/resume-task <TASK-ID>`
-
-The command must first display fresh status, then call one OpenCode `question`
-with `multiple: false` and `custom: false`:
-
-- header: `恢复任务`
-- question: `是否重新捕获缺失的基线证据并继续自动执行？`
-- option 1 label: `恢复任务，重新捕获基线并继续自动执行。`
-- option 1 description: `验证分支、租约、封存规划工件和零产品改动后，仅允许一次基线重试。`
-- option 2 label: `保持当前任务现场`
-- option 2 description: `不修改分支、文件、状态、证据或租约。`
-
-Only option 1 selected in that fresh question authorizes:
-
-`./scripts/automation/resume-task.sh <TASK-ID> "恢复任务，重新捕获基线并继续自动执行。"`
-
-The script must prove the last transition was the baseline-capture
-`CODING -> BLOCKED` interruption, `baseline.json` and all downstream evidence
-are absent, both refs still equal the recorded baseline, the repository lease
-still matches, and the worktree contains exactly the two sealed untracked
-planning artifacts. It records the approval and one bounded resumption,
-changes `BLOCKED` to `PENDING`, and relaunches the normal orchestration path so
-Coder performs a fresh deterministic claim. It must never erase a failed or
-successful baseline record and must never accept a product diff.
-
-Do not run `transition-state.sh`, `queue-task.sh`, reset the task root, or edit
-runtime evidence. A direct chat message is not recovery approval. If this one
-retry is exhausted, preserve the task for abort or a new reviewed contract.
-
-## Reviewer-only recovery
-
-If a task is `BLOCKED` because a Reviewer exited before submitting a decision,
-preserve the completed implementation and all TDD/quality-gate evidence. Tell
-the user that retrying through `PENDING` would incorrectly launch Coder again,
-then offer this explicit recovery command:
-
-`/resume-review <TASK-ID>`
-
-On that command, run only:
-
-`./scripts/automation/resume-review.sh <TASK-ID>`
-
-The script must prove that the recorded Reviewer interruption is recoverable,
-the task branch and baseline still match, no decision exists for the current
-sealed diff, the scope gate still passes, and the live diff SHA still equals
-`ready.json`. It then records a bounded resumption and transitions directly
-from `BLOCKED` to `REVIEWING`; it never runs Coder or consumes a review-fix
-cycle. A previous mistaken `BLOCKED → PENDING → BLOCKED` detour is recoverable
-only when it never reached `CODING` and all sealed checks still match.
-
-Do not use `transition-state.sh`, `queue-task.sh`, a task-root reset, or a new
-contract for this specific interruption. If the recovery script rejects the
-task, preserve the current state and report its exact check failure. If it
-reaches `AWAITING_HUMAN`, immediately continue with the Human acceptance
-boundary above.
-
-## Exceptional abort boundary
-
-For a task stopped in `PREPARING`, `PENDING`, `CODING`, `READY_FOR_REVIEW`,
-`REVIEWING`, `CHANGES_REQUESTED`, `AWAITING_HUMAN`, `BLOCKED`, `TEST_FAILED`,
-`NEEDS_HUMAN`, or `INTEGRATION_BLOCKED`, the user may invoke
-`/abort-task <TASK-ID>`. First run `status.sh` and show the state, task branch,
-original branch, and evidence directory. Then call `question` once with
-`multiple: false` and `custom: false`:
-
-- header: `中止任务`
-- question: `是否封存当前任务修改并恢复到记录的原分支？`
-- option 1 label: `中止任务，封存修改并恢复原分支。`
-- option 1 description: `把合同内修改归档到任务分支和证据目录，然后释放仓库租约。`
-- option 2 label: `保持当前任务现场`
-- option 2 description: `不修改分支、文件、状态或租约。`
-
-Only the exact option-1 answer, or the same exact direct reply after the fresh
-status display, authorizes:
-
-`./scripts/automation/abort-task.sh <TASK-ID> "中止任务，封存修改并恢复原分支。"`
-
-The deterministic abort script must reject out-of-contract changes and preserve
-the diff. When product changes exist, it preserves them together with the plan
-and contract in one recovery commit; when only planning artifacts exist, it
-must not create a planning-only commit. It must avoid changing the original
-branch ref, switch the in-place directory back to the original branch, release
-the repository lease, and end in `ABORTED`. Never improvise cleanup with reset,
-clean, or file deletion.
-
-## Hard stops
-
-- Never manufacture, paraphrase, or infer one of the three normal-path
-  approvals, the baseline-recovery approval, or the exceptional abort
-  approval. Each normal approval exists
-  only when the user selects the full label in that boundary's fresh
-  `question`; direct chat text never counts.
-- Never call a normal-path approval script before its matching `question`
-  selection. The exceptional abort retains its separately documented approval
-  boundary.
-- Never directly run `git add`, `commit`, `worktree`, `cherry-pick`, `merge`,
-  `rebase`, or `push`.
-- Never bypass a blocked state, alter runtime evidence, resolve an integration
-  conflict automatically, or broaden a contract after approval.
-- For `BLOCKED`, first distinguish the recoverable baseline-capture and
-  Reviewer interruptions above from other blockers. For any other `BLOCKED`, or for `TEST_FAILED`,
-  `NEEDS_HUMAN`, or `INTEGRATION_BLOCKED`, show the state and evidence path and
-  wait for a revised contract or a specifically supported recovery action.
+After completion, show the true authorization source, local commit SHA and
+“未推送”. No workflow, failure or recovery grants remote push rights.

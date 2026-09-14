@@ -21,6 +21,7 @@ import {
 import {
   AUTOMATION_CONFIG_RELATIVE_PATH,
   matchesManifestModuloVerificationPolicy,
+  queuePolicyFingerprint,
 } from "../config/verification-policy.js";
 import {
   ORCHESTRATOR_PACKAGE_NAME,
@@ -124,6 +125,7 @@ export interface PreviousInstallationFile {
 }
 
 export interface InstallationManifestFile {
+  queuePolicySha256?: string;
   path: string;
   source: string;
   strategy: InstallationFileStrategy;
@@ -643,6 +645,7 @@ function snapshotMatchesIntegrityPolicy(
       matchesManifestModuloVerificationPolicy(snapshot.content, {
         sha256: file.sha256,
         size: file.size,
+        queuePolicySha256: file.queuePolicySha256,
       }))
   );
 }
@@ -933,7 +936,10 @@ function parseManifest(content: string): InstallationManifest {
         "size",
         "mode",
         "previous",
+        ...(candidate.queuePolicySha256 === undefined ? [] : ["queuePolicySha256"]),
       ]) ||
+      (candidate.queuePolicySha256 !== undefined &&
+        (candidate.path !== AUTOMATION_CONFIG_RELATIVE_PATH || !isSha256(candidate.queuePolicySha256))) ||
       typeof candidate.path !== "string" ||
       typeof candidate.source !== "string" ||
       typeof candidate.strategy !== "string" ||
@@ -1191,6 +1197,7 @@ export function planInstallationPreparation(
         size: file.size,
         mode: file.mode,
         previous: previousManifest,
+        ...queuePolicyFingerprint(file.path, file.content),
       },
     };
   });

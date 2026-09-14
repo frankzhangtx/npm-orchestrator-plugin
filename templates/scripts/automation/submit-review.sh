@@ -16,6 +16,7 @@ if [[ -z "$task_id" || -z "$decision" || -z "$summary" ]]; then
 fi
 
 automation_validate_task_id "$task_id"
+automation_require_queue_execution "$task_id"
 [[ "$decision" == "APPROVED" || "$decision" == "CHANGES_REQUESTED" ]] || automation_die "invalid review decision: $decision"
 [[ ${#summary} -ge 20 ]] || automation_die "review summary must contain at least 20 characters"
 [[ "$(automation_read_state "$task_id")" == "REVIEWING" ]] || automation_die "$task_id is not REVIEWING"
@@ -64,8 +65,13 @@ jq -nc \
     | automation_append_json "$evidence_dir/reviews.jsonl"
 
 if [[ "$decision" == "APPROVED" ]]; then
-    automation_transition_state "$task_id" "REVIEWING" "AWAITING_HUMAN" "reviewer" "independent review approved; human acceptance required"
-    automation_info "$task_id approved and awaiting human acceptance"
+    workspace_file="$(automation_workspace_path "$task_id")"
+    if [[ -n "${AUTOMATION_QUEUE_RUN_ID:-}" && "$(jq -r '.commitPolicy // "humanApproval"' "$workspace_file")" == "autoCommit" ]]; then
+        automation_transition_state "$task_id" "REVIEWING" "READY_TO_COMMIT" "reviewer" "independent review approved; sealed automatic local commit authorization must be verified"
+    else
+        automation_transition_state "$task_id" "REVIEWING" "AWAITING_HUMAN" "reviewer" "independent review approved; human acceptance required"
+        automation_info "$task_id approved and awaiting human acceptance"
+    fi
 else
     automation_transition_state "$task_id" "REVIEWING" "CHANGES_REQUESTED" "reviewer" "$summary"
     automation_warn "$task_id requires changes"

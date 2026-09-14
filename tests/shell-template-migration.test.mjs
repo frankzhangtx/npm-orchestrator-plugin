@@ -23,31 +23,31 @@ const automationRoot = join(templatesRoot, "scripts", "automation");
 const expectedHashes = new Map([
   [
     "scripts/automation/abort-task.sh",
-    "644194ca949cb4a5be2be4ac157273bea70984520f4834dcd112ca76650c9b4a",
+    "6c4ba86055d79887ad70fb7ca5d45ea7eaed57ac2527a30ea09541a9fe761ece",
   ],
   [
     "scripts/automation/accept-and-integrate.sh",
-    "376617529539648b6c9cd5149d6ba4ff3b0d657a83a4b69ed33ce56396944507",
+    "83d5a9af844ce3a9316a9f8d8bd3ef8f1fe7fa597545ac5a6aa581ec1bacc669",
   ],
   [
     "scripts/automation/acceptance-report.sh",
-    "a3dee5d983cf2aa6cecd6b1791ac645dce337e671ae1e6bcf950143770e6e386",
+    "905ffe68116c1fb124a20745d6dbaf9ebf422d79d4aac138e4c6bb2203259422",
   ],
   [
     "scripts/automation/approve-and-run.sh",
-    "64943afcd6c1b21ed4bb7d47af96830dfab0b4e47854910664ecf5cf8b639d7a",
+    "15443e2de6d0c7ead0c32932807534f329a56a4a58936c2649cd0998c1d916bb",
   ],
   [
     "scripts/automation/begin-review.sh",
-    "02f0b9551e81c2f540e1bb3fc223cd6efef7ca1a84d86f2ccd87fbdf1fb45e9d",
+    "ff5e276940621086399f537ce061a8de8ae05d213fe90ed8eaadb0045f86419a",
   ],
   [
     "scripts/automation/block-task.sh",
-    "86dd3c6b5f906724b530a8799c14c2d90d05176b152b67d9d435bd205cd1b893",
+    "715814e3bdbeaae54fdd07489f01212f9a8d406943af1df8e795e57eef19c3a8",
   ],
   [
     "scripts/automation/claim-task.sh",
-    "da89a3985d8ebcf1d1589c5908b4f714c77f10150ec2b9c6d0ec0f8928da837e",
+    "53f6faadc65df76aa925badf895c97083b16d2f83ac94c132588f93c3b614e89",
   ],
   [
     "scripts/automation/integration-scope-gate.sh",
@@ -55,23 +55,23 @@ const expectedHashes = new Map([
   ],
   [
     "scripts/automation/lib.sh",
-    "6dcddb2911149e4fd38c2aa2bdedcdd8a0826f6cf0c52bcfd9e6100f1fc24494",
+    "68c60e91672fd6786fed110187fa388ffed8ab98b71ea4810348aa2c14b61a6f",
   ],
   [
     "scripts/automation/orchestrate-task.sh",
-    "713cc9152abc973bad824bcbb678bb5362617219b3bd19bcecb3670cbb9213db",
+    "90439efd17cadb875488cda6674976a3ac8337918923dce4b6a59b68e36af39e",
   ],
   [
     "scripts/automation/preflight.sh",
-    "3382698a1406d4884f398fea99ef908a8444bd6b0fd959bdcdce117f8c4b8837",
+    "f64ada4430795e2304c4fcef837d3294d9098ee6815ff542efbd250af1ac5f65",
   ],
   [
     "scripts/automation/prepare-contract-review.sh",
-    "c50a0a67515ea89d613b97e4e6fd625551a2c7a08ae93881e955df94c4c10430",
+    "57036ecd3ca8ee205a8d5b81e2569d84b9567276ba7cb9571b89db54b8b55d74",
   ],
   [
     "scripts/automation/quality-gate.sh",
-    "65eeb266f707a61fa7992a1002457359eff95210c3af7a5ce39a60e82424ae01",
+    "a9c7c146661df4ce01ee86187efb23245b0ce2d7678f3a1bfa5a5d88334ccf4a",
   ],
   [
     "scripts/automation/queue-task.sh",
@@ -79,23 +79,23 @@ const expectedHashes = new Map([
   ],
   [
     "scripts/automation/record-red.sh",
-    "5f5fff2c3562a3a6ad3872d28675a589f6630931a75e69fc71cf498a3eb84cb7",
+    "0405e874f0e00bb5923ed608266a5bc2c1ed175f68a763e7521e849f08277140",
   ],
   [
     "scripts/automation/resume-review-fix.sh",
-    "9d56ad22c5bcf9d56f085f3b7b41680ff891f0d2f0a332f46027fb7279647bd5",
+    "185c328f950c0c285d6a96968d82989b5991f282b2e102e284cb64981430bdd9",
   ],
   [
     "scripts/automation/resume-review.sh",
-    "dd0a73af218c4a1b7e9cf5266574b0f943fb12c61ec1e652d1fea2a6e9187592",
+    "fcec8c1afd22af2b967960aeeb792e23a8ddced8e8aaa945b5db5afbe148b96c",
   ],
   [
     "scripts/automation/resume-task.sh",
-    "80aa4085ac9ee95ff483bc0b487efe62cfe585d5a65dae0bbb47272dd977d601",
+    "583baecd969e08fffb54a6c3eecb391998cd7ec6f57f1eeb2524db7f4728cdb6",
   ],
   [
     "scripts/automation/scope-gate.sh",
-    "bb6aaf80ac0341e59b460858a4074e8a2d333fa51f25b9d55f5ad72cbe2b7578",
+    "85e6c5058216cea1f0c3cc3539d9a532abc12770ff3b2aae0fd0d4431647a8b2",
   ],
   [
     "scripts/automation/select-task.sh",
@@ -115,7 +115,7 @@ const expectedHashes = new Map([
   ],
   [
     "scripts/automation/submit-review.sh",
-    "9efe0ad028014aaa6be42ee93eb568d091b67321370f32626ad569afb6b46f46",
+    "1a6560ddf04f5593b9351c3a5ad369d4b0f7fb74b6b0c7a581191275971e2aa2",
   ],
   [
     "scripts/automation/tests/run-tests.sh",
@@ -135,7 +135,7 @@ const expectedHashes = new Map([
   ],
   [
     "scripts/automation/verify-task.sh",
-    "26c0e2a51ebc59a687e58c598e9989d8f3d4db2a816ea93c3662e36cef3497e0",
+    "aef775601f56d08e42b02b17030a51e908f328c99134dfb88049f26a917c3175",
   ],
 ]);
 

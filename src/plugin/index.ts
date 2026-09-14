@@ -14,6 +14,8 @@ import {
   type CompatiblePlugin,
 } from "../compatibility/hooks.js";
 import { createReadOnlyTools } from "../tools/index.js";
+import { ApprovalLedger } from "../queue/approvals.js";
+import { createQueueTools, guardExecutorCommand } from "../queue/tools.js";
 
 export const ORCHESTRATOR_DIRECTORY_ENV =
   "OPENCODE_ANDROID_ORCHESTRATOR_DIRECTORY";
@@ -65,6 +67,7 @@ export const createCompatiblePlugin: CompatiblePlugin = async ({
   $,
 }) => {
   assertBundledSkillsAvailable();
+  const approvals = new ApprovalLedger();
   const projectDirectory = resolve(directory);
   const projectWorktree = resolve(worktree);
   const longCommandTimeoutMs = readLongCommandTimeoutMs(projectWorktree);
@@ -78,18 +81,21 @@ export const createCompatiblePlugin: CompatiblePlugin = async ({
         compatibleConfig.skills.paths.push(BUNDLED_SKILLS_DIRECTORY);
       }
     },
-    tool: createReadOnlyTools({
+    tool: { ...createReadOnlyTools({
       directory: projectDirectory,
       worktree: projectWorktree,
       shell: $,
-    }),
+    }), ...createQueueTools(projectWorktree, approvals) },
     "shell.env": async (_input, output) => {
       output.env[ORCHESTRATOR_DIRECTORY_ENV] = projectDirectory;
       output.env[ORCHESTRATOR_WORKTREE_ENV] = projectWorktree;
     },
     "tool.execute.before": async (input, output) => {
+      approvals.before(input, output);
+      guardExecutorCommand(input, output, projectDirectory);
       applyLongCommandTimeout(input, output, longCommandTimeoutMs);
     },
+    "tool.execute.after": async (input, output) => { approvals.after(input, output); },
   });
 };
 
