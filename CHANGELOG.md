@@ -1,7 +1,7 @@
 # Changelog
 
 
-## 1.0.2 - Unreleased
+## 1.0.2 - 2026-09-15
 
 - Accept queue-owned OpenCode shell commands that remain descendants of the
   active Worker even when the tool runtime creates a separate process group.
