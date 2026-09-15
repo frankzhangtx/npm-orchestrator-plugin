@@ -1,7 +1,7 @@
 # Changelog
 
 
-## 1.0.1 - Unreleased
+## 1.0.1 - 2026-09-15
 
 - Keep planning snapshots small in large repositories by returning only the
   stable branch and commit metadata from the initial snapshot call.
