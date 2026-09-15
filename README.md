@@ -30,6 +30,9 @@ fixed-directory tasks may use `autoCommit`. Optional isolated worktrees keep
 human acceptance while allowing independent tasks to proceed. Every queued
 execution requires build, fresh full unit tests and independent Review. All
 completion and recovery paths remain local and never push.
+Version `1.0.1` bounds Planner snapshot output for large repositories. The
+initial snapshot returns only the target branch and fixed commit; path discovery
+and file content use bounded cursor pages tied to that commit.
 
 ## Documentation
 
@@ -66,9 +69,9 @@ project builds retain their configured cache behavior.
 ## Quick start
 
 ```sh
-npx @frankzhang2026/opencode-android-orchestrator@1.0.0 init .
+npx @frankzhang2026/opencode-android-orchestrator@1.0.1 init .
 $EDITOR automation/automation-commit-prefix
-npx @frankzhang2026/opencode-android-orchestrator@1.0.0 doctor .
+npx @frankzhang2026/opencode-android-orchestrator@1.0.1 doctor .
 opencode --agent scheduled-planner .
 ```
 
@@ -78,7 +81,7 @@ a task contract without selecting a primary module. To intentionally restrict
 generated contracts to one module, opt into primary-module scope:
 
 ```sh
-npx @frankzhang2026/opencode-android-orchestrator@1.0.0 init . \
+npx @frankzhang2026/opencode-android-orchestrator@1.0.1 init . \
   --module-scope primary \
   --primary-module :mobile
 ```
@@ -106,7 +109,7 @@ For an existing manifest-managed installation whose generated module/task
 lists are incomplete, refresh all derived Gradle data in one upgrade:
 
 ```sh
-npx @frankzhang2026/opencode-android-orchestrator@1.0.0 upgrade . \
+npx @frankzhang2026/opencode-android-orchestrator@1.0.1 upgrade . \
   --refresh-gradle-discovery
 ```
 
@@ -432,7 +435,7 @@ preparation alone as resource installation;
 ## Init
 
 ```sh
-npx @frankzhang2026/opencode-android-orchestrator@1.0.0 init .
+npx @frankzhang2026/opencode-android-orchestrator@1.0.1 init .
 $EDITOR automation/automation-commit-prefix
 opencode --agent scheduled-planner .
 ```

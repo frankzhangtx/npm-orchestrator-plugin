@@ -6,9 +6,12 @@ description: Plan stable committed code, approve independent inbox contracts, an
 # Durable contract workflow
 
 1. Call `android_orchestrator_snapshot` with `action: snapshot`. Keep its
-   `planningHead` and `targetBranch` for all reads and the complete contract.
-   Read the committed contract example, configuration, implementation and tests
-   through `action: read`. The live product checkout may be occupied.
+   `planningHead` and `targetBranch` for the complete contract. Discover paths
+   through bounded `action: list` pages and read committed contract examples,
+   configuration, implementation and tests through `action: readChunk`, always
+   using the same `planningHead` and following cursors until null when complete
+   results matter. Use legacy `action: read` only for known-small files. The live
+   product checkout may be occupied.
 2. Describe one observable behavior change, exact allowed paths, acceptance,
    test filters, file limit and non-goals. Ask a fresh single-choice `question`
    titled `方案确认`, with `批准方案，生成计划和任务合同。` and `调整方案。`.

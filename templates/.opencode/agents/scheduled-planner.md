@@ -44,11 +44,15 @@ Load `scheduled-quality-orchestrator`, `android-orchestrator-brainstorming`
 and `android-orchestrator-writing-plans`. The queue workflow below governs
 artifact locations and execution; write plan content through the intake tool.
 
-Use `android_orchestrator_snapshot` to obtain the local target branch and a fixed
-`planningHead`. Read code, tests, configuration and plan instructions only with
-that tool at that commit. Do not inspect Coder's live working files, switch
-branches or wait for its repository lease. New requests may be planned while
-another task is coding, awaiting acceptance, integrating or blocked.
+Use `android_orchestrator_snapshot` action `snapshot` to obtain compact metadata
+containing the local target branch and a fixed `planningHead`. Discover paths
+with bounded `list` pages using that exact commit, then read code, tests,
+configuration and plan instructions with `readChunk` at the same commit. Follow
+every returned cursor until it is null when the complete result matters. The
+legacy `read` action remains available only for known-small files. Do not inspect
+Coder's live working files, switch branches or wait for its repository lease.
+New requests may be planned while another task is coding, awaiting acceptance,
+integrating or blocked.
 
 Present one small observable change with exact implementation/test paths,
 acceptance criteria, boundaries, test filters and non-goals. Ask only questions

@@ -22,11 +22,19 @@ export function createQueueTools(worktree: string, approvals = new ApprovalLedge
   }
   return {
     android_orchestrator_snapshot: tool({
-      description: "Read stable committed planning code without following the active Coder's branch or working files. First request snapshot, then read its exact planningHead and path.",
-      args: { action: tool.schema.enum(["snapshot", "read"]), targetBranch: tool.schema.string().optional(), planningHead: tool.schema.string().optional(), path: tool.schema.string().optional() },
+      description: "Read stable committed planning code without following the active Coder's branch or working files. Request compact snapshot metadata, discover paths with bounded list pages, then read exact files or chunks at the same planningHead.",
+      args: {
+        action: tool.schema.enum(["snapshot", "list", "read", "readChunk"]),
+        targetBranch: tool.schema.string().optional(), planningHead: tool.schema.string().optional(),
+        path: tool.schema.string().optional(), prefix: tool.schema.string().optional(), query: tool.schema.string().optional(),
+        cursor: tool.schema.string().optional(), limit: tool.schema.number().int().min(1).max(200).optional(),
+      },
       async execute(args, context) {
         const queue = bounded(context);
-        return JSON.stringify(args.action === "snapshot" ? queue.snapshot(args.targetBranch) : queue.readSnapshot(args.planningHead ?? "", args.path ?? ""));
+        if (args.action === "snapshot") return JSON.stringify(queue.snapshot(args.targetBranch));
+        if (args.action === "list") return JSON.stringify(queue.listSnapshot(args.planningHead ?? "", args.prefix, args.query, args.cursor, args.limit));
+        if (args.action === "readChunk") return JSON.stringify(queue.readSnapshotChunk(args.planningHead ?? "", args.path ?? "", args.cursor));
+        return JSON.stringify(queue.readSnapshot(args.planningHead ?? "", args.path ?? ""));
       },
     }),
     android_orchestrator_intake: tool({

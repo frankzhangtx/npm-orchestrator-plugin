@@ -20,6 +20,59 @@ test("intake reads a stable commit and never changes an occupied working diff", 
   } finally { f.cleanup(); }
 });
 
+test("planning snapshot stays compact while list pages discover stable committed paths", () => {
+  const f = fixture();
+  try {
+    writeFileSync(join(f.root, "app/src/main/java/WeeklyRoundupUtils.kt"), "class WeeklyRoundupUtils\n");
+    writeFileSync(join(f.root, "app/src/test/java/WeeklyRoundupUtilsTest.kt"), "class WeeklyRoundupUtilsTest\n");
+    writeFileSync(join(f.root, "local.properties"), "sdk.dir=/private/example\n");
+    command(f.root, ["add", "app/src/main/java/WeeklyRoundupUtils.kt", "app/src/test/java/WeeklyRoundupUtilsTest.kt", "local.properties"]);
+    command(f.root, ["commit", "-qm", "Add planning paths"]);
+    const snapshot = f.queue.snapshot();
+    assert.deepEqual(Object.keys(snapshot).sort(), ["planningHead", "sourceRoot", "targetBranch"]);
+    assert.ok(Buffer.byteLength(JSON.stringify(snapshot), "utf8") < 1024);
+    const discovered = [];
+    let cursor;
+    do {
+      const page = f.queue.listSnapshot(snapshot.planningHead, "app/src", "weeklyroundup", cursor, 1);
+      assert.ok(Buffer.byteLength(JSON.stringify(page), "utf8") <= 16 * 1024);
+      discovered.push(...page.files);
+      cursor = page.nextCursor ?? undefined;
+    } while (cursor);
+    assert.deepEqual(discovered, [
+      "app/src/main/java/WeeklyRoundupUtils.kt",
+      "app/src/test/java/WeeklyRoundupUtilsTest.kt",
+    ]);
+    assert.deepEqual(f.queue.listSnapshot(snapshot.planningHead, "", "local.properties").files, []);
+    const first = f.queue.listSnapshot(snapshot.planningHead, "app/src", "", undefined, 1);
+    assert.throws(() => f.queue.listSnapshot(snapshot.planningHead, "app/src/test", "", first.nextCursor ?? undefined, 1), /does not match/);
+  } finally { f.cleanup(); }
+});
+
+test("snapshot chunks preserve exact UTF-8 content and make bounded forward progress", () => {
+  const f = fixture();
+  try {
+    const path = "app/src/main/java/LargeUnicode.kt";
+    const expected = `class LargeUnicode\n${"😀\\\"\u0000".repeat(3000)}\n  `;
+    writeFileSync(join(f.root, path), expected);
+    command(f.root, ["add", path]);
+    command(f.root, ["commit", "-qm", "Add large Unicode source"]);
+    const head = f.queue.snapshot().planningHead;
+    const chunks = [];
+    let cursor;
+    do {
+      const chunk = f.queue.readSnapshotChunk(head, path, cursor);
+      assert.ok(Buffer.byteLength(JSON.stringify(chunk), "utf8") <= 16 * 1024);
+      if (cursor) assert.ok(chunk.content.length > 0);
+      chunks.push(chunk.content);
+      cursor = chunk.nextCursor ?? undefined;
+    } while (cursor);
+    assert.equal(chunks.join(""), expected);
+    const first = f.queue.readSnapshotChunk(head, path);
+    assert.throws(() => f.queue.readSnapshotChunk(head, "app/src/main/java/Baseline.kt", first.nextCursor ?? undefined), /does not match/);
+  } finally { f.cleanup(); }
+});
+
 test("approval seals version and policy, deduplicates, and rejects tampering", () => {
   const f = fixture({ commitPolicy: "autoCommit" });
   try {

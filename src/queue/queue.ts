@@ -4,7 +4,7 @@ import { spawnSync } from "node:child_process";
 import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import {
-  atomicJson, fileLock, git, invariant, isAlive, processGroupAlive, processIdentity, readJson,
+  atomicJson, fileLock, git, gitBuffer, invariant, isAlive, processGroupAlive, processIdentity, readJson,
   sha256, QueueStorage, type ProcessIdentity,
 } from "./storage.js";
 import { queuePolicy, type QueuePolicy } from "../config/queue-policy.js";
@@ -95,10 +95,49 @@ export interface DraftInput {
   notBefore?: string; dependsOn?: string[]; priority?: number;
 }
 
+export interface PlanningSnapshot {
+  sourceRoot: string;
+  targetBranch: string;
+  planningHead: string;
+}
+export interface SnapshotFilePage {
+  planningHead: string;
+  prefix: string;
+  query: string;
+  files: string[];
+  nextCursor: string | null;
+}
+export interface SnapshotReadChunk {
+  planningHead: string;
+  path: string;
+  content: string;
+  nextCursor: string | null;
+}
+
+interface SnapshotListCursor {
+  version: 1; kind: "list"; planningHead: string; prefix: string; query: string; offset: number;
+}
+interface SnapshotReadCursor {
+  version: 1; kind: "read"; planningHead: string; path: string; offset: number;
+}
+
 const TERMINAL = new Set(["COMPLETED", "CANCELLED", "ABORTED", "SUPERSEDED"]);
 const STOPPED = new Set(["AWAITING_HUMAN", "READY_TO_COMMIT", "BLOCKED", "TEST_FAILED", "NEEDS_HUMAN", "INTEGRATION_BLOCKED", "BASELINE_REVIEW"]);
+const SNAPSHOT_RESPONSE_MAX_BYTES = 16 * 1024;
+const SNAPSHOT_LIST_DEFAULT_LIMIT = 50;
+const SNAPSHOT_LIST_MAX_LIMIT = 200;
+const SNAPSHOT_READ_TARGET_BYTES = 8 * 1024;
 export const TASK_ID = /^TASK-[A-Z0-9-]+$/;
 export function now(): string { return new Date().toISOString(); }
+
+function snapshotCursor(value: SnapshotListCursor | SnapshotReadCursor): string {
+  return Buffer.from(JSON.stringify(value), "utf8").toString("base64url");
+}
+
+function parseSnapshotCursor(value: string): unknown {
+  try { return JSON.parse(Buffer.from(value, "base64url").toString("utf8")); }
+  catch { throw new Error("Invalid snapshot cursor"); }
+}
 
 export function matchesPath(pattern: string, path: string): boolean {
   const expression = pattern.replace(/[.+^${}()|[\]\\]/g, "\\$&")
@@ -175,14 +214,13 @@ export class TaskQueue {
     queuePolicy(config);
     return config;
   }
-  snapshot(targetBranch?: string): { sourceRoot: string; targetBranch: string; planningHead: string; files: string[] } {
+  snapshot(targetBranch?: string): PlanningSnapshot {
     const document = this.storage.read();
     const occupied = document.items.find(item => item.taskRoot && !TERMINAL.has(item.state));
     const branch = targetBranch ?? occupied?.targetBranch ?? git(this.storage.root, ["symbolic-ref", "--short", "HEAD"]);
     git(this.storage.root, ["check-ref-format", `refs/heads/${branch}`]);
     const head = git(this.storage.root, ["rev-parse", "--verify", `refs/heads/${branch}^{commit}`]);
-    const files = git(this.storage.root, ["ls-tree", "-r", "--name-only", head]).split("\n").filter(path => !this.sensitive(path));
-    return { sourceRoot: this.storage.root, targetBranch: branch, planningHead: head, files };
+    return { sourceRoot: this.storage.root, targetBranch: branch, planningHead: head };
   }
   private sensitive(path: string): boolean {
     return /(^|\/)(\.env(?:\..*)?|local\.properties)$|\.(jks|keystore)$/.test(path);
@@ -195,6 +233,82 @@ export class TaskQueue {
     const size = Number(git(this.storage.root, ["cat-file", "-s", `${head}:${path}`]));
     invariant(size <= 1024 * 1024, "Snapshot file exceeds 1 MiB");
     return git(this.storage.root, ["show", `${head}:${path}`]);
+  }
+  listSnapshot(head: string, prefix = "", query = "", cursor?: string, limit = SNAPSHOT_LIST_DEFAULT_LIMIT): SnapshotFilePage {
+    this.validateSnapshotHead(head);
+    this.validateSnapshotPath(prefix, true);
+    invariant(!query.includes("\0") && Buffer.byteLength(query, "utf8") <= 256, "Snapshot query is invalid or too long");
+    invariant(Number.isInteger(limit) && limit >= 1 && limit <= SNAPSHOT_LIST_MAX_LIMIT, `Snapshot list limit must be 1-${SNAPSHOT_LIST_MAX_LIMIT}`);
+    let offset = 0;
+    if (cursor) {
+      const parsed = parseSnapshotCursor(cursor) as Partial<SnapshotListCursor>;
+      invariant(parsed.version === 1 && parsed.kind === "list" && parsed.planningHead === head && parsed.prefix === prefix && parsed.query === query && Number.isInteger(parsed.offset) && Number(parsed.offset) >= 0, "Snapshot list cursor does not match this query");
+      offset = Number(parsed.offset);
+    }
+    const args = ["ls-tree", "-r", "-z", "--name-only", head];
+    if (prefix) args.push("--", prefix);
+    const lowerQuery = query.toLowerCase();
+    const files = gitBuffer(this.storage.root, args).toString("utf8").split("\0")
+      .filter(path => path.length > 0 && !this.sensitive(path) && (!lowerQuery || path.toLowerCase().includes(lowerQuery)));
+    invariant(offset <= files.length, "Snapshot list cursor is past the end of the result");
+    const pageFiles: string[] = [];
+    while (offset + pageFiles.length < files.length && pageFiles.length < limit) {
+      const path = files[offset + pageFiles.length]!;
+      const candidate = [...pageFiles, path];
+      const nextOffset = offset + candidate.length;
+      const candidatePage: SnapshotFilePage = {
+        planningHead: head, prefix, query, files: candidate,
+        nextCursor: nextOffset < files.length ? snapshotCursor({ version: 1, kind: "list", planningHead: head, prefix, query, offset: nextOffset }) : null,
+      };
+      if (Buffer.byteLength(JSON.stringify(candidatePage), "utf8") > SNAPSHOT_RESPONSE_MAX_BYTES) break;
+      pageFiles.push(path);
+    }
+    invariant(offset === files.length || pageFiles.length > 0, "A snapshot path exceeds the response byte limit");
+    const nextOffset = offset + pageFiles.length;
+    return {
+      planningHead: head, prefix, query, files: pageFiles,
+      nextCursor: nextOffset < files.length ? snapshotCursor({ version: 1, kind: "list", planningHead: head, prefix, query, offset: nextOffset }) : null,
+    };
+  }
+  readSnapshotChunk(head: string, path: string, cursor?: string): SnapshotReadChunk {
+    this.validateSnapshotHead(head);
+    this.validateSnapshotPath(path, false);
+    invariant(!this.sensitive(path), "Snapshot path is not allowed");
+    const type = git(this.storage.root, ["cat-file", "-t", `${head}:${path}`]);
+    invariant(type === "blob", "Snapshot path must be a file");
+    const content = gitBuffer(this.storage.root, ["show", `${head}:${path}`]);
+    invariant(content.length <= 1024 * 1024, "Snapshot file exceeds 1 MiB");
+    new TextDecoder("utf-8", { fatal: true }).decode(content);
+    let offset = 0;
+    if (cursor) {
+      const parsed = parseSnapshotCursor(cursor) as Partial<SnapshotReadCursor>;
+      invariant(parsed.version === 1 && parsed.kind === "read" && parsed.planningHead === head && parsed.path === path && Number.isInteger(parsed.offset) && Number(parsed.offset) >= 0, "Snapshot read cursor does not match this file");
+      offset = Number(parsed.offset);
+    }
+    invariant(offset <= content.length && (offset === content.length || offset === 0 || (content[offset]! & 0xc0) !== 0x80), "Snapshot read cursor is not at a UTF-8 boundary");
+    let end = Math.min(content.length, offset + SNAPSHOT_READ_TARGET_BYTES);
+    while (end < content.length && (content[end]! & 0xc0) === 0x80) end -= 1;
+    let chunk = content.subarray(offset, end).toString("utf8");
+    while (end > offset) {
+      const candidate: SnapshotReadChunk = {
+        planningHead: head, path, content: chunk,
+        nextCursor: end < content.length ? snapshotCursor({ version: 1, kind: "read", planningHead: head, path, offset: end }) : null,
+      };
+      if (Buffer.byteLength(JSON.stringify(candidate), "utf8") <= SNAPSHOT_RESPONSE_MAX_BYTES) return candidate;
+      end -= 1;
+      while (end > offset && (content[end]! & 0xc0) === 0x80) end -= 1;
+      chunk = content.subarray(offset, end).toString("utf8");
+    }
+    invariant(offset === content.length, "Snapshot content exceeds the response byte limit");
+    return { planningHead: head, path, content: "", nextCursor: null };
+  }
+  private validateSnapshotHead(head: string): void {
+    invariant(/^[a-f0-9]{40,64}$/.test(head), "A fixed planning commit is required");
+    git(this.storage.root, ["cat-file", "-e", `${head}^{commit}`]);
+  }
+  private validateSnapshotPath(path: string, allowEmpty: boolean): void {
+    invariant((allowEmpty || path.length > 0) && !path.includes("\0") && !path.startsWith("/") && Buffer.byteLength(path, "utf8") <= 4096, "Snapshot path is invalid or too long");
+    invariant(!path.split(/[\\/]/).some(part => part === ".." || part === ".git"), "Snapshot path is not allowed");
   }
   draft(input: DraftInput, proposalApproval?: ApprovalProof): Draft {
     const config = this.config();

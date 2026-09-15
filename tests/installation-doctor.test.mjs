@@ -332,7 +332,7 @@ test("installed doctor rejects a self-consistent manifest rewrite of a packaged 
     assert.equal(check(report, "installation-manifest").status, "fail");
     assert.match(
       check(report, "installation-manifest").details.join("\n"),
-      /does not match the packaged 1\.0\.0 template/,
+      /does not match the packaged 1\.0\.1 template/,
     );
     assert.equal(
       check(report, "managed-resources").status,
@@ -434,6 +434,14 @@ test("installed Planner tools consume real question-hook receipts and reject app
     queue = new TaskQueue(root); queue.control('pause');
     const hooks = await plugin({ directory: root, worktree: root, $: () => { throw new Error('No arbitrary shell expected'); } });
     const context = { sessionID: 'real-hook-session', messageID: 'tool-call-message', agent: 'scheduled-planner', directory: root, worktree: root, abort: new AbortController().signal };
+    const snapshotTool = hooks.tool.android_orchestrator_snapshot;
+    const compactSnapshot = JSON.parse(await snapshotTool.execute({ action: 'snapshot' }, context));
+    assert.deepEqual(Object.keys(compactSnapshot).sort(), ['planningHead', 'sourceRoot', 'targetBranch']);
+    assert.ok(Buffer.byteLength(JSON.stringify(compactSnapshot), 'utf8') < 1024);
+    const pathPage = JSON.parse(await snapshotTool.execute({ action: 'list', planningHead: compactSnapshot.planningHead, query: 'TASK-TEMPLATE', limit: 10 }, context));
+    assert.deepEqual(pathPage.files, ['automation/tasks/TASK-TEMPLATE.json.example']);
+    const fileChunk = JSON.parse(await snapshotTool.execute({ action: 'readChunk', planningHead: compactSnapshot.planningHead, path: pathPage.files[0] }, context));
+    assert.match(fileChunk.content, /schemaVersion/);
     const intake = hooks.tool.android_orchestrator_intake;
     const contract = JSON.parse(readFileSync(join(root, 'automation/tasks/TASK-TEMPLATE.json.example'), 'utf8'));
     Object.assign(contract, { id: 'TASK-RECEIPT-001', title: 'Add a bounded regression behavior', planPath: 'docs/plans/TASK-RECEIPT-001.md', acceptanceCriteria: ['The approved behavior passes its regression test'], targetTests: [{ gradleTask: queue.config().gradleVerification.focusedTestTasks[0], filter: 'dev.doctor.RegressionTest' }] });

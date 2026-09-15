@@ -1,10 +1,15 @@
 # Queue and background execution
 
-Version `1.0.0` stores proposals and approved contracts under
+Version `1.0.1` stores proposals and approved contracts under
 `<git-common-dir>/automation-runtime/inbox/queue.json`. A contract is runnable
 only after its full plan, version, digest, target branch and commit policy are
 approved and durably recorded. Planning reads a fixed `planningHead`, so another
 Coder's active files and branch do not affect the proposal.
+
+Planner first receives compact branch and commit metadata. It discovers paths
+through bounded `list` pages and reads exact UTF-8 content through bounded
+`readChunk` pages. Every cursor is tied to the same `planningHead` and query;
+changing the commit, path, prefix or query rejects the cursor.
 
 ## Normal use
 

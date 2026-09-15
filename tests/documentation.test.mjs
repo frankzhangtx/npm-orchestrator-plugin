@@ -81,7 +81,7 @@ test("documents fixed-version migration, recovery, and security boundaries porta
   assert.match(migration, /manifest-managed version/);
   assert.match(
     allDocumentation,
-    /@frankzhang2026\/opencode-android-orchestrator@1\.0\.0/,
+    /@frankzhang2026\/opencode-android-orchestrator@1\.0\.1/,
   );
   assert.doesNotMatch(
     allDocumentation,

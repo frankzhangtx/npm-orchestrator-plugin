@@ -1,7 +1,17 @@
 # Changelog
 
 
-## 1.0.0 - Unreleased
+## 1.0.1 - Unreleased
+
+- Keep planning snapshots small in large repositories by returning only the
+  stable branch and commit metadata from the initial snapshot call.
+- Add bounded, cursor-based path discovery and exact UTF-8 file chunk reads at
+  the fixed planning commit, while retaining the legacy small-file read action.
+- Teach the Planner to follow list and content cursors so large WordPress
+  repositories no longer truncate the planning snapshot before task intake.
+
+
+## 1.0.0 - 2026-09-14
 
 - Add durable contract intake and a detached per-repository queue executor.
   New approvals return immediately and do not touch the active coding diff.

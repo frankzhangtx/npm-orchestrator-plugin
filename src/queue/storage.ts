@@ -24,6 +24,16 @@ export function git(root: string, args: readonly string[], input?: string): stri
   return result.stdout.trimEnd();
 }
 
+/** Read exact Git output bytes for snapshot content and NUL-delimited paths. */
+export function gitBuffer(root: string, args: readonly string[]): Buffer {
+  const result = spawnSync("git", ["-c", "core.hooksPath=/dev/null", "-C", root, ...args], {
+    encoding: null, maxBuffer: 16 * 1024 * 1024,
+    env: { ...process.env, GIT_TERMINAL_PROMPT: "0" },
+  });
+  invariant(result.status === 0, result.error?.message ?? result.stderr.toString("utf8").trim() ?? "Git command failed");
+  return result.stdout;
+}
+
 export function safePath(root: string, path: string): string {
   invariant(path.length > 0 && !path.includes("\0") && !isAbsolute(path), "Expected a repository-relative path");
   invariant(!path.split(/[\\/]/).some(part => part === ".." || part === ".git"), "Unsafe repository path");

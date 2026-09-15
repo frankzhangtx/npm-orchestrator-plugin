@@ -13,8 +13,10 @@ export async function queueCli(args: string[]): Promise<unknown> {
     actions: {
       status: "Durable queue, waiting reasons, notifications and daemon status",
       start: "Start the detached repository scheduler", stop: "Stop scheduling; retain the current executor",
-      pause: "Pause new executions", resume: "Resume consumption", snapshot: "[targetBranch] Read stable planning HEAD and file inventory",
+      pause: "Pause new executions", resume: "Resume consumption", snapshot: "[targetBranch] Read compact stable planning metadata",
+      list: "<planningHead> [prefix] [query] [cursor] [limit] List bounded stable file pages",
       read: "<planningHead> <path> Read a file at a fixed commit",
+      "read-chunk": "<planningHead> <path> [cursor] Read a bounded exact file chunk",
       draft: "<input.json> Seal contract, plan, scheduling and commit policy in the inbox",
       enqueue: "<key> <digest> <approval> Approve exactly one reviewed draft and return immediately",
       cancel: "<key> Cancel an unstarted contract", revoke: "<key> Revoke future commit authorization",
@@ -39,7 +41,9 @@ export async function queueCli(args: string[]): Promise<unknown> {
   if (action === "_serve") return serve(queue);
   if (action === "status") return values[0] ? queue.details(values[0]) : { service: serviceStatus(queue), ...queue.storage.read() };
   if (action === "snapshot") return queue.snapshot(values[0]);
+  if (action === "list") return queue.listSnapshot(values[0] ?? "", values[1], values[2], values[3], values[4] === undefined ? undefined : Number(values[4]));
   if (action === "read") return queue.readSnapshot(values[0] ?? "", values[1] ?? "");
+  if (action === "read-chunk") return queue.readSnapshotChunk(values[0] ?? "", values[1] ?? "", values[2]);
   if (action === "draft") {
     invariant(values.length === 1, "draft requires an input JSON file");
     const draft = queue.draft(JSON.parse(readFileSync(values[0]!, "utf8")) as DraftInput);
