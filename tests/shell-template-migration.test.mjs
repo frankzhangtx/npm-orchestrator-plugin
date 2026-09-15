@@ -55,7 +55,7 @@ const expectedHashes = new Map([
   ],
   [
     "scripts/automation/lib.sh",
-    "68c60e91672fd6786fed110187fa388ffed8ab98b71ea4810348aa2c14b61a6f",
+    "29f3fe94fc3466717affeb20622feb21d7612fbea2bb4e536baf84a0f7f1f540",
   ],
   [
     "scripts/automation/orchestrate-task.sh",

@@ -1,7 +1,7 @@
 # Security model
 
 This document describes the security properties of
-`@frankzhang2026/opencode-android-orchestrator@1.0.1`. The lifecycle foundation
+`@frankzhang2026/opencode-android-orchestrator@1.0.2`. The lifecycle foundation
 completed the real OpenCode `1.14.22` and `1.15.13` release matrix in `0.2.0`;
 `1.0.0` retains that compatibility boundary.
 
@@ -94,6 +94,14 @@ for a fixed list of direct managed long-running scripts. Its generated config
 value is an integer from `120000` through `7200000` milliseconds, defaults to
 `1800000`, never shortens a larger caller timeout, and does not rewrite the
 command or authorize a state change.
+
+Queued task scripts validate the sealed workspace queue key and run ID against
+the active Worker. OpenCode tool shells are accepted only when they either
+share that Worker's process group or remain provable descendants of its PID;
+this supports PTY/sandbox process-group isolation without accepting an
+unrelated process that merely copies the run ID. Recovery continues to retain
+the execution slot while the recorded Worker or its original process group is
+alive.
 
 The five namespaced bundled workflow skills are loaded from a fixed directory
 inside the installed npm package. The compatible `config` hook only appends

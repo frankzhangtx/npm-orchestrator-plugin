@@ -1,6 +1,14 @@
 # Changelog
 
 
+## 1.0.2 - Unreleased
+
+- Accept queue-owned OpenCode shell commands that remain descendants of the
+  active Worker even when the tool runtime creates a separate process group.
+- Keep run-id, queue-key and Worker ancestry checks so unrelated processes
+  cannot claim a queued task by copying its public run identifier.
+
+
 ## 1.0.1 - 2026-09-15
 
 - Keep planning snapshots small in large repositories by returning only the

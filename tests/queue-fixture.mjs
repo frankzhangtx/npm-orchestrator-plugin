@@ -14,6 +14,7 @@ export function command(root, args) {
 }
 
 export function fixture(options = {}) {
+  const { detachedAgentCommands = false, ...configOptions } = options;
   const base = mkdtempSync(join(tmpdir(), "orchestrator-queue-test-"));
   const root = join(base, "project");
   cpSync(templates, root, { recursive: true });
@@ -27,7 +28,7 @@ export function fixture(options = {}) {
   writeFileSync(join(root, "settings.gradle.kts"), 'rootProject.name = "queue-fixture"\ninclude(":app")\n');
   writeFileSync(join(root, "app/build.gradle.kts"), 'plugins { id("com.android.application") }\n');
   const config = JSON.parse(readFileSync(join(root, "automation/config.json"), "utf8"));
-  Object.assign(config, options, { worktreeBase: join(base, "worktrees"), commitMessagePrefixMode: "disabled",
+  Object.assign(config, configOptions, { worktreeBase: join(base, "worktrees"), commitMessagePrefixMode: "disabled",
     androidProject: { name: "queue-fixture", gradleDsl: "kotlin", settingsFile: "settings.gradle.kts", moduleScope: "all", primaryModule: ":app",
       modules: [{ gradlePath: ":app", directory: "app", buildFile: "app/build.gradle.kts", dsl: "kotlin", type: "application", namespace: "example.queue", applicationId: "example.queue" }],
       productionPaths: ["app/src/main/**"], testPaths: ["app/src/test/**", "app/src/androidTest/**"] } });
@@ -73,7 +74,7 @@ const role=args[args.indexOf('--agent')+1];
 const prompt=args.at(-1);
 const id=prompt.match(/TASK-[A-Z0-9-]+/)[0];
 const contract=JSON.parse(fs.readFileSync('automation/tasks/'+id+'.json'));
-const run=(name,extra=[])=>{const r=cp.spawnSync('./scripts/automation/'+name+'.sh',[id,...extra],{stdio:'inherit'}); if(r.status!==0)process.exit(r.status||1);};
+const run=(name,extra=[])=>{const r=cp.spawnSync('./scripts/automation/'+name+'.sh',[id,...extra],{stdio:'inherit',detached:${JSON.stringify(detachedAgentCommands)}}); if(r.status!==0)process.exit(r.status||1);};
 fs.appendFileSync(${JSON.stringify(join(base, "agent-calls.jsonl"))},JSON.stringify({role,id,cwd:process.cwd(),pid:process.pid,at:Date.now()})+'\\n');
 if(role==='scheduled-coder') {
   run('claim-task');

@@ -1,10 +1,12 @@
 import assert from "node:assert/strict";
-import { spawn } from "node:child_process";
-import { existsSync, readFileSync, readdirSync, writeFileSync } from "node:fs";
+import { spawn, spawnSync } from "node:child_process";
+import { once } from "node:events";
+import { existsSync, mkdirSync, readFileSync, readdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import test from "node:test";
 import { releaseStoppedLeases } from "../dist/queue/service.js";
+import { processIdentity } from "../dist/queue/storage.js";
 import { fixture, enqueue, command, run } from "./queue-fixture.mjs";
 
 test("human fixed mode waits before commit, integrates only the accepted candidate, then releases the slot", { timeout: 180000 }, async () => {
@@ -26,6 +28,45 @@ test("human fixed mode waits before commit, integrates only the accepted candida
     assert.equal(command(f.root, ["status", "--porcelain"]), "");
     assert.equal(f.queue.reserve().key, "TASK-B@1");
   } finally { f.cleanup(); }
+});
+
+test("queue ownership accepts OpenCode command descendants in a separate process group", { timeout: 180000 }, async () => {
+  const f = fixture({ detachedAgentCommands: true });
+  try {
+    enqueue(f, "TASK-DETACHED-COMMAND");
+    const result = await run(f);
+    assert.equal(result.item.state, "AWAITING_HUMAN", result.output + JSON.stringify(result.item));
+    assert.equal(existsSync(join(f.queue.storage.runtime, "evidence/TASK-DETACHED-COMMAND/baseline.json")), true);
+  } finally { f.cleanup(); }
+});
+
+test("queue ownership still rejects an unrelated process that copies the active run id", async () => {
+  const f = fixture();
+  const unrelated = spawn(process.execPath, ["-e", "setInterval(() => {}, 1000)"], { detached: true, stdio: "ignore" });
+  try {
+    await once(unrelated, "spawn");
+    enqueue(f, "TASK-UNRELATED");
+    const reservation = f.queue.reserve();
+    assert.ok(reservation);
+    const owner = processIdentity(unrelated.pid);
+    assert.ok(owner);
+    f.queue.storage.transaction(document => { document.active.worker = owner; });
+    mkdirSync(join(f.queue.storage.runtime, "workspaces"), { recursive: true });
+    writeFileSync(join(f.queue.storage.runtime, "workspaces/TASK-UNRELATED.json"), `${JSON.stringify({ queueKey: reservation.key })}\n`);
+    const result = spawnSync("bash", ["-c", 'source "$1"; automation_require_queue_execution "$2"',
+      "queue-ownership-test", join(f.root, "scripts/automation/lib.sh"), "TASK-UNRELATED"], {
+      cwd: f.root,
+      encoding: "utf8",
+      env: { ...f.env, AUTOMATION_TEST_MODE: "1", AUTOMATION_PROJECT_ROOT: f.root,
+        AUTOMATION_RUNTIME_ROOT: f.queue.storage.runtime, AUTOMATION_QUEUE_RUN_ID: reservation.id },
+    });
+    assert.notEqual(result.status, 0);
+    assert.match(result.stderr, /current process does not own this task queue execution/);
+  } finally {
+    if (unrelated.exitCode === null && unrelated.signalCode === null) process.kill(-unrelated.pid, "SIGKILL");
+    await once(unrelated, "close");
+    f.cleanup();
+  }
 });
 
 test("explicit automatic fixed mode executes quality gates and commits locally without human acceptance", { timeout: 180000 }, async () => {

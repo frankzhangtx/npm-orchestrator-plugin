@@ -219,9 +219,28 @@ automation_workspace_path() {
     printf '%s/%s.json\n' "$AUTOMATION_WORKSPACES_DIR" "$task_id"
 }
 
+automation_process_descends_from() {
+    local current_pid="$1"
+    local ancestor_pid="$2"
+    local parent_pid=""
+    local depth=0
+
+    [[ "$current_pid" =~ ^[0-9]+$ && "$ancestor_pid" =~ ^[0-9]+$ ]] || return 1
+    while (( depth < 128 )); do
+        [[ "$current_pid" == "$ancestor_pid" ]] && return 0
+        parent_pid="$(ps -o ppid= -p "$current_pid" 2>/dev/null | tr -d '[:space:]')"
+        [[ "$parent_pid" =~ ^[0-9]+$ ]] || return 1
+        (( parent_pid > 1 )) || return 1
+        [[ "$parent_pid" != "$current_pid" ]] || return 1
+        current_pid="$parent_pid"
+        depth=$((depth + 1))
+    done
+    return 1
+}
+
 automation_require_queue_execution() {
     local task_id="$1"
-    local workspace_file queue_key group
+    local workspace_file queue_key group worker_pid
     workspace_file="$(automation_workspace_path "$task_id")"
     [[ -f "$workspace_file" ]] || return 0
     queue_key="$(jq -r '.queueKey // empty' "$workspace_file")"
@@ -230,13 +249,21 @@ automation_require_queue_execution() {
         automation_die "queued tasks must use the repository queue for execution, integration and recovery"
         return 1
     }
+    if ! worker_pid="$(jq -er --arg key "$queue_key" --arg run "$AUTOMATION_QUEUE_RUN_ID" \
+        'select(.active.key == $key and .active.id == $run) | .active.worker.pid' \
+        "$AUTOMATION_RUNTIME_ROOT/inbox/queue.json")"; then
+        automation_die "current process does not own this task queue execution"
+        return 1
+    fi
+    [[ "$worker_pid" =~ ^[0-9]+$ ]] || {
+        automation_die "current process does not own this task queue execution"
+        return 1
+    }
     group="$(ps -o pgid= -p "$$" | tr -d ' ')"
-    jq -e --arg key "$queue_key" --arg run "$AUTOMATION_QUEUE_RUN_ID" --argjson group "$group" \
-        '.active.key == $key and .active.id == $run and .active.worker.pid == $group' \
-        "$AUTOMATION_RUNTIME_ROOT/inbox/queue.json" >/dev/null || {
-            automation_die "current process does not own this task queue execution"
-            return 1
-        }
+    if [[ "$group" != "$worker_pid" ]] && ! automation_process_descends_from "$$" "$worker_pid"; then
+        automation_die "current process does not own this task queue execution"
+        return 1
+    fi
 }
 
 automation_workspace_strategy() {

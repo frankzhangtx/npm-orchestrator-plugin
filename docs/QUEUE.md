@@ -1,6 +1,6 @@
 # Queue and background execution
 
-Version `1.0.1` stores proposals and approved contracts under
+Version `1.0.2` stores proposals and approved contracts under
 `<git-common-dir>/automation-runtime/inbox/queue.json`. A contract is runnable
 only after its full plan, version, digest, target branch and commit policy are
 approved and durably recorded. Planning reads a fixed `planningHead`, so another
@@ -42,6 +42,10 @@ dependency. Fixed workspaces remain occupied during failures and human waiting.
 The worker resolves the Android SDK from `ANDROID_HOME`, `ANDROID_SDK_ROOT`,
 then the source repository's `local.properties` and passes the resolved location
 to its shell and Gradle processes. Isolated worktrees do not copy that local file.
+Every mutating task script binds the workspace queue key and run ID to the
+active Worker. The script may share the Worker's process group or be a proven
+descendant in a separate OpenCode tool process group; an unrelated process is
+rejected even if it copies the visible run ID.
 
 ## Service and scheduling
 
