@@ -1,7 +1,7 @@
 # Changelog
 
 
-## 1.0.3 - Unreleased
+## 1.0.3 - 2026-09-16
 
 - Make task drafts that omit `commitPolicy` inherit the repository's configured
   default, while configurations that genuinely lack the field retain the
