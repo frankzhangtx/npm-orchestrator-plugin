@@ -32,7 +32,7 @@ const expectedBaselineHashes = new Map([
 
 const agentsFragmentPath = "AGENTS.md.fragment";
 const expectedAgentsFragmentHash =
-  "ee83cff641cfb3179685253d4440163a991c169abf1aab1909c4b2be68c736fc";
+  "f9f25db6744abb788b04693e7d64f43b05a320b4a4133c99eef1ab7210e09716";
 
 function listFiles(directory) {
   return readdirSync(directory, { withFileTypes: true }).flatMap((entry) => {

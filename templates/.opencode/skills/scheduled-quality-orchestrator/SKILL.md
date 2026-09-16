@@ -22,10 +22,13 @@ description: Plan stable committed code, approve independent inbox contracts, an
    notBefore?, dependsOn?, priority?}`. Plan paths remain
    `docs/plans/<TASK-ID>.md`; contracts retain their TASK ID. Artifacts are
    sealed in the Git common directory inbox and materialized only on execution.
-4. Default to `inPlaceExclusive` + `humanApproval`. If the user explicitly wants
-   automatic local commits, show this choice in the proposal and seal
-   `autoCommit`. The unsupported `isolatedWorktree` + `autoCommit` combination
-   must fail. Older approvals never inherit automatic submission rights.
+4. When omitted from the draft, inherit `workspaceStrategy` and `commitPolicy`
+   from `automation/config.json`; new installations configure
+   `inPlaceExclusive` + `humanApproval`. If the user explicitly wants a
+   different policy, show the effective choice in the proposal and seal it.
+   `autoCommit` is supported only with `inPlaceExclusive`; the unsupported
+   `isolatedWorktree` + `autoCommit` combination must fail. Older approvals
+   retain their sealed policies.
 5. Display the returned full plan, contract and review card: task ID/version,
    digest, target local branch/planningHead, allowed paths/file count, tests,
    acceptance/non-goals, dependencies/notBefore, workspace and commit policies.

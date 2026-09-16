@@ -25,16 +25,20 @@ adds a user-maintained commit-message prefix that is read automatically for
 each task commit and blocks task startup until the required value is filled.
 
 Version `1.0.0` separates interactive planning from a durable background task
-queue. The default is `inPlaceExclusive` + `humanApproval`; explicitly approved
-fixed-directory tasks may use `autoCommit`. Optional isolated worktrees keep
-human acceptance while allowing independent tasks to proceed. Every queued
+queue. New installations configure `inPlaceExclusive` + `humanApproval`;
+task drafts inherit the repository's configured workspace and commit policies
+unless they explicitly override them. Fixed-directory tasks may use
+`autoCommit`. Optional isolated worktrees keep human acceptance while allowing
+independent tasks to proceed. Every queued
 execution requires build, fresh full unit tests and independent Review. All
 completion and recovery paths remain local and never push.
 Version `1.0.2` also allows queue-owned OpenCode shell commands to use a
 separate process group while preserving Worker ancestry checks. Version `1.0.1`
 bounds Planner snapshot output for large repositories. The
 initial snapshot returns only the target branch and fixed commit; path discovery
-and file content use bounded cursor pages tied to that commit.
+and file content use bounded cursor pages tied to that commit. Version `1.0.3`
+makes an omitted task commit policy inherit the reviewed repository policy;
+legacy configurations without that field still fall back to human approval.
 
 ## Documentation
 
@@ -71,9 +75,9 @@ project builds retain their configured cache behavior.
 ## Quick start
 
 ```sh
-npx @frankzhang2026/opencode-android-orchestrator@1.0.2 init .
+npx @frankzhang2026/opencode-android-orchestrator@1.0.3 init .
 $EDITOR automation/automation-commit-prefix
-npx @frankzhang2026/opencode-android-orchestrator@1.0.2 doctor .
+npx @frankzhang2026/opencode-android-orchestrator@1.0.3 doctor .
 opencode --agent scheduled-planner .
 ```
 
@@ -83,7 +87,7 @@ a task contract without selecting a primary module. To intentionally restrict
 generated contracts to one module, opt into primary-module scope:
 
 ```sh
-npx @frankzhang2026/opencode-android-orchestrator@1.0.2 init . \
+npx @frankzhang2026/opencode-android-orchestrator@1.0.3 init . \
   --module-scope primary \
   --primary-module :mobile
 ```
@@ -111,7 +115,7 @@ For an existing manifest-managed installation whose generated module/task
 lists are incomplete, refresh all derived Gradle data in one upgrade:
 
 ```sh
-npx @frankzhang2026/opencode-android-orchestrator@1.0.2 upgrade . \
+npx @frankzhang2026/opencode-android-orchestrator@1.0.3 upgrade . \
   --refresh-gradle-discovery
 ```
 
@@ -437,7 +441,7 @@ preparation alone as resource installation;
 ## Init
 
 ```sh
-npx @frankzhang2026/opencode-android-orchestrator@1.0.2 init .
+npx @frankzhang2026/opencode-android-orchestrator@1.0.3 init .
 $EDITOR automation/automation-commit-prefix
 opencode --agent scheduled-planner .
 ```

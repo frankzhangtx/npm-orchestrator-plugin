@@ -1,6 +1,6 @@
 # Queue and background execution
 
-Version `1.0.2` stores proposals and approved contracts under
+Version `1.0.3` stores proposals and approved contracts under
 `<git-common-dir>/automation-runtime/inbox/queue.json`. A contract is runnable
 only after its full plan, version, digest, target branch and commit policy are
 approved and durably recorded. Planning reads a fixed `planningHead`, so another
@@ -18,18 +18,20 @@ proposal and the returned contract question. After enqueue, Planner returns;
 you can plan and approve B or C while A is executing or awaiting acceptance.
 Only the current task's plan and contract enter its working diff.
 
-Defaults are `inPlaceExclusive` and `humanApproval`. Human tasks stop at
-`AWAITING_HUMAN`; `/acceptance TASK-ID` presents the latest review and candidate
-and asks a new question before requesting integration. Automatic tasks must
-explicitly select `autoCommit` in their reviewed contract and proceed from
+New installations configure `inPlaceExclusive` and `humanApproval` in
+`automation/config.json`. A draft that omits either policy inherits the
+repository configuration; an explicit value in the reviewed contract overrides
+that configured default. Human tasks stop at `AWAITING_HUMAN`;
+`/acceptance TASK-ID` presents the latest review and candidate and asks a new
+question before requesting integration. Automatic tasks proceed from
 `READY_TO_COMMIT` to local commit and integration without a final question.
 They never produce a fabricated human-acceptance record. Completion shows the
 local commit SHA, authorization source and `pushed: false` (未推送).
 
 | Workspace policy | Commit policy | When the next independent task may start |
 | --- | --- | --- |
-| `inPlaceExclusive` (default) | `humanApproval` (default) | After acceptance, local integration and directory handoff, or approved abort |
-| `inPlaceExclusive` | Explicitly sealed `autoCommit` | After build, full tests, Review, local commit/integration and handoff |
+| `inPlaceExclusive` (new-install default) | `humanApproval` (new-install default) | After acceptance, local integration and directory handoff, or approved abort |
+| `inPlaceExclusive` | `autoCommit` (configured default or explicitly sealed override) | After build, full tests, Review, local commit/integration and handoff |
 | `isolatedWorktree` | `humanApproval` | After the worker and its children exit and its result is safely sealed |
 | `isolatedWorktree` | `autoCommit` | Rejected; fresh compatible policy approval is required |
 

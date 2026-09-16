@@ -1,6 +1,15 @@
 # Changelog
 
 
+## 1.0.3 - Unreleased
+
+- Make task drafts that omit `commitPolicy` inherit the repository's configured
+  default, while configurations that genuinely lack the field retain the
+  legacy `humanApproval` fallback.
+- Keep an explicit per-task commit policy authoritative and seal the effective
+  policy into the existing approval digest and authorization record.
+
+
 ## 1.0.2 - 2026-09-15
 
 - Accept queue-owned OpenCode shell commands that remain descendants of the

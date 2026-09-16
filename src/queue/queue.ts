@@ -318,8 +318,9 @@ export class TaskQueue {
     git(this.storage.root, ["check-ref-format", `refs/heads/${input.targetBranch}`]);
     git(this.storage.root, ["merge-base", "--is-ancestor", input.planningHead, `refs/heads/${input.targetBranch}`]);
     const workspaceStrategy = input.workspaceStrategy ?? config.workspaceStrategy;
-    // Missing policy always retains human acceptance, irrespective of defaults.
-    const commitPolicy = input.commitPolicy ?? "humanApproval";
+    // A task can override the repository policy; legacy configurations without
+    // a commitPolicy retain the original human-approval fallback.
+    const commitPolicy = input.commitPolicy ?? config.commitPolicy ?? "humanApproval";
     invariant(["inPlaceExclusive", "isolatedWorktree"].includes(workspaceStrategy), "Invalid workspace strategy");
     invariant(["humanApproval", "autoCommit"].includes(commitPolicy), "Invalid commit policy");
     invariant(workspaceStrategy === "inPlaceExclusive" || commitPolicy === "humanApproval", "isolatedWorktree + autoCommit is unsupported");

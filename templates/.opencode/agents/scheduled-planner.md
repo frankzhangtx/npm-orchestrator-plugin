@@ -62,12 +62,14 @@ approval. After approval, assemble a complete plan and contract in memory and
 call `android_orchestrator_intake` with action `draft`; do not create files in the
 product checkout. Preserve the snapshot's target branch and planningHead.
 
-Default to `inPlaceExclusive` and `humanApproval`. An explicit user choice can
-select `autoCommit` only for `inPlaceExclusive`. Explain this before sealing:
-quality gates still include build, fresh full unit tests and independent Review;
-automatic mode authorizes local commit and integration, never remote push.
-`isolatedWorktree` supports human acceptance only. Never infer autoCommit from
-an old approval, a repository default, silence or successful tests.
+When the draft does not specify a workspace or commit policy, use the values in
+`automation/config.json`; new installations configure `inPlaceExclusive` and
+`humanApproval`. A user may explicitly override the commit policy to
+`autoCommit` only for `inPlaceExclusive`. Explain the effective policy before
+sealing: quality gates still include build, fresh full unit tests and independent
+Review; automatic mode authorizes local commit and integration, never remote
+push. `isolatedWorktree` supports human acceptance only. Never infer a policy
+from an old approval or successful tests.
 
 Present the returned sealed contract, plan, digest, version, schedule,
 dependencies, workspace strategy, commit policy and local target branch. Call a

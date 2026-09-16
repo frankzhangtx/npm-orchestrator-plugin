@@ -73,21 +73,32 @@ test("snapshot chunks preserve exact UTF-8 content and make bounded forward prog
   } finally { f.cleanup(); }
 });
 
-test("approval seals version and policy, deduplicates, and rejects tampering", () => {
+test("approval seals the configured default or an explicit policy, deduplicates, and rejects tampering", () => {
   const f = fixture({ commitPolicy: "autoCommit" });
   try {
     const sealed = draft(f, "TASK-A");
-    assert.equal(sealed.commitPolicy, "humanApproval");
+    assert.equal(sealed.commitPolicy, "autoCommit");
     assert.throws(() => f.queue.enqueue(sealed.key, sealed.digest, "automatic"), /Explicit approval/);
     const item = f.queue.enqueue(sealed.key, sealed.digest, f.queue.approvalText(sealed));
     assert.equal(f.queue.enqueue(sealed.key, sealed.digest, f.queue.approvalText(sealed)).sequence, item.sequence);
     assertAuthorized(item);
-    assert.throws(() => assertAuthorized({ ...item, commitPolicy: "autoCommit" }), /changed/);
-    const next = draft(f, "TASK-A", { commitPolicy: "autoCommit" });
+    assert.throws(() => assertAuthorized({ ...item, commitPolicy: "humanApproval" }), /changed/);
+    const next = draft(f, "TASK-A", { commitPolicy: "humanApproval" });
     assert.equal(next.version, 2);
     assert.throws(() => f.queue.enqueue(next.key, next.digest, f.queue.approvalText(next)), /already has/);
     f.queue.control("cancel", item.key);
-    assert.equal(f.queue.enqueue(next.key, next.digest, f.queue.approvalText(next)).commitPolicy, "autoCommit");
+    assert.equal(f.queue.enqueue(next.key, next.digest, f.queue.approvalText(next)).commitPolicy, "humanApproval");
+  } finally { f.cleanup(); }
+});
+
+test("legacy configuration without a commit policy retains human approval", () => {
+  const f = fixture();
+  try {
+    const configPath = join(f.root, "automation/config.json");
+    const config = JSON.parse(readFileSync(configPath, "utf8"));
+    delete config.commitPolicy;
+    writeFileSync(configPath, `${JSON.stringify(config, null, 2)}\n`);
+    assert.equal(draft(f, "TASK-LEGACY").commitPolicy, "humanApproval");
   } finally { f.cleanup(); }
 });
 
