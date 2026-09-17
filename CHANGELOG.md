@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.0.4 - 2026-09-17
+
+- Resume the queue atomically when a newly approved contract is enqueued, then
+  start or wake its background service. Existing tasks retain their scheduling
+  order, deadlines, dependencies and single-executor constraints.
+- Keep failed and duplicate enqueue requests from clearing a pause, and
+  preserve execution faults until explicitly resolved.
+
 
 ## 1.0.3 - 2026-09-16
 

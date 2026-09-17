@@ -91,6 +91,75 @@ test("approval seals the configured default or an explicit policy, deduplicates,
   } finally { f.cleanup(); }
 });
 
+test("a newly enqueued task resumes the durable queue and preserves FIFO ordering", () => {
+  const f = fixture();
+  try {
+    const first = enqueue(f, "TASK-A");
+    f.queue.control("pause");
+    assert.equal(f.queue.reserve(), null);
+    enqueue(f, "TASK-B");
+    const reopened = new TaskQueue(f.root);
+    assert.equal(reopened.storage.read().paused, false);
+    assert.equal(reopened.reserve().key, first.key);
+    assert.equal(reopened.reserve(), null);
+  } finally { f.cleanup(); }
+});
+
+test("drafts and rejected enqueues leave a paused queue unchanged", () => {
+  const f = fixture();
+  try {
+    enqueue(f, "TASK-EXISTING");
+    f.queue.control("pause");
+    const sealed = draft(f, "TASK-A");
+    const conflict = draft(f, "TASK-EXISTING");
+    const dependent = draft(f, "TASK-DEPENDENT", { dependsOn: ["TASK-MISSING"] });
+    assert.equal(f.queue.storage.read().paused, true);
+    const before = f.queue.storage.read();
+    for (const [candidate, digest, approval, expected] of [
+      [sealed, "invalid", f.queue.approvalText(sealed), /Draft changed/],
+      [sealed, sealed.digest, "invalid", /Explicit approval/],
+      [conflict, conflict.digest, f.queue.approvalText(conflict), /already has/],
+      [dependent, dependent.digest, f.queue.approvalText(dependent), /Approve dependency first/],
+    ]) {
+      assert.throws(() => f.queue.enqueue(candidate.key, digest, approval), expected);
+      assert.deepEqual(f.queue.storage.read(), before);
+    }
+  } finally { f.cleanup(); }
+});
+
+test("duplicate enqueue does not resume a paused queue or recreate a cancelled task", () => {
+  const f = fixture();
+  try {
+    const item = enqueue(f, "TASK-A");
+    f.queue.control("pause");
+    for (const state of ["QUEUED", "CANCELLED"]) {
+      if (state === "CANCELLED") f.queue.control("cancel", item.key);
+      const before = f.queue.storage.read();
+      assert.equal(f.queue.enqueue(item.key, item.digest, f.queue.approvalText(item)).state, state);
+      assert.deepEqual(f.queue.storage.read(), before);
+    }
+  } finally { f.cleanup(); }
+});
+
+for (const blocker of ["active", "fault"]) {
+  test(`new enqueue resumes a paused queue without clearing its ${blocker} blocker`, () => {
+    const f = fixture();
+    try {
+      enqueue(f, "TASK-A");
+      if (blocker === "active") f.queue.reserve();
+      else f.queue.storage.transaction(document => { document.fault = "Provider unavailable"; });
+      f.queue.control("pause");
+      const before = f.queue.storage.read();
+      enqueue(f, "TASK-B");
+      const after = f.queue.storage.read();
+      assert.equal(after.paused, false);
+      assert.deepEqual(after.active, before.active);
+      assert.equal(after.fault, before.fault);
+      assert.equal(f.queue.reserve(), null);
+    } finally { f.cleanup(); }
+  });
+}
+
 test("legacy configuration without a commit policy retains human approval", () => {
   const f = fixture();
   try {

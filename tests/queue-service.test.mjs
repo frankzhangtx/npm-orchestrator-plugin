@@ -1,12 +1,12 @@
 import assert from "node:assert/strict";
-import { spawn } from "node:child_process";
+import { spawn, spawnSync } from "node:child_process";
 import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import test from "node:test";
 import { isAlive, processIdentity, processGroupAlive, fileLock, recoverLock } from "../dist/queue/storage.js";
 import { serviceStatus, wakeService } from "../dist/queue/service.js";
-import { fixture, enqueue } from "./queue-fixture.mjs";
+import { fixture, draft, enqueue } from "./queue-fixture.mjs";
 
 const cli = fileURLToPath(new URL('../dist/queue/cli.js', import.meta.url));
 async function until(predicate, description, timeout = 60000) {
@@ -56,6 +56,41 @@ test("concurrent daemons and repeated wakeups share one executor; restarting sch
     if (active?.worker && processGroupAlive(active.worker.pid)) {
       process.kill(-active.worker.pid, 'SIGKILL');
       await until(() => !processGroupAlive(active.worker.pid), 'fixture process cleanup');
+    }
+    f.cleanup();
+  }
+});
+
+test("CLI enqueue starts a paused service and wakes it for subsequent new tasks", { timeout: 30000 }, async () => {
+  const f = fixture({ queue: { scanIntervalMs: 60000, maxWorkspaces: 3, maxWorkspaceBytes: 21474836480 } });
+  try {
+    assert.equal(serviceStatus(f.queue).running, false);
+    let owner = null;
+    let previousWake = null;
+    for (const id of ["TASK-A", "TASK-B"]) {
+      f.queue.control("pause");
+      const sealed = draft(f, id, { notBefore: new Date(Date.now() + 3600000).toISOString() });
+      const result = spawnSync(process.execPath, [cli, "enqueue", f.root, sealed.key, sealed.digest, f.queue.approvalText(sealed)],
+        { env: f.env, encoding: "utf8", timeout: 10000 });
+      assert.equal(result.status, 0, result.stderr || result.stdout);
+      assert.equal(JSON.parse(result.stdout).serviceError, null);
+      await until(() => serviceStatus(f.queue).running, "enqueue starts service", 10000);
+      assert.equal(f.queue.storage.read().paused, false);
+      const currentOwner = serviceStatus(f.queue).owner;
+      if (owner) assert.deepEqual(currentOwner, owner, "enqueue reuses the live service");
+      owner = currentOwner;
+      const wake = readFileSync(join(f.queue.storage.runtime, "wake.json"), "utf8");
+      assert.notEqual(wake, previousWake);
+      previousWake = wake;
+      await until(() => f.queue.item(sealed.key).waitingReason?.startsWith("Scheduled for"), "service scans the new contract before its periodic interval", 10000);
+      assert.equal(f.queue.item(sealed.key).state, "QUEUED", "resuming still respects notBefore");
+      assert.equal(f.queue.storage.read().active, null);
+    }
+  } finally {
+    const status = serviceStatus(f.queue);
+    if (status.running) {
+      process.kill(status.owner.pid, "SIGTERM");
+      await until(() => !serviceStatus(f.queue).running, "fixture service cleanup", 10000);
     }
     f.cleanup();
   }

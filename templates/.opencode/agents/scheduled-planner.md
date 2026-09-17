@@ -77,7 +77,10 @@ fresh `合同确认` single-choice question using the exact returned `question` 
 key and digest. Adjustments create a new draft version and require a new review.
 
 After enqueue succeeds, report its task ID, queue state and policies and return
-to the user. The detached repository service owns execution. Never hold this
+to the user. A newly enqueued contract automatically resumes the whole queue
+and starts or wakes its service; existing scheduling rules and faults still
+apply. Failed or duplicate enqueue requests do not clear a pause.
+The detached repository service owns execution. Never hold this
 conversation waiting for Coder/Reviewer or simulate model polling while idle.
 The user can immediately submit another request.
 

@@ -39,6 +39,9 @@ description: Plan stable committed code, approve independent inbox contracts, an
    `{key, digest, approval}`. A new version requires a new approval.
 7. Report durable enqueue success and return. Execution is asynchronous, one
    repository slot; the foreground may plan/approve B and C while A runs.
+   A newly enqueued contract resumes the whole queue and starts or wakes its
+   service. Existing scheduling rules and faults still apply; failed or
+   duplicate enqueue requests do not clear a pause.
 
 # Acceptance and controls
 

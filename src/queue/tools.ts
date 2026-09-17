@@ -38,7 +38,7 @@ export function createQueueTools(worktree: string, approvals = new ApprovalLedge
       },
     }),
     android_orchestrator_intake: tool({
-      description: "Seal a proposal-approved contract and plan in the independent inbox, or enqueue its exact reviewed digest and explicit human-selected approvalText. Approval returns immediately; only the background scheduler starts execution.",
+      description: "Seal a proposal-approved contract and plan in the independent inbox, or enqueue its exact reviewed digest and explicit human-selected approvalText. A newly enqueued contract resumes the queue and starts or wakes its service. Approval returns immediately; only the background scheduler starts execution.",
       args: {
         action: tool.schema.enum(["draft", "enqueue"]),
         draftJson: tool.schema.string().optional(), key: tool.schema.string().optional(),

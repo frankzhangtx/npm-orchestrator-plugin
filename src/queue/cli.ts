@@ -18,7 +18,7 @@ export async function queueCli(args: string[]): Promise<unknown> {
       read: "<planningHead> <path> Read a file at a fixed commit",
       "read-chunk": "<planningHead> <path> [cursor] Read a bounded exact file chunk",
       draft: "<input.json> Seal contract, plan, scheduling and commit policy in the inbox",
-      enqueue: "<key> <digest> <approval> Approve exactly one reviewed draft and return immediately",
+      enqueue: "<key> <digest> <approval> Approve a reviewed draft; new contracts resume the queue and start or wake its service",
       cancel: "<key> Cancel an unstarted contract", revoke: "<key> Revoke future commit authorization",
       integrate: "<key> <approval> <candidate> Request local integration after fresh final acceptance",
       revalidate: "<key> Revalidate an isolated candidate on the current target branch",

@@ -1,6 +1,6 @@
 # Queue and background execution
 
-Version `1.0.3` stores proposals and approved contracts under
+Version `1.0.4` stores proposals and approved contracts under
 `<git-common-dir>/automation-runtime/inbox/queue.json`. A contract is runnable
 only after its full plan, version, digest, target branch and commit policy are
 approved and durably recorded. Planning reads a fixed `planningHead`, so another
@@ -51,9 +51,14 @@ rejected even if it copies the visible run ID.
 
 ## Service and scheduling
 
-The first enqueue starts the package-owned detached service. Closing the
-Planner does not stop it. Enqueue notifications, deadlines, worker completion,
-startup recovery and periodic scans all use the same atomic reservation logic.
+Each newly approved contract atomically clears the queue's pause flag when it
+is enqueued, then starts or wakes the package-owned detached service. This
+resumes the entire queue; existing tasks keep their normal priority/FIFO order,
+deadlines and dependencies. Failed or duplicate enqueue requests do not clear
+the pause flag, and enqueue never clears a fault or replaces an active executor.
+Closing the Planner does not stop the service. Enqueue notifications, deadlines,
+worker completion, startup recovery and periodic scans all use the same atomic
+reservation logic.
 Idle scans do not call a model. No launchd or external Scheduler is registered.
 The machine must be awake; a restarted service scans overdue entries once
 through normal arbitration. Recurring task-template generation is not exposed
@@ -80,7 +85,8 @@ opencode-android-orchestrator queue start .
 An unsuccessful OpenCode agent process pauses consumption as a shared execution
 fault; inspect its log and fix provider/environment failures before clearing it.
 
-Pause stops new reservations. Stop terminates the scheduler while preserving
+Pause stops new reservations until explicit resume or a new contract is
+successfully enqueued. Stop terminates the scheduler while preserving
 its active detached worker. Resume does not clear a fault. Notifications are
 persisted until acknowledged, so the original Planner session need not remain
 open. `queue --help` lists direct local-operator commands; interactive agents
@@ -95,8 +101,10 @@ opencode-android-orchestrator queue pause .
 opencode-android-orchestrator queue policy . isolatedWorktree humanApproval
 ```
 
-Review and commit the changed `automation/config.json` before resuming. The
-queued task fixes its workspace strategy when claimed. Its commit authorization
+Avoid approving new contracts during this maintenance pause: a new enqueue
+resumes queue consumption. Review and commit the changed
+`automation/config.json` before resuming. The queued task fixes its workspace
+strategy when claimed. Its commit authorization
 remains exactly the approved choice: changing a default cannot grant autoCommit
 to an older task. Direct configuration drift while a workspace is retained
 blocks scheduling; restore the recorded strategy before recovery.

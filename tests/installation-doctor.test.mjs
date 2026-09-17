@@ -332,7 +332,7 @@ test("installed doctor rejects a self-consistent manifest rewrite of a packaged 
     assert.equal(check(report, "installation-manifest").status, "fail");
     assert.match(
       check(report, "installation-manifest").details.join("\n"),
-      /does not match the packaged 1\.0\.3 template/,
+      /does not match the packaged 1\.0\.4 template/,
     );
     assert.equal(
       check(report, "managed-resources").status,
@@ -445,7 +445,8 @@ test("installed Planner tools consume real question-hook receipts and reject app
     const intake = hooks.tool.android_orchestrator_intake;
     const contract = JSON.parse(readFileSync(join(root, 'automation/tasks/TASK-TEMPLATE.json.example'), 'utf8'));
     Object.assign(contract, { id: 'TASK-RECEIPT-001', title: 'Add a bounded regression behavior', planPath: 'docs/plans/TASK-RECEIPT-001.md', acceptanceCriteria: ['The approved behavior passes its regression test'], targetTests: [{ gradleTask: queue.config().gradleVerification.focusedTestTasks[0], filter: 'dev.doctor.RegressionTest' }] });
-    const draftJson = JSON.stringify({ contract, plan: '# Approved plan\n\nAdd the bounded behavior and its regression test.\n', ...queue.snapshot() });
+    // Scheduling keeps this approval-hook test from starting a product worker.
+    const draftJson = JSON.stringify({ contract, plan: '# Approved plan\n\nAdd the bounded behavior and its regression test.\n', ...queue.snapshot(), notBefore: new Date(Date.now() + 3600000).toISOString() });
     await assert.rejects(intake.execute({ action: 'draft', draftJson }, context), /fresh, matching/);
     const answer = async (question, selection, callID) => {
       const input = { tool: 'question', sessionID: context.sessionID, callID, args: question };
@@ -457,17 +458,22 @@ test("installed Planner tools consume real question-hook receipts and reject app
     const enqueueArgs = { action: 'enqueue', key: draft.key, digest: draft.digest, approval: draft.approvalText };
     await assert.rejects(intake.execute(enqueueArgs, context), /fresh, matching/);
     assert.equal(queue.storage.read().items.length, 0);
+    assert.equal(queue.storage.read().paused, true);
     await answer(draft.question, draft.approvalText, 'contract-call');
     const result = JSON.parse(await intake.execute(enqueueArgs, context));
     assert.equal(result.state, 'QUEUED');
+    assert.equal(queue.storage.read().paused, false);
     assert.equal(queue.item(draft.key).authorization.proof.questionCallID, 'contract-call');
     assert.equal(queue.item(draft.key).proposalApproval.questionCallID, 'proposal-call');
+    queue.control('pause');
     await intake.execute(enqueueArgs, context);
     assert.equal(queue.storage.read().items.length, 1);
+    assert.equal(queue.storage.read().paused, true);
+    assert.equal(queue.storage.read().active, null);
     assert.equal(git(['status', '--porcelain']), '');
   } finally {
     if (queue && queue.storage.read().items.length > 0) {
-      // Enqueue starts a detached scheduler even while consumption is paused.
+      // Enqueue starts a detached scheduler; stop it before removing the fixture.
       const deadline = Date.now() + 10000;
       while (!serviceStatus(queue).running && Date.now() < deadline) await new Promise(done => setTimeout(done, 100));
       stopService(queue);

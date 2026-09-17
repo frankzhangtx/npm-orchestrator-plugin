@@ -366,6 +366,7 @@ export class TaskQueue {
         authorization: { source: "contractApproval", digest, commitPolicy: draft.commitPolicy, pushAfterAcceptance: false, revoked: false, ...(proof ? { proof } : {}) },
         state: "QUEUED", waitingReason: null, runId: null, taskRoot: null, request: null, sealedDiff: null, sealedRunId: null, candidateId: null, completedCommit: null };
       document.items.push(item);
+      document.paused = false;
       this.notify(document, item, "Contract approved and durably enqueued");
       return item;
     });
