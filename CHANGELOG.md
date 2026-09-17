@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 1.0.5 - 2026-09-17
 
 - Add schema V3 verification cases that distinguish preserved behavior,
   changed behavior and bounded observations before implementation.

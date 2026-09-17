@@ -1,6 +1,6 @@
 # Queue and background execution
 
-Version `1.0.4` stores proposals and approved contracts under
+Version `1.0.5` stores proposals and approved contracts under
 `<git-common-dir>/automation-runtime/inbox/queue.json`. A contract is runnable
 only after its full plan, version, digest, target branch and commit policy are
 approved and durably recorded. Planning reads a fixed `planningHead`, so another
