@@ -172,8 +172,62 @@ export function validateContract(contract: Record<string, unknown>, config: Queu
     invariant(target && typeof target === "object" && typeof target.gradleTask === "string" && config.gradleVerification.focusedTestTasks.includes(target.gradleTask), "Focused test task is not configured");
     invariant(typeof target.filter === "string" && /^[A-Za-z0-9_.#$*-]+$/.test(target.filter), "Unsafe test filter");
   }
+  const targetKeys = (contract.targetTests as Array<Record<string, unknown>>).map(target => `${target.gradleTask}\u0000${target.filter}`);
+  invariant(new Set(targetKeys).size === targetKeys.length, "Focused test targets must be unique");
   invariant(typeof contract.deviceTestsRequired === "boolean", "Missing device-test policy");
   invariant(contract.testPolicy === "required" || (contract.testPolicy === "not-required" && typeof contract.testPolicyReason === "string" && contract.testPolicyReason.length >= 20), "Missing test policy");
+  if (Number(contract.schemaVersion) === 3) {
+    const verification = contract.verification;
+    invariant(verification && typeof verification === "object" && !Array.isArray(verification), "Schema V3 requires structured verification");
+    const value = verification as Record<string, unknown>;
+    invariant(Object.keys(value).sort().join(",") === "cases,maxPreparationFixes,version", "Invalid verification fields");
+    invariant(value.version === 1 && Number.isInteger(value.maxPreparationFixes) && Number(value.maxPreparationFixes) >= 0 && Number(value.maxPreparationFixes) <= 1, "Invalid verification policy");
+    invariant(Array.isArray(value.cases) && value.cases.length > 0, "Verification cases are required");
+    const caseIds = new Set<string>();
+    const testIds = new Set<string>();
+    let changedBehavior = 0;
+    for (const rawCase of value.cases) {
+      invariant(rawCase && typeof rawCase === "object" && !Array.isArray(rawCase), "Invalid verification case");
+      const testCase = rawCase as Record<string, unknown>;
+      const allowedFields = new Set(["id", "criterion", "intent", "before", "after", "source", "test", "expectedFailure"]);
+      invariant(Object.keys(testCase).every(key => allowedFields.has(key)), "Invalid verification case fields");
+      invariant(typeof testCase.id === "string" && /^[A-Z][A-Z0-9-]{2,63}$/.test(testCase.id) && !caseIds.has(testCase.id), "Verification case IDs must be unique and stable");
+      caseIds.add(testCase.id);
+      invariant(Number.isInteger(testCase.criterion) && Number(testCase.criterion) >= 1 && Number(testCase.criterion) <= (contract.acceptanceCriteria as unknown[]).length, "Verification criterion reference is invalid");
+      invariant(testCase.after === "pass", "Every verification case must pass after implementation");
+      const intent = testCase.intent;
+      const before = testCase.before;
+      const source = testCase.source;
+      invariant(["preserve", "change", "observe"].includes(String(intent)), "Invalid verification intent");
+      invariant(["pass", "fail", "observe"].includes(String(before)), "Invalid pre-change expectation");
+      const test = testCase.test;
+      invariant(test && typeof test === "object" && !Array.isArray(test), "Verification test identity is required");
+      const testIdentity = test as Record<string, unknown>;
+      invariant(Object.keys(testIdentity).sort().join(",") === "className,name,target", "Invalid verification test fields");
+      invariant(Number.isInteger(testIdentity.target) && Number(testIdentity.target) >= 0 && Number(testIdentity.target) < (contract.targetTests as unknown[]).length, "Verification target index is invalid");
+      invariant(typeof testIdentity.className === "string" && testIdentity.className.length > 0 && typeof testIdentity.name === "string" && testIdentity.name.length > 0, "Verification test identity is incomplete");
+      const testKey = `${testIdentity.target}\u0000${testIdentity.className}\u0000${testIdentity.name}`;
+      invariant(!testIds.has(testKey), "Verification test identities must be unique");
+      testIds.add(testKey);
+      const failure = testCase.expectedFailure;
+      if (intent === "preserve") {
+        invariant(before === "pass" && ["existingTest", "baselineCapture", "measuredFact"].includes(String(source)) && failure === undefined, "Preserved behavior must pass on a measured baseline");
+      } else if (intent === "change") {
+        changedBehavior += 1;
+        invariant(before === "fail" && source === "userRequirement", "Changed behavior must fail before implementation and originate in the approved requirement");
+        invariant(failure && typeof failure === "object" && !Array.isArray(failure), "Changed behavior requires an expected failure");
+      } else {
+        invariant(before === "observe" && ["userRequirement", "existingTest", "baselineCapture", "measuredFact"].includes(String(source)), "Observed behavior must declare an admissible source");
+      }
+      if (failure !== undefined) {
+        const expected = failure as Record<string, unknown>;
+        invariant(Object.keys(expected).every(key => ["type", "messageIncludes", "origin"].includes(key)), "Invalid expected failure fields");
+        invariant(typeof expected.type === "string" && expected.type.length > 0 && typeof expected.origin === "string" && expected.origin.length >= 12, "Expected failure type and origin are required");
+        invariant(expected.messageIncludes === undefined || (typeof expected.messageIncludes === "string" && expected.messageIncludes.length >= 3), "Expected failure message fragment is invalid");
+      }
+    }
+    invariant(changedBehavior > 0, "At least one changed behavior must provide genuine RED");
+  }
   invariant(!/replace with|TASK-EXAMPLE|\btodo\b|\btbd\b|placeholder/i.test(JSON.stringify(contract)), "Contract contains placeholders");
 }
 

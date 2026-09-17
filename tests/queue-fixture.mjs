@@ -14,7 +14,7 @@ export function command(root, args) {
 }
 
 export function fixture(options = {}) {
-  const { detachedAgentCommands = false, ...configOptions } = options;
+  const { detachedAgentCommands = false, structuredCaseMode = "valid", ...configOptions } = options;
   const base = mkdtempSync(join(tmpdir(), "orchestrator-queue-test-"));
   const root = join(base, "project");
   cpSync(templates, root, { recursive: true });
@@ -40,6 +40,21 @@ fs.appendFileSync(${JSON.stringify(join(base, "gradle-calls.jsonl"))}, JSON.stri
 const filterIndex = args.indexOf('--tests');
 if (filterIndex >= 0) {
   const id = args[filterIndex+1].replace(/\\*/g,'');
+  const resultArg = args.find(arg => arg.startsWith('-Dorchestrator.caseResultFile='));
+  if (resultArg) {
+    const resultFile = resultArg.slice('-Dorchestrator.caseResultFile='.length);
+    const implemented = fs.existsSync('app/src/main/java/'+id+'.kt');
+    const values = [
+      {kind:'case',taskPath:':app:testDebugUnitTest',className:id,name:'approved behavior',result:implemented?'SUCCESS':'FAILURE',exceptionType:implemented?null:'java.lang.AssertionError',exceptionMessage:implemented?null:'expected missing behavior'}
+    ];
+    if (${JSON.stringify(structuredCaseMode)} === 'preserveFailure') {
+      values.push({kind:'case',taskPath:':app:testDebugUnitTest',className:id,name:'preserved encoding',result:'FAILURE',exceptionType:'java.lang.AssertionError',exceptionMessage:'incorrect preserved-value expectation'});
+    }
+    values.push({kind:'suite',taskPath:':app:testDebugUnitTest',tests:values.length,failures:values.filter(value=>value.result==='FAILURE').length,skipped:0,result:implemented?'SUCCESS':'FAILURE'});
+    fs.writeFileSync(resultFile,values.map(value=>JSON.stringify(value)).join('\\n')+'\\n');
+    console.log('BUILD SUCCESSFUL');
+    process.exit(0);
+  }
   if (!fs.existsSync('app/src/main/java/'+id+'.kt')) { console.log('expected missing behavior'); process.exit(1); }
 }
 if (args.includes('testDebugUnitTest')) {
@@ -80,7 +95,8 @@ if(role==='scheduled-coder') {
   run('claim-task');
   fs.mkdirSync('app/src/test/java',{recursive:true});
   fs.writeFileSync('app/src/test/java/'+id+'Test.kt','class RegressionTest {}\\n');
-  run('record-red',['expected missing behavior','--',id]);
+  if (contract.schemaVersion === 3) run('record-red');
+  else run('record-red',['expected missing behavior','--',id]);
   fs.writeFileSync('app/src/main/java/'+id+'.kt','class ImplementedFeature {}\\n');
   run('quality-gate');
 } else if(role==='scheduled-reviewer') run('submit-review',['APPROVED','Independent fixture review confirms scoped behavior and fresh deterministic verification.']);
@@ -92,16 +108,31 @@ else process.exit(4);
   command(root, ["add", "."]);
   command(root, ["commit", "-qm", "Fixture baseline"]);
   const queue = new TaskQueue(root);
-  return { root, base, bin, config, queue, env: { ...process.env, PATH: `${bin}:${process.env.PATH}`, ANDROID_HOME: base },
+  return { root, base, bin, config, queue, structuredCaseMode, env: { ...process.env, PATH: `${bin}:${process.env.PATH}`, ANDROID_HOME: base },
     cleanup: () => rmSync(base, { recursive: true, force: true }) };
 }
 
-export function draft(f, id, extra = {}) {
+export function taskContract(f, id) {
   const template = JSON.parse(readFileSync(join(f.root, "automation/tasks/TASK-TEMPLATE.json.example"), "utf8"));
+  const cases = [{
+    id: "APPROVED-BEHAVIOR", criterion: 1, intent: "change", before: "fail", after: "pass", source: "userRequirement",
+    test: { target: 0, className: id, name: "approved behavior" },
+    expectedFailure: { type: "java.lang.AssertionError", messageIncludes: "expected missing behavior", origin: "The approved behavior assertion" },
+  }];
+  if (f.structuredCaseMode === "preserveFailure") cases.push({
+    id: "PRESERVED-ENCODING", criterion: 1, intent: "preserve", before: "pass", after: "pass", source: "measuredFact",
+    test: { target: 0, className: id, name: "preserved encoding" },
+  });
   const contract = { ...template, id, title: `Implement scoped behavior ${id}`, planPath: `docs/plans/${id}.md`,
     allowedPaths: [`app/src/main/java/${id}.kt`, `app/src/test/java/${id}Test.kt`],
     acceptanceCriteria: ["The scoped behavior matches the approved regression test"],
-    targetTests: [{ gradleTask: "testDebugUnitTest", filter: id }] };
+    targetTests: [{ gradleTask: "testDebugUnitTest", filter: id }],
+    verification: { version: 1, maxPreparationFixes: 1, cases } };
+  return contract;
+}
+
+export function draft(f, id, extra = {}) {
+  const contract = taskContract(f, id);
   return f.queue.draft({ contract, plan: `# Plan for ${id}\n\nImplement the approved behavior with a regression test.\n`, ...f.queue.snapshot(), ...extra });
 }
 export function enqueue(f, id, extra = {}) {

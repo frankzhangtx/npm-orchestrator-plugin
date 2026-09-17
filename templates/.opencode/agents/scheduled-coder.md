@@ -109,6 +109,15 @@ literally. Do not infer missing requirements and do not ask questions during a
 non-interactive run. If anything is ambiguous or blocked, stop and report the exact
 reason; the deterministic scripts own state transitions.
 
+For schema V3 tasks, keep production code unchanged while adding the approved
+tests, then call `./scripts/automation/record-red.sh <TASK-ID>` with no model-
+chosen failure text. The script checks every declared case. A familiar exception
+name in a log is not sufficient RED. Fix a test-only preparation error only when
+the contract remains unchanged and its preparation budget allows it; rerun the
+preflight afterwards. Contract contradictions must be blocked with the reported
+case IDs and measured results. Never delete evidence or weaken, skip or reclassify
+a test to pass the preflight.
+
 You may edit only paths allowed both by this agent and by the task contract.
 Treat `.automation-worktree-allowlist` and the status JSON's
 `runtime.effectiveWorktreeAllowlist` paths as human-owned local state: never

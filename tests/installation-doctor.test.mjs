@@ -444,7 +444,17 @@ test("installed Planner tools consume real question-hook receipts and reject app
     assert.match(fileChunk.content, /schemaVersion/);
     const intake = hooks.tool.android_orchestrator_intake;
     const contract = JSON.parse(readFileSync(join(root, 'automation/tasks/TASK-TEMPLATE.json.example'), 'utf8'));
-    Object.assign(contract, { id: 'TASK-RECEIPT-001', title: 'Add a bounded regression behavior', planPath: 'docs/plans/TASK-RECEIPT-001.md', acceptanceCriteria: ['The approved behavior passes its regression test'], targetTests: [{ gradleTask: queue.config().gradleVerification.focusedTestTasks[0], filter: 'dev.doctor.RegressionTest' }] });
+    Object.assign(contract, {
+      id: 'TASK-RECEIPT-001', title: 'Add a bounded regression behavior',
+      planPath: 'docs/plans/TASK-RECEIPT-001.md',
+      acceptanceCriteria: ['The approved behavior passes its regression test'],
+      targetTests: [{ gradleTask: queue.config().gradleVerification.focusedTestTasks[0], filter: 'dev.doctor.RegressionTest' }],
+      verification: { version: 1, maxPreparationFixes: 1, cases: [{
+        id: 'REGRESSION-BEHAVIOR', criterion: 1, intent: 'change', before: 'fail', after: 'pass', source: 'userRequirement',
+        test: { target: 0, className: 'dev.doctor.RegressionTest', name: 'approved regression behavior' },
+        expectedFailure: { type: 'java.lang.AssertionError', origin: 'The approved regression assertion' },
+      }] },
+    });
     // Scheduling keeps this approval-hook test from starting a product worker.
     const draftJson = JSON.stringify({ contract, plan: '# Approved plan\n\nAdd the bounded behavior and its regression test.\n', ...queue.snapshot(), notBefore: new Date(Date.now() + 3600000).toISOString() });
     await assert.rejects(intake.execute({ action: 'draft', draftJson }, context), /fresh, matching/);

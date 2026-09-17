@@ -26,6 +26,16 @@ red_exit_code="$(jq -er '.exitCode' "$red_file")"
 review_verification_exit_code="$(jq -er '.verificationExitCode' "$review_file")"
 [[ "$red_exit_code" -ne 0 ]] || automation_die "RED evidence does not contain a failing test result"
 [[ "$review_verification_exit_code" -eq 0 ]] || automation_die "independent review verification did not pass"
+structured_red=null
+if [[ "$(jq -er '.schemaVersion' "$contract")" == "3" ]]; then
+    preflight_file="$evidence_dir/test-preflight.json"
+    manifest_file="$evidence_dir/test-manifest.json"
+    [[ -f "$preflight_file" && -f "$manifest_file" ]] || automation_die "structured RED acceptance evidence is incomplete"
+    [[ "$(jq -er '.valid' "$preflight_file")" == "true" ]] || automation_die "structured RED preflight was not valid"
+    [[ "$(jq -er '.preflightSha256' "$red_file")" == "$(automation_file_sha256 "$preflight_file")" ]] || automation_die "structured RED preflight changed"
+    [[ "$(jq -er '.manifestSha256' "$red_file")" == "$(automation_file_sha256 "$manifest_file")" ]] || automation_die "structured RED manifest changed"
+    structured_red="$(jq -c '{valid, reasonCode, summary, cases: [.cases[] | {id, criterion, intent, expectedBefore, test, valid}]}' "$preflight_file")"
+fi
 
 recorded_task_root="$(automation_workspace_task_root "$workspace_file")"
 workspace_strategy="$(automation_workspace_strategy "$workspace_file")"
@@ -90,6 +100,7 @@ jq -n \
     --argjson acceptanceCriteria "$(jq -c '.acceptanceCriteria' "$contract")" \
     --argjson nonGoals "$(jq -c '.nonGoals' "$contract")" \
     --argjson targetTests "$(jq -c '.targetTests' "$contract")" \
+    --argjson structuredRed "$structured_red" \
     '{taskId: $taskId, title: $title, state: $state,
       generatedAt: $generatedAt, originalBranch: $originalBranch,
       originalHeadBeforeContract: $originalHeadBeforeContract,
@@ -110,6 +121,7 @@ jq -n \
         baselineRecorded: true,
         redRecorded: true,
         redExitCode: $redExitCode,
+        structuredRed: $structuredRed,
         qualityGate: "PASSED",
         gateAttempts: $gateAttempts,
         codingCycle: $codingCycle,

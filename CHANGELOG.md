@@ -1,5 +1,16 @@
 # Changelog
 
+## Unreleased
+
+- Add schema V3 verification cases that distinguish preserved behavior,
+  changed behavior and bounded observations before implementation.
+- Capture fresh per-test Gradle results and reject RED evidence when a declared
+  case is missing, skipped, fails for the wrong reason, or an undeclared case
+  executes. Preserve failed preparation attempts without creating `red.json`.
+- Bind valid RED evidence to the approved contract, execution baseline, test
+  diff and case manifest, and recheck those bindings in quality and acceptance
+  gates. Legacy V1/V2 contracts keep their existing RED flow.
+
 ## 1.0.4 - 2026-09-17
 
 - Resume the queue atomically when a newly approved contract is enqueued, then

@@ -27,7 +27,7 @@ fi
 jq -e . "$contract" >/dev/null || automation_die "contract is not valid JSON: $contract"
 
 jq -e '
-    (.schemaVersion == 1 or .schemaVersion == 2) and
+    (.schemaVersion == 1 or .schemaVersion == 2 or .schemaVersion == 3) and
     (.id | type == "string" and test("^TASK-[A-Z0-9-]+$")) and
     (.title | type == "string" and length > 0) and
     .designApproved == true and
@@ -53,7 +53,51 @@ jq -e '
     ([.targetTests[].filter] | length == (unique | length)) and
     (.deviceTestsRequired | type == "boolean") and
     (.testPolicy == "required" or .testPolicy == "not-required") and
-    (if .testPolicy == "not-required" then (.testPolicyReason | type == "string" and length >= 20) else true end)
+    (if .testPolicy == "not-required" then (.testPolicyReason | type == "string" and length >= 20) else true end) and
+    (if .schemaVersion == 3 then
+        (.acceptanceCriteria | length) as $criterionCount |
+        (.targetTests | length) as $targetCount |
+        (.verification | type == "object" and
+         keys == ["cases", "maxPreparationFixes", "version"] and
+         .version == 1 and
+         (.maxPreparationFixes | type == "number" and floor == . and . >= 0 and . <= 1) and
+         (.cases | type == "array" and length > 0) and
+         ([.cases[].id] | length == (unique | length)) and
+         ([.cases[] | [.test.target, .test.className, .test.name] | @json] | length == (unique | length)) and
+         (any(.cases[]; .intent == "change")) and
+         all(.cases[];
+            type == "object" and
+            ([keys[]] - ["id", "criterion", "intent", "before", "after", "source", "test", "expectedFailure"] | length == 0) and
+            (.id | type == "string" and test("^[A-Z][A-Z0-9-]{2,63}$")) and
+            (.criterion | type == "number" and floor == . and . >= 1 and . <= $criterionCount) and
+            .after == "pass" and
+            (.test | type == "object" and keys == ["className", "name", "target"] and
+             (.target | type == "number" and floor == . and . >= 0 and . < $targetCount) and
+             (.className | type == "string" and length > 0) and
+             (.name | type == "string" and length > 0)) and
+            (if .intent == "preserve" then
+                 .before == "pass" and
+                 (.source == "existingTest" or .source == "baselineCapture" or .source == "measuredFact") and
+                 (has("expectedFailure") | not)
+             elif .intent == "change" then
+                 .before == "fail" and .source == "userRequirement" and
+                 (.expectedFailure | type == "object" and
+                  ([keys[]] - ["type", "messageIncludes", "origin"] | length == 0) and
+                  (.type | type == "string" and length > 0) and
+                  (.origin | type == "string" and length >= 12) and
+                  (if has("messageIncludes") then (.messageIncludes | type == "string" and length >= 3) else true end))
+             elif .intent == "observe" then
+                 .before == "observe" and
+                 (.source == "userRequirement" or .source == "existingTest" or .source == "baselineCapture" or .source == "measuredFact") and
+                 (if has("expectedFailure") then
+                    (.expectedFailure | type == "object" and
+                     ([keys[]] - ["type", "messageIncludes", "origin"] | length == 0) and
+                     (.type | type == "string" and length > 0) and
+                     (.origin | type == "string" and length >= 12) and
+                     (if has("messageIncludes") then (.messageIncludes | type == "string" and length >= 3) else true end))
+                  else true end)
+             else false end)))
+     else true end)
 ' "$contract" >/dev/null || automation_die "contract is missing required fields or violates limits"
 
 task_id="$(jq -r '.id' "$contract")"

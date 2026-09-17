@@ -15,6 +15,20 @@ evidence_dir="$(automation_evidence_path "$task_id")"
 [[ -f "$evidence_dir/baseline.json" ]] || { automation_die "baseline evidence is missing"; exit 41; }
 [[ -f "$evidence_dir/red.json" ]] || { automation_die "RED evidence is missing"; exit 41; }
 
+contract_schema="$(jq -er '.schemaVersion' "$contract")"
+if [[ "$contract_schema" == "3" ]]; then
+    preflight_meta="$evidence_dir/test-preflight.json"
+    manifest_meta="$evidence_dir/test-manifest.json"
+    red_meta="$evidence_dir/red.json"
+    [[ -f "$preflight_meta" && -f "$manifest_meta" ]] || { automation_die "structured RED evidence is incomplete"; exit 41; }
+    [[ "$(jq -er '.valid' "$preflight_meta")" == "true" ]] || { automation_die "structured RED preflight was not valid"; exit 41; }
+    [[ "$(jq -er '.contractSha256' "$red_meta")" == "$(automation_file_sha256 "$contract")" ]] || { automation_die "RED contract binding changed"; exit 41; }
+    [[ "$(jq -er '.baselineHead' "$red_meta")" == "$(jq -er '.head' "$evidence_dir/baseline.json")" ]] || { automation_die "RED baseline binding changed"; exit 41; }
+    [[ "$(jq -er '.testDiffSha256' "$red_meta")" == "$(automation_test_diff_sha "$task_id" "$AUTOMATION_ROOT")" ]] || { automation_die "tests changed after structured RED"; exit 41; }
+    [[ "$(jq -er '.preflightSha256' "$red_meta")" == "$(automation_file_sha256 "$preflight_meta")" ]] || { automation_die "RED preflight evidence changed"; exit 41; }
+    [[ "$(jq -er '.manifestSha256' "$red_meta")" == "$(automation_file_sha256 "$manifest_meta")" ]] || { automation_die "RED test manifest changed"; exit 41; }
+fi
+
 "$SCRIPT_DIR/scope-gate.sh" "$task_id"
 
 automation_run_configured_unit_tests "$contract" "$AUTOMATION_ROOT"

@@ -1,5 +1,5 @@
 {
-  "schemaVersion": 2,
+  "schemaVersion": 3,
   "id": "TASK-EXAMPLE-001",
   "title": "Replace with one small, observable behavior change",
   "designApproved": true,
@@ -53,5 +53,28 @@
   ],
   "deviceTestsRequired": false,
   "testPolicy": "required",
-  "testPolicyReason": "Behavior changes require a focused regression test"
+  "testPolicyReason": "Behavior changes require a focused regression test",
+  "verification": {
+    "version": 1,
+    "maxPreparationFixes": 1,
+    "cases": [
+      {
+        "id": "FOCUSED-BEHAVIOR",
+        "criterion": 1,
+        "intent": "change",
+        "before": "fail",
+        "after": "pass",
+        "source": "userRequirement",
+        "test": {
+          "target": 0,
+          "className": "ReplaceWithFocusedTest",
+          "name": "replace with observable behavior"
+        },
+        "expectedFailure": {
+          "type": "java.lang.AssertionError",
+          "origin": "The assertion at the approved behavior call"
+        }
+      }
+    ]
+  }
 }

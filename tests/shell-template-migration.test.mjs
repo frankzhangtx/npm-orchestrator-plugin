@@ -31,7 +31,7 @@ const expectedHashes = new Map([
   ],
   [
     "scripts/automation/acceptance-report.sh",
-    "905ffe68116c1fb124a20745d6dbaf9ebf422d79d4aac138e4c6bb2203259422",
+    "95da2889a22ef60925cbbcd3dd65adbcf4d8fb259a48e5433e14357a1a3ce41c",
   ],
   [
     "scripts/automation/approve-and-run.sh",
@@ -55,7 +55,7 @@ const expectedHashes = new Map([
   ],
   [
     "scripts/automation/lib.sh",
-    "29f3fe94fc3466717affeb20622feb21d7612fbea2bb4e536baf84a0f7f1f540",
+    "3ae7ca12b3d3205845841168d624cdb81d48a11debc56621b9f15f4e662b38b1",
   ],
   [
     "scripts/automation/orchestrate-task.sh",
@@ -79,7 +79,7 @@ const expectedHashes = new Map([
   ],
   [
     "scripts/automation/record-red.sh",
-    "0405e874f0e00bb5923ed608266a5bc2c1ed175f68a763e7521e849f08277140",
+    "1636c554e753879d148bc24988261265ca03c5734b986688a8ee9139769d450d",
   ],
   [
     "scripts/automation/resume-review-fix.sh",
@@ -107,11 +107,11 @@ const expectedHashes = new Map([
   ],
   [
     "scripts/automation/show-acceptance-review.sh",
-    "e8aff58b5b5080f9fee437b4c76c46546fb456117fcfd4f396250a97261c0225",
+    "d1c6263d76edef97de2b809a05c210eecc4cc878bf05441509d7402cbede5d62",
   ],
   [
     "scripts/automation/status.sh",
-    "719e1bdfed4b7d2666847f5babaa2ac870371cd760923c77e124cbf54966be66",
+    "99a73303025d4112b291cd1571a49b250d6816c0417eea0725cdb83d10c2fddd",
   ],
   [
     "scripts/automation/submit-review.sh",
@@ -127,7 +127,7 @@ const expectedHashes = new Map([
   ],
   [
     "scripts/automation/validate-contract.sh",
-    "762936699efb3a99345ad1d05bff05b8668ce022b166e3224783734120260200",
+    "a0606ce01b2e5a55454e502b40c6e43a40703b24755d45524fce5f9491349037",
   ],
   [
     "scripts/automation/verify-integration.sh",
@@ -135,7 +135,7 @@ const expectedHashes = new Map([
   ],
   [
     "scripts/automation/verify-task.sh",
-    "aef775601f56d08e42b02b17030a51e908f328c99134dfb88049f26a917c3175",
+    "3574c86fc5aadf65ae3411ea90d77f31ad55ab04fb80a0661a1d88998aa0b79b",
   ],
 ]);
 

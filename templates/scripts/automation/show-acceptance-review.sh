@@ -79,6 +79,13 @@ jq -r '.nonGoals[] | "- \(.)"' "$report_file"
 
 printf '\n### P1 · 自动证据是否可信\n\n'
 printf -- '- RED 退出码：`%s`（应为非 0，证明测试先真实失败）\n' "$(jq -r '.evidence.redExitCode' "$report_file")"
+if [[ "$(jq -r '.evidence.structuredRed != null' "$report_file")" == "true" ]]; then
+    printf -- '- 结构化 RED：声明 `%s` 个，用例匹配 `%s` 个，额外用例 `%s` 个\n' \
+        "$(jq -r '.evidence.structuredRed.summary.declared' "$report_file")" \
+        "$(jq -r '.evidence.structuredRed.summary.valid' "$report_file")" \
+        "$(jq -r '.evidence.structuredRed.summary.undeclared' "$report_file")"
+    jq -r '.evidence.structuredRed.cases[] | "  - `\(.id)` · \(.intent) · 修改前应 \(.expectedBefore) · 已核验 \(.valid)"' "$report_file"
+fi
 printf -- '- 质量门：`%s`，第 %s 个编码周期内共运行 %s 次\n' \
     "$(jq -r '.evidence.qualityGate' "$report_file")" \
     "$(jq -r '.evidence.codingCycle' "$report_file")" \

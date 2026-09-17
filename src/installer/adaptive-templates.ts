@@ -135,7 +135,7 @@ export interface AdaptiveTargetTest {
 
 export interface AdaptiveTaskContractExample {
   readonly [key: string]: unknown;
-  schemaVersion: 2;
+  schemaVersion: 3;
   allowedPaths: readonly string[];
   forbiddenPaths: readonly string[];
   targetTests: readonly AdaptiveTargetTest[];
@@ -539,6 +539,17 @@ export function planAdaptiveProjectTemplates(
         filter: taskTestFilter(primaryModule),
       },
     ],
+    verification: {
+      ...(taskTemplate.verification as Record<string, unknown>),
+      cases: [{
+        ...((taskTemplate.verification as { cases: Record<string, unknown>[] }).cases[0] ?? {}),
+        test: {
+          target: 0,
+          className: taskTestFilter(primaryModule),
+          name: "replace with observable behavior",
+        },
+      }],
+    },
   } as unknown as AdaptiveTaskContractExample;
 
   return {

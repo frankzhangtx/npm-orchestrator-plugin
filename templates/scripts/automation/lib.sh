@@ -566,6 +566,114 @@ automation_run_focused_test() {
     )
 }
 
+# Run one focused target with fresh Test execution and machine-readable case
+# results. Test assertion failures are collected instead of failing Gradle so
+# the caller can distinguish approved RED from build and fixture failures.
+automation_run_classified_focused_test() {
+    local task="$1"
+    local filter="$2"
+    local root="$3"
+    local result_file="$4"
+    local log_file="$5"
+    local init_file status
+
+    automation_validate_config || return 1
+    automation_validate_gradle_task "$task" || return 1
+    automation_validate_test_filter "$filter" || return 1
+    jq -e --arg task "$task" \
+        '.gradleVerification.focusedTestTasks | index($task) != null' \
+        "$AUTOMATION_CONFIG" >/dev/null || {
+        automation_die "focused Gradle task is not allowed by automation/config.json: $task"
+        return 1
+    }
+
+    mkdir -p "$AUTOMATION_RUNTIME_ROOT/gradle" "$(dirname "$result_file")" "$(dirname "$log_file")"
+    init_file="$(mktemp "$AUTOMATION_RUNTIME_ROOT/gradle/classified-tests.XXXXXX")"
+    : > "$result_file"
+    cat > "$init_file" <<'GRADLE'
+import groovy.json.JsonOutput
+import org.gradle.api.tasks.testing.Test
+import org.gradle.api.tasks.testing.TestDescriptor
+import org.gradle.api.tasks.testing.TestListener
+import org.gradle.api.tasks.testing.TestResult
+
+def outputPath = System.getProperty('orchestrator.caseResultFile')
+if (outputPath == null || outputPath.isEmpty()) {
+    throw new GradleException('orchestrator.caseResultFile is required')
+}
+def outputFile = new File(outputPath)
+def appendResult = { Map value ->
+    synchronized (gradle) {
+        outputFile << JsonOutput.toJson(value) << System.lineSeparator()
+    }
+}
+
+gradle.allprojects { project ->
+    project.tasks.withType(Test).configureEach { testTask ->
+        outputs.upToDateWhen { false }
+        outputs.doNotCacheIf('Orchestrator requires fresh classified test execution') { true }
+        ignoreFailures = true
+        failFast = false
+        if (testTask.hasProperty('dryRun')) testTask.dryRun = false
+        addTestListener(new TestListener() {
+            void beforeSuite(TestDescriptor descriptor) {}
+            void beforeTest(TestDescriptor descriptor) {}
+            void afterTest(TestDescriptor descriptor, TestResult result) {
+                def failure = result.exceptions == null || result.exceptions.isEmpty() ? null : result.exceptions[0]
+                appendResult([
+                    kind: 'case', taskPath: testTask.path,
+                    className: descriptor.className ?: '', name: descriptor.name ?: '',
+                    result: result.resultType.toString(),
+                    exceptionType: failure == null ? null : failure.class.name,
+                    exceptionMessage: failure == null ? null : (failure.message ?: '')
+                ])
+            }
+            void afterSuite(TestDescriptor descriptor, TestResult result) {
+                if (descriptor.parent == null) {
+                    appendResult([
+                        kind: 'suite', taskPath: testTask.path,
+                        tests: result.testCount, failures: result.failedTestCount,
+                        skipped: result.skippedTestCount,
+                        result: result.resultType.toString()
+                    ])
+                }
+            }
+        })
+    }
+}
+GRADLE
+
+    set +e
+    (cd "$root" && ./gradlew "$task" --tests "$filter" \
+        --no-configuration-cache --console=plain --init-script "$init_file" \
+        "-Dorchestrator.caseResultFile=$result_file") 2>&1 | tee "$log_file"
+    status=${PIPESTATUS[0]}
+    set -e
+    rm -f "$init_file"
+    return "$status"
+}
+
+automation_test_diff_sha() {
+    local task_id="$1"
+    local root="${2:-$AUTOMATION_ROOT}"
+    local path tracked=0
+    {
+        while IFS= read -r path; do
+            [[ -n "$path" ]] || continue
+            if automation_array_matches_path "$AUTOMATION_CONFIG" '.androidProject.testPaths' "$path"; then
+                tracked=1
+                if git -C "$root" ls-files --error-unmatch -- "$path" >/dev/null 2>&1; then
+                    git -C "$root" diff --binary --no-renames HEAD -- "$path"
+                else
+                    printf 'UNTRACKED %s\0' "$path"
+                    git -C "$root" hash-object -- "$path"
+                fi
+            fi
+        done < <(automation_product_changed_paths_at "$task_id" "$root")
+        [[ "$tracked" == "1" ]] || printf 'NO-TEST-CHANGES'
+    } | shasum -a 256 | awk '{print $1}'
+}
+
 automation_require_approval() {
     local kind="$1"
     local supplied="$2"

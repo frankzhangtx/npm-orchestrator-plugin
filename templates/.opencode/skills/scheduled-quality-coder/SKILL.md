@@ -52,7 +52,13 @@ it with `./scripts/automation/block-task.sh <TASK-ID> <reason>` before stopping.
 
 4. On the initial coding cycle, add or change the smallest behavior test
    permitted by `allowedPaths`.
-5. If RED evidence does not already exist, capture a genuine RED result with:
+5. If RED evidence does not already exist, capture a genuine RED result. For a
+   schema V3 contract use:
+
+   `./scripts/automation/record-red.sh <TASK-ID>`
+
+   It checks every declared preserved, changed and observed case against fresh
+   structured output. For a legacy schema V1/V2 contract use:
 
    `./scripts/automation/record-red.sh <TASK-ID> <expected-failure-text> -- <test-filter>`
 

@@ -124,6 +124,26 @@ It does not run `clean` or rerun all dependency tasks. Coder, Reviewer and local
 integration perform the configured full suite and build gates. Evidence records
 fresh-test logs, configured tasks and elapsed seconds.
 
+Newly generated contracts use task-contract schema V3. Every verification case
+has a stable ID, a one-based acceptance-criterion reference, an evidence source,
+an exact test identity, and a pre-change classification:
+
+- `preserve` must pass before and after implementation;
+- `change` must fail before implementation with the approved exception type and
+  optional message fragment, then pass afterwards;
+- `observe` may record a previously uncertain boundary, but a failure is
+  accepted only when the contract declares its expected cause.
+
+Before product code changes, `record-red.sh TASK-ID` forces fresh focused Test
+execution and collects structured case results through a temporary Gradle init
+script. Missing, duplicate, skipped or undeclared cases, build failures, and any
+preserved behavior failure reject the preflight. Failed attempts remain under
+the task evidence directory; only a completely valid attempt creates immutable
+RED and test-manifest records. Those records bind the contract hash, execution
+baseline and test-only diff, so changing a RED test afterwards invalidates the
+quality gate. V1/V2 contracts already approved before upgrade retain the legacy
+explicit failure-text command.
+
 ## Baselines and recovery
 
 Before execution, changes to contract-relevant files or execution configuration

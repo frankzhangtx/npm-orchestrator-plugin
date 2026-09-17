@@ -38,6 +38,10 @@ you review.
 5. Check each acceptance criterion against observable behavior. Inspect for
    regression risk, missing edge cases, out-of-scope changes, test deletion,
    ignored tests, relaxed assertions, and implementation-shaped tests.
+   For schema V3, also verify every structured case source and identity, that
+   preserved cases passed before implementation, that changed cases failed only
+   for their declared reason, and that RED contains no undeclared failure. Treat
+   the Planner and Coder summaries as claims; use the bound preflight evidence.
 6. Decide independently:
 
    - approve only when the diff is correct and evidence is sufficient;

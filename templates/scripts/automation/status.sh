@@ -21,6 +21,8 @@ workspace_json="$(if [[ -f "$workspace_file" ]]; then jq -c . "$workspace_file";
 origin_json="$(if [[ -f "$origin_file" ]]; then jq -c . "$origin_file"; else printf 'null'; fi)"
 baseline_json="$(if [[ -f "$evidence_dir/baseline.json" ]]; then jq -c . "$evidence_dir/baseline.json"; else printf 'null'; fi)"
 red_json="$(if [[ -f "$evidence_dir/red.json" ]]; then jq -c . "$evidence_dir/red.json"; else printf 'null'; fi)"
+preflight_json="$(if [[ -f "$evidence_dir/test-preflight.json" ]]; then jq -c . "$evidence_dir/test-preflight.json"; else printf 'null'; fi)"
+manifest_json="$(if [[ -f "$evidence_dir/test-manifest.json" ]]; then jq -c . "$evidence_dir/test-manifest.json"; else printf 'null'; fi)"
 ready_json="$(if [[ -f "$evidence_dir/ready.json" ]]; then jq -c . "$evidence_dir/ready.json"; else printf 'null'; fi)"
 review_json="$(if [[ -f "$evidence_dir/review.json" ]]; then jq -c . "$evidence_dir/review.json"; else printf 'null'; fi)"
 gate_json=null
@@ -93,6 +95,8 @@ jq -n \
     --argjson origin "$origin_json" \
     --argjson baseline "$baseline_json" \
     --argjson red "$red_json" \
+    --argjson testPreflight "$preflight_json" \
+    --argjson testManifest "$manifest_json" \
     --argjson ready "$ready_json" \
     --argjson gate "$gate_json" \
     --argjson review "$review_json" \
@@ -118,6 +122,8 @@ jq -n \
         directory: $evidence,
         baseline: $baseline,
         red: $red,
+        testPreflight: $testPreflight,
+        testManifest: $testManifest,
         ready: $ready,
         latestGate: $gate,
         review: $review,

@@ -18,11 +18,11 @@ const expectedBaselineHashes = new Map([
   ],
   [
     "automation/task-contract.schema.json",
-    "a9a37446396b2583c95b72c8c21e23ba668aecbeb29b2bd25b2b6268a269c8a8",
+    "36790fbc41f05163f1d4f73e76b943467b7207ef62fff8b4838c45725cc162c6",
   ],
   [
     "automation/tasks/TASK-TEMPLATE.json.example",
-    "754f627040ee8e7ead08e8e5e1a4853564cae74e89732c600fde0fc390e4d07e",
+    "609de4849f1bb52fd1ba12714ea960f8cfb641840c8b8875a652f93527bd28a1",
   ],
   [
     "docs/plans/README.md",
@@ -192,7 +192,7 @@ test("keeps the render sources project-independent and Scheduler-free", () => {
   );
   assert.equal(
     contractSchema.$id,
-    "urn:frankzhang2026:opencode-android-orchestrator:task-contract:v2",
+    "urn:frankzhang2026:opencode-android-orchestrator:task-contract:v3",
   );
   assert.deepEqual(contractExample.allowedPaths, [
     "**/src/main/**",

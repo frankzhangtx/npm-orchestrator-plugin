@@ -62,6 +62,16 @@ approval. After approval, assemble a complete plan and contract in memory and
 call `android_orchestrator_intake` with action `draft`; do not create files in the
 product checkout. Preserve the snapshot's target branch and planningHead.
 
+Use schema V3 structured verification. Give every verification case a stable ID,
+its one-based acceptance-criterion reference, its source, and its exact test
+identity. Classify preserved behavior as `before: pass`, changed behavior as
+`before: fail`, and an uncertain old boundary as `before: observe`. Do not infer
+exact serializer, parser, locale, date or framework output from declarations or
+memory. For preserved behavior, use an existing trusted test or explicitly mark
+the value for baseline capture. Plan examples are implementation guidance and
+must not add requirements beyond the contract. Check acceptance criteria,
+non-goals and verification expectations for contradictions before drafting.
+
 When the draft does not specify a workspace or commit policy, use the values in
 `automation/config.json`; new installations configure `inPlaceExclusive` and
 `humanApproval`. A user may explicitly override the commit policy to

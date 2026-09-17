@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "urn:frankzhang2026:opencode-android-orchestrator:task-contract:v2",
+  "$id": "urn:frankzhang2026:opencode-android-orchestrator:task-contract:v3",
   "title": "Scheduled coding task contract",
   "type": "object",
   "additionalProperties": false,
@@ -14,6 +14,63 @@
       "type": "string",
       "minLength": 1,
       "pattern": "^[A-Za-z0-9_.#$*-]+$"
+    },
+    "expectedFailure": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type", "origin"],
+      "properties": {
+        "type": { "type": "string", "minLength": 1 },
+        "messageIncludes": { "type": "string", "minLength": 3 },
+        "origin": { "type": "string", "minLength": 12 }
+      }
+    },
+    "verificationCase": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "criterion", "intent", "before", "after", "source", "test"],
+      "properties": {
+        "id": { "type": "string", "pattern": "^[A-Z][A-Z0-9-]{2,63}$" },
+        "criterion": { "type": "integer", "minimum": 1 },
+        "intent": { "enum": ["preserve", "change", "observe"] },
+        "before": { "enum": ["pass", "fail", "observe"] },
+        "after": { "const": "pass" },
+        "source": { "enum": ["userRequirement", "existingTest", "baselineCapture", "measuredFact"] },
+        "test": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["target", "className", "name"],
+          "properties": {
+            "target": { "type": "integer", "minimum": 0 },
+            "className": { "type": "string", "minLength": 1 },
+            "name": { "type": "string", "minLength": 1 }
+          }
+        },
+        "expectedFailure": { "$ref": "#/$defs/expectedFailure" }
+      },
+      "allOf": [
+        {
+          "if": { "properties": { "intent": { "const": "preserve" } } },
+          "then": {
+            "properties": {
+              "before": { "const": "pass" },
+              "source": { "enum": ["existingTest", "baselineCapture", "measuredFact"] }
+            },
+            "not": { "required": ["expectedFailure"] }
+          }
+        },
+        {
+          "if": { "properties": { "intent": { "const": "change" } } },
+          "then": {
+            "properties": { "before": { "const": "fail" }, "source": { "const": "userRequirement" } },
+            "required": ["expectedFailure"]
+          }
+        },
+        {
+          "if": { "properties": { "intent": { "const": "observe" } } },
+          "then": { "properties": { "before": { "const": "observe" } } }
+        }
+      ]
     }
   },
   "required": [
@@ -32,10 +89,11 @@
     "nonGoals",
     "targetTests",
     "deviceTestsRequired",
-    "testPolicy"
+    "testPolicy",
+    "verification"
   ],
   "properties": {
-    "schemaVersion": { "const": 2 },
+    "schemaVersion": { "const": 3 },
     "id": { "type": "string", "pattern": "^TASK-[A-Z0-9-]+$" },
     "title": { "type": "string", "minLength": 1 },
     "designApproved": { "const": true },
@@ -87,6 +145,20 @@
     },
     "deviceTestsRequired": { "type": "boolean" },
     "testPolicy": { "enum": ["required", "not-required"] },
-    "testPolicyReason": { "type": "string" }
+    "testPolicyReason": { "type": "string" },
+    "verification": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["version", "maxPreparationFixes", "cases"],
+      "properties": {
+        "version": { "const": 1 },
+        "maxPreparationFixes": { "type": "integer", "minimum": 0, "maximum": 1 },
+        "cases": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "$ref": "#/$defs/verificationCase" }
+        }
+      }
+    }
   }
 }
