@@ -1,9 +1,10 @@
 import { tool, type ToolContext, type ToolDefinition } from "@opencode-ai/plugin";
 import { resolve } from "node:path";
+import { gradleBuildRoot } from "../installer/project-capabilities.js";
 import { installationDoctorChecks } from "../doctor/index.js";
 import { invariant } from "./storage.js";
 import { ApprovalLedger } from "./approvals.js";
-import { TaskQueue, type DraftInput, type JobKind } from "./queue.js";
+import { TaskQueue, publicRun, type DraftInput, type JobKind } from "./queue.js";
 import { serviceStatus, startService, stopService, wakeService } from "./service.js";
 
 export const QUEUE_TOOL_NAMES = ["android_orchestrator_snapshot", "android_orchestrator_intake", "android_orchestrator_queue"] as const;
@@ -79,7 +80,7 @@ export function createQueueTools(worktree: string, approvals = new ApprovalLedge
         if (args.action === "status") {
           if (args.key) return JSON.stringify(queue.details(args.key));
           const document = queue.storage.read();
-          return JSON.stringify({ service: serviceStatus(queue), paused: document.paused, fault: document.fault, active: document.active,
+          return JSON.stringify({ service: serviceStatus(queue), paused: document.paused, fault: document.fault, active: publicRun(document.active),
             items: document.items.map(({ key, taskId, state, waitingReason, workspaceStrategy, commitPolicy, targetBranch, taskRoot, dependsOn, sealedDiff, candidateId, completedCommit }) => ({ key, taskId, state, waitingReason, workspaceStrategy, commitPolicy, targetBranch, taskRoot, dependsOn, sealedDiff, candidateId, completedCommit, pushed: false })),
             notifications: document.notifications.filter(notification => !notification.acknowledged) });
         }
@@ -132,6 +133,8 @@ export function guardExecutorCommand(input: { tool: string }, output: { args: un
   if (gradle.test(command)) {
     invariant(directory, "Gradle execution requires the recorded project configuration");
     const config = new TaskQueue(directory).config();
+    invariant(gradleBuildRoot(config, directory) === resolve(directory),
+      "Nested builds must use the managed verification scripts, which select the recorded Gradle root");
     const allowed = Object.values(config.gradleVerification).flat();
     const arguments_ = command.slice("./gradlew ".length).split(" ");
     for (let index = 0; index < arguments_.length; index += 1) {

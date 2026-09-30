@@ -63,7 +63,13 @@ run_agent() {
     return "$exit_code"
 }
 
-for _step in 1 2 3 4 5 6 7 8; do
+# Each review correction consumes four transitions: resume, code, begin review,
+# and review. Include the initial three transitions, budget-exhaustion
+# transition, and the final state check.
+# The bound must agree with the approved number of review correction cycles.
+max_review_cycles="$(automation_config_value '.maxReviewCycles')"
+max_steps=$((4 * (max_review_cycles + 1) + 1))
+for ((_step = 0; _step < max_steps; _step++)); do
     if [[ -n "${AUTOMATION_QUEUE_RUN_ID:-}" ]] && jq -e --arg id "$task_id" \
         'any(.items[]; .taskId == $id and .request.kind == "abort")' \
         "$AUTOMATION_RUNTIME_ROOT/inbox/queue.json" >/dev/null; then

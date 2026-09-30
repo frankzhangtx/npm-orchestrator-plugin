@@ -55,6 +55,9 @@ source_root="$(cd "$source_root" && pwd -P)"
 git -C "$source_root" show-ref --verify --quiet "refs/heads/$original_branch" || automation_die "recorded original branch no longer exists"
 [[ "$(git -C "$source_root" rev-parse "refs/heads/$original_branch")" == "$baseline_head" ]] || automation_die "original branch drifted after task preparation"
 
+if [[ "$(jq -r '.schemaVersion' "$(automation_contract_path "$task_id")")" == "4" && -e "$evidence_dir/baseline.json" ]]; then
+    automation_die "V4 baseline.json already exists; /resume-task cannot retry inventory capture. Inspect the retained attempt, request approved abort/archive, then approve a new task; do not delete or overwrite baseline evidence."
+fi
 for sealed_evidence in baseline.json red.json ready.json review.json reviews.jsonl; do
     [[ ! -e "$evidence_dir/$sealed_evidence" ]] || \
         automation_die "$sealed_evidence already exists; baseline-only recovery is forbidden"

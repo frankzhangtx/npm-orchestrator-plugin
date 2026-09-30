@@ -6,6 +6,7 @@ import { TaskQueue, type QueueRun } from "./queue.js";
 import { atomicJson, fileLock, invariant, isAlive, processIdentity, readJson, recoverLock, type ProcessIdentity } from "./storage.js";
 import { helper, QueueExecutor } from "./executor.js";
 import { androidSdkCandidate } from "../config/android-sdk.js";
+import { gradleBuildRoot } from "../installer/project-capabilities.js";
 
 const entry = fileURLToPath(new URL("./cli.js", import.meta.url));
 
@@ -59,23 +60,37 @@ export async function runWorker(queue: TaskQueue, runId: string): Promise<void> 
   let run: QueueRun | null = null;
   queue.storage.transaction(document => {
     invariant(document.active?.id === runId && document.active.worker === null, "Execution is missing, already started, or belongs to another worker");
+    if (document.active.supervision) {
+      invariant(document.active.supervision.state === "RUNNING" && document.active.supervision.owner && isAlive(document.active.supervision.owner), "Approved Worker supervisor is not running");
+      invariant(process.env.AUTOMATION_WORKER_TOKEN === document.active.supervision.token, "Supervised Worker ownership token is missing");
+    }
     document.active.worker = owner;
     run = structuredClone(document.active);
   });
   invariant(run, "Execution reservation is missing");
+  if (process.env.AUTOMATION_WORKER_TOKEN) {
+    // Supervised builds must not reuse or stop another task's shared daemon.
+    process.env.GRADLE_OPTS = `${process.env.GRADLE_OPTS ?? ""} -Dorg.gradle.daemon=false`.trim();
+  }
   // Resolve on the source root before entering an isolated worktree. Its
   // ignored local.properties is deliberately never copied into task workspaces.
-  const sdk = androidSdkCandidate(queue.storage.root);
+  const sdk = androidSdkCandidate(gradleBuildRoot(queue.config(), queue.storage.root));
   if (sdk) process.env.ANDROID_HOME = sdk.directory;
   await new QueueExecutor(queue, run).execute();
 }
 
 /** Reconcile persisted outcomes before consuming; a wake carries no authority. */
 export function dispatchOnce(queue: TaskQueue): QueueRun | null {
+  const active = queue.storage.read().active;
+  if (active?.supervision && !["EXITED", "OWNERSHIP_BLOCKED"].includes(active.supervision.state) &&
+    (!active.supervision.owner || !isAlive(active.supervision.owner))) {
+    detach(queue, ["_supervise", active.id], `supervisor-${active.id}.log`);
+    return null;
+  }
   queue.reconcile();
   releaseStoppedLeases(queue);
   const run = queue.reserve();
-  if (run) detach(queue, ["_worker", run.id], `executor-${run.id}.log`);
+  if (run) detach(queue, [run.supervision ? "_supervise" : "_worker", run.id], `executor-${run.id}.log`);
   return run;
 }
 
@@ -127,6 +142,8 @@ export async function serve(queue: TaskQueue): Promise<void> {
       }
       if (stopped) break;
       const deadlines = queue.storage.read().items.filter(item => item.state === "QUEUED" && item.notBefore).map(item => Date.parse(item.notBefore!) - Date.now()).filter(delay => delay > 0);
+      deadlines.push(...queue.storage.read().items.filter(item => item.state === "BLOCKED" && item.baselineRecovery?.nextRunAt != null)
+        .map(item => item.baselineRecovery!.nextRunAt! - Date.now()).filter(delay => delay > 0));
       const delay = Math.max(50, Math.min(interval, ...deadlines));
       await new Promise<void>(done => {
         const timer = setTimeout(() => { wake = null; done(); }, delay);

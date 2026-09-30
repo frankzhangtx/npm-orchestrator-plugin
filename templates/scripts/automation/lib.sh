@@ -109,14 +109,14 @@ automation_validate_config() {
         def gradle_task:
             type == "string" and
             test("^(?:[A-Za-z][A-Za-z0-9_.-]*|(?::[A-Za-z0-9_.-]+)+)$");
-        def gradle_task_list:
+        def optional_gradle_task_list:
             type == "array" and
-            length > 0 and
             length == (unique | length) and
             all(.[]; gradle_task);
+        def gradle_task_list:
+            optional_gradle_task_list and length > 0;
         (.schemaVersion == 5 or .schemaVersion == 6) and
         ((.commitPolicy // "humanApproval") == "humanApproval" or .commitPolicy == "autoCommit") and
-        (.workspaceStrategy != "isolatedWorktree" or (.commitPolicy // "humanApproval") == "humanApproval") and
         (.enabled | type == "boolean") and
         (.mode == "shadow" or .mode == "orchestrated") and
         (.workspaceStrategy == "inPlaceExclusive" or .workspaceStrategy == "isolatedWorktree") and
@@ -149,8 +149,9 @@ automation_validate_config() {
             ($verification.fullUnitTestTasks | gradle_task_list) and
             ($verification.focusedTestTasks | gradle_task_list) and
             ($verification.assembleTasks | gradle_task_list) and
-            ($verification.lintTasks | gradle_task_list) and
-            ($verification.deviceTestTasks | gradle_task_list)) and
+            ($verification.lintTasks | optional_gradle_task_list) and
+            ($verification.deviceTestTasks | optional_gradle_task_list)) and
+        ((.lintEnabled | not) or (.gradleVerification.lintTasks | length > 0)) and
         (.androidProject as $project |
             ($project | type == "object") and
             ($project.name | type == "string" and length > 0) and
@@ -163,16 +164,19 @@ automation_validate_config() {
                 (.directory | repository_path) and
                 (.buildFile | repository_path) and
                 (.dsl == "kotlin" or .dsl == "groovy") and
-                (.type == "application" or .type == "library" or .type == "dynamic-feature" or .type == "test" or .type == "asset-pack") and
+                (.type == "application" or .type == "library" or .type == "dynamic-feature" or .type == "test" or .type == "asset-pack" or ($project.capabilities.version == 1 and .type == "jvm-library")) and
                 (.namespace == null or (.namespace | type == "string" and length > 0)) and
                 (.applicationId == null or (.applicationId | type == "string" and length > 0)))) and
             any($project.modules[]; .gradlePath == $project.primaryModule) and
             ($project.productionPaths | type == "array" and length > 0 and all(.[];
-                repository_path and test("(^|/)src/main/\\*\\*$"))) and
+                repository_path and ($project.capabilities.version == 1 or test("(^|/)src/main/\\*\\*$")))) and
             ($project.testPaths | type == "array" and length > 0 and all(.[];
-                repository_path and test("(^|/)src/(?:test|androidTest)/\\*\\*$")))) and
+                repository_path and ($project.capabilities.version == 1 or test("(^|/)src/(?:test|androidTest)/\\*\\*$"))))) and
         (.protectedPaths | type == "array" and length > 0 and all(.[]; repository_path))
     ' "$AUTOMATION_CONFIG" >/dev/null || automation_die "automation/config.json is invalid"
+    if jq -e '.androidProject | has("capabilities")' "$AUTOMATION_CONFIG" >/dev/null; then
+        node "$AUTOMATION_ROOT/automation/verification/project.cjs" "$AUTOMATION_CONFIG" "$AUTOMATION_ROOT" || automation_die "Android capability snapshot is invalid"
+    fi
 }
 
 automation_require_orchestrated() {
@@ -250,7 +254,7 @@ automation_require_queue_execution() {
         return 1
     }
     if ! worker_pid="$(jq -er --arg key "$queue_key" --arg run "$AUTOMATION_QUEUE_RUN_ID" \
-        'select(.active.key == $key and .active.id == $run) | .active.worker.pid' \
+        'select(.active.key == $key and .active.id == $run and (.active.supervision == null or .active.supervision.state == "RUNNING")) | .active.worker.pid' \
         "$AUTOMATION_RUNTIME_ROOT/inbox/queue.json")"; then
         automation_die "current process does not own this task queue execution"
         return 1
@@ -414,14 +418,26 @@ automation_gradle_group_command_json() {
     automation_validate_config || return 1
     jq -ce \
         --arg group "$group" \
-        '["./gradlew"] + .gradleVerification[$group]' \
+        --arg supervised "${AUTOMATION_WORKER_TOKEN:+yes}" \
+        '["./gradlew"] + .gradleVerification[$group] + (if $supervised == "yes" then ["--no-daemon"] else [] end)'  \
         "$AUTOMATION_CONFIG"
+}
+
+# Keep Git/scope/evidence operations at the repository root. Only Gradle changes
+# cwd, resolving the persisted relative build selection in the current worktree.
+automation_gradle_build_root() {
+    local root="${1:-$AUTOMATION_ROOT}"
+    if jq -e '.androidProject.capabilities != null' "$AUTOMATION_CONFIG" >/dev/null; then
+        node "$AUTOMATION_ROOT/automation/verification/project.cjs" "$AUTOMATION_CONFIG" "$root" --build-root
+    else
+        printf '%s\n' "$root"
+    fi
 }
 
 automation_run_gradle_group() {
     local group="$1"
     local root="${2:-$AUTOMATION_ROOT}"
-    local task
+    local task build_root
     local -a tasks=()
 
     automation_validate_gradle_group "$group" || return 1
@@ -440,8 +456,10 @@ automation_run_gradle_group() {
         return $?
     fi
     (
-        cd "$root"
-        ./gradlew "${tasks[@]}"
+        local build_root
+        build_root="$(automation_gradle_build_root "$root")" || exit 1
+        cd "$build_root" || exit 1
+        ./gradlew "${tasks[@]}" ${AUTOMATION_WORKER_TOKEN:+--no-daemon}
     )
 }
 
@@ -451,7 +469,7 @@ automation_run_gradle_group() {
 automation_run_fresh_unit_tests() {
     local root="$1"
     shift
-    local init_file log_file result elapsed start
+    local init_file log_file result elapsed start build_root
     mkdir -p "$AUTOMATION_RUNTIME_ROOT/gradle"
     init_file="$(mktemp "$AUTOMATION_RUNTIME_ROOT/gradle/fresh-tests.XXXXXX")"
     log_file="${init_file}.log"
@@ -481,7 +499,7 @@ gradle.taskGraph.afterTask { task, state ->
 GRADLE
     start="$(date +%s)"
     set +e
-    (cd "$root" && ./gradlew "$@" --no-configuration-cache --console=plain --init-script "$init_file") 2>&1 | tee "$log_file"
+    (build_root="$(automation_gradle_build_root "$root")" && cd "$build_root" && ./gradlew "$@" ${AUTOMATION_WORKER_TOKEN:+--no-daemon} --no-configuration-cache --console=plain --init-script "$init_file") 2>&1 | tee "$log_file"
     result=${PIPESTATUS[0]}
     set -e
     elapsed=$(( $(date +%s) - start ))
@@ -522,10 +540,14 @@ automation_run_configured_unit_tests() {
         return 0
     fi
 
+    if [[ "$(jq -r '.schemaVersion' "$contract")" -ge "4" ]]; then
+        automation_run_inventory green "$(jq -er '.id' "$contract")" "$root" || return 1
+    else
     while IFS=$'\t' read -r gradle_task filter; do
         automation_info "running ${context}focused test ($gradle_task): $filter"
         automation_run_focused_test "$gradle_task" "$filter" "$root"
     done < <(jq -r '.targetTests[] | [.gradleTask, .filter] | @tsv' "$contract")
+    fi
 
     automation_info "running ${context}full unit tests"
     automation_run_gradle_group "fullUnitTestTasks" "$root"
@@ -561,8 +583,10 @@ automation_run_focused_test() {
         }
 
     (
-        cd "$root"
-        ./gradlew "$task" --tests "$filter"
+        local build_root
+        build_root="$(automation_gradle_build_root "$root")" || exit 1
+        cd "$build_root" || exit 1
+        ./gradlew "$task" --tests "$filter" ${AUTOMATION_WORKER_TOKEN:+--no-daemon}
     )
 }
 
@@ -575,7 +599,7 @@ automation_run_classified_focused_test() {
     local root="$3"
     local result_file="$4"
     local log_file="$5"
-    local init_file status
+    local init_file status build_root
 
     automation_validate_config || return 1
     automation_validate_gradle_task "$task" || return 1
@@ -644,7 +668,7 @@ gradle.allprojects { project ->
 GRADLE
 
     set +e
-    (cd "$root" && ./gradlew "$task" --tests "$filter" \
+    (build_root="$(automation_gradle_build_root "$root")" && cd "$build_root" && ./gradlew "$task" --tests "$filter" ${AUTOMATION_WORKER_TOKEN:+--no-daemon} \
         --no-configuration-cache --console=plain --init-script "$init_file" \
         "-Dorchestrator.caseResultFile=$result_file") 2>&1 | tee "$log_file"
     status=${PIPESTATUS[0]}
@@ -672,6 +696,24 @@ automation_test_diff_sha() {
         done < <(automation_product_changed_paths_at "$task_id" "$root")
         [[ "$tracked" == "1" ]] || printf 'NO-TEST-CHANGES'
     } | shasum -a 256 | awk '{print $1}'
+}
+
+automation_run_inventory() {
+    local phase="$1" task_id="$2" root="${3:-$AUTOMATION_ROOT}"
+    node "$AUTOMATION_ROOT/automation/verification/inventory.cjs" "$phase" \
+        "$(automation_contract_path "$task_id")" "$AUTOMATION_CONFIG" "$root" "$(automation_evidence_path "$task_id")"
+}
+
+# Discovery only classifies evidence inputs. Scope gates still enforce the
+# approved paths, forbidden paths, protected files and the file-count limit.
+automation_is_task_test_path() {
+    local task_id="$1" path="$2"
+    if [[ "$(jq -r '.schemaVersion' "$(automation_contract_path "$task_id")")" -ge "4" ]]; then
+        node "$AUTOMATION_ROOT/automation/verification/inventory.cjs" is-test \
+            "$(automation_evidence_path "$task_id")/baseline-inventory.json" "$AUTOMATION_CONFIG" "$AUTOMATION_ROOT" "$path"
+    else
+        automation_array_matches_path "$AUTOMATION_CONFIG" '.androidProject.testPaths' "$path"
+    fi
 }
 
 automation_require_approval() {

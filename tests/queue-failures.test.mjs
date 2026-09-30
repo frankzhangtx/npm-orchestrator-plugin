@@ -23,16 +23,43 @@ test("cached-only full tests cannot authorize an automatic commit or release the
   } finally { f.cleanup(); }
 });
 
-test("failed OpenCode processes pause the repository while preserving workspace and accepting new contracts", { timeout: 60000 }, async () => {
+test("failed OpenCode processes retain the fixed workspace without inventing a shared fault", { timeout: 60000 }, async () => {
   const f = fixture();
   try {
     writeFileSync(join(f.bin, 'opencode'), '#!/bin/sh\necho "AuthenticationError: provider rejected credentials" >&2\nexit 7\n');
     enqueue(f, 'TASK-A');
     const failed = await run(f);
     assert.equal(failed.item.state, 'BLOCKED', failed.output);
-    assert.match(f.queue.storage.read().fault, /exited with 7/);
+    assert.equal(f.queue.storage.read().fault, null);
+    assert.match(failed.item.waitingReason, /exited with 7/);
     enqueue(f, 'TASK-B');
     assert.equal(f.queue.reserve(), null);
+    assert.equal(existsSync(failed.item.taskRoot), true);
+  } finally { f.cleanup(); }
+});
+
+test("isolated agent failure preserves A, allows B integration, and keeps C waiting for A", { timeout: 180000 }, async () => {
+  const f = fixture({ workspaceStrategy: "isolatedWorktree" });
+  try {
+    const agent = readFileSync(join(f.bin, "opencode"), "utf8");
+    writeFileSync(join(f.bin, "opencode"), '#!/bin/sh\necho "unclassified agent error" >&2\nexit 7\n');
+    const baseline = command(f.root, ["rev-parse", "main"]);
+    enqueue(f, "TASK-A"); enqueue(f, "TASK-B"); enqueue(f, "TASK-C", { dependsOn: ["TASK-A"] });
+    const failed = await run(f);
+    assert.equal(failed.item.state, "BLOCKED", failed.output);
+    assert.equal(f.queue.storage.read().fault, null);
+    assert.equal(existsSync(join(f.queue.storage.runtime, "evidence/TASK-A/queue-seal.json")), true);
+    writeFileSync(join(f.bin, "opencode"), agent);
+    const b = await run(f);
+    assert.equal(b.item.taskId, "TASK-B");
+    assert.equal(b.item.state, "AWAITING_HUMAN", b.output);
+    f.queue.request("TASK-B", "integrate", f.config.approvalPhrases.acceptance, b.item.candidateId);
+    const completed = await run(f);
+    assert.equal(completed.item.state, "COMPLETED", completed.output);
+    assert.equal(command(f.root, ["rev-list", "--count", `${baseline}..main`]), "1");
+    assert.equal(f.queue.reserve(), null);
+    assert.match(f.queue.item("TASK-C").waitingReason, /dependency TASK-A/);
+    assert.equal(f.queue.item("TASK-A").state, "BLOCKED");
     assert.equal(existsSync(failed.item.taskRoot), true);
   } finally { f.cleanup(); }
 });

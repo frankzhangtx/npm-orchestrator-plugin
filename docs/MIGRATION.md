@@ -1,18 +1,19 @@
 # Migration guide
 
 This guide covers migration to
-`@frankzhang2026/opencode-android-orchestrator@1.0.5`. Pin the exact version and
+`@frankzhang2026/opencode-android-orchestrator@1.1.0`. Pin the exact version and
 prove the migration in a disposable clone before changing a long-lived
-repository.
+repository. npm publication of 1.1.0 is pending; use the pinned Registry
+commands below only after publication.
 
 ## Choose the migration path
 
 | Current state | Correct command after release | Important distinction |
 | --- | --- | --- |
-| No orchestrator files or manifest | `npx @frankzhang2026/opencode-android-orchestrator@1.0.5 init .` | Normal new installation; all runtime-detected Android modules and registered debug verification tasks are discovered automatically. |
+| No orchestrator files or manifest | `npx @frankzhang2026/opencode-android-orchestrator@1.1.0 init .` | Normal new installation; all runtime-detected Android modules and registered debug verification tasks are discovered automatically. |
 | Published `0.1.0` scaffold only | Remove any project-local `@0.1.0` plugin reference after review, then run `init`. | `0.1.0` did not create a usable managed installation and cannot be upgraded. |
-| `0.2.0` through `0.10.0` manifest-managed installation with intact managed/backup content | Run the `1.0.5` `upgrade`; add `--refresh-gradle-discovery` when generated module/task lists are incomplete. | Refresh replaces all derived module metadata, source paths, protected build files, and task allowlists from one Gradle runtime snapshot. Module scope, operator policies, user-owned AGENTS content, and an existing commit-prefix sidecar remain preserved. |
-| Healthy `1.0.0` through `1.0.4` installation | Stop the queue service, finish or abort retained workspaces, then run the fixed `1.0.5` `upgrade`. | Pending inbox contracts remain durable. Version 1.0.5 adds schema V3 contracts and rejects RED evidence containing preserved-behavior or undeclared failures; older approved contracts retain their legacy flow. |
+| `0.2.0` through `0.10.0` manifest-managed installation with intact managed/backup content | Run the `1.1.0` `upgrade`; add `--refresh-gradle-discovery` when generated module/task lists are incomplete. | Refresh replaces all derived module metadata, source paths, protected build files, and task allowlists from one Gradle runtime snapshot. Module scope, operator policies, user-owned AGENTS content, and an existing commit-prefix sidecar remain preserved. |
+| Healthy `1.0.0` through `1.0.5` installation | Stop the queue service, finish or abort retained workspaces, then run the fixed `1.1.0` `upgrade`. | Pending inbox contracts remain durable. Version 1.1.0 adds V4 test inventories, opt-in V5-V8 recovery/continuity and Android build capabilities; older approved contracts retain their authority. |
 | Manually copied V3 files, no `.automation-plugin/manifest.json` | Finish active tasks, preserve historical evidence separately, then run `init`. | Exact files can be reused; differing managed files fail as conflicts. |
 | Healthy older manifest-managed installation | Run `doctor`, then the fixed target version's `upgrade`. | `upgrade` requires a valid installed manifest and intact original backups. |
 | Healthy current-version manifest | Run `doctor`; repeated `init` or same-version `upgrade` is verification-only and byte-idempotent. | Do not reinstall or delete the manifest. |
@@ -58,7 +59,7 @@ installation of `0.1.0` alone does not require project-file cleanup.
 After release, initialize with the fixed version:
 
 ```sh
-npx @frankzhang2026/opencode-android-orchestrator@1.0.5 init .
+npx @frankzhang2026/opencode-android-orchestrator@1.1.0 init .
 ```
 
 New installations default to all-module scope, so multiple application modules
@@ -106,7 +107,7 @@ Use the lifecycle command selected by the active manifest:
 
 ```sh
 npx --yes --registry=https://registry.npmjs.org/ \
-  @frankzhang2026/opencode-android-orchestrator@1.0.5 upgrade . --json
+  @frankzhang2026/opencode-android-orchestrator@1.1.0 upgrade . --json
 ```
 
 The command-level Registry option is useful when a company-wide npm Registry
@@ -136,7 +137,7 @@ computed includes dynamically or a company convention plugin applied
 
 ```sh
 npx --yes --registry=https://registry.npmjs.org/ \
-  @frankzhang2026/opencode-android-orchestrator@1.0.5 upgrade . \
+  @frankzhang2026/opencode-android-orchestrator@1.1.0 upgrade . \
   --refresh-gradle-discovery --json
 ```
 
@@ -220,7 +221,7 @@ use the queue rather than the old direct Shell commands. See [Queue operation](Q
 Run all checks from the detected Git root:
 
 ```sh
-npx @frankzhang2026/opencode-android-orchestrator@1.0.5 doctor .
+npx @frankzhang2026/opencode-android-orchestrator@1.1.0 doctor .
 opencode debug config
 opencode debug skill
 opencode debug agent scheduled-planner
@@ -248,6 +249,19 @@ Verify all of the following before switching normal work to the plugin:
 Complete one small task in a disposable project before accepting the migration
 for a long-lived repository.
 
+## 1.1.0 continuity fixes
+
+Upgrade managed scripts and the packaged executor together after resolving
+active/retained tasks through the existing lifecycle checks. Review recovery
+keeps the existing approval, RED/GREEN and sealed-diff protocol. No contract
+or approval schema changes and no automatic retries are introduced.
+
+Existing verification matrices remain valid. Rediscovery may record absent
+lint/device capabilities as empty arrays; existing required checks are not
+disabled automatically. Enabling missing lint or requiring missing device
+tasks is an explicit validation failure. Old managed AGENTS blocks are
+replaced through the normal manifest-checked upgrade workflow.
+
 ## Rollback
 
 - A failed `init` automatically restores pre-install files before reporting
@@ -268,3 +282,90 @@ for a long-lived repository.
 
 See [Troubleshooting](TROUBLESHOOTING.md) for failure-specific diagnostics and
 [Security](SECURITY.md) before sharing recovery evidence.
+
+## 1.1.0 V5 baseline recovery
+
+Version 1.1.0 adds a task-contract protocol, not an automatic
+migration of existing approvals. V3 and V4 contracts retain their existing
+verification and recovery behavior; V4 still cannot resume inventory capture
+once its `baseline.json` exists. New V5 tasks require a newly reviewed contract
+with explicit baseline-only retry counts, backoff and elapsed window. Do not
+edit queued contracts or translate old baseline evidence into checkpoints.
+
+The package includes `automation/verification/recovery.cjs`, the shared V4/V5
+validator/schema, queue scheduling and matching agent instructions. Upgrade
+only with stopped service and no retained active workspace using a newly
+versioned development/release package; the existing same-version installer is
+verification-only. The published 1.0.5 package does not acquire these changes
+from this documentation. Preserve pending approvals and historical evidence;
+any scope or recovery-policy change requires a new draft and approval.
+
+Validate installation, doctor, upgrade and packaging with the entire managed
+file inventory. Never copy a new recovery script alone into an existing
+installation or alter manifest hashes. No remote publication is part of this
+change. See QUEUE.md for policy fields and the process-interruption limitation.
+
+## 1.1.0 V6 Worker termination
+
+Only new V6 approvals with an `execution` policy enable automatic TERM/KILL.
+Existing V5 contracts keep baseline recovery without Worker termination;
+V1..V4 also retain their original behavior. There is no in-place rewriting of
+queued approvals. Stop the service and finish or archive retained workspaces
+before upgrading using a newly versioned package; same-version verification
+still does not apply development templates. The supervisor ships in compiled
+queue code and uses the existing managed validator/schema and Shell resources.
+No separate system service or extra managed resource is installed. Validate
+contract schema, installer, doctor, queue, recovery and package contents together.
+
+
+## 1.1.0 V7 stage verification recovery
+
+V7 requires new approval of `stageRecovery` plus the V5 baseline and V6 Worker
+policies. Existing contracts and the V4 example remain unchanged. RED/GREEN/
+Reviewer verification commands can retry identified environment failures within
+separate persisted budgets; model/provider calls and integration are unchanged.
+Recovery logic extends the existing managed recovery.cjs. Version 1.1.0 has
+52 managed resources, including the Android project capability validator.
+Upgrade with 1.1.0 after publication; same-version upgrade does not refresh
+managed templates. See the V7 policy and retained-evidence workflow in QUEUE.md.
+
+
+## Android project capability snapshot (1.1.0)
+
+Nested builds are selected explicitly by initializing from their Gradle settings
+directory, such as `init /path/to/repo/android`. Discovery records
+`buildRoot: "android"`; installation files and the queue remain at the Git root. Run doctor,
+upgrade and managed scripts from that Git root. Upgrade reuses this selection,
+including `--refresh-gradle-discovery`; it does not search sibling builds.
+An existing root installation is not silently retargeted to a nested build.
+This behavior is included in 1.1.0 source; a same-version upgrade does not
+install changed templates.
+
+Fresh runtime discovery records `androidProject.capabilities` version 1 with
+portable module/build-file paths, source sets, direct project-dependency edges
+and verification tasks. Android-reachable JVM libraries are selected transitively.
+All local Test tasks and production assemble variants remain required, so changing
+a dependency also verifies its Android consumers. There is no minimal affected-set
+scheduler. Taskless/disabled variants are not a coverage claim.
+
+The new protected `automation/verification/project.cjs` resource brings the
+managed inventory to 52. Installation, doctor and Shell use this same validator.
+An upgrade preserves an existing snapshot without rerunning Gradle; a legacy
+installation retains its legacy source/matrix semantics. Build-layout changes
+require fresh discovery and reviewed configuration regeneration, not manual
+snapshot edits during an approved task. Nested roots without a snapshot, composite builds,
+generated/external/symlink sources and production/test overlaps fail closed.
+
+npm publication of 1.1.0 is pending. A same-version upgrade remains
+verification-only and is not a template delivery mechanism.
+
+
+## 1.1.0 V8 isolated automatic integration
+
+Upgrade executable and managed templates together with a newly versioned package.
+Version 1.1.0 includes these resources; same-version upgrade is verification-only.
+Repository defaults may combine isolatedWorktree and autoCommit, but execution
+still requires a newly approved V8 contract with explicit continuity authority.
+Old queued tasks never inherit that permission. V8 planning snapshots are sealed
+with the draft; existing drafts cannot acquire them through in-place edits.
+See QUEUE.md for planning inputs, completed-queue refresh and recovery boundaries.

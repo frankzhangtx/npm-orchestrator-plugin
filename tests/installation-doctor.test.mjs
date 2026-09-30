@@ -68,7 +68,7 @@ function successfulCommandRunner(executable, args) {
   return commandResult(1, "", `unexpected command: ${executable}`);
 }
 
-function createInstalledFixture() {
+function createInstalledFixture(options = {}) {
   const root = mkdtempSync(join(tmpdir(), "orchestrator-installed-doctor-"));
   mkdirSync(join(root, ".git"));
   writeFixtureFile(
@@ -105,6 +105,7 @@ function createInstalledFixture() {
     preparedAt: "2026-08-24T10:00:00.000Z",
     installedAt: "2026-08-24T10:05:00.000Z",
     processRunner: successfulCommandRunner,
+    ...options,
   });
   writeFileSync(
     join(root, COMMIT_MESSAGE_PREFIX_RELATIVE_PATH),
@@ -129,6 +130,23 @@ function check(report, id) {
   assert.ok(result, `missing doctor check: ${id}`);
   return result;
 }
+
+test("installation and doctor accept unavailable optional verification capabilities", () => {
+  const { root } = createInstalledFixture({ gradleVerification: {
+    fullUnitTestTasks: [":mobile:testDemoDebugUnitTest"], focusedTestTasks: [":mobile:testDemoDebugUnitTest"],
+    assembleTasks: [":mobile:assembleDemoDebug"], lintTasks: [], deviceTestTasks: [],
+  } });
+  try {
+    const report = installedDoctor(root);
+    assert.equal(report.ok, true, formatDoctorReport(report));
+    assert.equal(check(report, "managed-configuration").status, "pass");
+    assert.doesNotMatch(readFileSync(join(root, "AGENTS.md"), "utf8"), /\.\/gradlew testDebugUnitTest/);
+    const config = JSON.parse(readFileSync(join(root, "automation/config.json"), "utf8"));
+    config.lintEnabled = true;
+    writeFileSync(join(root, "automation/config.json"), JSON.stringify(config, null, 2) + "\n");
+    assert.equal(check(installedDoctor(root), "managed-configuration").status, "fail");
+  } finally { rmSync(root, { recursive: true, force: true }); }
+});
 
 test("installed doctor validates dependencies, inventory, files, modes, backups, and configuration", () => {
   const { root } = createInstalledFixture();
@@ -332,7 +350,7 @@ test("installed doctor rejects a self-consistent manifest rewrite of a packaged 
     assert.equal(check(report, "installation-manifest").status, "fail");
     assert.match(
       check(report, "installation-manifest").details.join("\n"),
-      /does not match the packaged 1\.0\.5 template/,
+      /does not match the packaged 1\.1\.0 template/,
     );
     assert.equal(
       check(report, "managed-resources").status,
@@ -402,7 +420,7 @@ test("doctor CLI enables installation checks in JSON mode and exits unsuccessful
   }
 });
 
-test("installed doctor accepts bounded queue policy changes and rejects unsupported combinations", () => {
+test("installed doctor accepts isolated auto-commit configuration and rejects invalid queue policies", () => {
   const { root } = createInstalledFixture();
   try {
     const path = join(root, 'automation/config.json');
@@ -414,6 +432,11 @@ test("installed doctor accepts bounded queue policy changes and rejects unsuppor
     assert.equal(valid.checks.find(check => check.id === 'managed-configuration').status, 'pass', JSON.stringify(valid));
     assert.equal(valid.checks.find(check => check.id === 'managed-resources').status, 'pass', JSON.stringify(valid));
     config.commitPolicy = 'autoCommit';
+    writeFileSync(path, JSON.stringify(config, null, 2) + '\n');
+    const automatic = runDoctor({ targetDirectory: root, checkInstallation: true, checkDependencies: false });
+    assert.equal(automatic.checks.find(check => check.id === 'managed-configuration').status, 'pass', JSON.stringify(automatic));
+    // Task execution separately requires explicit V8 contract approval.
+    config.commitPolicy = 'unsupported';
     writeFileSync(path, JSON.stringify(config, null, 2) + '\n');
     const invalid = runDoctor({ targetDirectory: root, checkInstallation: true, checkDependencies: false });
     assert.equal(invalid.checks.find(check => check.id === 'managed-configuration').status, 'fail');
@@ -449,7 +472,7 @@ test("installed Planner tools consume real question-hook receipts and reject app
       planPath: 'docs/plans/TASK-RECEIPT-001.md',
       acceptanceCriteria: ['The approved behavior passes its regression test'],
       targetTests: [{ gradleTask: queue.config().gradleVerification.focusedTestTasks[0], filter: 'dev.doctor.RegressionTest' }],
-      verification: { version: 1, maxPreparationFixes: 1, cases: [{
+      verification: { version: 2, inventory: { mode: "focusedBaseline", existingSkips: "reject", emptyBaseline: "reject" }, maxPreparationFixes: 1, cases: [{
         id: 'REGRESSION-BEHAVIOR', criterion: 1, intent: 'change', before: 'fail', after: 'pass', source: 'userRequirement',
         test: { target: 0, className: 'dev.doctor.RegressionTest', name: 'approved regression behavior' },
         expectedFailure: { type: 'java.lang.AssertionError', origin: 'The approved regression assertion' },

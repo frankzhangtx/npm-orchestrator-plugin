@@ -1,6 +1,9 @@
+import { initialSupervision, supervisionEvidence, type Supervision, type ExecutionPolicy } from "./supervision.js";
+import { ownedTree, processSnapshot } from "./process-ownership.js";
 import type { ApprovalProof } from "./approvals.js";
 import { randomUUID } from "node:crypto";
 import { spawnSync } from "node:child_process";
+import { createRequire } from "node:module";
 import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import {
@@ -11,7 +14,7 @@ import { queuePolicy, type QueuePolicy } from "../config/queue-policy.js";
 
 export type WorkspaceStrategy = "inPlaceExclusive" | "isolatedWorktree";
 export type CommitPolicy = "humanApproval" | "autoCommit";
-export type JobKind = "execute" | "integrate" | "revalidate" | "resume" | "resume-review" | "abort" | "recover";
+export type JobKind = "execute" | "integrate" | "revalidate" | "resume" | "resume-review" | "abort" | "recover" | "retry-baseline";
 export interface QueueConfiguration {
   schemaVersion: number;
   enabled: boolean;
@@ -25,9 +28,10 @@ export interface QueueConfiguration {
   queue?: QueuePolicy["queue"];
   approvalPhrases: Record<string, string>;
   protectedPaths: string[];
-  gradleVerification: { fullUnitTestTasks: string[]; focusedTestTasks: string[]; assembleTasks: string[] };
+  gradleVerification: { fullUnitTestTasks: string[]; focusedTestTasks: string[]; assembleTasks: string[]; deviceTestTasks?: string[] };
 }
 export interface Draft {
+  planningInputsSha256?: string;
   proposalApproval?: ApprovalProof;
   key: string;
   taskId: string;
@@ -63,6 +67,8 @@ export interface QueueItem extends Draft {
   sealedRunId: string | null;
   candidateId: string | null;
   completedCommit: string | null;
+  baselineRecovery?: { sha256: string; nextRunAt: number | null; deadline: number; failure: Record<string, unknown> | null; waitingReason: string | null };
+  stageRecovery?: Record<string, { sha256: string }>;
 }
 export interface QueueRun {
   id: string;
@@ -72,6 +78,10 @@ export interface QueueRun {
   launcher: ProcessIdentity;
   worker: ProcessIdentity | null;
   outcome: { state: string; error: string | null } | null;
+  supervision?: Supervision;
+}
+export function publicRun(run: QueueRun | null): unknown {
+  return run ? { ...run, ...(run.supervision ? { supervision: supervisionEvidence(run.supervision) } : {}) } : null;
 }
 export interface QueueNotification {
   id: string; key: string; state: string; at: string; message: string;
@@ -147,6 +157,13 @@ export function matchesPath(pattern: string, path: string): boolean {
 }
 
 export function validateContract(contract: Record<string, unknown>, config: QueueConfiguration): void {
+  if ([4, 5, 6, 7, 8].includes(Number(contract.schemaVersion))) {
+    const validator = createRequire(import.meta.url)("../../templates/automation/verification/contract.cjs") as {
+      validateContract: (contract: Record<string, unknown>, config: QueueConfiguration) => void;
+    };
+    validator.validateContract(contract, config);
+    return;
+  }
   invariant(TASK_ID.test(String(contract.id)), "Invalid task ID");
   invariant([1, 2, 3].includes(Number(contract.schemaVersion)), "Unsupported contract schema");
   invariant(contract.designApproved === true && contract.ambiguityPolicy === "BLOCKED", "An approved, bounded design is required");
@@ -175,6 +192,8 @@ export function validateContract(contract: Record<string, unknown>, config: Queu
   const targetKeys = (contract.targetTests as Array<Record<string, unknown>>).map(target => `${target.gradleTask}\u0000${target.filter}`);
   invariant(new Set(targetKeys).size === targetKeys.length, "Focused test targets must be unique");
   invariant(typeof contract.deviceTestsRequired === "boolean", "Missing device-test policy");
+  invariant(!contract.deviceTestsRequired || (config.gradleVerification.deviceTestTasks?.length ?? 0) > 0,
+    "Device tests are required by this contract but no device test tasks are available");
   invariant(contract.testPolicy === "required" || (contract.testPolicy === "not-required" && typeof contract.testPolicyReason === "string" && contract.testPolicyReason.length >= 20), "Missing test policy");
   if (Number(contract.schemaVersion) === 3) {
     const verification = contract.verification;
@@ -240,8 +259,34 @@ export function draftFromItem(item: QueueItem): Draft {
   const { sequence: _sequence, approvedAt: _approvedAt, authorization: _authorization,
     state: _state, waitingReason: _waitingReason, runId: _runId, taskRoot: _taskRoot,
     request: _request, sealedDiff: _sealedDiff, sealedRunId: _sealedRunId, candidateId: _candidateId, completedCommit: _commit,
+    baselineRecovery: _baselineRecovery, stageRecovery: _stageRecovery,
     approvedWorkspaceStrategy, queuePriority: _priority, ...draft } = item;
   return { ...draft, workspaceStrategy: approvedWorkspaceStrategy };
+}
+
+export interface ContinuityPolicy {
+  version: 1;
+  isolatedAutoIntegration: boolean;
+  planningRefresh: "reject" | "completedQueueTasks";
+  planningInputs: string[];
+}
+
+export function continuityPolicy(contract: Record<string, unknown>): ContinuityPolicy | undefined {
+  return contract.schemaVersion === 8 ? contract.continuity as ContinuityPolicy : undefined;
+}
+
+export function isolatedAutoIntegrationAuthorized(item: Pick<Draft, "contract" | "workspaceStrategy" | "commitPolicy">): boolean {
+  return item.workspaceStrategy === "isolatedWorktree" && item.commitPolicy === "autoCommit" &&
+    continuityPolicy(item.contract)?.isolatedAutoIntegration === true;
+}
+
+export function planningInputsDigest(root: string, head: string, patterns: string[]): string {
+  const entries = gitBuffer(root, ["ls-tree", "-r", "-z", head]).toString("utf8").split("\0").filter(Boolean)
+    .filter(entry => patterns.some(pattern => matchesPath(pattern, entry.slice(entry.indexOf("\t") + 1))));
+  invariant(entries.every(entry => /^100(?:644|755) blob /.test(entry)), "Planning inputs must be regular tracked files, not symlinks or submodules");
+  // Paths, modes, object IDs and the selectors themselves bind additions,
+  // deletions and previously absent files without reading the Coder worktree.
+  return sha256(JSON.stringify({ version: 1, patterns, entries }));
 }
 
 export function assertAuthorized(item: QueueItem): void {
@@ -250,7 +295,9 @@ export function assertAuthorized(item: QueueItem): void {
   invariant(item.authorization.commitPolicy === item.commitPolicy && item.authorization.pushAfterAcceptance === false, "Invalid sealed commit or no-push authorization");
   invariant(sha256(item.contractText) === item.contractSha256 && sha256(item.plan) === item.planSha256, "Approved artifacts changed");
   invariant(JSON.stringify(JSON.parse(item.contractText)) === JSON.stringify(item.contract), "Contract text and metadata disagree");
-  invariant(item.workspaceStrategy !== "isolatedWorktree" || item.commitPolicy === "humanApproval", "isolatedWorktree + autoCommit is unsupported");
+  invariant(item.workspaceStrategy !== "isolatedWorktree" || item.commitPolicy === "humanApproval" ||
+    (item.approvedWorkspaceStrategy === "isolatedWorktree" && isolatedAutoIntegrationAuthorized(item)),
+    "isolatedWorktree + autoCommit is unsupported without explicit V8 approval");
 }
 
 export class TaskQueue {
@@ -377,7 +424,13 @@ export class TaskQueue {
     const commitPolicy = input.commitPolicy ?? config.commitPolicy ?? "humanApproval";
     invariant(["inPlaceExclusive", "isolatedWorktree"].includes(workspaceStrategy), "Invalid workspace strategy");
     invariant(["humanApproval", "autoCommit"].includes(commitPolicy), "Invalid commit policy");
-    invariant(workspaceStrategy === "inPlaceExclusive" || commitPolicy === "humanApproval", "isolatedWorktree + autoCommit is unsupported");
+    invariant(workspaceStrategy === "inPlaceExclusive" || commitPolicy === "humanApproval" ||
+      isolatedAutoIntegrationAuthorized({ contract: input.contract, workspaceStrategy, commitPolicy }),
+      "isolatedWorktree + autoCommit is unsupported without explicit V8 approval");
+    const continuity = continuityPolicy(input.contract);
+    invariant(!continuity?.isolatedAutoIntegration || (workspaceStrategy === "isolatedWorktree" && commitPolicy === "autoCommit"),
+      "Isolated auto integration requires matching workspace and commit policies");
+    const planningInputsSha256 = continuity ? planningInputsDigest(this.storage.root, input.planningHead, continuity.planningInputs) : undefined;
     const dependencies = input.dependsOn ?? [];
     invariant(dependencies.every(id => TASK_ID.test(id) && id !== input.contract.id) && new Set(dependencies).size === dependencies.length, "Invalid task dependencies");
     const priority = input.priority ?? 0;
@@ -388,7 +441,7 @@ export class TaskQueue {
     return this.storage.transaction(document => {
       const taskId = String(input.contract.id);
       const version = Math.max(0, ...document.drafts.filter(draft => draft.taskId === taskId).map(draft => draft.version)) + 1;
-      const sealed = { ...(proposalApproval ? { proposalApproval } : {}), key: `${taskId}@${version}`, taskId, version, contract: input.contract, contractText,
+      const sealed = { ...(proposalApproval ? { proposalApproval } : {}), ...(planningInputsSha256 ? { planningInputsSha256 } : {}), key: `${taskId}@${version}`, taskId, version, contract: input.contract, contractText,
         plan: input.plan, contractSha256: sha256(contractText), planSha256: sha256(input.plan),
         planningHead: input.planningHead, targetBranch: input.targetBranch, sourceRoot: this.storage.root,
         workspaceStrategy, commitPolicy, notBefore, dependsOn: dependencies, priority, createdAt: now() };
@@ -398,9 +451,12 @@ export class TaskQueue {
     });
   }
   approvalText(draft: Draft): string {
-    return draft.commitPolicy === "autoCommit"
+    const text = draft.commitPolicy === "autoCommit"
       ? `批准入队 ${draft.key}：通过构建、全量单测和独立 Review 后自动本地提交并集成，不推送远程。`
       : `批准入队 ${draft.key}：执行后等待人工确认提交，不推送远程。`;
+    const policy = continuityPolicy(draft.contract);
+    return policy ? text + (policy.isolatedAutoIntegration ? "隔离工作区自动集成已授权。" : "") +
+      (policy.planningRefresh === "completedQueueTasks" ? "仅允许已完成队列提交且声明的规划输入未变化时刷新基线。" : "规划基线变化须重新审批。") : text;
   }
   enqueue(key: string, digest: string, approval: string, proof?: ApprovalProof): QueueItem {
     this.config();
@@ -460,6 +516,11 @@ export class TaskQueue {
     this.storage.transaction(document => {
       const run = document.active;
       invariant(run, "No active execution to recover");
+      if (run.supervision) {
+        invariant(!run.supervision.owner || !isAlive(run.supervision.owner), "Worker supervisor is still alive");
+        invariant(run.worker, "Supervised Worker launch is ambiguous; preserve reservation");
+        invariant(ownedTree(processSnapshot(run.supervision.token), run.worker, run.supervision.known).length === 0, "Supervised descendants are still alive");
+      }
       if (run.worker) {
         invariant(!isAlive(run.worker) && !processGroupAlive(run.worker.pid), "Executor or its children are still alive; preserve the execution slot");
       } else {
@@ -479,10 +540,20 @@ export class TaskQueue {
   details(key: string): Record<string, unknown> {
     const item = this.item(key);
     const evidence: Record<string, unknown> = {};
-    for (const name of ["acceptance-report", "review", "full-test-verification", "commit-transaction", "integration", "planning-baseline"]) {
+    for (const name of ["acceptance-report", "review", "full-test-verification", "commit-transaction", "integration", "planning-baseline",
+      "baseline-inventory", "baseline-recovery", "test-preflight", "test-manifest", "green-inventory", "inventory-status"]) {
       const path = join(this.storage.runtime, "evidence", item.taskId, `${name}.json`);
       if (existsSync(path)) evidence[name] = readJson<unknown>(path);
     }
+    const document = this.storage.read();
+    const run = document.active?.key === item.key ? document.active : [...document.runs].reverse().find(candidate => candidate.key === item.key);
+    if (run?.supervision) evidence.workerSupervision = supervisionEvidence(run.supervision);
+    const stages: Record<string, unknown> = {};
+    for (const phase of ["red", "green", "review"]) {
+      const file = join(this.storage.runtime, "evidence", item.taskId, "stage-recovery", `${phase}.json`);
+      if (existsSync(file)) stages[phase] = readJson<unknown>(file);
+    }
+    if (Object.keys(stages).length) evidence.stageRecovery = stages;
     return { ...item, currentTargetHead: git(item.sourceRoot, ["rev-parse", `refs/heads/${item.targetBranch}`]), evidence };
   }
   notify(document: QueueDocument, item: QueueItem, message: string): void {
@@ -515,6 +586,7 @@ export class TaskQueue {
     });
   }
   request(key: string, kind: Exclude<JobKind, "execute">, approval?: string, candidate?: string, proof?: ApprovalProof): void {
+    invariant(kind !== "retry-baseline", "Automatic baseline recovery is reserved for the approved scheduler policy");
     const config = this.config();
     this.storage.transaction(document => {
       const item = this.findItem(document, key);
@@ -560,15 +632,29 @@ export class TaskQueue {
         return null;
       }
       const requests = document.items.filter(item => item.request).sort((a, b) => a.sequence - b.sequence);
+      const retries = document.items.filter(item => !item.request && item.state === "BLOCKED" && Number(item.contract.schemaVersion) >= 5 && item.baselineRecovery?.nextRunAt != null)
+        .sort((a, b) => a.sequence - b.sequence);
       const pending = document.items.filter(item => item.state === "QUEUED").sort((a, b) => b.queuePriority - a.queuePriority || a.sequence - b.sequence);
-      for (const item of [...requests, ...pending]) {
+      for (const item of [...requests, ...retries, ...pending]) {
         item.waitingReason = null;
+        const retry = !item.request && item.state === "BLOCKED" ? item.baselineRecovery : null;
+        if (retry) {
+          if (Date.now() >= retry.deadline) { item.waitingReason = "Baseline recovery elapsed-time budget exhausted"; retry.nextRunAt = null; continue; }
+          if (retry.nextRunAt === null || Date.now() < retry.nextRunAt) { item.waitingReason = `Baseline recovery backoff until ${new Date(retry.nextRunAt!).toISOString()}`; continue; }
+          if (item.sealedRunId !== item.runId || !item.sealedDiff) { item.waitingReason = "Baseline candidate was not sealed; explicit recovery required"; continue; }
+        }
         if (fixed && fixed.key !== item.key) { item.waitingReason = `Waiting for ${fixed.taskId}: ${fixed.state}`; continue; }
-        if (item.commitPolicy === "autoCommit" && config.workspaceStrategy === "isolatedWorktree") { item.waitingReason = "isolatedWorktree + autoCommit is unsupported; fresh contract approval is required"; continue; }
+        if (item.commitPolicy === "autoCommit" && config.workspaceStrategy === "isolatedWorktree" &&
+          !(item.approvedWorkspaceStrategy === "isolatedWorktree" && isolatedAutoIntegrationAuthorized(item))) {
+          item.waitingReason = "isolatedWorktree + autoCommit is unsupported without explicit V8 approval; fresh contract approval is required"; continue;
+        }
+        if (continuityPolicy(item.contract) && item.approvedWorkspaceStrategy !== config.workspaceStrategy) {
+          item.waitingReason = "V8 workspace strategy changed; restore the approved policy or approve a revised contract"; continue;
+        }
         if (!item.request && item.notBefore && Date.parse(item.notBefore) > Date.now()) { item.waitingReason = `Scheduled for ${item.notBefore}`; continue; }
         const dependency = item.dependsOn.find(id => !document.items.some(candidate => candidate.taskId === id && candidate.state === "COMPLETED"));
         if (dependency && !item.request) { item.waitingReason = `Waiting for dependency ${dependency} to complete local integration`; continue; }
-        if (!item.request && config.workspaceStrategy === "isolatedWorktree" && (retained.length >= (config.queue?.maxWorkspaces ?? 3) || workspaceBytes >= (config.queue?.maxWorkspaceBytes ?? 20 * 1024 ** 3))) { item.waitingReason = "Isolated workspace capacity or disk limit reached"; continue; }
+        if (!item.request && !retry && config.workspaceStrategy === "isolatedWorktree" && (retained.length >= (config.queue?.maxWorkspaces ?? 3) || workspaceBytes >= (config.queue?.maxWorkspaceBytes ?? 20 * 1024 ** 3))) { item.waitingReason = "Isolated workspace capacity or disk limit reached"; continue; }
         try { if (item.request?.kind !== "abort") assertAuthorized(item); }
         catch (error) { item.waitingReason = String(error); continue; }
         // Legacy leases and unknown workspace owners cannot be bypassed.
@@ -579,7 +665,11 @@ export class TaskQueue {
         }
         const launcher = processIdentity(process.pid);
         invariant(launcher, "Cannot establish execution launcher identity");
-        const run: QueueRun = { id: randomUUID(), key: item.key, kind: item.request?.kind ?? "execute", createdAt: now(), launcher, worker: null, outcome: null };
+        const run: QueueRun = { id: randomUUID(), key: item.key, kind: item.request?.kind ?? (retry ? "retry-baseline" : "execute"), createdAt: now(), launcher, worker: null, outcome: null };
+        // Consume the scheduled wake before launch. A crash or rejected input
+        // must not replay it indefinitely without a new durable failed attempt.
+        if (item.baselineRecovery && (run.kind === "retry-baseline" || run.kind === "resume")) item.baselineRecovery.nextRunAt = null;
+        if (Number(item.contract.schemaVersion) >= 6) run.supervision = initialSupervision(item.contract.execution as unknown as ExecutionPolicy, Date.now());
         document.active = run; document.strategy = config.workspaceStrategy;
         item.runId = run.id;
         item.sealedRunId = null;
@@ -595,6 +685,7 @@ export class TaskQueue {
       if (!run) return;
       const item = document.items.find(item => item.key === run.key);
       invariant(item, "Active execution has no contract");
+      if (run.supervision && run.supervision.state !== "EXITED") return;
       if (!run.worker) {
         // A crash between reservation and spawn is ambiguous, never requeue it.
         if (Date.now() - Date.parse(run.createdAt) > 30000) document.fault = "Execution launch ownership is unknown; explicit recovery is required";

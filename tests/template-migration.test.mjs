@@ -11,11 +11,11 @@ const opencodeTemplateRoot = join(templatesRoot, ".opencode");
 const expectedHashes = new Map([
   [
     ".opencode/agents/scheduled-coder.md",
-    "e2764775040b2a0009f97f1b269227e448824b83c689d11b602b2ebcff56f6ab",
+    "3ddc55f09ba54a6cf8d93b11ca93927a768158e253fbd9a91d70494be33bc778",
   ],
   [
     ".opencode/agents/scheduled-planner.md",
-    "17b134b8962c29bde42e5d4dae63a21ee4aa2a89bdaf27fe24a0d05ba4dff754",
+    "db0708fab8b7c9a2504b5fb54396792ef456c4b22c9a4e5bf6d2fdaa2a440827",
   ],
   [
     ".opencode/agents/scheduled-reviewer.md",
@@ -43,15 +43,15 @@ const expectedHashes = new Map([
   ],
   [
     ".opencode/skills/scheduled-quality-coder/SKILL.md",
-    "e5d378d83a9eea91fe60a71eeee74c4a7c2ff0cd40f205d71ab3da02b7b11b9a",
+    "9761c1ccf609ddf7f817e4cff9133c231555c71b6fae4ac2a1bedd82ad4117ac",
   ],
   [
     ".opencode/skills/scheduled-quality-orchestrator/SKILL.md",
-    "ee76bb706f440494958353b66501ec40c6b253d98534eb860dd794fd1b065d4e",
+    "bf3c7c4d523ebc8931286cdfa2c10e55b63c81350caec830e75350fa4bd01912",
   ],
   [
     ".opencode/skills/scheduled-quality-reviewer/SKILL.md",
-    "1f18c4eb126d015856325c21e144ab5ba55148691a39c18fa998bebdf88d9e9a",
+    "91cbdf08330cd141187dba26061f59dc5f6243662a299c7cd9a2fe6092730d52",
   ],
 ]);
 

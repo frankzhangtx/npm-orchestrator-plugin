@@ -38,10 +38,17 @@ you review.
 5. Check each acceptance criterion against observable behavior. Inspect for
    regression risk, missing edge cases, out-of-scope changes, test deletion,
    ignored tests, relaxed assertions, and implementation-shaped tests.
-   For schema V3, also verify every structured case source and identity, that
+   For schema V3/V4/V5/V6/V7, also verify every structured case source and identity, that
    preserved cases passed before implementation, that changed cases failed only
    for their declared reason, and that RED contains no undeclared failure. Treat
    the Planner and Coder summaries as claims; use the bound preflight evidence.
+   For V4/V5/V6/V7 inspect `baselineInventory`, `testManifest`, `greenInventory` and
+   `inventoryStatus` from status. Check complete regression coverage, explicit
+   existing-skip/empty-baseline policy and frozen test/resource inputs. The
+   collector records type/message mechanically; independently assess the
+   declared failure origin and assertion meaning from the tests and evidence.
+   `processExitCode` is Gradle's actual exit; a RED `exitCode` of 1 represents
+   approved case failure, not a failed Gradle build.
 6. Decide independently:
 
    - approve only when the diff is correct and evidence is sufficient;
@@ -74,3 +81,14 @@ you review.
   `AWAITING_HUMAN`.
 - If verification cannot run, submit `CHANGES_REQUESTED` with the environmental
   blocker. Do not manufacture approval.
+
+## Approved V7 verification recovery
+
+For V7, record-red.sh, quality-gate.sh and submit-review.sh handle explicitly
+approved transient verification retries with separate RED/GREEN/Review budgets.
+Do not retry these commands to reset an exhausted environment budget. Status
+`stageRecovery` shows attempt history, failure classification and persistent
+backoff. An environment/unknown stop is not a request to change production code
+or weaken tests; preserve the candidate and stop. Provider/model failures still
+follow the existing approved recovery route. Never edit the recovery ledger,
+locks or earlier logs. V1..V6 keep their original retry semantics.

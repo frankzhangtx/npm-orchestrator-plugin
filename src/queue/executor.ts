@@ -3,7 +3,7 @@ import { randomUUID } from "node:crypto";
 import { existsSync, mkdirSync, readFileSync, realpathSync, writeFileSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
-import { assertAuthorized, matchesPath, now, TaskQueue, type QueueItem, type QueueRun } from "./queue.js";
+import { assertAuthorized, continuityPolicy, isolatedAutoIntegrationAuthorized, planningInputsDigest, matchesPath, now, TaskQueue, type QueueItem, type QueueRun } from "./queue.js";
 import { atomicJson, fileLock, git, invariant, processIdentity, readJson, recoverLock, safePath, sha256 } from "./storage.js";
 
 interface Workspace {
@@ -46,11 +46,16 @@ export function helper(root: string, name: string, args: string[] = [], runId = 
 async function script(root: string, name: string, args: string[], runId: string): Promise<void> {
   invariant(/^[a-z-]+\.sh$/.test(name), "Invalid automation script");
   await new Promise<void>((done, reject) => {
+    let stderr = "";
     const child = spawn("bash", [join(root, "scripts/automation", name), ...args], {
-      cwd: root, stdio: "inherit", env: workerEnvironment(runId),
+      cwd: root, stdio: ["inherit", "inherit", "pipe"], env: workerEnvironment(runId),
+    });
+    child.stderr!.on("data", (chunk: Buffer) => {
+      process.stderr.write(chunk);
+      stderr = (stderr + chunk.toString()).slice(-8000);
     });
     child.once("error", reject);
-    child.once("exit", (code, signal) => code === 0 ? done() : reject(new Error(`${name} exited with ${code ?? signal}`)));
+    child.once("close", (code, signal) => code === 0 ? done() : reject(new Error(`${name} exited with ${code ?? signal}${stderr.trim() ? `: ${stderr.trim()}` : ""}`)));
   });
 }
 
@@ -85,9 +90,13 @@ export class QueueExecutor {
   }
   private assertOwner(): void {
     const active = this.queue.storage.read().active;
+    invariant(!active?.supervision || active.supervision.state === "RUNNING", "Worker termination is pending; no new execution action is authorized");
     invariant(active?.id === this.run.id && active.worker?.pid === process.pid, "Executor does not own the repository slot");
     invariant(active.worker.started === processIdentity(process.pid)?.started, "Executor process identity changed");
-    if (this.run.kind !== "abort") assertAuthorized(this.item());
+    if (this.run.kind !== "abort") {
+      assertAuthorized(this.item());
+      invariant(this.item().request?.kind !== "abort", "Approved abort requested; preserve the candidate before further integration");
+    }
     this.queue.config();
   }
   private lease(item: QueueItem, root: string): void {
@@ -110,9 +119,45 @@ export class QueueExecutor {
     git(item.sourceRoot, ["merge-base", "--is-ancestor", item.planningHead, target]);
     const changed = target === item.planningHead ? [] : git(item.sourceRoot, ["diff", "--name-only", item.planningHead, target, "--"]).split("\n").filter(Boolean);
     const relevant = changed.filter(path => (item.contract.allowedPaths as string[]).some(pattern => matchesPath(pattern, path)) || this.executionInputsChanged(path, item));
-    atomicJson(join(this.evidence, "planning-baseline.json"), { planningHead: item.planningHead, executionHead: target, changedPaths: changed, relevantChanges: relevant, checkedAt: now() });
-    if (relevant.length > 0) {
-      this.setState("BASELINE_REVIEW", "Relevant code or execution configuration changed after planning; create and approve a revised contract");
+    const policy = continuityPolicy(item.contract);
+    const refresh: { policy: string; inputDigest?: string; integratedTasks: string[]; reason: string | null } = {
+      policy: policy?.planningRefresh ?? "legacy", integratedTasks: [], reason: null,
+    };
+    if (policy) {
+      invariant(item.planningInputsSha256 === planningInputsDigest(item.sourceRoot, item.planningHead, policy.planningInputs), "Approved planning input snapshot is missing or changed");
+      refresh.inputDigest = planningInputsDigest(item.sourceRoot, target, policy.planningInputs);
+      if (refresh.inputDigest !== item.planningInputsSha256) refresh.reason = "Declared planning inputs changed; approve a revised contract";
+      else if (changed.some(path => this.executionInputsChanged(path, item))) refresh.reason = "Execution configuration changed; approve a revised contract";
+      else if (target !== item.planningHead) {
+        if (policy.planningRefresh === "reject") refresh.reason = "Planning baseline changed and refresh was not approved";
+        else {
+          const completed = this.queue.storage.read().items.filter(other => other.state === "COMPLETED" &&
+            other.sourceRoot === item.sourceRoot && other.targetBranch === item.targetBranch && other.completedCommit);
+          const commits = git(item.sourceRoot, ["rev-list", "--reverse", "--parents", `${item.planningHead}..${target}`]).split("\n").filter(Boolean);
+          let parent = item.planningHead;
+          for (const line of commits) {
+            const [commit, previous, ...extraParents] = line.split(" ");
+            const owner = completed.find(other => other.completedCommit === commit);
+            if (!owner || previous !== parent || extraParents.length) {
+              refresh.reason = "Target contains changes outside completed queue integrations; approve a revised contract"; break;
+            }
+            assertAuthorized(owner);
+            const transaction = readJson<CommitTransaction>(join(this.queue.storage.runtime, "evidence", owner.taskId, "commit-transaction.json"));
+            invariant(transaction.stage === "COMPLETED" && transaction.commit === commit && transaction.baselineHead === parent &&
+              transaction.queueKey === owner.key && transaction.authorization.digest === owner.digest && transaction.targetBranch === item.targetBranch &&
+              transaction.pushed === false && git(item.sourceRoot, ["rev-parse", `${commit}^{tree}`]) === transaction.tree,
+              "Completed planning dependency lacks its sealed integration transaction");
+            refresh.integratedTasks.push(owner.key);
+            parent = commit!;
+          }
+          if (!refresh.reason && parent !== target) refresh.reason = "Target integration history is incomplete";
+        }
+      }
+    } else if (relevant.length) refresh.reason = "Relevant code or execution configuration changed after planning; create and approve a revised contract";
+    atomicJson(join(this.evidence, "planning-baseline.json"), { planningHead: item.planningHead, executionHead: target, changedPaths: changed,
+      relevantChanges: relevant, refresh, authorizationDigest: item.digest, checkedAt: now() });
+    if (refresh.reason) {
+      this.setState("BASELINE_REVIEW", refresh.reason);
       return false;
     }
     helper(item.sourceRoot, "automation_worktree_is_clean", [item.sourceRoot], this.run.id);
@@ -181,6 +226,42 @@ export class QueueExecutor {
       item.candidateId = sha256(`${item.digest}:${workspace.baselineHead}:${diff}`);
     });
   }
+  private async captureBaseline(): Promise<void> {
+    const item = this.item();
+    invariant(Number(item.contract.schemaVersion) >= 5, "Checkpoint recovery requires V5 approval");
+    const workspace = this.workspace();
+    invariant(git(workspace.taskRoot, ["symbolic-ref", "--short", "HEAD"]) === workspace.taskBranch &&
+      git(workspace.taskRoot, ["rev-parse", "HEAD"]) === workspace.baselineHead &&
+      git(item.sourceRoot, ["rev-parse", `refs/heads/${item.targetBranch}`]) === workspace.baselineHead,
+      "Baseline branch or HEAD changed; approve a revised contract");
+    if (this.run.kind !== "execute") {
+      invariant(this.state() === "BLOCKED", "Baseline recovery requires a blocked task");
+      invariant(item.baselineRecovery && item.sealedDiff === helper(workspace.taskRoot, "automation_worktree_diff_sha", [workspace.taskRoot], this.run.id),
+        "Baseline recovery checkpoint is missing or the sealed candidate changed");
+      this.lease(item, item.sourceRoot);
+      this.setState("PENDING", "Approved V5 baseline recovery; retaining all previous attempts and budgets");
+    }
+    try {
+      await script(workspace.taskRoot, "claim-task.sh", [item.taskId], this.run.id);
+    } finally {
+      const ledger = join(this.evidence, "baseline-recovery.json");
+      this.queue.storage.transaction(document => {
+        invariant(document.active?.id === this.run.id, "Baseline capture lost its queue slot");
+        const current = document.items.find(candidate => candidate.key === item.key)!;
+        // Any rejected recovery must stop automatic scheduling; an old sidecar
+        // may not authorize another retry after an input/ownership rejection.
+        if (current.baselineRecovery) current.baselineRecovery.nextRunAt = null;
+        if (!existsSync(ledger)) return;
+        const record = readJson<{ startedAt: number; state: string; nextRunAt: number | null; waitingReason: string | null;
+          attempts: Array<{ queueRunId: string; failure?: Record<string, unknown> }> }>(ledger);
+        const last = record.attempts.at(-1);
+        if (last?.queueRunId !== this.run.id) return;
+        const policy = item.contract.recovery as { maxElapsedMs: number };
+        current.baselineRecovery = { sha256: sha256(readFileSync(ledger)), deadline: record.startedAt + policy.maxElapsedMs,
+          nextRunAt: record.state === "FAILED" ? record.nextRunAt : null, failure: last.failure ?? null, waitingReason: record.waitingReason };
+      });
+    }
+  }
   private async integrate(recovery = false): Promise<void> {
     this.assertOwner();
     invariant(this.item().request?.kind !== "abort", "Approved abort requested; stop before automatic local commit");
@@ -202,11 +283,16 @@ export class QueueExecutor {
     } else {
       invariant(!recovery, "No commit transaction is available to recover");
       invariant(this.state() === (item.commitPolicy === "autoCommit" ? "READY_TO_COMMIT" : "AWAITING_HUMAN"), "Candidate is not ready for authorized integration");
-      invariant(item.commitPolicy !== "autoCommit" || item.workspaceStrategy === "inPlaceExclusive", "Unsupported automatic commit workspace");
+      invariant(item.commitPolicy !== "autoCommit" || item.workspaceStrategy === "inPlaceExclusive" || isolatedAutoIntegrationAuthorized(item),
+        "Unsupported automatic commit workspace without explicit V8 approval");
       const head = git(workspace.taskRoot, ["rev-parse", "HEAD"]);
       invariant(head === workspace.baselineHead, "Task HEAD changed before commit");
       const target = git(item.sourceRoot, ["rev-parse", `refs/heads/${item.targetBranch}`]);
       invariant(target === workspace.baselineHead, "Target branch advanced; revalidate isolated candidates before fresh acceptance");
+      if (item.workspaceStrategy === "isolatedWorktree") {
+        invariant(git(item.sourceRoot, ["symbolic-ref", "--short", "HEAD"]) === item.targetBranch, "Source root no longer on target branch");
+        helper(item.sourceRoot, "automation_worktree_is_clean", [item.sourceRoot], this.run.id);
+      }
       helper(workspace.taskRoot, "automation_assert_planning_artifacts_sealed", [item.taskId, workspace.taskRoot], this.run.id);
       const diff = helper(workspace.taskRoot, "automation_worktree_diff_sha", [workspace.taskRoot], this.run.id);
       const ready = readJson<{diffSha256: string}>(join(this.evidence, "ready.json"));
@@ -234,6 +320,7 @@ export class QueueExecutor {
         authorization: { source: item.commitPolicy === "autoCommit" ? "contractAutoCommit" : "humanAcceptance", digest: item.digest, candidate: candidateId, targetHead: target },
         ...(item.commitPolicy === "autoCommit" ? { approvalProof: item.authorization.proof } : { approvalProof: item.request?.proof }),
         pushed: false, createdAt: now() };
+      this.assertOwner();
       atomicJson(transactionPath, transaction);
       atomicJson(join(this.evidence, item.commitPolicy === "autoCommit" ? "auto-commit-authorization.json" : "acceptance.json"), transaction.authorization);
     }
@@ -256,6 +343,7 @@ export class QueueExecutor {
           transaction.commit = git(workspace.taskRoot, ["-c", "commit.gpgSign=false", "commit-tree", transaction.tree, "-p", transaction.baselineHead, "-m", title]);
           atomicJson(transactionPath, transaction);
         }
+        this.assertOwner();
         git(workspace.taskRoot, ["update-ref", `refs/heads/${workspace.taskBranch}`, transaction.commit, transaction.baselineHead]);
       }
       invariant(transaction.commit, "Commit transaction has no candidate");
@@ -383,9 +471,17 @@ export class QueueExecutor {
       switch (this.run.kind) {
         case "execute":
           if (this.prepare()) {
+            if (Number(item.contract.schemaVersion) >= 5) await this.captureBaseline();
             await script(item.sourceRoot, "orchestrate-task.sh", [item.taskId], this.run.id);
             if (this.state() === "READY_TO_COMMIT" && this.item().request?.kind !== "abort") await this.integrate();
+          } else {
+            error = readJson<{refresh: {reason: string}}>(join(this.evidence, "planning-baseline.json")).refresh.reason;
           }
+          break;
+        case "retry-baseline":
+          await this.captureBaseline();
+          await script(item.sourceRoot, "orchestrate-task.sh", [item.taskId], this.run.id);
+          if (this.state() === "READY_TO_COMMIT" && this.item().request?.kind !== "abort") await this.integrate();
           break;
         case "integrate": await this.integrate(); break;
         case "recover": await this.integrate(true); break;
@@ -393,17 +489,50 @@ export class QueueExecutor {
         case "resume":
         case "resume-review":
         case "abort": {
+          if (this.run.kind === "resume" && Number(item.contract.schemaVersion) >= 5) {
+            await this.captureBaseline();
+            await script(item.sourceRoot, "orchestrate-task.sh", [item.taskId], this.run.id);
+            if (this.state() === "READY_TO_COMMIT" && this.item().request?.kind !== "abort") await this.integrate();
+            break;
+          }
           this.lease(item, item.sourceRoot);
           const scriptName = this.run.kind === "resume" ? "resume-task.sh" : this.run.kind === "resume-review" ? "resume-review.sh" : "abort-task.sh";
-          await script(item.sourceRoot, scriptName, [item.taskId, item.request?.approval ?? ""], this.run.id);
+          // request() verifies and persists the approval before reservation.
+          // Reviewer recovery's shell protocol takes only the task ID.
+          const args = this.run.kind === "resume-review" ? [item.taskId] : [item.taskId, item.request?.approval ?? ""];
+          await script(item.sourceRoot, scriptName, args, this.run.id);
           if (this.state() === "READY_TO_COMMIT" && this.item().request?.kind !== "abort") await this.integrate();
           break;
         }
       }
     } catch (failure) {
       error = failure instanceof Error ? failure.message : String(failure);
+      const inventoryStatus = join(this.evidence, "inventory-status.json");
+      try {
+        const detail = existsSync(inventoryStatus) ? readJson<{valid: boolean; queueRunId?: string; phase: string; reasonCode: string; message: string; nextAction: string;
+          issues?: Array<{id?: string; taskPath?: string; className?: string; name?: string; problem?: string}>}>(inventoryStatus)
+        : null;
+        if (detail?.valid === false && detail.queueRunId === this.run.id) {
+          const cases = (detail.issues ?? []).map(item => item.id ?? [item.taskPath, item.className, item.name, item.problem].filter(Boolean).join(" / ")).join(", ");
+          error = `${detail.phase}: ${detail.reasonCode}: ${detail.message}${cases ? `; cases: ${cases}` : ""}. ${detail.nextAction}`;
+        }
+      } catch { /* A damaged status sidecar must not mask this execution's failure or interrupt cleanup. */ }
+      if (Number(this.item().contract.schemaVersion) >= 7) {
+        for (const phase of ["red", "green", "review"]) {
+          try {
+            const file = join(this.evidence, "stage-recovery", `${phase}.json`);
+            if (!existsSync(file)) continue;
+            const record = readJson<{state: string; waitingReason?: string; lastFailure?: {category: string; reasonCode: string};
+              attempts: Array<{queueRunId: string}>}>(file);
+            if (["BLOCKED", "EXHAUSTED", "FAILED"].includes(record.state) && record.attempts.at(-1)?.queueRunId === this.run.id)
+              error += `; ${phase} ${record.state}: ${record.waitingReason ?? record.lastFailure?.reasonCode ?? "inspect stage recovery evidence"}`;
+          } catch { /* Preserve the original error when recovery evidence is unreadable. */ }
+        }
+      }
       const state = this.state();
       if (this.run.kind === "revalidate" || !["BLOCKED", "TEST_FAILED", "NEEDS_HUMAN", "BASELINE_REVIEW", "AWAITING_HUMAN"].includes(state)) this.setState(state === "INTEGRATING" ? "INTEGRATION_BLOCKED" : "BLOCKED", error);
+      const recovery = this.item().baselineRecovery;
+      if (recovery?.failure) error += `; baseline ${String(recovery.failure.category)}/${String(recovery.failure.reasonCode)}; ${recovery.nextRunAt === null ? recovery.waitingReason ?? "explicit recovery required" : `retry scheduled for ${new Date(recovery.nextRunAt).toISOString()}`}`;
     } finally {
       if (!["COMPLETED", "ABORTED", "BASELINE_REVIEW"].includes(this.state())) {
         try { this.seal(); } catch (failure) { error = `${error ?? ""} Unable to seal workspace: ${String(failure)}`; }
@@ -415,7 +544,12 @@ export class QueueExecutor {
         if (existsSync(agentRuns)) {
           const failed = readFileSync(agentRuns, "utf8").trim().split("\n").filter(Boolean).slice(this.previousAgentRuns)
             .map(line => JSON.parse(line) as { role: string; exitCode: number }).find(result => result.exitCode !== 0);
-          if (failed) document.fault = `OpenCode ${failed.role} exited with ${failed.exitCode}; inspect provider/environment evidence before clearing this shared execution fault`;
+          // An agent's exit code cannot establish a shared-resource fault.
+          // Preserve its evidence on this run; normal CHANGES_REQUESTED also
+          // exits nonzero and can subsequently recover within the same run.
+          if (failed && ["BLOCKED", "TEST_FAILED", "NEEDS_HUMAN", "INTEGRATION_BLOCKED"].includes(this.state())) {
+            document.active.outcome.error = `${error ? `${error}; ` : ""}OpenCode ${failed.role} exited with ${failed.exitCode}; inspect this task's agent evidence`;
+          }
         }
       });
     }

@@ -19,6 +19,17 @@ mkdir -p "$evidence_dir"
 red_meta="$evidence_dir/red.json"
 [[ ! -e "$red_meta" ]] || automation_die "RED evidence already exists for $task_id"
 
+if [[ "$schema_version" -ge "4" ]]; then
+    [[ "$#" -eq 1 ]] || automation_die "Schema V4/V5 usage: record-red.sh TASK-ID"
+    "$SCRIPT_DIR/scope-gate.sh" "$task_id" >/dev/null
+    if [[ "$schema_version" -ge "7" ]]; then
+        node "$AUTOMATION_ROOT/automation/verification/recovery.cjs" --stage red "$contract" "$AUTOMATION_CONFIG" "$AUTOMATION_ROOT" "$evidence_dir"
+        exit $?
+    fi
+    automation_run_inventory red "$task_id"
+    exit 0
+fi
+
 # Preserve the exact V1/V2 behavior for already approved contracts.
 if [[ "$schema_version" != "3" ]]; then
     expected="${2:-}"
@@ -43,9 +54,10 @@ if [[ "$schema_version" != "3" ]]; then
     rg -F "$expected" "$red_log" >/dev/null || automation_die "RED output does not contain the expected failure text"
     jq -n --arg taskId "$task_id" --arg startedAt "$started_at" --arg finishedAt "$(automation_now)" \
         --arg expectedFailure "$expected" --arg gradleTask "$gradle_task" --arg testFilter "$filter" \
+        --arg cwd "$(automation_gradle_build_root)" \
         --argjson exitCode "$red_status" \
         '{taskId: $taskId, startedAt: $startedAt, finishedAt: $finishedAt,
-          command: ["./gradlew", $gradleTask, "--tests", $testFilter],
+          command: ["./gradlew", $gradleTask, "--tests", $testFilter], cwd: $cwd,
           expectedFailure: $expectedFailure, exitCode: $exitCode}' | automation_record_json "$red_meta"
     automation_info "$task_id legacy RED evidence recorded"
     exit 0

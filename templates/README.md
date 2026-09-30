@@ -12,7 +12,9 @@ Migrated template roots:
 - `.opencode/commands`: `change`, `acceptance`, `resume-task`, `resume-review`,
   and `abort-task`
 - `.opencode/skills`: the three `scheduled-quality-*` skills
-- `scripts/automation`: all 29 deterministic V3 Bash transactions and their
+- `automation/verification`: the shared V4/V5 contract validator, bounded V5 baseline recovery, inventory evaluator
+  and Gradle collector. Discovered tests are evidence inputs, not edit permission.
+- `scripts/automation`: all 29 deterministic Bash transactions and their
   test runner, preserved as executable files
 - `automation`: the portable V5 configuration render source, both JSON Schemas,
   and the task contract example

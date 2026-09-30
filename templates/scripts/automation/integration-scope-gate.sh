@@ -61,7 +61,7 @@ while IFS= read -r path; do
     if automation_array_matches_path "$AUTOMATION_CONFIG" '.androidProject.productionPaths' "$path"; then
         production_changed=1
     fi
-    if automation_array_matches_path "$AUTOMATION_CONFIG" '.androidProject.testPaths' "$path"; then
+    if automation_is_task_test_path "$task_id" "$path"; then
         test_changed=1
     fi
 done <<< "$changed_file_list"
@@ -69,7 +69,7 @@ done <<< "$changed_file_list"
 deleted_tests="$(
     git -C "$AUTOMATION_ROOT" diff --name-only --diff-filter=D "$base" "$head" -- \
         | while IFS= read -r path; do
-            if automation_array_matches_path "$AUTOMATION_CONFIG" '.androidProject.testPaths' "$path"; then
+            if automation_is_task_test_path "$task_id" "$path"; then
                 printf '%s\n' "$path"
             fi
         done
@@ -83,7 +83,7 @@ fi
 added_test_lines="$(
     while IFS= read -r path; do
         [[ -n "$path" ]] || continue
-        if automation_array_matches_path "$AUTOMATION_CONFIG" '.androidProject.testPaths' "$path"; then
+        if automation_is_task_test_path "$task_id" "$path"; then
             git -C "$AUTOMATION_ROOT" diff --unified=0 "$base" "$head" -- "$path"
         fi
     done <<< "$changed_file_list" \

@@ -1,4 +1,5 @@
 import { queuePolicy } from "../config/queue-policy.js";
+import { validateProjectCapabilities } from "../installer/project-capabilities.js";
 import { createHash } from "node:crypto";
 import {
   lstatSync,
@@ -43,7 +44,7 @@ import {
 } from "../installer/opencode-config.js";
 import type { DoctorCheck } from "./index.js";
 
-export const EXPECTED_MANAGED_FILE_COUNT = 47;
+export const EXPECTED_MANAGED_FILE_COUNT = 52;
 
 interface ExpectedManagedFile {
   path: string;
@@ -108,6 +109,11 @@ const AUTOMATION_SCRIPT_PATHS = [
 ] as const;
 
 const OTHER_TEMPLATE_PATHS = [
+  "automation/verification/project.cjs",
+  "automation/verification/recovery.cjs",
+  "automation/verification/contract.cjs",
+  "automation/verification/inventory.cjs",
+  "automation/verification/collect.init.gradle",
   "automation/config.schema.json",
   "automation/task-contract.schema.json",
   "docs/plans/README.md",
@@ -634,6 +640,9 @@ function managedConfigurationCheck(
       };
     }
     const expected = planAdaptiveProjectTemplates(targetDirectory, {
+      ...(automationConfig.androidProject.capabilities === undefined ? {} : {
+        projectCapabilities: validateProjectCapabilities(automationConfig.androidProject.capabilities, targetDirectory),
+      }),
       queuePolicy: queuePolicy(automationConfig),
       moduleScope,
       primaryModule,

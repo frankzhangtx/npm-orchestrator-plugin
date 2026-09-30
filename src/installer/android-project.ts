@@ -10,13 +10,15 @@ import {
   resolve,
 } from "node:path";
 
+import type { ProjectCapabilities } from "./project-capabilities.js";
 export type GradleDsl = "kotlin" | "groovy" | "mixed" | "unknown";
 export type AndroidModuleType =
   | "application"
   | "library"
   | "dynamic-feature"
   | "test"
-  | "asset-pack";
+  | "asset-pack"
+  | "jvm-library";
 
 export interface AndroidModuleDetection {
   gradlePath: string;
@@ -39,6 +41,7 @@ export interface GradleWrapperDetection {
 }
 
 export interface AndroidProjectDetection {
+  capabilities?: ProjectCapabilities;
   requestedDirectory: string;
   gitRoot: string | null;
   projectRoot: string | null;

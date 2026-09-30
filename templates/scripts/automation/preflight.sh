@@ -34,9 +34,8 @@ automation_require_command shasum
 if [[ "${AUTOMATION_TEST_MODE:-0}" != "1" ]]; then
     automation_require_command opencode
 fi
-[[ -x "$AUTOMATION_ROOT/gradlew" ]] || automation_die "gradlew is missing or not executable"
-
 automation_validate_config
+[[ -x "$(automation_gradle_build_root)/gradlew" ]] || automation_die "selected Gradle build wrapper is missing or not executable"
 workspace_strategy="$(automation_config_value '.workspaceStrategy')"
 if [[ "$workspace_strategy" == "isolatedWorktree" ]]; then
     automation_worktree_base >/dev/null

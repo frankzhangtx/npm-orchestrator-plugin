@@ -3,10 +3,16 @@
 
 Run orchestration commands from the Git repository root.
 
-For automated local unit-test verification, run `./gradlew testDebugUnitTest`
-as a standalone command. Do not prepend environment assignments or wrap it in
-another script; this keeps the invocation aligned with the installed OpenCode
-command allowlist.
+For automated local unit-test verification, use the task paths in
+`automation/config.json` under `gradleVerification.fullUnitTestTasks`.
+For manual runs, execute `./gradlew` followed by those configured tasks from
+`androidProject.capabilities.buildRoot` relative to the Git root (default `.`).
+Use a standalone command without environment assignments or shell chaining.
+For nested builds, unattended agents must use the managed verification scripts
+from the Git root; direct Gradle commands are rejected by the executor guard.
+Task execution uses the controlled verification scripts, which read the same
+configuration. Empty lint/device task lists mean the capability is unavailable;
+they never count as a passed check when that capability is required.
 
 Treat `.opencode/`, `automation/`, `scripts/automation/`, `opencode.json`,
 and this managed block as orchestration infrastructure. Product tasks must not

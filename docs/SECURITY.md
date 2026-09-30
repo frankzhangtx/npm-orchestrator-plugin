@@ -1,7 +1,7 @@
 # Security model
 
 This document describes the security properties of
-`@frankzhang2026/opencode-android-orchestrator@1.0.5`. The lifecycle foundation
+`@frankzhang2026/opencode-android-orchestrator@1.1.0`. The lifecycle foundation
 completed the real OpenCode `1.14.22` and `1.15.13` release matrix in `0.2.0`;
 `1.0.0` retains that compatibility boundary.
 
@@ -43,7 +43,10 @@ selections. The configured `humanApproval` policy additionally requires final
 candidate acceptance. Configured or explicitly selected `autoCommit`
 authorization is sealed during contract approval and replaces only the final
 human question; build, actual full unit tests and independent Review remain
-mandatory.
+mandatory. Isolated automatic integration additionally requires new V8 authority
+bound to its approved workspace strategy. Planning refresh preserves the original
+approval and is limited to unchanged declared inputs across recorded completed
+queue integrations; it cannot authorize arbitrary target changes.
 
 The plugin observes the host's question arguments and completed answer
 metadata through the common before/after hooks. Its one-use receipt binds

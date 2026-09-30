@@ -1,7 +1,7 @@
 import { createHash, randomUUID } from "node:crypto";
 import { spawnSync } from "node:child_process";
 import {
-  closeSync, existsSync, fsyncSync, lstatSync, mkdirSync, openSync,
+  closeSync, existsSync, fsyncSync, linkSync, lstatSync, mkdirSync, openSync,
   readFileSync, realpathSync, renameSync, unlinkSync, writeFileSync,
 } from "node:fs";
 import { dirname, isAbsolute, join, relative, resolve, sep } from "node:path";
@@ -98,20 +98,25 @@ export function fileLock(path: string, waitMs = 5000): () => void {
   const identity = processIdentity(process.pid);
   invariant(identity, "Cannot record lock owner");
   const token = randomUUID();
-  let descriptor: number;
-  for (let attempt = 0; ; attempt += 1) {
-    try { descriptor = openSync(path, "wx", 0o600); break; }
-    catch (error) {
-      if ((error as NodeJS.ErrnoException).code !== "EEXIST" || attempt * 20 >= waitMs) {
-        throw new Error(`Queue transaction is occupied; retry or recover its recorded owner: ${path}`, { cause: error });
-      }
-      Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, 20);
-    }
-  }
+  // Publish a complete owner record atomically. A crash between exclusive
+  // creation and writing must not leave an anonymous, unrecoverable lock.
+  const pending = `${path}.pending-${token}`;
+  const descriptor = openSync(pending, "wx", 0o600);
   try {
-    writeFileSync(descriptor, JSON.stringify({ ...identity, token }));
-    fsyncSync(descriptor);
-  } finally { closeSync(descriptor); }
+    try {
+      writeFileSync(descriptor, JSON.stringify({ ...identity, token }));
+      fsyncSync(descriptor);
+    } finally { closeSync(descriptor); }
+    for (let attempt = 0; ; attempt += 1) {
+      try { linkSync(pending, path); break; }
+      catch (error) {
+        if ((error as NodeJS.ErrnoException).code !== "EEXIST" || attempt * 20 >= waitMs) {
+          throw new Error(`Queue transaction is occupied; retry or recover its recorded owner: ${path}`, { cause: error });
+        }
+        Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, 20);
+      }
+    }
+  } finally { unlinkSync(pending); }
   return () => {
     const owner = readJson<ProcessIdentity & { token: string }>(path);
     invariant(owner.token === token, "Queue lock ownership changed");
@@ -119,13 +124,14 @@ export function fileLock(path: string, waitMs = 5000): () => void {
   };
 }
 
-export function recoverLock(path: string): boolean {
+export function recoverLock(path: string, expectedOwner?: ProcessIdentity & { token?: string }): boolean {
   if (!existsSync(path)) return false;
   const release = fileLock(`${path}.recovery`);
   try {
   if (!existsSync(path)) return false;
   const before = readFileSync(path, "utf8");
-  const owner = readJson<ProcessIdentity>(path);
+  const owner = readJson<ProcessIdentity & { token?: string }>(path);
+  if (expectedOwner && (owner.pid !== expectedOwner.pid || owner.started !== expectedOwner.started || owner.token !== expectedOwner.token)) return false;
   invariant(!isAlive(owner), "Lock owner is still alive; refusing recovery");
   invariant(readFileSync(path, "utf8") === before, "Lock changed during recovery");
   // Atomic rename preserves the original record for diagnosis. Never remove a

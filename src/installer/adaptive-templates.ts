@@ -1,4 +1,5 @@
 import { queuePolicy, type QueuePolicy } from "../config/queue-policy.js";
+import { detectionWithCapabilities, validateProjectCapabilities, validateConfigurationModel, capabilityVerification, buildProtectedPaths, type ProjectCapabilities } from "./project-capabilities.js";
 import { readFileSync } from "node:fs";
 import {
   isAbsolute,
@@ -59,6 +60,7 @@ export class AdaptiveProjectTemplateError extends Error {
 }
 
 export interface AdaptiveProjectTemplateOptions {
+  projectCapabilities?: ProjectCapabilities;
   queuePolicy?: QueuePolicy;
   /** Reuse an authoritative Gradle runtime detection instead of static settings/build parsing. */
   projectDetection?: AndroidProjectDetection;
@@ -105,6 +107,7 @@ export interface AdaptiveAndroidModuleConfiguration {
 }
 
 export interface AdaptiveAndroidProjectConfiguration {
+  capabilities?: ProjectCapabilities;
   name: string;
   gradleDsl: Exclude<GradleDsl, "unknown">;
   settingsFile: string;
@@ -135,7 +138,7 @@ export interface AdaptiveTargetTest {
 
 export interface AdaptiveTaskContractExample {
   readonly [key: string]: unknown;
-  schemaVersion: 3;
+  schemaVersion: 4;
   allowedPaths: readonly string[];
   forbiddenPaths: readonly string[];
   targetTests: readonly AdaptiveTargetTest[];
@@ -239,7 +242,7 @@ function gradleTaskList(
   const property = value[propertyName];
   if (
     !Array.isArray(property) ||
-    property.length === 0 ||
+    (property.length === 0 && propertyName !== "lintTasks" && propertyName !== "deviceTestTasks") ||
     property.some(
       (entry) =>
         typeof entry !== "string" ||
@@ -249,7 +252,7 @@ function gradleTaskList(
   ) {
     throw new AdaptiveProjectTemplateError(
       "TEMPLATE_INVALID",
-      `Gradle verification property ${propertyName} must be a non-empty unique task array: ${source}`,
+      `Gradle verification property ${propertyName} must be a unique task array (only lintTasks and deviceTestTasks may be empty): ${source}`,
     );
   }
   return property as readonly string[];
@@ -324,7 +327,7 @@ function selectPrimaryModule(
     return modules[0] as AndroidModuleDetection;
   }
 
-  const defaultModule = applications[0] ?? modules[0];
+  const defaultModule = applications[0] ?? modules.find(m => m.type !== "jvm-library");
   if (moduleScope === "all" && defaultModule !== undefined) {
     return defaultModule;
   }
@@ -363,8 +366,10 @@ export function planAdaptiveProjectTemplates(
   targetDirectory: string,
   options: AdaptiveProjectTemplateOptions = {},
 ): AdaptiveProjectTemplatePlan {
-  const detection =
+  let detection =
     options.projectDetection ?? detectAndroidProject(targetDirectory);
+  if (options.projectCapabilities) detection = detectionWithCapabilities(detection, options.projectCapabilities);
+  if (detection.capabilities && detection.gitRoot) validateProjectCapabilities(detection.capabilities, detection.gitRoot);
   if (
     !detection.isAndroidProject ||
     detection.gitRoot === null ||
@@ -379,10 +384,10 @@ export function planAdaptiveProjectTemplates(
       [...detection.errors, ...detection.warnings],
     );
   }
-  if (detection.projectRoot !== detection.gitRoot) {
+  if (detection.projectRoot !== detection.gitRoot && !detection.capabilities) {
     throw new AdaptiveProjectTemplateError(
       "NESTED_GRADLE_ROOT_UNSUPPORTED",
-      "The Gradle settings root must currently match the Git root.",
+      "Nested Gradle roots require authoritative Gradle capability discovery.",
       [detection.gitRoot, detection.projectRoot],
     );
   }
@@ -424,16 +429,18 @@ export function planAdaptiveProjectTemplates(
     );
   }
 
-  const productionPaths = unique(
-    modules.map((module) => sourcePattern(module.directory, "main")),
-  );
-  const testPaths = unique(
+  const modelPaths = (kind: "production" | "test", module?: string) => detection.capabilities!.modules
+    .filter(m => module === undefined || m.gradlePath === module).flatMap(m => m.sources.filter(s => s.kind === kind).flatMap(s => s.paths));
+  const productionPaths = unique(detection.capabilities ? modelPaths("production") :
+    modules.map((module) => sourcePattern(module.directory, "main")));
+  const testPaths = unique(detection.capabilities ? modelPaths("test") :
     modules.flatMap((module) => [
       sourcePattern(module.directory, "test"),
       sourcePattern(module.directory, "androidTest"),
     ]),
   );
   const androidProject: AdaptiveAndroidProjectConfiguration = {
+    ...(detection.capabilities ? { capabilities: detection.capabilities } : {}),
     name: detection.projectName,
     gradleDsl: detection.dsl,
     settingsFile: repositoryPath(gitRoot, detection.settingsFile),
@@ -446,18 +453,34 @@ export function planAdaptiveProjectTemplates(
 
   const configTemplatePath = "automation/config.json";
   const configTemplate = readObjectTemplate(configTemplatePath);
-  const gradleVerification = gradleVerificationConfiguration(
-    options.gradleVerification ?? configTemplate.gradleVerification,
+  const configuredGradleVerification = gradleVerificationConfiguration(
+    options.gradleVerification ?? (detection.capabilities ? capabilityVerification(detection.capabilities, primaryModule.gradlePath) : configTemplate.gradleVerification),
     options.gradleVerification === undefined
       ? configTemplatePath
       : "AdaptiveProjectTemplateOptions.gradleVerification",
   );
+  const gradleVerification = {
+    ...configuredGradleVerification,
+    // Keep configured legacy aliases available to already approved V1/V2/V3
+    // contracts; new V4 examples choose a concrete task path first.
+    focusedTestTasks: unique([
+      ...configuredGradleVerification.focusedTestTasks.map((task) =>
+        task.startsWith(":") ? task : `${primaryModule.gradlePath === ":" ? "" : primaryModule.gradlePath}:${task}`),
+      ...configuredGradleVerification.focusedTestTasks,
+    ]),
+  };
   const lintEnabled =
     options.lintEnabled ?? configTemplate.lintEnabled ?? DEFAULT_LINT_ENABLED;
   if (typeof lintEnabled !== "boolean") {
     throw new AdaptiveProjectTemplateError(
       "LINT_ENABLED_INVALID",
       "Android lint verification must be enabled or disabled with a boolean value.",
+    );
+  }
+  if (lintEnabled && gradleVerification.lintTasks.length === 0) {
+    throw new AdaptiveProjectTemplateError(
+      "TEMPLATE_INVALID",
+      "Android lint is required by policy but no lint tasks are available.",
     );
   }
   const unitTestsEnabled =
@@ -497,6 +520,8 @@ export function planAdaptiveProjectTemplates(
   );
   const protectedPaths = unique([
     ...baseProtectedPaths,
+    ...(detection.capabilities?.buildRoot !== undefined && detection.capabilities.buildRoot !== "."
+      ? buildProtectedPaths(detection.capabilities.buildRoot) : []),
     androidProject.settingsFile,
     ...modules.map((module) => module.buildFile),
   ]);
@@ -511,6 +536,7 @@ export function planAdaptiveProjectTemplates(
     androidProject,
     protectedPaths,
   } as unknown as AdaptiveAutomationConfiguration;
+  validateConfigurationModel(automationConfig, gitRoot);
 
   const taskTemplatePath =
     "automation/tasks/TASK-TEMPLATE.json.example";
@@ -527,7 +553,7 @@ export function planAdaptiveProjectTemplates(
     allowedPaths:
       moduleScope === "all"
         ? [...productionPaths, ...testPaths]
-        : [
+        : detection.capabilities ? unique([...modelPaths("production", primaryModule.gradlePath), ...modelPaths("test", primaryModule.gradlePath)]) : [
             sourcePattern(primaryModule.directory, "main"),
             sourcePattern(primaryModule.directory, "test"),
             sourcePattern(primaryModule.directory, "androidTest"),

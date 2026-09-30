@@ -28,4 +28,7 @@ if [[ "$(jq -r '.deviceTestsRequired' "$contract")" == "true" ]]; then
     automation_run_gradle_group "deviceTestTasks" "$AUTOMATION_ROOT"
 fi
 
+if [[ "$(jq -r '.schemaVersion' "$contract")" -ge "4" ]]; then
+    automation_run_inventory check "$task_id"
+fi
 automation_info "integration candidate passed all deterministic verification"

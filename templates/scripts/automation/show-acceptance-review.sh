@@ -95,6 +95,7 @@ printf -- '- Reviewer：`%s`，独立复验退出码 `%s`\n' \
     "$(jq -r '.evidence.reviewerVerificationExitCode' "$report_file")"
 printf -- '- Reviewer 摘要：%s\n' "$(jq -r '.reviewSummary' "$report_file")"
 printf -- '- 聚焦测试：\n'
+printf -- '  - Gradle 工作目录：`%s`\n' "$(automation_gradle_build_root)"
 jq -r '.targetTests[] | "  - `./gradlew \(.gradleTask) --tests \(.filter)`"' "$report_file"
 
 printf '\n### P1 · 绑定与剩余风险\n\n'

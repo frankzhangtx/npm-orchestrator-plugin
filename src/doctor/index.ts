@@ -1,5 +1,6 @@
 import { spawnSync } from "node:child_process";
-import { lstatSync } from "node:fs";
+import { lstatSync, readFileSync } from "node:fs";
+import { detectionWithCapabilities } from "../installer/project-capabilities.js";
 import { join, resolve } from "node:path";
 import process from "node:process";
 
@@ -237,17 +238,25 @@ export function runDoctor(options: DoctorOptions = {}): DoctorReport {
       ? resolve(process.cwd())
       : resolve(options.targetDirectory);
 
+  let sdkTarget = resolvedTarget;
   if (options.targetDirectory !== undefined) {
-    const detection =
+    let detection =
       options.androidProjectDetection ??
       detectAndroidProject(options.targetDirectory);
+    if (!options.androidProjectDetection && detection.gitRoot) {
+      try {
+        const config = JSON.parse(readFileSync(join(detection.gitRoot, "automation/config.json"), "utf8"));
+        if (config.androidProject?.capabilities) detection = detectionWithCapabilities(detection, config.androidProject.capabilities);
+      } catch { /* Installed integrity checks below report invalid/missing configuration. */ }
+    }
     checks.push(...androidProjectChecks(detection));
     resolvedTarget = detection.gitRoot ?? resolvedTarget;
+    sdkTarget = detection.projectRoot ?? resolvedTarget;
   }
   if (options.checkDependencies === true) {
     checks.push(
       ...inspectRequiredCommands(options),
-      inspectAndroidSdk(resolvedTarget, options),
+      inspectAndroidSdk(sdkTarget, options),
     );
   }
   if (options.checkInstallation === true) {

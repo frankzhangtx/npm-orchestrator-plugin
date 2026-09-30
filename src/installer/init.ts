@@ -64,6 +64,7 @@ import {
 const TEMPLATE_COPY_ROOTS = [
   ".opencode",
   "scripts/automation",
+  "automation/verification",
 ] as const;
 const TEMPLATE_COPY_FILES = [
   "automation/config.schema.json",
@@ -494,7 +495,7 @@ export function planProjectResourceInputs(
 ): ProjectResourceInputPlan {
   const adaptiveTemplates = planAdaptiveProjectTemplates(directory, options);
   return {
-    targetDirectory: adaptiveTemplates.projectRoot,
+    targetDirectory: adaptiveTemplates.detection.gitRoot!,
     adaptiveTemplates,
     inputs: baseInstallationInputs(adaptiveTemplates),
   };

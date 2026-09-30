@@ -27,6 +27,21 @@ review_verification_exit_code="$(jq -er '.verificationExitCode' "$review_file")"
 [[ "$red_exit_code" -ne 0 ]] || automation_die "RED evidence does not contain a failing test result"
 [[ "$review_verification_exit_code" -eq 0 ]] || automation_die "independent review verification did not pass"
 structured_red=null
+inventory_verification=null
+if [[ "$(jq -er '.schemaVersion' "$contract")" -ge "4" ]]; then
+    automation_run_inventory check "$task_id" >/dev/null
+    inventory_verification="$(jq -n \
+        --slurpfile baseline "$evidence_dir/baseline-inventory.json" \
+        --slurpfile red "$red_file" \
+        --slurpfile manifest "$evidence_dir/test-manifest.json" \
+        --slurpfile green "$evidence_dir/green-inventory.json" \
+        '{valid: $green[0].valid, baseline: $baseline[0].summary,
+          red: {summary: $manifest[0].summary, processExitCode: $red[0].processExitCode,
+                expectedFailureCount: $red[0].expectedFailureCount, exitCodeMeaning: $red[0].exitCodeMeaning},
+          green: $green[0].summary, binding: $green[0].binding,
+          verifiedHead: $green[0].verifiedHead, worktreeSha256: $green[0].worktreeSha256,
+          cases: [$manifest[0].cases[] | {id, taskPath, className, name, classification, intent, allowSkip}] }')"
+fi
 if [[ "$(jq -er '.schemaVersion' "$contract")" == "3" ]]; then
     preflight_file="$evidence_dir/test-preflight.json"
     manifest_file="$evidence_dir/test-manifest.json"
@@ -101,6 +116,7 @@ jq -n \
     --argjson nonGoals "$(jq -c '.nonGoals' "$contract")" \
     --argjson targetTests "$(jq -c '.targetTests' "$contract")" \
     --argjson structuredRed "$structured_red" \
+    --argjson inventoryVerification "$inventory_verification" \
     '{taskId: $taskId, title: $title, state: $state,
       generatedAt: $generatedAt, originalBranch: $originalBranch,
       originalHeadBeforeContract: $originalHeadBeforeContract,
@@ -122,6 +138,7 @@ jq -n \
         redRecorded: true,
         redExitCode: $redExitCode,
         structuredRed: $structuredRed,
+        inventoryVerification: $inventoryVerification,
         qualityGate: "PASSED",
         gateAttempts: $gateAttempts,
         codingCycle: $codingCycle,

@@ -163,7 +163,7 @@ test("plans read-only and safely uninstalls unchanged managed resources", () => 
     const plan = planProjectUninstall(join(root, "clients/mobile"), options);
 
     assert.equal(plan.targetDirectory, root);
-    assert.equal(plan.files.length, 47);
+    assert.equal(plan.files.length, 52);
     assert.equal(disposition(plan, "AGENTS.md"), "restore-original");
     assert.equal(disposition(plan, "opencode.jsonc"), "restore-original");
     assert.equal(
@@ -180,9 +180,9 @@ test("plans read-only and safely uninstalls unchanged managed resources", () => 
     const result = runProjectUninstall(join(root, "clients/mobile"), options);
 
     assert.equal(result.status, "uninstalled");
-    assert.equal(result.managedFileCount, 47);
+    assert.equal(result.managedFileCount, 52);
     assert.equal(result.restoredFileCount, 2);
-    assert.equal(result.removedFileCount, 45);
+    assert.equal(result.removedFileCount, 50);
     assert.equal(result.alreadyCleanFileCount, 0);
     assert.equal(result.retainedFileCount, 0);
     assert.deepEqual(result.retainedPaths, []);
@@ -252,7 +252,7 @@ test("retains content, permission, and deletion drift while uninstalling safe fi
 
     assert.equal(result.status, "uninstalled-with-retained-files");
     assert.equal(result.restoredFileCount, 0);
-    assert.equal(result.removedFileCount, 43);
+    assert.equal(result.removedFileCount, 48);
     assert.equal(result.alreadyCleanFileCount, 1);
     assert.equal(result.retainedFileCount, 3);
     assert.deepEqual(
@@ -428,9 +428,9 @@ test("CLI uninstall supports structured JSON output", () => {
     const output = JSON.parse(result.stdout);
     assert.equal(output.status, "uninstalled");
     assert.equal(output.targetDirectory, root);
-    assert.equal(output.managedFileCount, 47);
+    assert.equal(output.managedFileCount, 52);
     assert.equal(output.restoredFileCount, 2);
-    assert.equal(output.removedFileCount, 45);
+    assert.equal(output.removedFileCount, 50);
     assertManifestMissing(root);
   } finally {
     rmSync(root, { recursive: true, force: true });

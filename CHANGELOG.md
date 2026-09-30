@@ -1,5 +1,72 @@
 # Changelog
 
+## 1.1.0 - 2026-09-30
+
+Source release; npm publication is pending.
+
+- Add V4 focused-baseline test inventories with immutable baseline, RED and
+  GREEN evidence. Preserve existing regression tests and reject incomplete,
+  cached or mismatched test execution proof.
+
+- Add explicit V8 isolated automatic local integration and planning-input
+  snapshots. Refresh before execution only over completed queue integrations
+  with unchanged declared inputs and execution configuration. Keep original
+  approvals, old-contract behavior, serial commit recovery and no-push rules.
+
+- Keep runtime stage-recovery checkpoints outside the approved draft digest so
+  V7 candidates can proceed to acceptance and integration. Contract recovery
+  policies and scheduling changes still require fresh approval.
+
+- Support explicitly selected nested Android builds using the persisted Gradle
+  capability snapshot. Install at the Git root and run verification, inventory
+  and SDK lookup at the selected build root, including isolated worktrees.
+  Preserve the selection through doctor/upgrade and protect nested build
+  configuration without including sibling sources.
+
+- Keep stage backoff ledgers unchanged while waiting, verify their previous hash
+  before updates and seal the intended bytes. Reject edits during publication or
+  checkpoint sealing instead of overwriting or adopting a modified retry budget.
+
+- Recheck a transaction lock after querying its exited owner, and bind recovery
+  to the observed owner/token so a released or replaced lock cannot spuriously
+  block supervision or cause recovery of another lock generation. Publish locks
+  from fully written owner records with an exclusive hard link, so a crash during
+  creation cannot leave an anonymous lock. Existing unknown locks still fail closed.
+
+- Share a versioned Android project capability snapshot across Gradle discovery,
+  installation, doctor and Shell validation. Include custom source roots,
+  manifests, non-Debug verification tasks and Android-reachable JVM libraries;
+  retain every discovered unit-test and production build gate. Preserve legacy
+  installations and reject unsafe source layouts.
+
+- Add opt-in V7 deterministic RED/GREEN/Reviewer environment recovery with
+  separate cumulative budgets, retained attempts, persisted jittered backoff,
+  input/evidence checks and fail-closed ambiguous outcomes. Keep model calls,
+  implementation fixes, Review corrections and old contract authority separate.
+
+- Add explicitly approved V6 Worker deadlines with a detached supervisor,
+  persistent run/stage limits and TERM grace, per-process ownership checks,
+  audited TERM/KILL, scheduler/supervisor reattachment and exit confirmation.
+  Preserve stopped candidates and interrupted commit transactions; isolate
+  shared Gradle daemons and keep old contracts' authority unchanged.
+
+- Add opt-in task-contract V5 baseline recovery with immutable full-test and
+  discovery checkpoints, retained attempts, queue-sealed input/evidence hashes,
+  classified failures, separate bounded automatic/manual budgets and durable
+  backoff. Keep V4 approval and evidence semantics unchanged. Capture happens
+  before model invocation; ambiguous crashes and changed inputs fail closed.
+  The elapsed window limits new attempts, not termination of hung processes.
+
+- Fix queue Reviewer recovery to use the Shell entry's one-argument protocol
+  while retaining queue approval validation and sealed-candidate checks.
+- Execute all configured Review correction cycles, including explicit budget
+  exhaustion, instead of stopping at a fixed eight transitions.
+- Keep agent exit failures task-local; sealed isolated failures no longer
+  suspend unrelated work. Shared ownership/lease faults remain blocking.
+- Allow absent optional lint/device capabilities without fabricating tasks;
+  reject policies/contracts that require an unavailable capability. Generate
+  AGENTS guidance from the configured test matrix instead of a Debug alias.
+
 ## 1.0.5 - 2026-09-17
 
 - Add schema V3 verification cases that distinguish preserved behavior,

@@ -66,7 +66,7 @@ while IFS= read -r path; do
     if automation_array_matches_path "$AUTOMATION_CONFIG" '.androidProject.productionPaths' "$path"; then
         production_changed=1
     fi
-    if automation_array_matches_path "$AUTOMATION_CONFIG" '.androidProject.testPaths' "$path"; then
+    if automation_is_task_test_path "$task_id" "$path"; then
         test_changed=1
     fi
 done <<< "$changed_file_list"
@@ -75,7 +75,7 @@ deleted_tests="$(
     while IFS= read -r path; do
         [[ -n "$path" ]] || continue
         if [[ -n "$(git -C "$AUTOMATION_ROOT" diff --no-renames --name-only --diff-filter=D HEAD -- "$path")" ]] && \
-           automation_array_matches_path "$AUTOMATION_CONFIG" '.androidProject.testPaths' "$path"; then
+           automation_is_task_test_path "$task_id" "$path"; then
             printf '%s\n' "$path"
         fi
     done <<< "$changed_file_list"
@@ -91,7 +91,7 @@ fi
 added_test_lines="$(
     while IFS= read -r path; do
         [[ -n "$path" ]] || continue
-        if automation_array_matches_path "$AUTOMATION_CONFIG" '.androidProject.testPaths' "$path"; then
+        if automation_is_task_test_path "$task_id" "$path"; then
             git -C "$AUTOMATION_ROOT" diff --no-renames --unified=0 HEAD -- "$path"
         fi
     done <<< "$changed_file_list" \
@@ -106,7 +106,7 @@ fi
 while IFS= read -r untracked_test; do
     [[ -n "$untracked_test" ]] || continue
     if ! git -C "$AUTOMATION_ROOT" ls-files --error-unmatch -- "$untracked_test" >/dev/null 2>&1 && \
-       automation_array_matches_path "$AUTOMATION_CONFIG" '.androidProject.testPaths' "$untracked_test" && \
+       automation_is_task_test_path "$task_id" "$untracked_test" && \
         rg -n "$weakening_pattern" "$AUTOMATION_ROOT/$untracked_test" >/dev/null; then
         automation_die "potential test weakening detected in new test: $untracked_test"
         exit 40

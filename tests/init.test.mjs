@@ -193,7 +193,7 @@ test("plans and installs all managed resources in a Kotlin DSL project", () => {
       initOptions(runner, "init-kotlin-plan-001"),
     );
     assert.equal(plan.targetDirectory, root);
-    assert.equal(plan.installation.files.length, 47);
+    assert.equal(plan.installation.files.length, 52);
     assert.equal(
       existsSync(join(root, WORKTREE_ALLOWLIST_RELATIVE_PATH)),
       false,
@@ -219,8 +219,8 @@ test("plans and installs all managed resources in a Kotlin DSL project", () => {
     assert.equal(result.targetDirectory, root);
     assert.equal(result.moduleScope, "all");
     assert.equal(result.primaryModule, ":mobile");
-    assert.equal(result.managedFileCount, 47);
-    assert.equal(result.writtenFileCount, 47);
+    assert.equal(result.managedFileCount, 52);
+    assert.equal(result.writtenFileCount, 52);
     assert.equal(result.reusedFileCount, 0);
     assert.equal(result.worktreeAllowlistStatus, "created");
     assert.equal(result.commitMessagePrefixStatus, "created-unconfigured");
@@ -485,7 +485,7 @@ test("repeated init is byte-idempotent for an unchanged installation", () => {
     assert.equal(first.status, "installed");
     assert.equal(repeated.status, "already-installed");
     assert.equal(repeated.writtenFileCount, 0);
-    assert.equal(repeated.reusedFileCount, 47);
+    assert.equal(repeated.reusedFileCount, 52);
     assert.equal(repeated.worktreeAllowlistStatus, "existing");
     assert.equal(repeated.commitMessagePrefixStatus, "existing-configured");
     assert.equal(

@@ -26,6 +26,10 @@ fi
 [[ -f "$contract" ]] || automation_die "contract not found: $contract"
 jq -e . "$contract" >/dev/null || automation_die "contract is not valid JSON: $contract"
 
+if [[ "$(jq -r '.schemaVersion' "$contract")" -ge "4" ]]; then
+    node "$AUTOMATION_ROOT/automation/verification/contract.cjs" "$contract" "$AUTOMATION_CONFIG" || \
+        automation_die "V4/V5 contract validation failed"
+else
 jq -e '
     (.schemaVersion == 1 or .schemaVersion == 2 or .schemaVersion == 3) and
     (.id | type == "string" and test("^TASK-[A-Z0-9-]+$")) and
@@ -99,9 +103,14 @@ jq -e '
              else false end)))
      else true end)
 ' "$contract" >/dev/null || automation_die "contract is missing required fields or violates limits"
+fi
 
 task_id="$(jq -r '.id' "$contract")"
 automation_validate_task_id "$task_id"
+if [[ "$(jq -r '.deviceTestsRequired' "$contract")" == "true" ]]; then
+    jq -e '.gradleVerification.deviceTestTasks | length > 0' "$AUTOMATION_CONFIG" >/dev/null || \
+        automation_die "Device tests are required by this contract but no device test tasks are available"
+fi
 
 if [[ "$contract" == "$AUTOMATION_TASKS_DIR/"* ]]; then
     expected_contract="$(automation_contract_path "$task_id")"
@@ -133,7 +142,7 @@ while IFS=$'\t' read -r gradle_task filter; do
         automation_die "target test Gradle task is not allowed by automation/config.json: $gradle_task"
 done < <(jq -r '.targetTests[] | [.gradleTask, .filter] | @tsv' "$contract")
 
-if rg -n -i 'replace with|TASK-EXAMPLE|todo|tbd|placeholder' "$contract" >/dev/null; then
+if [[ "$(jq -r '.schemaVersion' "$contract")" -lt "4" ]] && rg -n -i 'replace with|TASK-EXAMPLE|todo|tbd|placeholder' "$contract" >/dev/null; then
     automation_die "contract still contains template placeholders"
 fi
 

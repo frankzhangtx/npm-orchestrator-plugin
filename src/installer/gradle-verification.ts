@@ -7,6 +7,8 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 
 import type { CommandResult } from "../doctor/index.js";
+import { CAPABILITIES_INIT_SCRIPT } from "./capabilities-script.js";
+import { parseProjectCapabilities, detectionWithCapabilities, capabilityVerification } from "./project-capabilities.js";
 import type { GradleVerificationConfiguration } from "./adaptive-templates.js";
 import {
   detectAndroidProject,
@@ -135,7 +137,7 @@ export const GRADLE_PROJECT_DISCOVERY_INIT_SCRIPT = [
   "    }",
   "}",
   "",
-].join("\n");
+].join("\n") + CAPABILITIES_INIT_SCRIPT;
 
 /** @deprecated Use GRADLE_PROJECT_DISCOVERY_INIT_SCRIPT. */
 export const GRADLE_TASK_DISCOVERY_INIT_SCRIPT =
@@ -346,7 +348,7 @@ function preferredModulePath(
   return (
     matchingApplication ??
     applications[0] ??
-    detection.modules[0]
+    detection.modules.find(m => m.type !== "jvm-library")
   )?.gradlePath ?? ":";
 }
 
@@ -456,6 +458,7 @@ export function inferGradleVerificationConfiguration(
   taskPaths: readonly string[],
   requestedPrimaryModule?: string,
 ): GradleVerificationConfiguration {
+  if (detection.capabilities) return capabilityVerification(detection.capabilities, preferredModulePath(detection, requestedPrimaryModule));
   if (detection.modules.length === 0) {
     throw new GradleVerificationDiscoveryError(
       "GRADLE_PROJECT_INVALID",
@@ -506,7 +509,7 @@ export function inferGradleVerificationConfiguration(
       .filter((task) => task.name !== "testDebugUnitTest")
       .map((task) => task.path),
   ];
-  const focusedTestTasks = unitTasks.map((task) => task.path);
+  const focusedTestTasks = unitTasks.map((task) => task.path.startsWith(":") ? task.path : `:${task.path}`);
   const selectedAssembleTasks = assembleTasks.some(
     (task) => task.name === "assembleDebug",
   )
@@ -530,7 +533,7 @@ export function inferGradleVerificationConfiguration(
     deviceTestTasks: unique(deviceTestTasks),
   };
   const missingGroups = Object.entries(configuration)
-    .filter(([, values]) => values.length === 0)
+    .filter(([name, values]) => values.length === 0 && name !== "lintTasks" && name !== "deviceTestTasks")
     .map(([name]) => name);
   if (missingGroups.length > 0) {
     throw new GradleVerificationDiscoveryError(
@@ -600,10 +603,12 @@ export function discoverGradleProjectConfiguration(
       );
     }
     const runtimeModules = parseGradleAndroidModules(result.stdout);
-    const detection = detectionWithRuntimeModules(
+    let detection = detectionWithRuntimeModules(
       staticDetection,
       runtimeModules,
     );
+    const capabilities = parseProjectCapabilities(result.stdout, staticDetection.gitRoot, staticDetection.projectRoot);
+    if (capabilities) detection = detectionWithCapabilities(detection, capabilities);
     if (!detection.isAndroidProject || detection.modules.length === 0) {
       throw new GradleVerificationDiscoveryError(
         "GRADLE_PROJECT_INVALID",
@@ -611,7 +616,7 @@ export function discoverGradleProjectConfiguration(
         [...detection.errors, ...detection.warnings],
       );
     }
-    const taskPaths = parseGradleTaskPaths(result.stdout);
+    const taskPaths = capabilities ? capabilities.modules.flatMap(m => m.tasks.map(t => t.path)).sort() : parseGradleTaskPaths(result.stdout);
     return {
       detection,
       taskPaths,

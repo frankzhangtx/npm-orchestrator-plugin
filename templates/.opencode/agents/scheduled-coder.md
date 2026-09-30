@@ -109,7 +109,14 @@ literally. Do not infer missing requirements and do not ask questions during a
 non-interactive run. If anything is ambiguous or blocked, stop and report the exact
 reason; the deterministic scripts own state transitions.
 
-For schema V3 tasks, keep production code unchanged while adding the approved
+For schema V4/V5/V6, successful claim must first seal the focused baseline inventory.
+Do not edit tests before claim succeeds. Existing tests join the approved
+behavior cases automatically; keep their coverage and all sealed test/resource
+inputs intact. Use status evidence to inspect missing, newly skipped or extra
+cases and the reported recovery action. An allowed existing skip does not
+authorize any new skipped behavior.
+
+For schema V3/V4/V5/V6 tasks, keep production code unchanged while adding the approved
 tests, then call `./scripts/automation/record-red.sh <TASK-ID>` with no model-
 chosen failure text. The script checks every declared case. A familiar exception
 name in a log is not sufficient RED. Fix a test-only preparation error only when
@@ -124,3 +131,9 @@ Treat `.automation-worktree-allowlist` and the status JSON's
 edit, stage, report, or use them as task evidence.
 Passing tests never grants permission to push, merge, create worktrees, alter
 automation rules, or declare the task ready for review yourself.
+
+For V6 the approved independent supervisor enforces wall-clock deadlines.
+Controlled Gradle entries disable shared-daemon reuse. Never unset Worker
+ownership variables, launch persistent detached services, or bypass controlled
+entries to extend a deadline. If ownership or termination is blocked, preserve
+the candidate and stop; no extra implementation or retry is authorized.

@@ -1,4 +1,5 @@
 import { queuePolicy, type QueuePolicy } from "../config/queue-policy.js";
+import { validateProjectCapabilities } from "./project-capabilities.js";
 import { assertQueueIdle, withQueueLifecycleLock } from "../queue/lifecycle.js";
 import { createHash, randomUUID } from "node:crypto";
 import {
@@ -729,6 +730,7 @@ function textFromOriginal(
 }
 
 interface ConfiguredAdaptiveOptions {
+  projectCapabilities?: import("./project-capabilities.js").ProjectCapabilities;
   queuePolicy?: QueuePolicy;
   commitMessagePrefixMode?: CommitMessagePrefixMode;
   moduleScope?: ModuleScope;
@@ -761,7 +763,7 @@ function configuredAdaptiveOptions(
     commitPolicy?: unknown;
     worktreeBase?: unknown;
     queue?: unknown;
-    androidProject?: { moduleScope?: unknown; primaryModule?: unknown };
+    androidProject?: { moduleScope?: unknown; primaryModule?: unknown; capabilities?: import("./project-capabilities.js").ProjectCapabilities };
     gradleVerification?: unknown;
     commitMessagePrefixMode?: unknown;
     lintEnabled?: unknown;
@@ -781,6 +783,7 @@ function configuredAdaptiveOptions(
   }
 
   const configured: ConfiguredAdaptiveOptions = {};
+  if (value.androidProject?.capabilities) configured.projectCapabilities = value.androidProject.capabilities;
   configured.queuePolicy = queuePolicy(value);
   const commitMessagePrefixMode =
     value.commitMessagePrefixMode ?? DEFAULT_COMMIT_MESSAGE_PREFIX_MODE;
@@ -1181,8 +1184,10 @@ export function planProjectUpgrade(
     runtimeProjectDetection === undefined
   ) {
     try {
+      const selectedBuild = configured.projectCapabilities
+        ? validateProjectCapabilities(configured.projectCapabilities, requestedTarget).buildRoot : ".";
       refreshedGradle = discoverGradleProjectConfiguration(
-        requestedTarget,
+        resolve(requestedTarget, selectedBuild),
         options.processRunner ?? runInitProcess,
         primaryModule === undefined ? {} : { primaryModule },
       );
@@ -1200,6 +1205,8 @@ export function planProjectUpgrade(
   }
   if (runtimeProjectDetection !== undefined) {
     adaptiveOptions.projectDetection = runtimeProjectDetection;
+  } else if (configured.projectCapabilities) {
+    adaptiveOptions.projectCapabilities = configured.projectCapabilities;
   }
   const gradleVerification =
     options.gradleVerification ??

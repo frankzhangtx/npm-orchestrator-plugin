@@ -1,0 +1,98 @@
+import groovy.json.JsonOutput
+import groovy.json.JsonSlurper
+import org.gradle.api.tasks.testing.Test
+import org.gradle.api.tasks.testing.TestDescriptor
+import org.gradle.api.tasks.testing.TestListener
+import org.gradle.api.tasks.testing.TestResult
+
+// All three phases use this collector. Never infer execution from existing XML.
+def request = new JsonSlurper().parse(new File(System.getProperty('orchestrator.inventoryRequest')))
+def outputFile = new File(request.output as String)
+def append = { Map value ->
+    synchronized (outputFile) {
+        outputFile << JsonOutput.toJson(value + [runId: request.runId]) << '\n'
+    }
+}
+append([kind: 'start', phase: request.phase, gradleVersion: gradle.gradleVersion])
+def filtersByTask = request.targets.groupBy { it.gradleTask }.collectEntries { path, targets ->
+    [(path): targets.collect { it.filter }.unique().sort()]
+}
+gradle.taskGraph.whenReady { graph ->
+    filtersByTask.each { path, filters ->
+        def task = graph.allTasks.find { it.path == path }
+        if (!(task instanceof Test)) throw new GradleException("Inventory target must resolve to an exact Test task: ${path}")
+        def roots = [] as Set
+        def classes = task.testClassesDirs.files.collect { it.canonicalFile } as Set
+        def sourceSets = task.project.extensions.findByName('sourceSets')
+        sourceSets?.each { sourceSet ->
+            if (sourceSet.output.classesDirs.files.any { classes.contains(it.canonicalFile) }) {
+                roots.addAll(sourceSet.allSource.srcDirs)
+                roots.addAll(sourceSet.resources.srcDirs)
+            }
+        }
+        // AGP variants expose the source providers actually used by each unit test.
+        def android = task.project.extensions.findByName('android')
+        if (android != null && android.hasProperty('unitTestVariants')) {
+            android.unitTestVariants.each { variant ->
+                if (task.name == "test${variant.name.capitalize()}") {
+                    variant.sourceSets.each { provider ->
+                        roots.addAll(provider.javaDirectories)
+                        roots.addAll(provider.resourcesDirectories)
+                        if (provider.hasProperty('kotlinDirectories')) roots.addAll(provider.kotlinDirectories)
+                    }
+                }
+            }
+        }
+        // Modern AGP also exposes variant-specific test source sets through its DSL.
+        // Only unit-test providers are classified here, never production providers.
+        if (android != null && android.hasProperty('sourceSets')) {
+            android.sourceSets.findAll { it.name == 'test' || it.name.startsWith('test') && it.name.length() > 4 && Character.isUpperCase(it.name.charAt(4)) }.each { sourceSet ->
+                roots.addAll(sourceSet.java.srcDirs)
+                roots.addAll(sourceSet.resources.srcDirs)
+                if (sourceSet.hasProperty('kotlin')) roots.addAll(sourceSet.kotlin.srcDirs)
+                roots.addAll(sourceSet.assets.srcDirs)
+                roots.addAll(sourceSet.res.srcDirs)
+            }
+        }
+        append([kind: 'task', taskPath: path, filters: filters,
+            sourceRoots: roots.collect { it.absoluteFile.toPath().normalize().toString() }.sort(),
+            testClassesDirs: classes.collect { it.toString() }.sort()])
+        task.outputs.upToDateWhen { false }
+        task.outputs.doNotCacheIf('Orchestrator inventory requires actual test execution') { true }
+        task.ignoreFailures = true
+        task.failFast = false
+        if (task.hasProperty('dryRun')) task.dryRun = false
+        // An approved new test class need not exist before Coder starts.
+        task.filter.failOnNoMatchingTests = request.phase != 'baseline'
+        if (task.hasProperty('failOnNoDiscoveredTests')) task.failOnNoDiscoveredTests = request.phase != 'baseline'
+        task.filter.setIncludePatterns(*(filters as String[]))
+        def reportDir = new File(outputFile.parentFile, 'reports/' + path.substring(1).replace(':', '/'))
+        task.reports.junitXml.required.set(true)
+        task.reports.junitXml.outputLocation.set(reportDir)
+        task.addTestListener(new TestListener() {
+            void beforeSuite(TestDescriptor descriptor) {}
+            void beforeTest(TestDescriptor descriptor) {}
+            void afterTest(TestDescriptor descriptor, TestResult result) {
+                def failures = result.exceptions.collect { failure ->
+                    [type: failure.class.name, message: failure.message ?: '', stack: failure.stackTrace.collect { it.toString() }]
+                }
+                append([kind: 'case', taskPath: path, className: descriptor.className ?: '',
+                    name: descriptor.name ?: '', displayName: descriptor.displayName,
+                    result: result.resultType.toString(), failures: failures])
+            }
+            void afterSuite(TestDescriptor descriptor, TestResult result) {
+                if (descriptor.parent == null) append([kind: 'suite', taskPath: path,
+                    tests: result.testCount, failures: result.failedTestCount, skipped: result.skippedTestCount])
+            }
+        })
+    }
+}
+gradle.taskGraph.afterTask { task, state ->
+    if (filtersByTask.containsKey(task.path)) append([kind: 'taskEnd', taskPath: task.path,
+        executed: state.executed, skipped: state.skipped, noSource: state.noSource,
+        upToDate: state.upToDate, skipMessage: state.skipMessage,
+        failure: state.failure == null ? null : state.failure.toString()])
+}
+gradle.buildFinished { result ->
+    append([kind: 'end', failure: result.failure == null ? null : result.failure.toString()])
+}

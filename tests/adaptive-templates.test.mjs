@@ -67,6 +67,21 @@ function createAdaptiveKotlinFixture() {
   return root;
 }
 
+test("renders unavailable optional capabilities and rejects enabling missing lint", () => {
+  const root = createAdaptiveKotlinFixture();
+  try {
+    const gradleVerification = {
+      fullUnitTestTasks: [":mobile:testDemoDebugUnitTest"],
+      focusedTestTasks: [":mobile:testDemoDebugUnitTest"],
+      assembleTasks: [":mobile:assembleDemoDebug"], lintTasks: [], deviceTestTasks: [],
+    };
+    const plan = planAdaptiveProjectTemplates(root, { gradleVerification });
+    assert.deepEqual(plan.automationConfig.gradleVerification, gradleVerification);
+    assert.throws(() => planAdaptiveProjectTemplates(root, { gradleVerification, lintEnabled: true }),
+      /lint is required by policy but no lint tasks/);
+  } finally { rmSync(root, { recursive: true, force: true }); }
+});
+
 test("renders portable configuration and a focused task example from Kotlin project metadata", () => {
   const root = createAdaptiveKotlinFixture();
   try {
@@ -249,7 +264,7 @@ test("defaults multi-application projects to all-module scope without requiring 
     ]);
     assert.deepEqual(plan.taskContractExample.targetTests, [
       {
-        gradleTask: "testDebugUnitTest",
+        gradleTask: ":tablet:testDebugUnitTest",
         filter: "dev.adaptive.tablet.ReplaceWithFocusedTest",
       },
     ]);
@@ -352,7 +367,7 @@ test("reports an unknown explicit primary module without writing files", () => {
   }
 });
 
-test("blocks nested Gradle roots until transaction scripts support them", () => {
+test("nested Gradle roots require authoritative capability discovery", () => {
   const root = mkdtempSync(join(tmpdir(), "orchestrator-adaptive-nested-"));
   try {
     mkdirSync(join(root, ".git"));

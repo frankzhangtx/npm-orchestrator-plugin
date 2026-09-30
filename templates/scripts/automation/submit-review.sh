@@ -36,9 +36,18 @@ review_log="$evidence_dir/review-verification.log"
 verification_status=0
 if [[ "$decision" == "APPROVED" ]]; then
     set +e
-    "$SCRIPT_DIR/verify-task.sh" "$task_id" 2>&1 | tee "$review_log"
+    contract="$(automation_contract_path "$task_id")"
+    if [[ "$(jq -r '.schemaVersion' "$contract")" -ge "7" ]]; then
+        node "$AUTOMATION_ROOT/automation/verification/recovery.cjs" --stage review "$contract" "$AUTOMATION_CONFIG" "$AUTOMATION_ROOT" "$evidence_dir" 2>&1 | tee "$review_log"
+    else
+        "$SCRIPT_DIR/verify-task.sh" "$task_id" 2>&1 | tee "$review_log"
+    fi
     verification_status=${PIPESTATUS[0]}
     set -e
+    if [[ "$(jq -r '.schemaVersion' "$contract")" -ge "7" && ( "$verification_status" -eq 75 || "$verification_status" -eq 76 ) ]]; then
+        automation_transition_state "$task_id" "REVIEWING" "BLOCKED" "reviewer" "independent verification stopped; inspect stage-recovery/review.json; no implementation change requested"
+        exit "$verification_status"
+    fi
     if [[ "$verification_status" -ne 0 ]]; then
         decision="CHANGES_REQUESTED"
         summary="Independent verification failed with exit $verification_status. $summary"

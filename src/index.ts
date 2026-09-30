@@ -139,6 +139,8 @@ export {
   type GradleVerificationProcessOptions,
   type GradleVerificationProcessRunner,
 } from "./installer/gradle-verification.js";
+export { validateProjectCapabilities, parseProjectCapabilities, detectionWithCapabilities, capabilityVerification,
+  type ProjectCapabilities, type ModuleCapabilities } from "./installer/project-capabilities.js";
 export {
   INITIAL_WORKTREE_ALLOWLIST_CONTENT,
   ProjectInitializationError,

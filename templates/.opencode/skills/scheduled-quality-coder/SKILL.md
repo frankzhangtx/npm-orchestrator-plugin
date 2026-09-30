@@ -50,15 +50,30 @@ it with `./scripts/automation/block-task.sh <TASK-ID> <reason>` before stopping.
    - For `CODING` after an interrupted initial run, inspect existing evidence
      and continue from the first incomplete mandatory action.
 
-4. On the initial coding cycle, add or change the smallest behavior test
+4. For V4/V5/V6/V7, confirm successful claim recorded `baselineInventory` in status
+   before editing any test. Discovery classifies evidence inputs only; all
+   edits still need contract and agent permission. On the initial coding cycle,
+   add or change the smallest behavior test
    permitted by `allowedPaths`.
 5. If RED evidence does not already exist, capture a genuine RED result. For a
-   schema V3 contract use:
+   schema V3/V4/V5/V6/V7 contract use:
 
    `./scripts/automation/record-red.sh <TASK-ID>`
 
    It checks every declared preserved, changed and observed case against fresh
-   structured output. For a legacy schema V1/V2 contract use:
+   structured output. V4/V5/V6/V7 also checks every captured existing regression case;
+   RED and GREEN share that manifest. After RED, test sources and resources are
+   frozen. For V4, if baseline inventory capture fails after `baseline.json` is written,
+   stop: baseline-only resume cannot retry it. Preserve evidence and request
+   approved abort/archive followed by a newly approved task; do not delete
+   baseline files or keep retrying the original task.
+   For V5/V6/V7, the queue completes deterministic baseline capture before launching
+   Coder. Inspect `baselineRecovery` and require a complete sealed baseline.
+   If capture is blocked, stop; only the queue may schedule approved recovery.
+   Never invoke recovery.cjs directly, change its ledger or retry a claim.
+   Read `inventoryStatus` for the exact reason and next action on
+   failure; never regenerate a baseline or overwrite sealed RED to bypass it.
+   For a legacy schema V1/V2 contract use:
 
    `./scripts/automation/record-red.sh <TASK-ID> <expected-failure-text> -- <test-filter>`
 
@@ -103,3 +118,14 @@ Do not invoke `android-orchestrator-brainstorming`,
 `finishing-a-development-branch`, `requesting-code-review`, parallel agents, or
 subagent-driven development. Planning and approval happen before this session;
 review happens in a separate fresh read-only session.
+
+## Approved V7 verification recovery
+
+For V7, record-red.sh, quality-gate.sh and submit-review.sh handle explicitly
+approved transient verification retries with separate RED/GREEN/Review budgets.
+Do not retry these commands to reset an exhausted environment budget. Status
+`stageRecovery` shows attempt history, failure classification and persistent
+backoff. An environment/unknown stop is not a request to change production code
+or weaken tests; preserve the candidate and stop. Provider/model failures still
+follow the existing approved recovery route. Never edit the recovery ledger,
+locks or earlier logs. V1..V6 keep their original retry semantics.

@@ -344,20 +344,24 @@ test("rejects malformed runtime module markers", () => {
   );
 });
 
-test("fails clearly when discovered tasks cannot form every required group", () => {
+test("discovers absent optional capabilities without inventing tasks and still requires build tasks", () => {
   const root = createFlavoredFixture();
   try {
     const detection = detectAndroidProject(root);
+    const optionalMissing = inferGradleVerificationConfiguration(detection,
+      flavoredTaskPaths.filter(path => !path.includes("connected") && !path.endsWith(":lint")));
+    assert.deepEqual(optionalMissing.deviceTestTasks, []);
+    assert.deepEqual(optionalMissing.lintTasks, []);
     assert.throws(
       () =>
         inferGradleVerificationConfiguration(
           detection,
-          flavoredTaskPaths.filter((path) => !path.includes("connected")),
+          flavoredTaskPaths.filter((path) => !path.includes("assemble")),
         ),
       (error) =>
         error instanceof GradleVerificationDiscoveryError &&
         error.code === "GRADLE_TASK_MATRIX_INCOMPLETE" &&
-        error.details.some((detail) => detail.includes("deviceTestTasks")),
+        error.details.some((detail) => detail.includes("assembleTasks")),
     );
   } finally {
     rmSync(root, { recursive: true, force: true });

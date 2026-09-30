@@ -1,5 +1,5 @@
 {
-  "schemaVersion": 3,
+  "schemaVersion": 4,
   "id": "TASK-EXAMPLE-001",
   "title": "Replace with one small, observable behavior change",
   "designApproved": true,
@@ -47,7 +47,7 @@
   ],
   "targetTests": [
     {
-      "gradleTask": "testDebugUnitTest",
+      "gradleTask": ":app:testDebugUnitTest",
       "filter": "*ReplaceWithFocusedTest"
     }
   ],
@@ -55,7 +55,7 @@
   "testPolicy": "required",
   "testPolicyReason": "Behavior changes require a focused regression test",
   "verification": {
-    "version": 1,
+    "version": 2,
     "maxPreparationFixes": 1,
     "cases": [
       {
@@ -75,6 +75,11 @@
           "origin": "The assertion at the approved behavior call"
         }
       }
-    ]
+    ],
+    "inventory": {
+      "mode": "focusedBaseline",
+      "existingSkips": "reject",
+      "emptyBaseline": "reject"
+    }
   }
 }

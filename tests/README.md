@@ -23,7 +23,7 @@ user-modification guards, the portable manifest Schema, sorted read-only
 conflict reports, content and mode conflicts, identical-file reuse, explicit
 merge handling, and no-write conflict failures.
 
-The init suite installs the complete 47-file inventory into temporary Kotlin
+The init suite installs the complete 52-file inventory into temporary Kotlin
 and Groovy Android fixtures. It covers dynamic rendering, JSONC and AGENTS
 merges, executable modes, write-before-complete verification, dependency
 failure before control-state creation, repeated-init idempotence, conflict
@@ -77,3 +77,96 @@ security inventory; verifies every local Markdown link; requires fixed-version
 migration paths, safe transaction-marker guidance, CLI exit-code and custom-tool
 diagnostics, explicit trust limitations, and dual-version release gates; and
 rejects local machine identifiers or floating `@latest` references.
+
+## V4 test inventory
+
+`npm test` includes shared queue/Shell contract validation, run-bound collection
+validation, regression coverage, input/evidence tamper rejection, preparation
+budgets, human-owned exclusions, and queue/reviewer/acceptance integration.
+Regression cases also cover failed/early-rejected GREEN reruns, interrupted
+sealing, baseline-inventory recovery guidance, and stale or malformed status
+sidecars during a later queue execution.
+Queue fixtures use real Git and Shell with model/Gradle substitutes; their
+results are not a substitute for the explicit real-Gradle tests:
+
+```sh
+node --test tests/test-inventory-gradle.integration.mjs
+node --test tests/test-inventory-android.integration.mjs
+```
+
+These tests keep their generated project and raw evidence and print its path.
+They use a locally installed Gradle 9.4.1, Java, and cached JUnit4/Hamcrest;
+set `ORCHESTRATOR_TEST_GRADLE`, `ORCHESTRATOR_TEST_JUNIT` and
+`ORCHESTRATOR_TEST_HAMCREST` to override discovery. Android additionally uses
+SDK 36 and AGP 9.2.1 (override `ORCHESTRATOR_TEST_AGP`), and exercises both Java
+and Kotlin plus custom resources/assets/res. Set `ORCHESTRATOR_TEST_OFFLINE=1`
+after dependencies are cached. This is a tested configuration, not a claim of
+support for every Gradle/AGP version. JVM coverage includes multiple modules,
+parameter instances, overlapping filters, skip/empty policies, NO-SOURCE,
+real compilation failure and recovery, and repeated uncached Test execution.
+
+Use `ORCHESTRATOR_INVENTORY_ARTIFACTS` to select an existing parent directory.
+No real model request, publication, or target-project installation is performed
+by these integration tests.
+
+## V5 baseline recovery
+
+`recovery-policy.test.mjs` checks explicit bounds, failure priority, jitter,
+persistent independent budgets and elapsed/no-progress limits.
+`queue-baseline-recovery.test.mjs` exercises the real Worker and installed Shell
+chain using deterministic Gradle/Agent fixtures: full/discovery/collection
+faults, retained checkpoints, service-state reload, explicit manual recovery,
+budget exhaustion and input/evidence rejection. This is not a real provider,
+Android Gradle, machine-restart or long-duration validation.
+
+## V6 Worker supervision
+
+`worker-supervision.test.mjs` covers policy bounds and identity/PID mismatch,
+real marked process signals, a stopped Worker event loop, TERM-resistant Gradle
+and detached descendants, an unrelated live process, continued independent
+work with blocked dependencies, supervisor replacement during persisted TERM
+grace, normal integration without signals and recovery of the same committed
+transaction after timeout. Process and Shell behavior is real; Gradle/Agent
+commands are deterministic fixtures. Sleep accounting is a clock-model test,
+not a physical sleep/reboot or real provider endurance certification.
+
+
+## V7 deterministic verification recovery
+
+`stage-recovery.test.mjs` covers new approval requirements, durable counters and
+backoff limits, real supervised Workers with transient RED/GREEN/Reviewer
+failures, unchanged model/fix-cycle counts, exhaustion, input/log mutation during
+backoff, ledger tampering and unowned checkpoint rejection, approved production
+deletions, cumulative budgets across Review corrections, compilation failure
+and unknown error rejection. Gradle and model
+responses are fixtures; this does not certify live provider recovery.
+
+
+## Android capability model
+
+`project-capabilities.test.mjs` verifies custom roots, non-Debug tasks, reachable
+JVM dependencies, complete build gates even without local tests, portable paths,
+source/identity/task consistency and unsafe layouts. The shared managed validator
+is invoked directly as well as through installation and doctor.
+
+After `npm run build`, run `node --test tests/project-capabilities-android.integration.mjs`
+for a real offline Gradle 9.4.1 / AGP 9.2.1 / SDK 36 multi-module fixture. It uses
+custom Java/Kotlin/test-resource paths, remapped module directories, Staging unit
+tests, transitive JVM dependencies and an unrelated failing JVM project. It checks
+build, install, doctor, Shell config validation, upgrade preservation and uninstall.
+Staging unit tests are explicitly enabled in the fixture. Gradle and compilation
+are real; the OpenCode version and install-time smoke responses are fixtures.
+No model requests, publishing, device runs or endurance claim are involved.
+Override `ORCHESTRATOR_TEST_GRADLE`, `ORCHESTRATOR_TEST_AGP`, `ANDROID_HOME`, or
+`ORCHESTRATOR_INVENTORY_ARTIFACTS` for local cached tools and retained artifacts.
+
+`supervision-lock.test.mjs` also kills a real process immediately before and after
+atomic lock publication, verifies complete owner records and exclusivity, and
+checks released/replaced locks during process inspection. Partial legacy records
+and unknown dead owners remain protected. Worker restart failures now emit bounded,
+redacted service/lock diagnostics before fixture cleanup.
+
+`stage-checkpoint.test.mjs` injects ledger edits before an update, immediately
+after atomic publication, and inside checkpoint sealing. It checks that altered
+bytes stay available for diagnosis and cannot become the approved retry budget.
+Stage waiting no longer rewrites the ledger on every polling iteration.

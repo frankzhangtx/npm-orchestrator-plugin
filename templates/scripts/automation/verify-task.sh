@@ -44,6 +44,9 @@ if [[ "$(jq -r '.deviceTestsRequired' "$contract")" == "true" ]]; then
 fi
 
 automation_info "all deterministic verification commands passed"
+if [[ "$contract_schema" -ge "4" ]]; then
+    automation_run_inventory check "$task_id"
+fi
 if [[ -n "${AUTOMATION_QUEUE_RUN_ID:-}" ]]; then
     [[ -n "${AUTOMATION_FULL_TEST_LOG:-}" ]] || automation_die "fresh full unit-test evidence is missing"
     jq -n \

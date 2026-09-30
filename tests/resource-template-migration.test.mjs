@@ -8,21 +8,26 @@ import { fileURLToPath } from "node:url";
 const templatesRoot = fileURLToPath(new URL("../templates/", import.meta.url));
 
 const expectedBaselineHashes = new Map([
+  ["automation/verification/project.cjs", "818dcf0a20dee93b0e416d051cc1bb5a524b84627c5e1debeedbc42902d2ed62"],
+  ["automation/verification/recovery.cjs", "443fe0af443df650b6cd1c5327cdbf50f6b1e734e988a64985646a0f166aeebb"],
+  ["automation/verification/contract.cjs", "b794d439188dc3d0321fcd474c76600698d49bfaeebe3776702e79b6a680509f"],
+  ["automation/verification/inventory.cjs", "9adea93ed212971f288d7495fee52041b37b97ff6057527a9f729df9e5a210b0"],
+  ["automation/verification/collect.init.gradle", "04a80b880d8813e61d97c19846544a23083a71f341d006e7bb25c8f74cc8010f"],
   [
     "automation/config.json",
     "f53ffef792ee63f17b520f86d18a619c3097dc09f301abd9e76de19fad01c14e",
   ],
   [
     "automation/config.schema.json",
-    "0169b244ad9b8d49ead2687682aec321791d8a836c3d599699a15f7400bacca4",
+    "f18a41d8d5d15ce7c2a388d4774146c64a829389957451a325b67676d5f39afb",
   ],
   [
     "automation/task-contract.schema.json",
-    "36790fbc41f05163f1d4f73e76b943467b7207ef62fff8b4838c45725cc162c6",
+    "1096fa14748e1c8a14c595271d561276a5f90d0a14e10ddf3f9475076345939f",
   ],
   [
     "automation/tasks/TASK-TEMPLATE.json.example",
-    "609de4849f1bb52fd1ba12714ea960f8cfb641840c8b8875a652f93527bd28a1",
+    "abc87cd83c875960be0d77743b74b554d4237ebc792a55b36765faf404ca89d6",
   ],
   [
     "docs/plans/README.md",
@@ -32,7 +37,7 @@ const expectedBaselineHashes = new Map([
 
 const agentsFragmentPath = "AGENTS.md.fragment";
 const expectedAgentsFragmentHash =
-  "f9f25db6744abb788b04693e7d64f43b05a320b4a4133c99eef1ab7210e09716";
+  "29b3ca2a591ca96be89915fed5da7af391c29e5a36e445fe861e0a8615585d5b";
 
 function listFiles(directory) {
   return readdirSync(directory, { withFileTypes: true }).flatMap((entry) => {
@@ -91,10 +96,9 @@ test("keeps configuration, schemas, and contract example structurally aligned", 
     config.schemaVersion,
     configSchema.properties.schemaVersion.const,
   );
-  assert.equal(
-    contractExample.schemaVersion,
-    contractSchema.properties.schemaVersion.const,
-  );
+  assert.ok(contractSchema.properties.schemaVersion.enum.includes(contractExample.schemaVersion));
+  assert.equal(contractExample.schemaVersion, 4);
+  assert.equal(contractExample.verification.version, 2);
   for (const requiredProperty of contractSchema.required) {
     assert.ok(
       Object.hasOwn(contractExample, requiredProperty),
@@ -192,7 +196,7 @@ test("keeps the render sources project-independent and Scheduler-free", () => {
   );
   assert.equal(
     contractSchema.$id,
-    "urn:frankzhang2026:opencode-android-orchestrator:task-contract:v3",
+    "urn:frankzhang2026:opencode-android-orchestrator:task-contract:v8",
   );
   assert.deepEqual(contractExample.allowedPaths, [
     "**/src/main/**",
@@ -201,7 +205,7 @@ test("keeps the render sources project-independent and Scheduler-free", () => {
   ]);
   assert.deepEqual(contractExample.targetTests, [
     {
-      gradleTask: "testDebugUnitTest",
+      gradleTask: ":app:testDebugUnitTest",
       filter: "*ReplaceWithFocusedTest",
     },
   ]);
@@ -221,7 +225,8 @@ test("provides one portable and bounded AGENTS managed block", () => {
   assert.equal(fragment.match(new RegExp(endMarker, "g"))?.length, 1);
   assert.ok(fragment.startsWith(beginMarker + "\n"));
   assert.ok(fragment.endsWith(endMarker + "\n"));
-  assert.match(fragment, /\.\/gradlew testDebugUnitTest/);
+  assert.match(fragment, /gradleVerification\.fullUnitTestTasks/);
+  assert.doesNotMatch(fragment, /\.\/gradlew testDebugUnitTest/);
   assert.match(fragment, /single-choice `question` selection/);
   assert.match(fragment, /must not push Git changes/);
   assert.match(fragment, /\.automation-worktree-allowlist/);

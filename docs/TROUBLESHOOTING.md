@@ -1,7 +1,8 @@
 # Troubleshooting
 
 Use this guide for
-`@frankzhang2026/opencode-android-orchestrator@1.0.5`.
+`@frankzhang2026/opencode-android-orchestrator@1.1.0`. npm publication is
+pending; the pinned Registry commands apply after publication.
 
 ## Start with read-only evidence
 
@@ -11,7 +12,7 @@ From the repository root, capture:
 git status --short --branch
 git rev-parse HEAD
 opencode --version
-npx @frankzhang2026/opencode-android-orchestrator@1.0.5 doctor . --json
+npx @frankzhang2026/opencode-android-orchestrator@1.1.0 doctor . --json
 ```
 
 If installation never completed, doctor will correctly report a missing or
@@ -31,6 +32,18 @@ The CLI uses these exit codes:
 `init`, `upgrade`, and `uninstall` structures successful results; thrown errors
 remain human-readable on stderr with a stable code such as `[FILE_CONFLICT]`.
 
+## Nested Android builds (development)
+
+For an installed nested Android build, inspect
+`automation/config.json → androidProject.capabilities.buildRoot`. The wrapper,
+settings and `local.properties` belong in that selected directory. Run managed
+scripts from the Git root; for a manual Gradle command, use the selected build
+directory. In isolated worktrees the Worker resolves the source checkout's SDK
+configuration before starting; ignored `local.properties` is not copied.
+Do not replace the selected directory with a symlink or point it at a sibling
+build. A selection/configuration mismatch requires investigation and a reviewed
+installation change, not a fallback to another wrapper.
+
 ## Company npm Registry override
 
 If `npm config get registry` reports an internal Registry and a request fails
@@ -39,9 +52,9 @@ command-scoped override:
 
 ```sh
 npm --registry=https://registry.npmjs.org/ view \
-  @frankzhang2026/opencode-android-orchestrator@1.0.5 version
+  @frankzhang2026/opencode-android-orchestrator@1.1.0 version
 npx --yes --registry=https://registry.npmjs.org/ \
-  @frankzhang2026/opencode-android-orchestrator@1.0.5 upgrade . --json
+  @frankzhang2026/opencode-android-orchestrator@1.1.0 upgrade . --json
 ```
 
 This leaves the company's saved npm configuration unchanged. Use the option
@@ -71,7 +84,7 @@ Git-backed Superpowers plugin at runtime.
 | Invalid `--long-command-timeout-ms` | The value is not an integer from `120000` through `7200000`. | Use the `1800000` ms default or pass an intentional bounded value to `init`/`upgrade`; do not edit the generated config directly. |
 | Android SDK failure | No valid explicit SDK, `ANDROID_HOME`, `ANDROID_SDK_ROOT`, or `local.properties` `sdk.dir` was found. | Configure one real SDK root containing `platforms/` and `build-tools/`. Do not publish `local.properties`. |
 | Missing `git`, `jq`, `rg`, `shasum`, or Java | Required deterministic command is unavailable on `PATH`. | Install or restore the missing command, record its version, and rerun the read-only checks. |
-| `Bundled Orchestrator skill is unavailable` | The installed `1.0.5` package is incomplete, damaged, or loaded from an unsupported partial copy. | Reinstall the exact package, inspect its `resources/third-party/superpowers-v6.2.0/skills/` entries, restart OpenCode, and rerun `opencode debug skill`. Do not add an external Superpowers plugin as a fallback. |
+| `Bundled Orchestrator skill is unavailable` | The installed `1.1.0` package is incomplete, damaged, or loaded from an unsupported partial copy. | Reinstall the exact package, inspect its `resources/third-party/superpowers-v6.2.0/skills/` entries, restart OpenCode, and rerun `opencode debug skill`. Do not add an external Superpowers plugin as a fallback. |
 | `current process does not own this task queue execution` immediately after Coder start on 1.0.1 | OpenCode created the tool shell in a separate process group, so 1.0.1 rejected a legitimate Worker descendant. | Upgrade to 1.0.2 or later, restart OpenCode, then use the approved resume or abort workflow for the retained task. Do not edit the queue or lease files. |
 | The exact Superpowers v6.2.0 plugin remains after upgrade | That entry existed in the verified pre-install OpenCode file and is therefore user-owned. | Leave it in place or remove it as a separate reviewed configuration change. Upgrade only removes the old Orchestrator-managed entry. |
 
@@ -88,7 +101,7 @@ silence of `./gradlew tasks --all --console=plain | rg ...` in a large build.
 For an existing installation, run:
 
 ```sh
-npx @frankzhang2026/opencode-android-orchestrator@1.0.5 upgrade . \
+npx @frankzhang2026/opencode-android-orchestrator@1.1.0 upgrade . \
   --refresh-gradle-discovery
 ```
 
@@ -97,7 +110,7 @@ least `1800000` milliseconds. A higher timeout already supplied by the caller
 is preserved; unrelated Bash commands are unchanged. To configure one hour,
 run `upgrade . --long-command-timeout-ms 3600000` on a healthy installation.
 If a command still reports `120000 ms`, confirm that the project manifest and
-OpenCode plugin reference are both `1.0.5`, restart the OpenCode session so the
+OpenCode plugin reference are both `1.1.0`, restart the OpenCode session so the
 plugin reloads, and rerun doctor before attempting recovery.
 
 After installation, inspect OpenCode discovery separately:
@@ -251,7 +264,7 @@ session or a missing notification is not evidence that a task never started.
 | Isolated capacity reached | Integrate or explicitly archive retained workspaces; do not delete failed work simply to advance the queue. |
 | Execution launch ownership unknown | Stop the recorded launcher, prove it exited, then use `queue recover-execution .`; preserve any partial workspace. |
 | Dead transaction owner | Inspect the lock record and use explicit `queue recover-lock .`; a live PID or surviving child process blocks takeover. |
-| OpenCode process failure | Inspect the current agent log, repair provider/environment access, then clear the fault while idle. Resume alone does not clear it. |
+| OpenCode process failure | Inspect the task's agent log and repair the diagnosed cause. Use the applicable approved recovery or abort route. An agent exit alone does not set a shared fault; fixed mode still retains its workspace, while sealed isolated failures allow independent tasks to continue. |
 | Local commit already exists but task is blocked | Use `queue recover . TASK-ID`; it reuses the sealed transaction instead of creating another visible commit. |
 | Target advanced for an isolated candidate | Request `revalidate`, wait for fresh full tests/Review, and confirm the new candidate. |
 | Upgrade/uninstall reports a retained workspace | Stop scheduling and finish or approve abort before replacing runtime resources. |
@@ -280,3 +293,64 @@ For escalation, provide the command, exit code, stable error code, redacted
 details, OpenCode version, package version, current branch/HEAD, and the list of
 affected paths. Share file contents only after applying the guidance in
 [Security](SECURITY.md).
+
+## 1.1.0 V5 baseline recovery
+
+For a V5 task blocked during capture, inspect queue `baselineRecovery` and the
+retained `baseline-recovery` evidence. A non-null future `nextRunAt` means the
+scheduler is backing off inside the approved environment budget; leave the
+attempts intact. A null time with budget/deadline exhaustion stops automatic
+retry. Unknown failures need `/resume-task` approval within the manual budget.
+Assertion, compilation, authentication, historical baseline and integrity
+failures require diagnosis/correction or a revised task, not repeated resume.
+
+A changed ledger/checkpoint, execution/target HEAD, source input, configuration
+or bound toolchain prevents reuse. Restore nothing by deleting evidence.
+A RUNNING attempt left by a crash has no durable outcome and cannot be retried
+automatically; account for the entire process group before the existing
+approved abort/archive workflow. V5's elapsed limit does not kill a hung
+process. V4 baseline recovery rules remain unchanged.
+
+## Worker deadlines (V6 development protocol)
+
+A deadline stop reports the stage, run/stage deadline, TERM time and any KILL
+escalation. A silent but in-budget compile is allowed to continue. Scheduler
+stop/start does not reset budgets or stop its independent supervisor.
+If the supervisor itself exits, start the scheduler to reattach to its recorded
+Worker. Unknown ownership, PID generation changes, unreadable process tables,
+live/unknown locks and ambiguous launches remain occupied for diagnosis.
+
+Once all owned processes have exited, isolated stopped candidates can release
+the execution slot after sealing. An integration interruption preserves the
+commit transaction and lease; use `recover` to complete the existing commit.
+For `OWNERSHIP_BLOCKED`, inspect retained evidence and account for all recorded
+processes before `recover-execution`; it will refuse any live/unknown owner.
+Never use process-name-wide kills or remove a lease to make the queue advance.
+
+
+## V7 stage verification failures
+
+Inspect `stageRecovery` in task status and `stage-recovery/<phase>.json` in the
+task evidence. WAITING records the persisted backoff; EXHAUSTED means the phase
+budget/window or no-progress bound stopped retries. BLOCKED means inputs,
+evidence or another invariant could not be preserved. Do not edit these records
+or remove locks to get another attempt. Unknown or incomplete process outcomes
+require ownership diagnosis and the existing approved archive/new-contract
+route. A Reviewer environment stop preserves the sealed candidate; it does not
+request a Coder implementation correction or count as approval.
+
+
+## V8 continuity stops
+
+Inspect queue details `planning-baseline.refresh`: input drift, protected
+configuration drift, disabled refresh and unrecorded target commits each explain
+why preparation stopped. Preserve the original contract and approve a revised
+proposal; do not replace its planning digest or baseline evidence. Restore a
+changed repository workspace strategy or obtain fresh V8 approval.
+
+For isolated automatic integration, a changed target or source checkout stops
+before a new commit intent. Preserve the candidate and resolve the drift through
+a revised task. If `commit-transaction.json` already exists, retain its lease and
+use queue `recover` after diagnosis; this reuses the same local commit. It must
+not be discarded to free capacity. Other safely sealed pre-commit failures do
+not stop independent tasks, but dependents continue waiting for integration.
