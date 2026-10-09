@@ -1,8 +1,7 @@
 # Troubleshooting
 
 Use this guide for
-`@frankzhang2026/opencode-android-orchestrator@1.2.0`. npm publication is
-pending; the pinned Registry commands apply after publication.
+`@frankzhang2026/opencode-android-orchestrator@1.2.0`.
 
 ## Start with read-only evidence
 

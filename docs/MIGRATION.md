@@ -3,8 +3,7 @@
 This guide covers migration to
 `@frankzhang2026/opencode-android-orchestrator@1.2.0`. Pin the exact version and
 prove the migration in a disposable clone before changing a long-lived
-repository. npm publication of 1.2.0 is pending; use the pinned Registry
-commands below only after publication.
+repository. Use the pinned Registry commands below.
 
 ## 1.2.0 compatibility and evidence upgrade
 
@@ -22,7 +21,7 @@ protocol boundaries.
 
 ## Choose the migration path
 
-| Current state | Correct command after release | Important distinction |
+| Current state | Correct command | Important distinction |
 | --- | --- | --- |
 | No orchestrator files or manifest | `npx @frankzhang2026/opencode-android-orchestrator@1.2.0 init .` | Normal new installation; all runtime-detected Android modules and registered debug verification tasks are discovered automatically. |
 | Published `0.1.0` scaffold only | Remove any project-local `@0.1.0` plugin reference after review, then run `init`. | `0.1.0` did not create a usable managed installation and cannot be upgraded. |
@@ -70,7 +69,7 @@ remove only that obsolete entry in a reviewed Git change before running
 managed package; it will not silently replace the reference. A global npm
 installation of `0.1.0` alone does not require project-file cleanup.
 
-After release, initialize with the fixed version:
+Initialize with the fixed version:
 
 ```sh
 npx @frankzhang2026/opencode-android-orchestrator@1.2.0 init .
@@ -340,7 +339,7 @@ Reviewer verification commands can retry identified environment failures within
 separate persisted budgets; model/provider calls and integration are unchanged.
 Recovery logic extends the existing managed recovery.cjs. Version 1.1.0 has
 52 managed resources, including the Android project capability validator.
-Upgrade with 1.2.0 after publication; same-version upgrade does not refresh
+Upgrade with 1.2.0; same-version upgrade does not refresh
 managed templates. See the V7 policy and retained-evidence workflow in QUEUE.md.
 
 
@@ -370,7 +369,7 @@ require fresh discovery and reviewed configuration regeneration, not manual
 snapshot edits during an approved task. Nested roots without a snapshot, composite builds,
 generated/external/symlink sources and production/test overlaps fail closed.
 
-npm publication of 1.2.0 is pending. A same-version upgrade remains
+A same-version upgrade remains
 verification-only and is not a template delivery mechanism.
 
 

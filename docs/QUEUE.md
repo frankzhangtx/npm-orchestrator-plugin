@@ -135,7 +135,7 @@ integration perform the configured full suite and build gates. Evidence records
 fresh-test logs, configured tasks and elapsed seconds.
 
 The 1.2.0 templates generate task-contract schema V4 with verification
-version 2. npm publication of 1.2.0 is pending; the published 1.0.5 package
+version 2. The 1.0.5 package
 does not include this protocol. Every verification case
 has a stable ID, a one-based acceptance-criterion reference, an evidence source,
 an exact test identity, and a pre-change classification:

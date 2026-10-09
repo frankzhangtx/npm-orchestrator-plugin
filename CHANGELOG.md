@@ -2,8 +2,6 @@
 
 ## 1.2.0 - 2026-10-09
 
-Source release; npm publication is pending.
-
 - Fix Gradle 6.7.1 init-script request handling and dynamic legacy Kotlin source
   discovery. Add independent legacy Android inventory and flavored Android/JVM
   isolated-queue integration fixtures.

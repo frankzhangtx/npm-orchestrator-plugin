@@ -2,8 +2,7 @@
 
 Reusable OpenCode orchestration for macOS Android projects.
 
-Version 1.2.0 is prepared in source; npm publication is pending. The pinned
-`npx` examples below apply after that publication. See
+Version 1.2.0 includes legacy Gradle compatibility and verification improvements. See
 [development validation](release/1.2.0-development-validation.md) for evidence.
 
 Version `0.2.0` is the first published lifecycle release. Version `0.3.0` adds

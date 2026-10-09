@@ -1,8 +1,7 @@
 # Gradle 6.7.1 review fixes (1.2.0)
 
-These changes are included in the 1.2.0 source release and are absent from
-1.1.0. npm publication is pending; upgrade an installed project only after
-that publication. Do not copy individual
+These changes are included in 1.2.0 and are absent from
+1.1.0. Upgrade with the pinned 1.2.0 package. Do not copy individual
 managed files into an existing installation or reuse evidence made with the
 previous collector. Keep existing evidence and approve a new task after upgrade.
 
