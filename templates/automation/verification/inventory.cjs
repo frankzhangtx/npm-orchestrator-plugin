@@ -104,6 +104,20 @@ function evaluateBaseline(contract, collection) {
   requireThat(policy.emptyBaseline === "allow" || empty.length === 0, "EMPTY_BASELINE", "One or more focused tasks have an empty baseline", empty);
   return { cases, summary: { existing: cases.length, passed: cases.length - skipped.length, skipped: skipped.length, emptyTasks: empty.length } };
 }
+function matchesFailureOrigin(expected, actual, test) {
+  if (!Array.isArray(actual.stack) || !actual.stack.length) return false;
+  const frames = actual.stack.map(frame => typeof frame === "string" &&
+    /^(?:[^/]+\/)?(.+)\.([^.(]+)\(([^():]+)(?::([0-9]+))?\)$/.exec(frame));
+  if (frames.some(frame => !frame)) return false;
+  const methodName = test.name.replace(/\[[^\]]*\]$/, "").replace(/\([^)]*\)$/, "");
+  // Before/after hooks, rules and initialization failures do not include the
+  // test body's invocation. Merely sharing an exception/message is not RED.
+  if (!frames.some(frame => frame[1] === test.className && frame[2] === methodName)) return false;
+  const origin = typeof expected.origin === "object" ? expected.origin : { className: test.className, methodName };
+  const first = frames.find(frame => !/^(?:org\.junit\.(?:Assert|ComparisonFailure)$|org\.junit\.jupiter\.api\.(?:Assertions|AssertionUtils|Assert\w+)$|org\.opentest4j\.|kotlin\.test\.|org\.hamcrest\.MatcherAssert$|org\.assertj\.core\.)/.test(frame[1]));
+  return Boolean(first && first[1] === origin.className && first[2] === origin.methodName &&
+    (!origin.fileName || first[3] === origin.fileName) && (!origin.lineNumber || Number(first[4]) === origin.lineNumber));
+}
 function evaluateCoverage(contract, baseline, collection, phase, manifest) {
   const actual = new Map(collection.cases.map(item => [identity(item), item]));
   const expected = new Map(baseline.cases.map(item => [identity(item), { ...item, classification: "regression", id: identity(item) }]));
@@ -127,7 +141,8 @@ function evaluateCoverage(contract, baseline, collection, phase, manifest) {
     } else {
       const failure = item.expectedFailure;
       const matched = result.result === "FAILURE" && failure && result.failures.length === 1 &&
-        result.failures[0].type === failure.type && (!failure.messageIncludes || result.failures[0].message.includes(failure.messageIncludes));
+        result.failures[0].type === failure.type && (!failure.messageIncludes || result.failures[0].message.includes(failure.messageIncludes)) &&
+        matchesFailureOrigin(failure, result.failures[0], item);
       valid = item.before === "pass" ? result.result === "SUCCESS" : item.before === "fail" ? matched : result.result === "SUCCESS" || matched;
     }
     const entry = { id: item.id, taskPath: item.taskPath, className: item.className, name: item.name,
@@ -213,7 +228,7 @@ function unchangedProduction(root, contract, config, patterns, phase, evidence) 
   const invalid = changed.filter(file => !ignored.has(file) && (phase === "baseline" || !isTest(config, patterns, file)));
   requireThat(invalid.length === 0, "EVIDENCE_CHANGED", "Baseline/RED requires unchanged production and configuration", invalid.map(file => ({ path: file })));
 }
-function collectorHash() { return digest(["contract.cjs", "inventory.cjs", "collect.init.gradle"].map(file => [file, fileHash(path.join(__dirname, file))])); }
+function collectorHash() { return digest(["contract.cjs", "inventory.cjs", "project.cjs", "collect.init.gradle", "runtime.init.gradle"].map(file => [file, fileHash(path.join(__dirname, file))])); }
 function evidenceFiles(evidence, directory) {
   const result = [];
   function visit(folder) { for (const name of fs.readdirSync(folder).sort()) { const file = path.join(folder, name); const stat = fs.lstatSync(file);
@@ -234,7 +249,7 @@ function checkEvaluation(evidence, value, phase) {
   requireThat(value.phase === phase && typeof value.attemptPath === "string" &&
     new RegExp(`^inventory-attempts/${phase}-[0-9]+-[a-f0-9-]+$`).test(value.attemptPath),
   "EVIDENCE_CHANGED", "Invalid sealed attempt reference");
-  const { files, baselineInventorySha256, redSha256, manifestSha256, ...report } = value;
+  const { files, baselineInventorySha256, redSha256, manifestSha256, supplementSha256, ...report } = value;
   requireThat(same(report, read(path.join(evidence, value.attemptPath, "evaluation.json"))),
     "EVIDENCE_CHANGED", "Inventory report differs from its completed evaluation");
   if (files) requireThat(same(files, evidenceFiles(evidence, path.join(evidence, value.attemptPath))),
@@ -247,7 +262,7 @@ function runGradle(root, config, contract, phase, directory, discovery) {
   const requestFile = path.join(directory, "request.json"); atomic(requestFile, request, true);
   fs.writeFileSync(request.output, "", { flag: "wx" });
   const args = [...groupedTargets(contract).map(item => item.taskPath), "--no-configuration-cache", "--console=plain", "--no-build-cache",
-    "--init-script", path.join(__dirname, "collect.init.gradle"), `-Dorchestrator.inventoryRequest=${requestFile}`, ...(discovery ? ["--dry-run"] : [])];
+    "--init-script", path.join(__dirname, "runtime.init.gradle"), "--init-script", path.join(__dirname, "collect.init.gradle"), `-Dorchestrator.inventoryRequest=${requestFile}`, ...(discovery ? ["--dry-run"] : [])];
   const fd = fs.openSync(path.join(directory, "gradle.log"), "wx");
   let result;
   if (process.env.AUTOMATION_WORKER_TOKEN) args.push("--no-daemon");
@@ -264,7 +279,11 @@ function runGradle(root, config, contract, phase, directory, discovery) {
   let events;
   try { events = fs.readFileSync(request.output, "utf8").split("\n").filter(Boolean).map(line => JSON.parse(line)); }
   catch { throw new InventoryError("INCOMPLETE_COLLECTION", "Invalid or truncated collector output"); }
-  return { ...validateCollection(events, request, result.status, discovery), processExitCode: result.status };
+  const collection = validateCollection(events, request, result.status, discovery);
+  let runtime;
+  try { runtime = require("./project.cjs").parseBuildRuntime(fs.readFileSync(path.join(directory, "gradle.log"), "utf8")); }
+  catch (error) { throw new InventoryError("INCOMPLETE_COLLECTION", error.message); }
+  return { ...collection, runtime, processExitCode: result.status };
 }
 
 // Invalidate previous GREEN before even validating inputs. A crash, early
@@ -299,13 +318,15 @@ function runPhaseInternal(phase, contractFile, configFile, root, evidence, verif
   const checkBinding = value => requireThat(same(value.binding, binding), "EVIDENCE_CHANGED", "Contract, baseline, configuration or collector binding changed");
   const inputEvidence = [];
   const bindInput = file => { inputEvidence.push({ file, sha256: fileHash(file) }); };
-  let baseline, manifest, red, patterns;
+  let baseline, manifest, red, patterns, supplement;
   if (phase !== "baseline") {
     baseline = read(baselineFile); checkBinding(baseline); checkFiles(evidence, baseline.files);
     checkEvaluation(evidence, baseline, "baseline");
     requireThat(baseline.valid === true && baseline.phase === "baseline", "EVIDENCE_CHANGED", "A valid baseline inventory is required");
     bindInput(baselineFile);
     patterns = baseline.testPatterns;
+    requireThat(baseline.environmentSha256 === require("./project.cjs").buildEnvironmentBinding(require("./project.cjs").gradleBuildRoot(config, root), baseline.runtime),
+      "EVIDENCE_CHANGED", "Build environment or Gradle user/JVM configuration changed after baseline");
     if (phase === "green" || phase === "check") {
       red = read(redFile); manifest = read(manifestFile); checkBinding(red); checkBinding(manifest);
       requireThat(red.manifestSha256 === fileHash(manifestFile) && red.baselineInventorySha256 === fileHash(baselineFile) &&
@@ -314,7 +335,14 @@ function runPhaseInternal(phase, contractFile, configFile, root, evidence, verif
       checkEvaluation(evidence, manifest, "red");
       requireThat(red.structuredCasesVerified === true && manifest.valid === true && manifest.phase === "red", "EVIDENCE_CHANGED", "Valid sealed RED evidence is required");
       for (const file of [redFile, manifestFile, path.join(evidence, "test-preflight.json")]) bindInput(file);
-      requireThat(same(snapshot(root, config, patterns, excluded), manifest.testSnapshot), "EVIDENCE_CHANGED", "Test sources or resources changed after RED");
+      supplement = supplementalEvidence(phase, root, config, contract, evidence, binding, baseline, manifest, patterns, excluded);
+      if (supplement) {
+        bindInput(path.join(evidence, "test-supplement.json"));
+        baseline = { ...baseline, cases: [...baseline.cases, ...supplement.cases] };
+        manifest = { ...manifest, cases: [...manifest.cases, ...supplement.cases.map(item => ({ ...item, classification: "regression", id: identity(item), allowSkip: false }))],
+          testSnapshot: [...manifest.testSnapshot, ...supplement.addedFiles].sort((a, b) => a.path.localeCompare(b.path)) };
+      }
+      requireThat(same(snapshot(root, config, patterns, excluded), [...manifest.testSnapshot].sort((a, b) => a.path < b.path ? -1 : a.path > b.path ? 1 : 0)), "EVIDENCE_CHANGED", "Test sources or resources changed after sealed test evidence");
     }
   }
   if (phase === "baseline" || phase === "red") requireThat(head === binding.baselineHead, "EVIDENCE_CHANGED", "Execution HEAD changed before RED");
@@ -326,6 +354,7 @@ function runPhaseInternal(phase, contractFile, configFile, root, evidence, verif
       "EVIDENCE_CHANGED", "Latest GREEN failed, was interrupted or is not the sealed successful run; rerun GREEN");
     checkEvaluation(evidence, green, "green");
     requireThat(green.valid && green.redSha256 === fileHash(redFile) && green.manifestSha256 === fileHash(manifestFile), "EVIDENCE_CHANGED", "GREEN is not bound to the sealed RED and manifest");
+    requireThat((green.supplementSha256 ?? null) === (supplement ? fileHash(path.join(evidence, "test-supplement.json")) : null), "EVIDENCE_CHANGED", "GREEN is not bound to the supplemental test evidence");
     requireThat(green.verifiedHead === head && green.worktreeSha256 === worktree(root, excluded), "EVIDENCE_CHANGED", "Repository inputs changed after GREEN; rerun verification");
     return green;
   }
@@ -364,7 +393,11 @@ function runPhaseInternal(phase, contractFile, configFile, root, evidence, verif
     }
     if (phase !== "green") unchangedProduction(root, contract, config, patterns, phase, evidence);
     const before = snapshot(root, config, patterns, excluded), repositoryBefore = worktree(root, excluded);
+    const environmentBefore = require("./project.cjs").buildEnvironmentBinding(require("./project.cjs").gradleBuildRoot(config, root), baseline?.runtime);
     const collection = runGradle(root, config, contract, phase, path.join(attempt, "collection"), false);
+    requireThat(environmentBefore === require("./project.cjs").buildEnvironmentBinding(require("./project.cjs").gradleBuildRoot(config, root), baseline?.runtime),
+      "EVIDENCE_CHANGED", "Build environment changed during collection");
+    if (baseline) requireThat(same(collection.runtime, baseline.runtime), "EVIDENCE_CHANGED", "Actual Gradle, build JVM, plugins or test JVMs differ from baseline");
     requireThat(same(patterns, testPatterns(root, config, collection.tasks)), "EVIDENCE_CHANGED", "Test source/resource discovery changed after baseline");
     const after = snapshot(root, config, patterns, excluded);
     requireThat(same(before, after) && repositoryBefore === worktree(root, excluded) && head === git(root, ["rev-parse", "HEAD"]).trim(),
@@ -378,7 +411,9 @@ function runPhaseInternal(phase, contractFile, configFile, root, evidence, verif
     const evaluation = phase === "baseline" ? evaluateBaseline(contract, collection) : evaluateCoverage(contract, baseline, collection, phase, manifest);
     const report = { schemaVersion: 1, taskId: contract.id, phase, attempt: number, attemptPath, startedAt, finishedAt: new Date().toISOString(),
       valid: true, reasonCode: phase === "red" ? "VALID_RED" : "VALID_INVENTORY", binding, ...evaluation, testPatterns: patterns, testSnapshot: after,
-      processExitCode: collection.processExitCode, verifiedHead: head, worktreeSha256: repositoryBefore,
+      processExitCode: collection.processExitCode, runtime: collection.runtime,
+      environmentSha256: require("./project.cjs").buildEnvironmentBinding(require("./project.cjs").gradleBuildRoot(config, root), collection.runtime),
+      verifiedHead: head, worktreeSha256: repositoryBefore,
       queueRunId: process.env.AUTOMATION_QUEUE_RUN_ID ?? null, ...(verificationRunId ? { verificationRunId } : {}) };
     atomic(path.join(attempt, "evaluation.json"), report, true);
     const files = evidenceFiles(evidence, attempt);
@@ -391,7 +426,8 @@ function runPhaseInternal(phase, contractFile, configFile, root, evidence, verif
         preflightSha256: fileHash(path.join(evidence, "test-preflight.json")), processExitCode: collection.processExitCode,
         expectedFailureCount: evaluation.summary.expectedRed, exitCode: 1, exitCodeMeaning: "approved-case-failure" }, true);
     }
-    if (phase === "green") atomic(path.join(evidence, "green-inventory.json"), { ...report, files, redSha256: fileHash(redFile), manifestSha256: fileHash(manifestFile) });
+    if (phase === "green") atomic(path.join(evidence, "green-inventory.json"), { ...report, files, redSha256: fileHash(redFile), manifestSha256: fileHash(manifestFile),
+      supplementSha256: supplement ? fileHash(path.join(evidence, "test-supplement.json")) : null });
     atomic(path.join(evidence, "inventory-status.json"), { ...report, nextAction: null });
     return report;
   } catch (error) {
@@ -406,7 +442,74 @@ function runPhaseInternal(phase, contractFile, configFile, root, evidence, verif
     throw error;
   }
 }
-module.exports = { identity, validateCollection, evaluateBaseline, evaluateCoverage, snapshot, testPatterns, isTest, runPhase };
+function supplementalEvidence(phase, root, config, contract, evidence, binding, baseline, manifest, patterns, excluded) {
+  const file = path.join(evidence, "test-supplement.json");
+  const original = manifest.testSnapshot, current = snapshot(root, config, patterns, excluded);
+  requireThat(original.every(item => current.some(candidate => same(item, candidate))), "EVIDENCE_CHANGED", "Original RED tests cannot be changed or deleted; approve a revised task for changed assertions");
+  const addedFiles = current.filter(item => !original.some(previous => previous.path === item.path));
+  const authorized = contract.verification.supplementalTests?.mode === "baselinePassingNewFiles";
+  const bound = { binding, redSha256: fileHash(path.join(evidence, "red.json")), manifestSha256: fileHash(path.join(evidence, "test-manifest.json")) };
+  if (fs.existsSync(file)) {
+    requireThat(authorized, "EVIDENCE_CHANGED", "Supplemental test permission was not approved");
+    const saved = read(file);
+    requireThat(saved.version === 1 && same(saved.bound, bound) && same(saved.addedFiles, addedFiles), "EVIDENCE_CHANGED", "Supplemental tests or their original RED binding changed");
+    checkFiles(evidence, saved.files);
+    requireThat(same(saved, read(path.join(evidence, saved.attemptPath, "supplement.json"))), "EVIDENCE_CHANGED", "Supplemental test report differs from its sealed attempt");
+    return saved;
+  }
+  if (!addedFiles.length) return null;
+  requireThat(phase === "green" && authorized, "EVIDENCE_CHANGED", "New test files require approved supplementalTests policy and a fresh GREEN; original RED remains frozen");
+  requireThat(addedFiles.length <= contract.maxChangedFiles && addedFiles.every(item =>
+    /\.(?:java|kt|groovy)$/.test(item.path) && contract.allowedPaths.some(pattern => matchesPath(pattern, item.path)) &&
+    !contract.forbiddenPaths.some(pattern => matchesPath(pattern, item.path))), "EVIDENCE_CHANGED", "Supplemental files must be new allowed test sources; resources and original assertions remain frozen");
+  const parent = path.join(evidence, "supplement-attempts"); fs.mkdirSync(parent, { recursive: true });
+  requireThat(fs.readdirSync(parent).length < contract.verification.supplementalTests.maxRevisions, "PREPARATION_BUDGET", "Supplemental revision budget exhausted; inspect retained evidence and approve a revised task");
+  const attemptPath = `supplement-attempts/${randomUUID()}`, attempt = path.join(evidence, attemptPath);
+  fs.mkdirSync(attempt);
+  const probe = path.join(attempt, "baseline-worktree"), sourceBefore = worktree(root, excluded);
+  let created = false;
+  try {
+    git(root, ["worktree", "add", "--detach", probe, binding.baselineHead]); created = true;
+    for (const item of addedFiles) {
+      const target = path.join(probe, localPath(probe, item.path));
+      requireThat(!fs.existsSync(target), "EVIDENCE_CHANGED", "Supplemental test overwrites a baseline file");
+      fs.mkdirSync(path.dirname(target), { recursive: true });
+      fs.writeFileSync(target, fs.readFileSync(path.join(root, item.path)), { flag: "wx", mode: item.mode });
+    }
+    // Only the SDK path may be passed to this diagnostic worktree. No ignored
+    // properties, credentials or arbitrary files are copied into model inputs.
+    const sourceBuild = require("./project.cjs").gradleBuildRoot(config, root);
+    const probeBuild = require("./project.cjs").gradleBuildRoot(config, probe);
+    const local = path.join(sourceBuild, "local.properties");
+    if (fs.existsSync(local)) {
+      const lines = fs.readFileSync(local, "utf8").split(/\r?\n/).filter(line => line.trim() && !/^\s*[#!]/.test(line));
+      requireThat(lines.every(line => /^\s*sdk\.dir\s*[=:]/.test(line) && !/\\$/.test(line)), "EVIDENCE_CHANGED", "Supplemental baseline requires explicit isolation setup for non-SDK local.properties entries");
+      fs.writeFileSync(path.join(probeBuild, "local.properties"), lines.join("\n") + "\n", { flag: "wx", mode: 0o600 });
+    }
+    const before = worktree(probe, excluded);
+    const collection = runGradle(probe, config, contract, "baseline", path.join(attempt, "collection"), false);
+    requireThat(before === worktree(probe, excluded) && sourceBefore === worktree(root, excluded) && same(current, snapshot(root, config, patterns, excluded)),
+      "INPUT_CHANGED_DURING_RUN", "Inputs changed while validating supplemental tests on the original baseline");
+    requireThat(same(collection.runtime, baseline.runtime), "EVIDENCE_CHANGED", "Supplemental baseline runtime differs from original baseline");
+    const expected = new Map(baseline.cases.map(item => [identity(item), item]));
+    requireThat(baseline.cases.every(item => collection.cases.some(result => identity(result) === identity(item) && result.result === item.result)),
+      "COVERAGE_MISMATCH", "Supplemental baseline changed existing regression outcomes");
+    const cases = collection.cases.filter(item => !expected.has(identity(item)));
+    requireThat(cases.length > 0 && cases.every(item => item.result === "SUCCESS" && !manifest.cases.some(original => identity(original) === identity(item))),
+      "CASE_EXPECTATION_MISMATCH", "Every new supplemental case must pass on the original baseline without replacing approved behavior identities");
+    git(root, ["worktree", "remove", "--force", probe]); created = false;
+    const saved = { version: 1, bound, addedFiles, cases, attemptPath, files: evidenceFiles(evidence, path.join(attempt, "collection")) };
+    atomic(path.join(attempt, "supplement.json"), saved, true);
+    atomic(file, saved, true);
+    return saved;
+  } catch (error) {
+    atomic(path.join(attempt, "failure.json"), { code: error.code ?? "SUPPLEMENT_FAILED", message: error.message });
+    throw error;
+  } finally {
+    if (created) git(root, ["worktree", "remove", "--force", probe]);
+  }
+}
+module.exports = { identity, validateCollection, evaluateBaseline, evaluateCoverage, matchesFailureOrigin, snapshot, testPatterns, isTest, runPhase };
 if (require.main === module) {
   const [phase, contractFile, configFile, root, evidence] = process.argv.slice(2);
   try {

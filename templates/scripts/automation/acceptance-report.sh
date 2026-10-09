@@ -38,9 +38,9 @@ if [[ "$(jq -er '.schemaVersion' "$contract")" -ge "4" ]]; then
         '{valid: $green[0].valid, baseline: $baseline[0].summary,
           red: {summary: $manifest[0].summary, processExitCode: $red[0].processExitCode,
                 expectedFailureCount: $red[0].expectedFailureCount, exitCodeMeaning: $red[0].exitCodeMeaning},
-          green: $green[0].summary, binding: $green[0].binding,
+          green: $green[0].summary, binding: $green[0].binding, runtime: $green[0].runtime, supplementSha256: $green[0].supplementSha256,
           verifiedHead: $green[0].verifiedHead, worktreeSha256: $green[0].worktreeSha256,
-          cases: [$manifest[0].cases[] | {id, taskPath, className, name, classification, intent, allowSkip}] }')"
+          cases: [$green[0].cases[] | {id, taskPath, className, name, classification, intent, allowSkip}] }')"
 fi
 if [[ "$(jq -er '.schemaVersion' "$contract")" == "3" ]]; then
     preflight_file="$evidence_dir/test-preflight.json"

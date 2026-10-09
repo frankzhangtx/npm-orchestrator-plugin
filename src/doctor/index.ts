@@ -1,4 +1,5 @@
 import { spawnSync } from "node:child_process";
+import { createRequire } from "node:module";
 import { lstatSync, readFileSync } from "node:fs";
 import { detectionWithCapabilities } from "../installer/project-capabilities.js";
 import { join, resolve } from "node:path";
@@ -258,6 +259,19 @@ export function runDoctor(options: DoctorOptions = {}): DoctorReport {
       ...inspectRequiredCommands(options),
       inspectAndroidSdk(sdkTarget, options),
     );
+    if (options.targetDirectory !== undefined) {
+      try {
+        const shared = createRequire(import.meta.url)("../../templates/automation/verification/project.cjs") as {
+          inspectBuildRuntime(root: string, runner?: CommandRunner): { gradleVersion: string; javaVersion: string; javaHome: string };
+        };
+        const runtime = shared.inspectBuildRuntime(sdkTarget, options.runCommand);
+        checks.push({ id: "gradle-runtime", label: "Actual Gradle build JVM", status: "pass",
+          summary: `Gradle ${runtime.gradleVersion} configures with Java ${runtime.javaVersion}.`, details: [runtime.javaHome] });
+      } catch (error) {
+        checks.push({ id: "gradle-runtime", label: "Actual Gradle build JVM", status: "fail",
+          summary: "The selected wrapper's actual build environment could not be verified.", details: [String(error)] });
+      }
+    }
   }
   if (options.checkInstallation === true) {
     checks.push(...installationDoctorChecks(resolvedTarget));

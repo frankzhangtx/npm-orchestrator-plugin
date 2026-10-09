@@ -2033,7 +2033,7 @@ function doctorForUpgrade(
       ? {}
       : { opencodeExecutable: options.opencodeExecutable }),
     runCommand: (executable, args) =>
-      runner(executable, args, { cwd: resolve(directory), timeoutMs: 10_000 }),
+      runner(executable, args, { cwd: resolve(directory), timeoutMs: args[0] === "help" ? 180_000 : 10_000 }),
   });
   if (!report.ok) {
     throw new ProjectUpgradeError(

@@ -133,12 +133,11 @@ function inputBinding(root, contractFile, configFile, contract, allowProduct = f
     }
     return [file, stat.mode & 0o777, hash(stat.isSymbolicLink() ? fs.readlinkSync(absolute) : fs.readFileSync(absolute))];
   });
-  const java = cp.spawnSync("java", ["-version"], { encoding: "utf8", timeout: 10000 });
-  assert(java.status === 0, "Cannot identify the Java toolchain for baseline recovery");
   const environment = Object.fromEntries(["JAVA_HOME", "JAVA_TOOL_OPTIONS", "JDK_JAVA_OPTIONS", "GRADLE_OPTS", "GRADLE_USER_HOME", "ANDROID_HOME", "ANDROID_SDK_ROOT"].map(key => [key, process.env[key] ?? null]));
   const localProperties = path.join(require("./project.cjs").gradleBuildRoot(read(configFile), root), "local.properties");
   return { contractSha256: fileHash(contractFile), configSha256: fileHash(configFile), head: git(root, ["rev-parse", "HEAD"]).trim(),
-    inputsSha256: digest(inputs), excludedPathsSha256: digest(excluded), environmentSha256: digest(environment), javaSha256: hash(java.stdout + java.stderr), node: process.version,
+    inputsSha256: digest(inputs), excludedPathsSha256: digest(excluded), environmentSha256: digest(environment),
+    buildEnvironmentSha256: require("./project.cjs").buildEnvironmentBinding(require("./project.cjs").gradleBuildRoot(read(configFile), root)), node: process.version,
     localPropertiesSha256: fs.existsSync(localProperties) ? fileHash(localProperties) : null };
 }
 function artifactHashes(evidence, directory) {

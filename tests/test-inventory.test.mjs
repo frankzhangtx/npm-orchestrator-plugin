@@ -34,7 +34,7 @@ function contract() {
   return result;
 }
 const actual = (name, result = "SUCCESS", taskPath = ":app:testDebugUnitTest") => ({ taskPath, className: "example.FeatureTest", name, result,
-  failures: result === "FAILURE" ? [{ type: "java.lang.AssertionError", message: "expected missing behavior", stack: [] }] : [] });
+  failures: result === "FAILURE" ? [{ type: "java.lang.AssertionError", message: "expected missing behavior", stack: [`example.FeatureTest.${name.replace(/\[[^\]]*\]$/, "")}(FeatureTest.kt:20)`] }] : [] });
 const tasks = [{ taskPath: ":app:testDebugUnitTest", filters: ["example.*"], sourceRoots: ["app/src/test/java"] }];
 const baseline = { tasks, cases: [actual("legacy")] };
 const red = { tasks, cases: [actual("legacy"), actual("approved[0]", "FAILURE")] };

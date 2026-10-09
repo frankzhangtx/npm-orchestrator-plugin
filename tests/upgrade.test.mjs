@@ -1,3 +1,4 @@
+import { runtimeOutput } from "./runtime-fixture.mjs";
 import assert from "node:assert/strict";
 import { execFileSync } from "node:child_process";
 import { createHash } from "node:crypto";
@@ -96,6 +97,7 @@ function successfulRunner(calls = []) {
       return commandResult(0, `${executable} fixture version\n`);
     }
     if (executable.endsWith("gradlew") && args[0] === "help") {
+      if (args.some(arg => arg.endsWith("runtime.init.gradle"))) return commandResult(0, runtimeOutput);
       return commandResult(
         0,
         [
@@ -294,8 +296,8 @@ test("plans an older-version upgrade without writing recovery or managed files",
     assert.equal(plan.moduleScope, "all");
     assert.equal(plan.primaryModule, ":mobile");
     assert.equal(plan.fromVersion, "0.2.0");
-    assert.equal(plan.toVersion, "1.1.0");
-    assert.equal(plan.desiredFiles.length, 52);
+    assert.equal(plan.toVersion, "1.2.0");
+    assert.equal(plan.desiredFiles.length, 53);
     assert.equal(plan.removedFiles.length, 0);
     assert.equal(existsSync(plan.recoveryDirectory), false);
     assert.equal(existsSync(plan.backupDirectory), false);
@@ -409,11 +411,11 @@ test("upgrades unchanged managed files, preserves original merges, and restores 
     assert.equal(result.status, "upgraded");
     assert.equal(result.moduleScope, "all");
     assert.equal(result.fromVersion, "0.2.0");
-    assert.equal(result.toVersion, "1.1.0");
+    assert.equal(result.toVersion, "1.2.0");
     assert.equal(result.commitMessagePrefixStatus, "existing-configured");
-    assert.equal(result.managedFileCount, 52);
+    assert.equal(result.managedFileCount, 53);
     assert.equal(result.writtenFileCount, 6);
-    assert.equal(result.reusedFileCount, 46);
+    assert.equal(result.reusedFileCount, 47);
     assert.equal(result.restoredOrRemovedFileCount, 1);
     assert.deepEqual(result.cleanupWarnings, []);
     assert.equal(result.verification.ok, true);
@@ -429,7 +431,7 @@ test("upgrades unchanged managed files, preserves original merges, and restores 
     assert.equal(lstatSync(join(root, "legacy/user-note.txt")).mode & 0o777, 0o600);
 
     const manifest = readInstallationManifest(root);
-    assert.equal(manifest.package.version, "1.1.0");
+    assert.equal(manifest.package.version, "1.2.0");
     assert.equal(manifest.installation.id, "upgrade-success-001");
     assert.equal(manifest.installation.state, "installed");
     assert.equal(verifyInstallationIntegrity(root).ok, true);
@@ -476,7 +478,7 @@ test("upgrades unchanged managed files, preserves original merges, and restores 
     assert.equal(doctor.ok, true);
     assert.match(formatProjectUpgradeResult(result), /Result: UPGRADED/);
     assert.match(formatProjectUpgradeResult(result), /Module scope: all/);
-    assert.match(formatProjectUpgradeResult(result), /0\.2\.0 -> 1\.1\.0/);
+    assert.match(formatProjectUpgradeResult(result), /0\.2\.0 -> 1\.2\.0/);
   } finally {
     rmSync(root, { recursive: true, force: true });
   }
@@ -506,6 +508,7 @@ test("upgrade refresh rebuilds modules, paths, and task allowlists from Gradle",
     const baseRunner = successfulRunner();
     const runner = (executable, args, options) => {
       if (executable.endsWith("gradlew") && args[0] === "help") {
+      if (args.some(arg => arg.endsWith("runtime.init.gradle"))) return commandResult(0, runtimeOutput);
         return commandResult(
           0,
           [
@@ -546,8 +549,8 @@ test("upgrade refresh rebuilds modules, paths, and task allowlists from Gradle",
 
     assert.equal(result.status, "upgraded");
     assert.equal(result.doctor.ok, true);
-    assert.equal(result.fromVersion, "1.1.0");
-    assert.equal(result.toVersion, "1.1.0");
+    assert.equal(result.fromVersion, "1.2.0");
+    assert.equal(result.toVersion, "1.2.0");
     assert.deepEqual(
       config.androidProject.modules.map(({ gradlePath }) => gradlePath),
       [":component_me", ":mobile"],
@@ -683,7 +686,7 @@ test("repeated upgrade is byte-idempotent for the current version", () => {
     assert.equal(result.commitMessagePrefixStatus, "existing-unconfigured");
     assert.equal(result.moduleScope, "all");
     assert.equal(result.writtenFileCount, 0);
-    assert.equal(result.reusedFileCount, 52);
+    assert.equal(result.reusedFileCount, 53);
     assert.equal(result.recoveryDirectory, null);
     assert.equal(result.historyPath, null);
     assert.equal(

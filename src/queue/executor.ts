@@ -1,5 +1,6 @@
 import { spawn, spawnSync } from "node:child_process";
 import { randomUUID } from "node:crypto";
+import { createRequire } from "node:module";
 import { existsSync, mkdirSync, readFileSync, realpathSync, writeFileSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -114,6 +115,13 @@ export class QueueExecutor {
   private prepare(): boolean {
     const item = this.item();
     const config = this.queue.config();
+    if (item.workspaceStrategy === "isolatedWorktree") {
+      const shared = createRequire(import.meta.url)("../../templates/automation/verification/project.cjs") as {
+        gradleBuildRoot(config: unknown, root: string): string;
+        assertIsolatedBuildEnvironment(root: string): void;
+      };
+      shared.assertIsolatedBuildEnvironment(shared.gradleBuildRoot(config, item.sourceRoot));
+    }
     invariant(config.unitTestsEnabled === true, "Queued execution requires full unit tests; enable unitTestsEnabled");
     const target = git(item.sourceRoot, ["rev-parse", `refs/heads/${item.targetBranch}`]);
     git(item.sourceRoot, ["merge-base", "--is-ancestor", item.planningHead, target]);

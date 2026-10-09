@@ -1,3 +1,4 @@
+import { runtimeOutput } from "./runtime-fixture.mjs";
 import assert from "node:assert/strict";
 import {
   chmodSync,
@@ -153,6 +154,7 @@ function successfulRunner(calls = []) {
       return commandResult(0, `${executable} fixture version\n`);
     }
     if (executable.endsWith("gradlew") && args[0] === "help") {
+      if (args.some(arg => arg.endsWith("runtime.init.gradle"))) return commandResult(0, runtimeOutput);
       return commandResult(0, `${gradleDiscoveryOutput()}\n`);
     }
     if (executable.endsWith("scripts/automation/tests/run-tests.sh")) {
@@ -193,7 +195,7 @@ test("plans and installs all managed resources in a Kotlin DSL project", () => {
       initOptions(runner, "init-kotlin-plan-001"),
     );
     assert.equal(plan.targetDirectory, root);
-    assert.equal(plan.installation.files.length, 52);
+    assert.equal(plan.installation.files.length, 53);
     assert.equal(
       existsSync(join(root, WORKTREE_ALLOWLIST_RELATIVE_PATH)),
       false,
@@ -219,8 +221,8 @@ test("plans and installs all managed resources in a Kotlin DSL project", () => {
     assert.equal(result.targetDirectory, root);
     assert.equal(result.moduleScope, "all");
     assert.equal(result.primaryModule, ":mobile");
-    assert.equal(result.managedFileCount, 52);
-    assert.equal(result.writtenFileCount, 52);
+    assert.equal(result.managedFileCount, 53);
+    assert.equal(result.writtenFileCount, 53);
     assert.equal(result.reusedFileCount, 0);
     assert.equal(result.worktreeAllowlistStatus, "created");
     assert.equal(result.commitMessagePrefixStatus, "created-unconfigured");
@@ -314,7 +316,7 @@ test("plans and installs all managed resources in a Kotlin DSL project", () => {
     );
     assert.equal(readInstallationManifest(root).installation.state, "installed");
     assert.equal(verifyInstallationIntegrity(root).ok, true);
-    assert.equal(calls.length, 9);
+    assert.equal(calls.length, 10);
   } finally {
     rmSync(root, { recursive: true, force: true });
   }
@@ -398,6 +400,7 @@ test("init renders runtime-discovered dynamic modules and their focused tasks", 
     const baseRunner = successfulRunner();
     const runner = (executable, args, options) => {
       if (executable.endsWith("gradlew") && args[0] === "help") {
+      if (args.some(arg => arg.endsWith("runtime.init.gradle"))) return commandResult(0, runtimeOutput);
         return commandResult(
           0,
           [
@@ -485,7 +488,7 @@ test("repeated init is byte-idempotent for an unchanged installation", () => {
     assert.equal(first.status, "installed");
     assert.equal(repeated.status, "already-installed");
     assert.equal(repeated.writtenFileCount, 0);
-    assert.equal(repeated.reusedFileCount, 52);
+    assert.equal(repeated.reusedFileCount, 53);
     assert.equal(repeated.worktreeAllowlistStatus, "existing");
     assert.equal(repeated.commitMessagePrefixStatus, "existing-configured");
     assert.equal(
@@ -506,7 +509,7 @@ test("repeated init is byte-idempotent for an unchanged installation", () => {
       readFileSync(join(root, "automation/config.json")),
       configBefore,
     );
-    assert.equal(calls.length, 18, "prerequisites, discovery, and verifiers run each time");
+    assert.equal(calls.length, 20, "prerequisites, discovery, and verifiers run each time");
   } finally {
     rmSync(root, { recursive: true, force: true });
   }
@@ -648,7 +651,7 @@ test("init stops on a template conflict before creating control state", () => {
     );
     assert.equal(existsSync(join(root, ".opencode/commands")), false);
     assert.equal(existsSync(join(root, INSTALLATION_CONTROL_DIRECTORY)), false);
-    assert.equal(calls.length, 7, "only prerequisites and task discovery run");
+    assert.equal(calls.length, 8, "only prerequisites and task discovery run");
   } finally {
     rmSync(root, { recursive: true, force: true });
   }
@@ -669,6 +672,7 @@ test("init restores original files when post-install verification fails", () => 
         return commandResult(0, `${executable} fixture version\n`);
       }
       if (executable.endsWith("gradlew") && args[0] === "help") {
+      if (args.some(arg => arg.endsWith("runtime.init.gradle"))) return commandResult(0, runtimeOutput);
         return commandResult(0, `${gradleDiscoveryOutput()}\n`);
       }
       if (executable.endsWith("scripts/automation/tests/run-tests.sh")) {

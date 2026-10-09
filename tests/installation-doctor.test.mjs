@@ -1,3 +1,4 @@
+import { runtimeOutput } from "./runtime-fixture.mjs";
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
 import { createHash } from "node:crypto";
@@ -54,6 +55,7 @@ function successfulCommandRunner(executable, args) {
     return commandResult(0, `${executable} fixture version\n`);
   }
   if (executable.endsWith("gradlew") && args[0] === "help") {
+    if (args.some(arg => arg.endsWith("runtime.init.gradle"))) return commandResult(0, runtimeOutput);
     return commandResult(
       0,
       [
@@ -154,7 +156,7 @@ test("installed doctor validates dependencies, inventory, files, modes, backups,
     const report = installedDoctor(root);
 
     assert.equal(report.ok, true);
-    assert.equal(report.checks.length, 16);
+    assert.equal(report.checks.length, 17);
     assert.equal(report.checks.every((candidate) => candidate.status === "pass"), true);
     assert.match(
       check(report, "installation-manifest").summary,
@@ -350,7 +352,7 @@ test("installed doctor rejects a self-consistent manifest rewrite of a packaged 
     assert.equal(check(report, "installation-manifest").status, "fail");
     assert.match(
       check(report, "installation-manifest").details.join("\n"),
-      /does not match the packaged 1\.1\.0 template/,
+      /does not match the packaged 1\.2\.0 template/,
     );
     assert.equal(
       check(report, "managed-resources").status,

@@ -1,5 +1,19 @@
 # Changelog
 
+## 1.2.0 - 2026-10-09
+
+Source release; npm publication is pending.
+
+- Fix Gradle 6.7.1 init-script request handling and dynamic legacy Kotlin source
+  discovery. Add independent legacy Android inventory and flavored Android/JVM
+  isolated-queue integration fixtures.
+- Reject RED from an incorrect or absent failure stack, require criterion
+  evidence coverage, and support explicitly approved new-file regression
+  supplements proven on the original baseline without replacing RED.
+- Diagnose the wrapper's actual build JVM, bind inventory to runtime/plugin/test
+  JVM records and environment inputs, and reject undeclared non-SDK local
+  properties before isolated execution. See [compatibility and limits](docs/GRADLE-6.7.1.md).
+
 ## 1.1.0 - 2026-09-30
 
 Source release; npm publication is pending.

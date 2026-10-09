@@ -45,8 +45,12 @@ you review.
    For V4/V5/V6/V7 inspect `baselineInventory`, `testManifest`, `greenInventory` and
    `inventoryStatus` from status. Check complete regression coverage, explicit
    existing-skip/empty-baseline policy and frozen test/resource inputs. The
-   collector records type/message mechanically; independently assess the
-   declared failure origin and assertion meaning from the tests and evidence.
+   collector checks type/message and the declared stack location, including
+   a test-body invocation. Independently assess assertion meaning and whether
+   the approved origin actually exercises the requirement. An approved
+   `supplementalTests` policy permits one new-file-only regression supplement;
+   inspect its original-baseline results and GREEN binding. Never weaken frozen
+   assertions or overwrite the original RED to satisfy a review request.
    `processExitCode` is Gradle's actual exit; a RED `exitCode` of 1 represents
    approved case failure, not a failed Gradle build.
 6. Decide independently:

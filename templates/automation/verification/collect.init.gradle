@@ -6,7 +6,17 @@ import org.gradle.api.tasks.testing.TestListener
 import org.gradle.api.tasks.testing.TestResult
 
 // All three phases use this collector. Never infer execution from existing XML.
-def request = new JsonSlurper().parse(new File(System.getProperty('orchestrator.inventoryRequest')))
+// Gradle 6.7.1 does not expose command-line -D properties through System yet
+// while evaluating init scripts in a (including single-use) daemon.
+def requestPath = gradle.startParameter.systemPropertiesArgs['orchestrator.inventoryRequest'] ?: System.getProperty('orchestrator.inventoryRequest')
+if (!(requestPath instanceof String) || requestPath.trim().isEmpty()) {
+    throw new GradleException('Missing orchestrator.inventoryRequest: pass an absolute request JSON path with -D')
+}
+def requestFile = new File(requestPath)
+if (!requestFile.isAbsolute() || !requestFile.isFile() || !requestFile.canRead()) {
+    throw new GradleException('Invalid orchestrator.inventoryRequest: an existing readable absolute file is required')
+}
+def request = new JsonSlurper().parse(requestFile)
 def outputFile = new File(request.output as String)
 def append = { Map value ->
     synchronized (outputFile) {

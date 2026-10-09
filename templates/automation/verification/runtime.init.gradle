@@ -1,0 +1,58 @@
+// Executed by the selected wrapper inside its actual build JVM, after Gradle
+// has applied org.gradle.java.home and configured the project's plugins.
+gradle.projectsEvaluated {
+    def readOptional = { owner, name ->
+        try { return owner."$name" }
+        catch (groovy.lang.MissingPropertyException absent) {
+            if (absent.property != name) throw absent
+            return null
+        }
+    }
+    def plugins = []
+    def tests = []
+    gradle.rootProject.allprojects.toList().sort { it.path }.each { p ->
+        ['com.android.application', 'com.android.library', 'com.android.dynamic-feature',
+         'com.android.test', 'org.jetbrains.kotlin.android', 'kotlin-android', 'org.jetbrains.kotlin.jvm'].each { id ->
+            def plugin = p.plugins.findPlugin(id)
+            if (plugin != null) {
+                def source = plugin.class.protectionDomain?.codeSource?.location
+                def artifact = source?.protocol == 'file' ? new File(source.toURI()) : null
+                def checksum = null
+                if (artifact?.isFile()) {
+                    def digest = java.security.MessageDigest.getInstance('SHA-256')
+                    artifact.withInputStream { input ->
+                        byte[] bytes = new byte[65536]
+                        int count
+                        while ((count = input.read(bytes)) > 0) digest.update(bytes, 0, count)
+                    }
+                    checksum = digest.digest().encodeHex().toString()
+                }
+                def pluginVersion = plugin.class.getPackage()?.implementationVersion
+                if (id.startsWith('com.android.')) {
+                    for (def className : ['com.android.Version', 'com.android.builder.model.Version']) {
+                        try {
+                            pluginVersion = Class.forName(className, false, plugin.class.classLoader).getField('ANDROID_GRADLE_PLUGIN_VERSION').get(null)?.toString()
+                            break
+                        } catch (ClassNotFoundException ignored) {
+                        } catch (NoSuchFieldException ignored) {
+                        }
+                    }
+                }
+                plugins.add([project:p.path, id:id, implementation:plugin.class.name,
+                    version:pluginVersion, artifactSha256:checksum])
+            }
+        }
+        p.tasks.withType(org.gradle.api.tasks.testing.Test).each { t ->
+            def launcher = readOptional(t, 'javaLauncher')
+            def metadata = launcher?.orNull?.metadata
+            def executable = t.executable ?: launcher?.orNull?.executablePath?.asFile?.path ?: new File(System.getProperty('java.home'), 'bin/java').path
+            tests.add([task:t.path, executable:new File(executable).canonicalPath,
+                languageVersion:metadata?.languageVersion?.toString(), vendor:metadata?.vendor?.toString()])
+        }
+    }
+    println('ORCHESTRATOR_BUILD_RUNTIME=' + groovy.json.JsonOutput.toJson([
+        version:1, gradleVersion:gradle.gradleVersion, javaVersion:System.getProperty('java.version'),
+        javaHome:new File(System.getProperty('java.home')).canonicalPath, javaVendor:System.getProperty('java.vendor'),
+        plugins:plugins, tests:tests.sort { it.task }
+    ]))
+}

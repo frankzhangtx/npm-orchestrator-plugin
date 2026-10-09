@@ -1,3 +1,4 @@
+import { runtimeOutput } from "./runtime-fixture.mjs";
 import { spawn, spawnSync } from "node:child_process";
 import { cpSync, mkdirSync, mkdtempSync, readFileSync, writeFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
@@ -42,6 +43,8 @@ const fs = require('node:fs');
 const args = process.argv.slice(2);
 fs.appendFileSync(${JSON.stringify(join(base, "gradle-calls.jsonl"))}, JSON.stringify({cwd:process.cwd(),args,at:Date.now()})+'\\n');
 const inventoryArg = args.find(arg=>arg.startsWith('-Dorchestrator.inventoryRequest='));
+console.log(${JSON.stringify(runtimeOutput.trim())});
+if(args[0]==='help') process.exit(0);
 for (const fault of ${JSON.stringify(stageFaults)}) {
   if (fault.phase !== process.env.AUTOMATION_STAGE_RECOVERY_PHASE) continue;
   const part=inventoryArg?'inventory':args.includes('testDebugUnitTest')?'full':'assemble';
@@ -89,9 +92,10 @@ if (inventoryArg) {
   if(phase==='baseline') injectBaselineFault(discovery?'discovery':'collection');
   const failureMode=${JSON.stringify(inventoryFailure)};
   const implemented=fs.existsSync('app/src/main/java/'+id+'.kt');
-  const row=(name,result)=>({kind:'case',taskPath,className:id,name,result,failures:result==='FAILURE'?[{type:'java.lang.AssertionError',message:'expected missing behavior',stack:[]}]:[]});
+  const row=(name,result)=>({kind:'case',taskPath,className:id,name,result,failures:result==='FAILURE'?[{type:'java.lang.AssertionError',message:'expected missing behavior',stack:[id+'.'+name+'(FeatureTest.kt:20)']}]:[]});
   const cases=discovery?[]:[row('legacy',failureMode==='baseline'||(failureMode==='regression'&&phase==='red')?'FAILURE':'SUCCESS'),
     ...(phase==='baseline'?[]:[row('approved behavior',implemented?'SUCCESS':'FAILURE')])];
+  if(!discovery && fs.existsSync('app/src/test/java/ExtraTest.kt')) cases.push(row('supplement', fs.readFileSync('app/src/test/java/ExtraTest.kt','utf8').includes('requires-implementation')&&!implemented?'FAILURE':'SUCCESS'));
   if(failureMode==='missing-green'&&phase==='green')cases.shift();
   const events=[{kind:'start',phase},{kind:'task',taskPath,filters:[id],sourceRoots:[require('node:path').resolve('app/src/test/java')]}];
   if(!discovery)events.push(...cases,{kind:'suite',taskPath,tests:cases.length,failures:cases.filter(c=>c.result==='FAILURE').length,skipped:0},

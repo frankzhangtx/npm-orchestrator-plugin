@@ -541,7 +541,7 @@ export class TaskQueue {
     const item = this.item(key);
     const evidence: Record<string, unknown> = {};
     for (const name of ["acceptance-report", "review", "full-test-verification", "commit-transaction", "integration", "planning-baseline",
-      "baseline-inventory", "baseline-recovery", "test-preflight", "test-manifest", "green-inventory", "inventory-status"]) {
+      "baseline-inventory", "baseline-recovery", "test-preflight", "test-manifest", "test-supplement", "green-inventory", "inventory-status"]) {
       const path = join(this.storage.runtime, "evidence", item.taskId, `${name}.json`);
       if (existsSync(path)) evidence[name] = readJson<unknown>(path);
     }

@@ -22,6 +22,7 @@ origin_json="$(if [[ -f "$origin_file" ]]; then jq -c . "$origin_file"; else pri
 baseline_json="$(if [[ -f "$evidence_dir/baseline.json" ]]; then jq -c . "$evidence_dir/baseline.json"; else printf 'null'; fi)"
 red_json="$(if [[ -f "$evidence_dir/red.json" ]]; then jq -c . "$evidence_dir/red.json"; else printf 'null'; fi)"
 preflight_json="$(if [[ -f "$evidence_dir/test-preflight.json" ]]; then jq -c . "$evidence_dir/test-preflight.json"; else printf 'null'; fi)"
+supplement_json="$(if [[ -f "$evidence_dir/test-supplement.json" ]]; then jq -c . "$evidence_dir/test-supplement.json"; else printf 'null'; fi)"
 manifest_json="$(if [[ -f "$evidence_dir/test-manifest.json" ]]; then jq -c . "$evidence_dir/test-manifest.json"; else printf 'null'; fi)"
 inventory_baseline_json="$(if [[ -f "$evidence_dir/baseline-inventory.json" ]]; then jq -c . "$evidence_dir/baseline-inventory.json"; else printf 'null'; fi)"
 inventory_green_json="$(if [[ -f "$evidence_dir/green-inventory.json" ]]; then jq -c . "$evidence_dir/green-inventory.json"; else printf 'null'; fi)"
@@ -116,6 +117,7 @@ jq -n \
     --argjson baseline "$baseline_json" \
     --argjson red "$red_json" \
     --argjson testPreflight "$preflight_json" \
+    --argjson testSupplement "$supplement_json" \
     --argjson testManifest "$manifest_json" \
     --argjson baselineInventory "$inventory_baseline_json" \
     --argjson greenInventory "$inventory_green_json" \
@@ -150,6 +152,7 @@ jq -n \
         red: $red,
         testPreflight: $testPreflight,
         testManifest: $testManifest,
+        testSupplement: $testSupplement,
         baselineInventory: $baselineInventory,
         greenInventory: $greenInventory,
         inventoryStatus: $inventoryStatus,

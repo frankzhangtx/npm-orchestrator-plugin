@@ -1,19 +1,33 @@
 # Migration guide
 
 This guide covers migration to
-`@frankzhang2026/opencode-android-orchestrator@1.1.0`. Pin the exact version and
+`@frankzhang2026/opencode-android-orchestrator@1.2.0`. Pin the exact version and
 prove the migration in a disposable clone before changing a long-lived
-repository. npm publication of 1.1.0 is pending; use the pinned Registry
+repository. npm publication of 1.2.0 is pending; use the pinned Registry
 commands below only after publication.
+
+## 1.2.0 compatibility and evidence upgrade
+
+Version 1.2.0 includes 53 managed resources, adding the actual build-JVM
+diagnostic init script. Finish or explicitly abort active tasks, preserve prior
+evidence, and approve new tasks after upgrading. Older expected-failure origin
+strings now require a matching test-body failure, and every acceptance criterion
+needs declared evidence. Do not reuse RED/GREEN evidence from the old collector.
+
+For legacy Kotlin source sets, use `upgrade --refresh-gradle-discovery` and
+review the regenerated configuration so the corrected source roots are included.
+Review supplements require explicit permission in a newly approved contract.
+See [compatibility and limits](GRADLE-6.7.1.md) for runtime, isolation and task
+protocol boundaries.
 
 ## Choose the migration path
 
 | Current state | Correct command after release | Important distinction |
 | --- | --- | --- |
-| No orchestrator files or manifest | `npx @frankzhang2026/opencode-android-orchestrator@1.1.0 init .` | Normal new installation; all runtime-detected Android modules and registered debug verification tasks are discovered automatically. |
+| No orchestrator files or manifest | `npx @frankzhang2026/opencode-android-orchestrator@1.2.0 init .` | Normal new installation; all runtime-detected Android modules and registered debug verification tasks are discovered automatically. |
 | Published `0.1.0` scaffold only | Remove any project-local `@0.1.0` plugin reference after review, then run `init`. | `0.1.0` did not create a usable managed installation and cannot be upgraded. |
-| `0.2.0` through `0.10.0` manifest-managed installation with intact managed/backup content | Run the `1.1.0` `upgrade`; add `--refresh-gradle-discovery` when generated module/task lists are incomplete. | Refresh replaces all derived module metadata, source paths, protected build files, and task allowlists from one Gradle runtime snapshot. Module scope, operator policies, user-owned AGENTS content, and an existing commit-prefix sidecar remain preserved. |
-| Healthy `1.0.0` through `1.0.5` installation | Stop the queue service, finish or abort retained workspaces, then run the fixed `1.1.0` `upgrade`. | Pending inbox contracts remain durable. Version 1.1.0 adds V4 test inventories, opt-in V5-V8 recovery/continuity and Android build capabilities; older approved contracts retain their authority. |
+| `0.2.0` through `0.10.0` manifest-managed installation with intact managed/backup content | Run the `1.2.0` `upgrade`; add `--refresh-gradle-discovery` when generated module/task lists are incomplete. | Refresh replaces all derived module metadata, source paths, protected build files, and task allowlists from one Gradle runtime snapshot. Module scope, operator policies, user-owned AGENTS content, and an existing commit-prefix sidecar remain preserved. |
+| Healthy `1.0.0` through `1.1.0` installation | Stop the queue service, finish or abort retained workspaces, then run the fixed `1.2.0` `upgrade`. | Pending inbox contracts remain durable. Version 1.1.0 adds V4 test inventories, opt-in V5-V8 recovery/continuity and Android build capabilities; older approved contracts retain their authority. |
 | Manually copied V3 files, no `.automation-plugin/manifest.json` | Finish active tasks, preserve historical evidence separately, then run `init`. | Exact files can be reused; differing managed files fail as conflicts. |
 | Healthy older manifest-managed installation | Run `doctor`, then the fixed target version's `upgrade`. | `upgrade` requires a valid installed manifest and intact original backups. |
 | Healthy current-version manifest | Run `doctor`; repeated `init` or same-version `upgrade` is verification-only and byte-idempotent. | Do not reinstall or delete the manifest. |
@@ -59,7 +73,7 @@ installation of `0.1.0` alone does not require project-file cleanup.
 After release, initialize with the fixed version:
 
 ```sh
-npx @frankzhang2026/opencode-android-orchestrator@1.1.0 init .
+npx @frankzhang2026/opencode-android-orchestrator@1.2.0 init .
 ```
 
 New installations default to all-module scope, so multiple application modules
@@ -107,7 +121,7 @@ Use the lifecycle command selected by the active manifest:
 
 ```sh
 npx --yes --registry=https://registry.npmjs.org/ \
-  @frankzhang2026/opencode-android-orchestrator@1.1.0 upgrade . --json
+  @frankzhang2026/opencode-android-orchestrator@1.2.0 upgrade . --json
 ```
 
 The command-level Registry option is useful when a company-wide npm Registry
@@ -137,7 +151,7 @@ computed includes dynamically or a company convention plugin applied
 
 ```sh
 npx --yes --registry=https://registry.npmjs.org/ \
-  @frankzhang2026/opencode-android-orchestrator@1.1.0 upgrade . \
+  @frankzhang2026/opencode-android-orchestrator@1.2.0 upgrade . \
   --refresh-gradle-discovery --json
 ```
 
@@ -221,7 +235,7 @@ use the queue rather than the old direct Shell commands. See [Queue operation](Q
 Run all checks from the detected Git root:
 
 ```sh
-npx @frankzhang2026/opencode-android-orchestrator@1.1.0 doctor .
+npx @frankzhang2026/opencode-android-orchestrator@1.2.0 doctor .
 opencode debug config
 opencode debug skill
 opencode debug agent scheduled-planner
@@ -326,7 +340,7 @@ Reviewer verification commands can retry identified environment failures within
 separate persisted budgets; model/provider calls and integration are unchanged.
 Recovery logic extends the existing managed recovery.cjs. Version 1.1.0 has
 52 managed resources, including the Android project capability validator.
-Upgrade with 1.1.0 after publication; same-version upgrade does not refresh
+Upgrade with 1.2.0 after publication; same-version upgrade does not refresh
 managed templates. See the V7 policy and retained-evidence workflow in QUEUE.md.
 
 
@@ -356,7 +370,7 @@ require fresh discovery and reviewed configuration regeneration, not manual
 snapshot edits during an approved task. Nested roots without a snapshot, composite builds,
 generated/external/symlink sources and production/test overlaps fail closed.
 
-npm publication of 1.1.0 is pending. A same-version upgrade remains
+npm publication of 1.2.0 is pending. A same-version upgrade remains
 verification-only and is not a template delivery mechanism.
 
 

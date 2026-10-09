@@ -21,8 +21,15 @@ gradle.projectsEvaluated {
         selected.toList().each { key -> dependencies[key].each { dep -> if (selected.add(dep)) changed = true } }
     }
     def get = { owner, name ->
-        if (owner == null || owner.metaClass.hasProperty(owner, name) == null) return null
-        owner."$name"
+        if (owner == null) return null
+        // Gradle extensions (notably kotlin on AGP 4.x source sets) can be
+        // dynamic properties absent from MetaClass. Only absence is optional;
+        // a getter failure must not silently remove an editable source root.
+        try { return owner."$name" }
+        catch (groovy.lang.MissingPropertyException missing) {
+            if (missing.property != name) throw missing
+            return null
+        }
     }
     def modules = selected.toList().sort().collect { key ->
         def p = projects[key]

@@ -37,9 +37,7 @@
     "android-orchestrator-verification-before-completion"
   ],
   "acceptanceCriteria": [
-    "Replace with an observable input/output or UI behavior",
-    "A focused test demonstrates the behavior and is captured RED before implementation",
-    "Debug build passes; unit tests and Android lint also pass when their configuration flags are enabled"
+    "Replace with an observable input/output or UI behavior"
   ],
   "nonGoals": [
     "Do not refactor unrelated screens",
@@ -72,7 +70,10 @@
         },
         "expectedFailure": {
           "type": "java.lang.AssertionError",
-          "origin": "The assertion at the approved behavior call"
+          "origin": {
+            "className": "ReplaceWithFocusedTest",
+            "methodName": "replace with observable behavior"
+          }
         }
       }
     ],

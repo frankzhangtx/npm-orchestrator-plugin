@@ -59,7 +59,10 @@ function validateContract(contract, config) {
     assert(!targets.has(key), "Focused test targets must be unique"); targets.add(key);
   }
   const verification = contract.verification;
-  assert(fields(verification, ["version", "maxPreparationFixes", "cases", "inventory"]) && verification.version === 2, "Inventory verification requires verification version 2 with explicit inventory policy");
+  assert(fields(verification, ["version", "maxPreparationFixes", "cases", "inventory"], ["criteriaEvidence", "supplementalTests"]) && verification.version === 2, "Inventory verification requires verification version 2 with explicit inventory policy");
+  if (Object.hasOwn(verification, "supplementalTests")) assert(fields(verification.supplementalTests, ["mode", "maxRevisions"]) &&
+    verification.supplementalTests.mode === "baselinePassingNewFiles" && verification.supplementalTests.maxRevisions === 1,
+    "Supplemental tests require explicit baselinePassingNewFiles authorization and one revision");
   assert(Number.isInteger(verification.maxPreparationFixes) && verification.maxPreparationFixes >= 0 && verification.maxPreparationFixes <= 1, "Invalid preparation retry budget");
   const policy = verification.inventory;
   assert(fields(policy, ["mode", "existingSkips", "emptyBaseline"]) && policy.mode === "focusedBaseline" &&
@@ -79,11 +82,34 @@ function validateContract(contract, config) {
     else assert(item.intent === "observe" && item.before === "observe" && ["userRequirement", "existingTest", "baselineCapture", "measuredFact"].includes(item.source), "Invalid observed behavior");
     if (Object.hasOwn(item, "expectedFailure")) {
       const failure = item.expectedFailure;
-      assert(fields(failure, ["type", "origin"], ["messageIncludes"]) && text(failure.type) && text(failure.origin) && failure.origin.length >= 12 &&
+      const origin = failure.origin;
+      const structuredOrigin = fields(origin, ["className", "methodName"], ["fileName", "lineNumber"]) &&
+        text(origin.className) && /^[A-Za-z_$][A-Za-z0-9_.$]*$/.test(origin.className) && text(origin.methodName) &&
+        !/[().]/.test(origin.methodName) && (!Object.hasOwn(origin, "fileName") || text(origin.fileName) && !/[\\/]/.test(origin.fileName)) &&
+        (!Object.hasOwn(origin, "lineNumber") || Object.hasOwn(origin, "fileName") && Number.isSafeInteger(origin.lineNumber) && origin.lineNumber > 0);
+      assert(fields(failure, ["type", "origin"], ["messageIncludes"]) && text(failure.type) &&
+        (structuredOrigin || text(origin) && origin.length >= 12) &&
         (!Object.hasOwn(failure, "messageIncludes") || (text(failure.messageIncludes) && failure.messageIncludes.length >= 3)), "Invalid expected failure");
     }
   }
   assert(verification.cases.some(item => item.intent === "change"), "At least one changed behavior must provide genuine RED");
+  const covered = new Set(verification.cases.map(item => item.criterion));
+  if (Object.hasOwn(verification, "criteriaEvidence")) {
+    assert(Array.isArray(verification.criteriaEvidence), "Invalid criterion evidence mapping");
+    const explicit = new Set();
+    for (const evidence of verification.criteriaEvidence) {
+      assert(fields(evidence, ["criterion", "kind", "references"]) && Number.isInteger(evidence.criterion) &&
+        evidence.criterion >= 1 && evidence.criterion <= contract.acceptanceCriteria.length && !explicit.has(evidence.criterion), "Invalid or duplicate criterion evidence");
+      explicit.add(evidence.criterion);
+      assert(Array.isArray(evidence.references) && evidence.references.length > 0 && new Set(evidence.references).size === evidence.references.length, "Criterion evidence requires unique references");
+      const available = evidence.kind === "behavior" ? [...ids] : evidence.kind === "build" ? config.gradleVerification.assembleTasks :
+        evidence.kind === "lint" && config.lintEnabled === true ? config.gradleVerification.lintTasks :
+        evidence.kind === "device" && contract.deviceTestsRequired ? config.gradleVerification.deviceTestTasks : undefined;
+      assert(Array.isArray(available) && evidence.references.every(ref => available.includes(ref)), "Criterion evidence must reference approved behavior cases or mandatory enabled verification tasks");
+      covered.add(evidence.criterion);
+    }
+  }
+  assert(contract.acceptanceCriteria.every((_, index) => covered.has(index + 1)), "Every acceptance criterion requires an explicit behavior or verification evidence mapping");
   assert(!/replace with|TASK-EXAMPLE|\btodo\b|\btbd\b|placeholder/i.test(JSON.stringify(contract)), "Contract contains placeholders");
 }
 module.exports = { validateContract, identity, matchesPath, assert };

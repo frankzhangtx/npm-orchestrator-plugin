@@ -569,6 +569,10 @@ export function planAdaptiveProjectTemplates(
       ...(taskTemplate.verification as Record<string, unknown>),
       cases: [{
         ...((taskTemplate.verification as { cases: Record<string, unknown>[] }).cases[0] ?? {}),
+        expectedFailure: {
+          type: "java.lang.AssertionError",
+          origin: { className: taskTestFilter(primaryModule), methodName: "replace with observable behavior" },
+        },
         test: {
           target: 0,
           className: taskTestFilter(primaryModule),

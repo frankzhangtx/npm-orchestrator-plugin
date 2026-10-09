@@ -23,7 +23,7 @@ user-modification guards, the portable manifest Schema, sorted read-only
 conflict reports, content and mode conflicts, identical-file reuse, explicit
 merge handling, and no-write conflict failures.
 
-The init suite installs the complete 52-file inventory into temporary Kotlin
+The init suite installs the complete 53-file inventory into temporary Kotlin
 and Groovy Android fixtures. It covers dynamic rendering, JSONC and AGENTS
 merges, executable modes, write-before-complete verification, dependency
 failure before control-state creation, repeated-init idempotence, conflict
@@ -170,3 +170,5 @@ redacted service/lock diagnostics before fixture cleanup.
 after atomic publication, and inside checkpoint sealing. It checks that altered
 bytes stay available for diagnosis and cannot become the approved retry budget.
 Stage waiting no longer rewrites the ledger on every polling iteration.
+
+Legacy integration fixtures: `gradle671-android.integration.mjs` verifies dynamic production/test Kotlin paths and rejects setup-only RED. `gradle671-queue.integration.mjs` exercises two flavors, an Android-to-JVM dependency and two real isolated task integrations. `gradle671-lifecycle.integration.mjs` verifies installation, actual build-JVM diagnosis, a simulated earlier-version upgrade, Kotlin-source discovery, real baseline-passing review supplements, unchanged RED and uninstall. Set `JAVA_HOME`, `GRADLE_USER_HOME`, `ORCHESTRATOR_TEST_GRADLE` to the legacy toolchain; retain artifacts with `ORCHESTRATOR_INVENTORY_ARTIFACTS` / `ORCHESTRATOR_CONTINUITY_ARTIFACTS`. Set `ORCHESTRATOR_TEST_MAVEN_REPOSITORY` to an existing local Maven repository when legacy resolution metadata has been evicted; artifacts and POMs must be real dependencies. Gradle is real; queue Coder/Reviewer responses and installation smoke responses are deterministic fixtures. These tests do not establish target-project or real-model compatibility.

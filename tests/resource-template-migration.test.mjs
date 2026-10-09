@@ -8,11 +8,12 @@ import { fileURLToPath } from "node:url";
 const templatesRoot = fileURLToPath(new URL("../templates/", import.meta.url));
 
 const expectedBaselineHashes = new Map([
-  ["automation/verification/project.cjs", "818dcf0a20dee93b0e416d051cc1bb5a524b84627c5e1debeedbc42902d2ed62"],
-  ["automation/verification/recovery.cjs", "443fe0af443df650b6cd1c5327cdbf50f6b1e734e988a64985646a0f166aeebb"],
-  ["automation/verification/contract.cjs", "b794d439188dc3d0321fcd474c76600698d49bfaeebe3776702e79b6a680509f"],
-  ["automation/verification/inventory.cjs", "9adea93ed212971f288d7495fee52041b37b97ff6057527a9f729df9e5a210b0"],
-  ["automation/verification/collect.init.gradle", "04a80b880d8813e61d97c19846544a23083a71f341d006e7bb25c8f74cc8010f"],
+  ["automation/verification/runtime.init.gradle", "3d3645fdc4197ba5f1c7d04f0d475cca8242a258759f01a24dfd6c0757b1e4f8"],
+  ["automation/verification/project.cjs", "40af2f66d5708c18add40b81bc4c80f8b7ff39421978ccd9c21ffe29534237ff"],
+  ["automation/verification/recovery.cjs", "7c1aaefa92e1a85267f926a08acd72d8b1f66a208198886b375641ea14be3ae0"],
+  ["automation/verification/contract.cjs", "e94c8f43b25e5f7487d9160092c5bdaf75d0dbb7a8ee77ac8a8f32d935634df4"],
+  ["automation/verification/inventory.cjs", "88e767c73589ef44a3f000ed4e672ba0fb44d29dac18de69baf1bb42daafbf51"],
+  ["automation/verification/collect.init.gradle", "10ba5f6026d27fe60435f6ac9ed10c37ee387f10ccf887fe65a628f388113b01"],
   [
     "automation/config.json",
     "f53ffef792ee63f17b520f86d18a619c3097dc09f301abd9e76de19fad01c14e",
@@ -23,11 +24,11 @@ const expectedBaselineHashes = new Map([
   ],
   [
     "automation/task-contract.schema.json",
-    "1096fa14748e1c8a14c595271d561276a5f90d0a14e10ddf3f9475076345939f",
+    "75dc5eae16e8aae39d57ce5f364dca2dcb125cb6dd2b8feb2fb601e6e82b785f",
   ],
   [
     "automation/tasks/TASK-TEMPLATE.json.example",
-    "abc87cd83c875960be0d77743b74b554d4237ebc792a55b36765faf404ca89d6",
+    "5b562b9194319619ec17e356434da7268b3e2f1f52adde17f918dd02b639a9eb",
   ],
   [
     "docs/plans/README.md",

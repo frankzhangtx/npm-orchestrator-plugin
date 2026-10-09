@@ -63,7 +63,14 @@ it with `./scripts/automation/block-task.sh <TASK-ID> <reason>` before stopping.
    It checks every declared preserved, changed and observed case against fresh
    structured output. V4/V5/V6/V7 also checks every captured existing regression case;
    RED and GREEN share that manifest. After RED, test sources and resources are
-   frozen. For V4, if baseline inventory capture fails after `baseline.json` is written,
+   frozen. An explicitly approved `verification.supplementalTests` policy may
+   permit one append-only revision of new Java/Kotlin/Groovy test files. Do not
+   change existing test files, resources, filters or approved case identities.
+   GREEN validates the new cases on an isolated original baseline before sealing
+   supplemental evidence. They must all pass there and on the implementation;
+   failures, missing execution or changed original tests require a revised task.
+   Without this permission, request a revised task instead of repeatedly trying
+   to add tests to a frozen manifest. For V4, if baseline inventory capture fails after `baseline.json` is written,
    stop: baseline-only resume cannot retry it. Preserve evidence and request
    approved abort/archive followed by a newly approved task; do not delete
    baseline files or keep retrying the original task.

@@ -162,6 +162,64 @@ function validateConfigurationModel(config, root) {
     if (sources.some(p => config.protectedPaths.some(f => overlap(p, f.endsWith("/") ? f + "**" : f)))) fail("source paths overlap protected configuration");
 }
 exports.validateConfigurationModel = validateConfigurationModel;
+
+// Shared actual-runtime diagnostics. PATH java is only a launcher candidate;
+// it is never substituted for the wrapper's build JVM attestation.
+function parseBuildRuntime(output) {
+    const lines = output.split(/\r?\n/).filter(line => line.startsWith("ORCHESTRATOR_BUILD_RUNTIME="));
+    if (lines.length !== 1) throw new Error("Gradle did not produce exactly one actual build JVM record");
+    const value = JSON.parse(lines[0].slice("ORCHESTRATOR_BUILD_RUNTIME=".length));
+    if (value.version !== 1 || typeof value.gradleVersion !== "string" || !/^\d+\.\d+/.test(value.gradleVersion) ||
+        typeof value.javaVersion !== "string" || !/^(?:1\.)?\d+/.test(value.javaVersion) ||
+        typeof value.javaHome !== "string" || !isAbsolute(value.javaHome) || typeof value.javaVendor !== "string" ||
+        !Array.isArray(value.plugins) || !Array.isArray(value.tests)) throw new Error("Invalid actual Gradle/JVM record");
+    const java = Number(value.javaVersion.replace(/^1\./, "").match(/^\d+/)[0]);
+    if (/^6\.7(?:\.|$)/.test(value.gradleVersion) && (java < 8 || java > 15))
+        throw new Error("Gradle 6.7 requires an actual build JVM from Java 8 through 15");
+    for (const item of value.tests) if (!modulePath(item.task) || typeof item.executable !== "string" || !isAbsolute(item.executable))
+        throw new Error("Invalid test JVM record");
+    return value;
+}
+function inspectBuildRuntime(root, runner) {
+    const fs = require("node:fs"), path = require("node:path");
+    const executable = path.join(root, "gradlew");
+    const args = ["help", "--no-configuration-cache", "--console=plain", "--quiet", "--project-dir", root,
+        "--init-script", path.join(__dirname, "runtime.init.gradle")];
+    if (process.env.AUTOMATION_WORKER_TOKEN) args.push("--no-daemon");
+    const result = runner ? runner(executable, args) : require("node:child_process").spawnSync(executable, args,
+        { cwd: root, encoding: "utf8", timeout: 180000, maxBuffer: 8 * 1024 * 1024 });
+    if (result.status !== 0 || result.error) throw new Error(`Cannot verify the wrapper's actual Gradle/JVM: ${String(result.error ?? result.stderr ?? '').slice(-2000)}`);
+    return parseBuildRuntime(result.stdout);
+}
+function buildEnvironmentBinding(root, runtime) {
+    const fs = require("node:fs"), path = require("node:path"), crypto = require("node:crypto");
+    const hash = value => crypto.createHash("sha256").update(value).digest("hex");
+    const env = Object.fromEntries(["PATH", "JAVA_HOME", "JAVA_TOOL_OPTIONS", "JDK_JAVA_OPTIONS", "GRADLE_OPTS", "GRADLE_USER_HOME", "ANDROID_HOME", "ANDROID_SDK_ROOT"]
+        .map(key => [key, process.env[key] ?? null]));
+    const home = process.env.GRADLE_USER_HOME ?? path.join(require("node:os").homedir(), ".gradle");
+    const files = [path.join(home, "gradle.properties"), path.join(home, "init.gradle"), path.join(home, "init.gradle.kts"),
+        path.join(root, "gradle.properties"), path.join(root, "local.properties"), path.join(root, "gradle/gradle-daemon-jvm.properties")];
+    const init = path.join(home, "init.d");
+    if (fs.existsSync(init)) files.push(...fs.readdirSync(init).sort().filter(name => /\.gradle(?:\.kts)?$/.test(name)).map(name => path.join(init, name)));
+    const homes = [process.env.JAVA_HOME, runtime?.javaHome].filter(Boolean);
+    for (const javaHome of homes) files.push(path.join(javaHome, "bin/java"), path.join(javaHome, "release"));
+    if (runtime) files.push(...runtime.tests.map(test => test.executable));
+    const inputs = [...new Set(files)].sort().map(file => [file, fs.existsSync(file) ? hash(fs.readFileSync(file)) : null]);
+    return hash(JSON.stringify({ env, inputs }));
+}
+exports.parseBuildRuntime = parseBuildRuntime;
+exports.inspectBuildRuntime = inspectBuildRuntime;
+exports.buildEnvironmentBinding = buildEnvironmentBinding;
+function assertIsolatedBuildEnvironment(root) {
+    const fs = require("node:fs"), path = require("node:path");
+    const local = path.join(root, "local.properties");
+    if (!fs.existsSync(local)) return;
+    if (fs.lstatSync(local).isSymbolicLink()) throw new Error("Isolated builds require a regular local.properties file");
+    const lines = fs.readFileSync(local, "utf8").split(/\r?\n/).filter(line => line.trim() && !/^\s*[#!]/.test(line));
+    if (!lines.every(line => /^\s*sdk\.dir\s*[=:]/.test(line) && !/\\$/.test(line)))
+        throw new Error("ISOLATED_ENVIRONMENT_UNDECLARED: local.properties contains non-SDK inputs. Configure them through reviewed tracked build configuration or use an explicitly approved fixed-branch task; ignored files are not copied to worktrees.");
+}
+exports.assertIsolatedBuildEnvironment = assertIsolatedBuildEnvironment;
 if (require.main === module) {
     try {
         const config = JSON.parse(require("node:fs").readFileSync(process.argv[2], "utf8"));
