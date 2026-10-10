@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 1.2.2 - 2026-10-10
 
 - Bound interactive task status and operation-review responses to 16 KiB so
   large test inventories cannot hide the registered abort, recovery or acceptance

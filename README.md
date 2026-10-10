@@ -2,9 +2,11 @@
 
 Reusable OpenCode orchestration for macOS Android projects.
 
-Version 1.2.1 fixes discovery and test collection with lazy Android test outputs.
-The commands below pin the 1.2.1 npm package.
-See [development validation](release/1.2.1-development-validation.md) for evidence.
+Version 1.2.2 keeps task review responses bounded so large test inventories
+cannot truncate abort, recovery or acceptance questions. Full evidence remains
+available through digest-bound chunks.
+The commands below pin the 1.2.2 npm package.
+See [development validation](release/1.2.2-development-validation.md) for evidence.
 
 Version `0.2.0` is the first published lifecycle release. Version `0.3.0` adds
 default all-module orchestration and stronger verification contracts. Version
@@ -80,9 +82,9 @@ project builds retain their configured cache behavior.
 ## Quick start
 
 ```sh
-npx @frankzhang2026/opencode-android-orchestrator@1.2.1 init .
+npx @frankzhang2026/opencode-android-orchestrator@1.2.2 init .
 $EDITOR automation/automation-commit-prefix
-npx @frankzhang2026/opencode-android-orchestrator@1.2.1 doctor .
+npx @frankzhang2026/opencode-android-orchestrator@1.2.2 doctor .
 opencode --agent scheduled-planner .
 ```
 
@@ -92,7 +94,7 @@ a task contract without selecting a primary module. To intentionally restrict
 generated contracts to one module, opt into primary-module scope:
 
 ```sh
-npx @frankzhang2026/opencode-android-orchestrator@1.2.1 init . \
+npx @frankzhang2026/opencode-android-orchestrator@1.2.2 init . \
   --module-scope primary \
   --primary-module :mobile
 ```
@@ -120,7 +122,7 @@ For an existing manifest-managed installation whose generated module/task
 lists are incomplete, refresh all derived Gradle data in one upgrade:
 
 ```sh
-npx @frankzhang2026/opencode-android-orchestrator@1.2.1 upgrade . \
+npx @frankzhang2026/opencode-android-orchestrator@1.2.2 upgrade . \
   --refresh-gradle-discovery
 ```
 
@@ -477,7 +479,7 @@ preparation alone as resource installation;
 ## Init
 
 ```sh
-npx @frankzhang2026/opencode-android-orchestrator@1.2.1 init .
+npx @frankzhang2026/opencode-android-orchestrator@1.2.2 init .
 $EDITOR automation/automation-commit-prefix
 opencode --agent scheduled-planner .
 ```
