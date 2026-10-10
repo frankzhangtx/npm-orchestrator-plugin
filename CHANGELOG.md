@@ -2,7 +2,7 @@
 
 ## 1.2.1 - 2026-10-09
 
-Source release; npm publication is pending.
+Fixes Android lazy test-output compatibility.
 
 - Avoid resolving Android test output providers during project discovery, fixing
   upgrades on builds with mapped ASM test-class outputs.

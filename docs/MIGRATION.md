@@ -3,7 +3,7 @@
 This guide covers migration to
 `@frankzhang2026/opencode-android-orchestrator@1.2.1`. Pin the exact version and
 prove the migration in a disposable clone before changing a long-lived
-repository. npm publication of 1.2.1 is pending; use the pinned commands after publication.
+repository.
 
 ## 1.2.1 lazy test-output compatibility
 
@@ -348,7 +348,7 @@ Reviewer verification commands can retry identified environment failures within
 separate persisted budgets; model/provider calls and integration are unchanged.
 Recovery logic extends the existing managed recovery.cjs. Version 1.1.0 has
 52 managed resources, including the Android project capability validator.
-Upgrade with 1.2.1 after publication; same-version upgrade does not refresh
+Upgrade with 1.2.1; same-version upgrade does not refresh
 managed templates. See the V7 policy and retained-evidence workflow in QUEUE.md.
 
 

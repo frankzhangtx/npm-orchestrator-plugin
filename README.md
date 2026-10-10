@@ -3,7 +3,7 @@
 Reusable OpenCode orchestration for macOS Android projects.
 
 Version 1.2.1 fixes discovery and test collection with lazy Android test outputs.
-npm publication is pending; the pinned commands below apply after publication.
+The commands below pin the 1.2.1 npm package.
 See [development validation](release/1.2.1-development-validation.md) for evidence.
 
 Version `0.2.0` is the first published lifecycle release. Version `0.3.0` adds
