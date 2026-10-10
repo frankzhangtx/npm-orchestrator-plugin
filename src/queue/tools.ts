@@ -6,6 +6,7 @@ import { invariant } from "./storage.js";
 import { ApprovalLedger } from "./approvals.js";
 import { TaskQueue, publicRun, type DraftInput, type JobKind } from "./queue.js";
 import { serviceStatus, startService, stopService, wakeService } from "./service.js";
+import { compactTaskDetails, queueResponse, readTaskEvidence } from "./presentation.js";
 
 export const QUEUE_TOOL_NAMES = ["android_orchestrator_snapshot", "android_orchestrator_intake", "android_orchestrator_queue"] as const;
 
@@ -66,19 +67,24 @@ export function createQueueTools(worktree: string, approvals = new ApprovalLedge
       },
     }),
     android_orchestrator_queue: tool({
-      description: "Inspect durable queue notifications or manage the single repository executor. Acceptance, revalidation, recovery and abort all queue work through the same slot. Integration requires the latest candidate hash and human approval.",
+      description: "Inspect durable queue notifications or manage the single repository executor. Task status and review return bounded summaries and an evidence index. Use readEvidence with key, name and evidenceSha256 from the index, then nextCursor, to read exact evidence before approval as needed. Use the complete registered question returned by review; never reconstruct it. Acceptance, recovery and abort share the executor. Integration requires the latest candidate hash and human approval.",
       args: {
-        action: tool.schema.enum(["status", "review", "start", "stop", "pause", "resume", "clear-fault", "cancel", "revoke", "acknowledge", "integrate", "revalidate", "resume-task", "resume-review", "abort", "recover", "recover-execution", "priority", "policy"]),
+        action: tool.schema.enum(["status", "review", "readEvidence", "start", "stop", "pause", "resume", "clear-fault", "cancel", "revoke", "acknowledge", "integrate", "revalidate", "resume-task", "resume-review", "abort", "recover", "recover-execution", "priority", "policy"]),
         operation: tool.schema.enum(["integrate", "resume-task", "resume-review", "abort"]).optional(),
         key: tool.schema.string().optional(), approval: tool.schema.string().optional(), candidate: tool.schema.string().optional(),
+        name: tool.schema.string().optional(), evidenceSha256: tool.schema.string().optional(), cursor: tool.schema.string().optional(),
         priority: tool.schema.number().int().min(-100).max(100).optional(),
         workspaceStrategy: tool.schema.enum(["inPlaceExclusive", "isolatedWorktree"]).optional(),
         commitPolicy: tool.schema.enum(["humanApproval", "autoCommit"]).optional(),
       },
       async execute(args, context) {
-        const queue = bounded(context, !["status", "review"].includes(args.action));
+        const queue = bounded(context, !["status", "review", "readEvidence"].includes(args.action));
+        if (args.action === "readEvidence") {
+          invariant(args.key && args.name, "Evidence read requires a task key and resource name");
+          return queueResponse(readTaskEvidence(queue.details(args.key), args.name, args.evidenceSha256 ?? "", args.cursor));
+        }
         if (args.action === "status") {
-          if (args.key) return JSON.stringify(queue.details(args.key));
+          if (args.key) return queueResponse(compactTaskDetails(queue.details(args.key)));
           const document = queue.storage.read();
           return JSON.stringify({ service: serviceStatus(queue), paused: document.paused, fault: document.fault, active: publicRun(document.active),
             items: document.items.map(({ key, taskId, state, waitingReason, workspaceStrategy, commitPolicy, targetBranch, taskRoot, dependsOn, sealedDiff, candidateId, completedCommit }) => ({ key, taskId, state, waitingReason, workspaceStrategy, commitPolicy, targetBranch, taskRoot, dependsOn, sealedDiff, candidateId, completedCommit, pushed: false })),
@@ -94,7 +100,7 @@ export function createQueueTools(worktree: string, approvals = new ApprovalLedge
           const question = approvals.prepare(context.sessionID, args.operation, binding,
             args.operation === "integrate" ? "最终验收" : args.operation === "abort" ? "中止确认" : "恢复确认",
             `确认对 ${item.key} 执行 ${args.operation}？候选 ${item.candidateId?.slice(0, 12) ?? "未封存"}，目标 ${item.targetBranch}；仅在本地处理，不推送。`, approval);
-          return JSON.stringify({ ...queue.details(args.key), operation: args.operation, question });
+          return queueResponse({ question, ...compactTaskDetails(queue.details(args.key)), operation: args.operation });
         }
         if (args.action === "start") startService(queue);
         else if (args.action === "stop") stopService(queue);

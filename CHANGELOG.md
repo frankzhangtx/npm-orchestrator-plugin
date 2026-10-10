@@ -1,5 +1,13 @@
 # Changelog
 
+## Unreleased
+
+- Bound interactive task status and operation-review responses to 16 KiB so
+  large test inventories cannot hide the registered abort, recovery or acceptance
+  question. Preserve the existing single-use, candidate-bound approval checks.
+- Add digest-bound, read-only evidence chunks for full contracts, plans and
+  verification records without exposing arbitrary filesystem reads.
+
 ## 1.2.1 - 2026-10-09
 
 Fixes Android lazy test-output compatibility.

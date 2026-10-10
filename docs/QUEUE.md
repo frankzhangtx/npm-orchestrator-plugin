@@ -102,6 +102,33 @@ persisted until acknowledged, so the original Planner session need not remain
 open. `queue --help` lists direct local-operator commands; interactive agents
 use bounded plugin tools and actual question receipts instead of the CLI.
 
+### Bounded task review and evidence
+
+The interactive `android_orchestrator_queue` tool returns `task-summary-v1`
+for task-specific `status` and `review`. Each response, including the complete
+registered approval question, is limited to 16 KiB of serialized UTF-8 JSON.
+Full contracts, plans and test inventories are not inlined into these responses.
+The `evidence` index lists resource names, formats, serialized byte counts,
+SHA-256 digests and optional summary previews. Previews are not complete evidence;
+large summaries may be omitted while their resource descriptors remain available.
+
+To inspect a resource, call the same tool with `action: "readEvidence"`, the
+task `key`, a `name` from the index and its `evidenceSha256`. Read `content` and
+follow `nextCursor` using the same arguments until it is null. JSON resources
+are compact JSON; the plan is plain text. Concatenated chunks preserve the exact
+resource text. Every page also fits the 16 KiB limit, including JSON escaping.
+Cursors bind the task, contract digest, candidate, target branch HEAD, resource
+name and content digest; a change requires refreshing status or review.
+This interface accepts resource names, not arbitrary filesystem paths.
+
+Before requesting approval, inspect the relevant evidence and show the operation
+and candidate to the user. Pass the complete `question` from `review` to the
+host question tool unchanged; never reconstruct an approval question from its
+summary or treat a copied approval sentence as a receipt. Wrong-session,
+changed-candidate and reused receipts remain invalid. Evidence reads are read-only
+and do not replace the pending question. Local operator CLI output and on-disk
+evidence retain their existing formats.
+
 ## Policy, capacity and verification
 
 Pause and finish/abort retained workspaces before changing repository mode:
