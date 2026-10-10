@@ -1,5 +1,16 @@
 # Changelog
 
+## 1.2.1 - 2026-10-09
+
+Source release; npm publication is pending.
+
+- Avoid resolving Android test output providers during project discovery, fixing
+  upgrades on builds with mapped ASM test-class outputs.
+- Collect test directory evidence immediately before each Test task executes,
+  after producer tasks complete, while retaining skipped/NO-SOURCE validation.
+- Add real Gradle regression coverage for mapped test outputs through discovery
+  and baseline/RED/GREEN inventory collection.
+
 ## 1.2.0 - 2026-10-09
 
 - Fix Gradle 6.7.1 init-script request handling and dynamic legacy Kotlin source

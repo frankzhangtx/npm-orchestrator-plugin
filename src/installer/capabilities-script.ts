@@ -41,7 +41,10 @@ gradle.projectsEvaluated {
         def sourceSets = androidId != null ? get(extension, "sourceSets") : p.extensions.findByName("sourceSets")
         if (sourceSets == null) throw new GradleException("Cannot inspect source sets for " + key)
         def tests = p.tasks.withType(org.gradle.api.tasks.testing.Test).toList()
-        def testOutputs = tests.collectMany { it.testClassesDirs.files.toList() }.collect { it.canonicalPath } as Set
+        // Android source sets are classified by name below. Their test output
+        // providers may depend on ASM transforms that have not executed yet.
+        def testOutputs = androidId != null ? ([] as Set) :
+            (tests.collectMany { it.testClassesDirs.files.toList() }.collect { it.canonicalPath } as Set)
         def buildDir = p.layout.buildDirectory.get().asFile.canonicalFile.toPath()
         def pathOf = { File file ->
             def absolute = file.absoluteFile.toPath().normalize()

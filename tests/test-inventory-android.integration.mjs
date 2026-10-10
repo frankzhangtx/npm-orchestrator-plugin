@@ -7,6 +7,9 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import test from "node:test";
 
+import { discoverGradleProjectConfiguration, runInitProcess } from "../dist/index.js";
+import { lazyTestOutputFixture } from "./lazy-test-output-fixture.mjs";
+
 const require = createRequire(import.meta.url);
 const { runPhase } = require("../templates/automation/verification/inventory.cjs");
 const templates = fileURLToPath(new URL("../templates/", import.meta.url));
@@ -23,7 +26,7 @@ function git(root, ...args) {
   assert.equal(r.status, 0, r.stderr); return r.stdout.trim();
 }
 
-test("real Android library captures custom unit-test source and resource directories", () => {
+test("real Android mapped test outputs support discovery and baseline/RED/GREEN collection", () => {
   const gradle = process.env.ORCHESTRATOR_TEST_GRADLE ?? files(join(homedir(), ".gradle/wrapper/dists/gradle-9.4.1-all")).find(file => file.endsWith("/bin/gradle"));
   const sdk = process.env.ANDROID_HOME ?? join(homedir(), "Library/Android/sdk");
   assert(gradle && existsSync(sdk), "Configure ORCHESTRATOR_TEST_GRADLE and ANDROID_HOME");
@@ -37,6 +40,7 @@ test("real Android library captures custom unit-test source and resource directo
   write(root, ".gitignore", ".gradle/\n**/build/\nlocal.properties\n");
   write(root, "settings.gradle", "pluginManagement { repositories { google(); mavenCentral(); gradlePluginPortal() } }\ndependencyResolutionManagement { repositories { google(); mavenCentral() } }\nrootProject.name='inventory-android'\ninclude ':library'\n");
   write(root, "build.gradle", `plugins { id 'com.android.library' version '${process.env.ORCHESTRATOR_TEST_AGP ?? "9.2.1"}' apply false }\n`);
+  write(root, "gradle/wrapper/gradle-wrapper.properties", "distributionUrl=local-verified-fixture\n");
   write(root, "gradle.properties", "org.gradle.workers.max=2\n");
   write(root, "local.properties", `sdk.dir=${sdk}\n`);
   write(root, "gradlew", `#!/usr/bin/env node\nconst offline=process.env.ORCHESTRATOR_TEST_OFFLINE==='1'?['--offline']:[];\nconst r=require('node:child_process').spawnSync(${JSON.stringify(gradle)},[...offline,...process.argv.slice(2)],{stdio:'inherit'});process.exit(r.status ?? 1);\n`, 0o755);
@@ -48,7 +52,8 @@ test("real Android library captures custom unit-test source and resource directo
         assets.setSrcDirs(['checks/assets']); res.setSrcDirs(['checks/res'])
       } }
     }
-    dependencies { testImplementation files(${JSON.stringify(junit)}, ${JSON.stringify(hamcrest)}) }\n`);
+    dependencies { testImplementation files(${JSON.stringify(junit)}, ${JSON.stringify(hamcrest)}) }
+    ${lazyTestOutputFixture}\n`);
   write(root, "library/src/main/AndroidManifest.xml", "<manifest />\n");
   const feature = value => `package example; public class Feature { public static int answer() { return ${value}; } }\n`;
   write(root, "library/src/main/java/example/Feature.java", feature(1));
@@ -83,8 +88,18 @@ test("real Android library captures custom unit-test source and resource directo
       throw error;
     }
   }
+  const discovery = discoverGradleProjectConfiguration(root, runInitProcess);
+  assert(discovery.gradleVerification.focusedTestTasks.includes(":library:testDebugUnitTest"));
+  assert(discovery.detection.capabilities.modules[0].sources.some(source => source.kind === "test" && source.paths.includes("library/checks/java/**")));
   const baseline = phase("baseline");
   assert.equal(baseline.summary.existing, 2);
+  const events = name => readFileSync(join(evidence, baseline.attemptPath, name, "events.jsonl"), "utf8")
+    .trim().split("\n").map(line => JSON.parse(line));
+  const discoveredTask = events("discovery").find(event => event.kind === "task");
+  const collectedTask = events("collection").find(event => event.kind === "task");
+  assert.deepEqual(discoveredTask.testClassesDirs, []);
+  assert(collectedTask.testClassesDirs.some(directory => directory.includes("/mapped-test-classes/testDebugUnitTest")));
+  assert.deepEqual(discoveredTask.sourceRoots, collectedTask.sourceRoots);
   assert(baseline.testPatterns.includes("library/checks/java/**"));
   assert(baseline.testPatterns.includes("library/checks/resources/**"));
   for (const folder of ["kotlin", "assets", "res"]) assert(baseline.testPatterns.includes(`library/checks/${folder}/**`));

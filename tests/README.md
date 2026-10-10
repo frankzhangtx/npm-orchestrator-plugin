@@ -172,3 +172,15 @@ bytes stay available for diagnosis and cannot become the approved retry budget.
 Stage waiting no longer rewrites the ledger on every polling iteration.
 
 Legacy integration fixtures: `gradle671-android.integration.mjs` verifies dynamic production/test Kotlin paths and rejects setup-only RED. `gradle671-queue.integration.mjs` exercises two flavors, an Android-to-JVM dependency and two real isolated task integrations. `gradle671-lifecycle.integration.mjs` verifies installation, actual build-JVM diagnosis, a simulated earlier-version upgrade, Kotlin-source discovery, real baseline-passing review supplements, unchanged RED and uninstall. Set `JAVA_HOME`, `GRADLE_USER_HOME`, `ORCHESTRATOR_TEST_GRADLE` to the legacy toolchain; retain artifacts with `ORCHESTRATOR_INVENTORY_ARTIFACTS` / `ORCHESTRATOR_CONTINUITY_ARTIFACTS`. Set `ORCHESTRATOR_TEST_MAVEN_REPOSITORY` to an existing local Maven repository when legacy resolution metadata has been evicted; artifacts and POMs must be real dependencies. Gradle is real; queue Coder/Reviewer responses and installation smoke responses are deterministic fixtures. These tests do not establish target-project or real-model compatibility.
+
+## 1.2.1 mapped Android test outputs
+
+`test-inventory-android.integration.mjs` uses a real Gradle producer with a
+mapped output provider, matching the execution-order constraint of Android ASM
+test transforms. The fixture first reproduced discovery failure, then baseline
+collection failure independently. It checks that dry-run discovery reports
+source roots without resolving Android output providers, and that actual
+collection records transformed class directories after their producer finishes.
+Baseline, RED, GREEN and evidence verification run with real JUnit tests.
+The JVM inventory fixture separately covers NO-SOURCE baselines, empty/skip
+policies, parameterized cases and repeated uncached execution.

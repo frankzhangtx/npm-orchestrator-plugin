@@ -13,7 +13,7 @@ const expectedBaselineHashes = new Map([
   ["automation/verification/recovery.cjs", "7c1aaefa92e1a85267f926a08acd72d8b1f66a208198886b375641ea14be3ae0"],
   ["automation/verification/contract.cjs", "e94c8f43b25e5f7487d9160092c5bdaf75d0dbb7a8ee77ac8a8f32d935634df4"],
   ["automation/verification/inventory.cjs", "88e767c73589ef44a3f000ed4e672ba0fb44d29dac18de69baf1bb42daafbf51"],
-  ["automation/verification/collect.init.gradle", "10ba5f6026d27fe60435f6ac9ed10c37ee387f10ccf887fe65a628f388113b01"],
+  ["automation/verification/collect.init.gradle", "9c3d9095876c26f65537fdae4a6cf52d9226f28b9a4c61cb2b91ada65e70a743"],
   [
     "automation/config.json",
     "f53ffef792ee63f17b520f86d18a619c3097dc09f301abd9e76de19fad01c14e",

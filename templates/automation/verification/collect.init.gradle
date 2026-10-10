@@ -27,46 +27,56 @@ append([kind: 'start', phase: request.phase, gradleVersion: gradle.gradleVersion
 def filtersByTask = request.targets.groupBy { it.gradleTask }.collectEntries { path, targets ->
     [(path): targets.collect { it.filter }.unique().sort()]
 }
+// Keep dry-run source discovery independent of Android output providers.
+// Real output metadata is collected after producer tasks have executed.
+def recordTask = { task, boolean discovery ->
+    def path = task.path
+    def filters = filtersByTask[path]
+    def roots = [] as Set
+    def android = task.project.extensions.findByName('android')
+    // Dry-run discovery cannot execute producer tasks. Android source roots
+    // come from its DSL; class-output paths are recorded on the real run.
+    def classes = discovery && android != null ? ([] as Set) :
+        (task.testClassesDirs.files.collect { it.canonicalFile } as Set)
+    def sourceSets = android == null ? task.project.extensions.findByName('sourceSets') : null
+    sourceSets?.each { sourceSet ->
+        if (sourceSet.output.classesDirs.files.any { classes.contains(it.canonicalFile) }) {
+            roots.addAll(sourceSet.allSource.srcDirs)
+            roots.addAll(sourceSet.resources.srcDirs)
+        }
+    }
+    // AGP variants expose the source providers actually used by each unit test.
+    if (android != null && android.hasProperty('unitTestVariants')) {
+        android.unitTestVariants.each { variant ->
+            if (task.name == "test${variant.name.capitalize()}") {
+                variant.sourceSets.each { provider ->
+                    roots.addAll(provider.javaDirectories)
+                    roots.addAll(provider.resourcesDirectories)
+                    if (provider.hasProperty('kotlinDirectories')) roots.addAll(provider.kotlinDirectories)
+                }
+            }
+        }
+    }
+    // Modern AGP also exposes variant-specific test source sets through its DSL.
+    // Only unit-test providers are classified here, never production providers.
+    if (android != null && android.hasProperty('sourceSets')) {
+        android.sourceSets.findAll { it.name == 'test' || it.name.startsWith('test') && it.name.length() > 4 && Character.isUpperCase(it.name.charAt(4)) }.each { sourceSet ->
+            roots.addAll(sourceSet.java.srcDirs)
+            roots.addAll(sourceSet.resources.srcDirs)
+            if (sourceSet.hasProperty('kotlin')) roots.addAll(sourceSet.kotlin.srcDirs)
+            roots.addAll(sourceSet.assets.srcDirs)
+            roots.addAll(sourceSet.res.srcDirs)
+        }
+    }
+    append([kind: 'task', taskPath: path, filters: filters,
+        sourceRoots: roots.collect { it.absoluteFile.toPath().normalize().toString() }.sort(),
+        testClassesDirs: classes.collect { it.toString() }.sort()])
+}
 gradle.taskGraph.whenReady { graph ->
     filtersByTask.each { path, filters ->
         def task = graph.allTasks.find { it.path == path }
         if (!(task instanceof Test)) throw new GradleException("Inventory target must resolve to an exact Test task: ${path}")
-        def roots = [] as Set
-        def classes = task.testClassesDirs.files.collect { it.canonicalFile } as Set
-        def sourceSets = task.project.extensions.findByName('sourceSets')
-        sourceSets?.each { sourceSet ->
-            if (sourceSet.output.classesDirs.files.any { classes.contains(it.canonicalFile) }) {
-                roots.addAll(sourceSet.allSource.srcDirs)
-                roots.addAll(sourceSet.resources.srcDirs)
-            }
-        }
-        // AGP variants expose the source providers actually used by each unit test.
-        def android = task.project.extensions.findByName('android')
-        if (android != null && android.hasProperty('unitTestVariants')) {
-            android.unitTestVariants.each { variant ->
-                if (task.name == "test${variant.name.capitalize()}") {
-                    variant.sourceSets.each { provider ->
-                        roots.addAll(provider.javaDirectories)
-                        roots.addAll(provider.resourcesDirectories)
-                        if (provider.hasProperty('kotlinDirectories')) roots.addAll(provider.kotlinDirectories)
-                    }
-                }
-            }
-        }
-        // Modern AGP also exposes variant-specific test source sets through its DSL.
-        // Only unit-test providers are classified here, never production providers.
-        if (android != null && android.hasProperty('sourceSets')) {
-            android.sourceSets.findAll { it.name == 'test' || it.name.startsWith('test') && it.name.length() > 4 && Character.isUpperCase(it.name.charAt(4)) }.each { sourceSet ->
-                roots.addAll(sourceSet.java.srcDirs)
-                roots.addAll(sourceSet.resources.srcDirs)
-                if (sourceSet.hasProperty('kotlin')) roots.addAll(sourceSet.kotlin.srcDirs)
-                roots.addAll(sourceSet.assets.srcDirs)
-                roots.addAll(sourceSet.res.srcDirs)
-            }
-        }
-        append([kind: 'task', taskPath: path, filters: filters,
-            sourceRoots: roots.collect { it.absoluteFile.toPath().normalize().toString() }.sort(),
-            testClassesDirs: classes.collect { it.toString() }.sort()])
+        if (gradle.startParameter.dryRun) recordTask(task, true)
         task.outputs.upToDateWhen { false }
         task.outputs.doNotCacheIf('Orchestrator inventory requires actual test execution') { true }
         task.ignoreFailures = true
@@ -96,6 +106,10 @@ gradle.taskGraph.whenReady { graph ->
             }
         })
     }
+}
+// beforeTask also records skipped/NO-SOURCE tasks for inventory validation.
+gradle.taskGraph.beforeTask { task ->
+    if (filtersByTask.containsKey(task.path)) recordTask(task, false)
 }
 gradle.taskGraph.afterTask { task, state ->
     if (filtersByTask.containsKey(task.path)) append([kind: 'taskEnd', taskPath: task.path,
