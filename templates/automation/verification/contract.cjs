@@ -59,7 +59,12 @@ function validateContract(contract, config) {
     assert(!targets.has(key), "Focused test targets must be unique"); targets.add(key);
   }
   const verification = contract.verification;
-  assert(fields(verification, ["version", "maxPreparationFixes", "cases", "inventory"], ["criteriaEvidence", "supplementalTests"]) && verification.version === 2, "Inventory verification requires verification version 2 with explicit inventory policy");
+  assert(fields(verification, ["version", "maxPreparationFixes", "cases", "inventory"], ["criteriaEvidence", "supplementalTests", "scope"]) && verification.version === 2, "Inventory verification requires verification version 2 with explicit inventory policy");
+  if (Object.hasOwn(verification, "scope")) {
+    assert(contract.schemaVersion >= 7, "Impact verification requires V7 execution and recovery approval");
+    require("./project.cjs").validateVerificationScope(verification.scope);
+    assert(config.androidProject?.capabilities, "Impact verification requires refreshed Gradle discovery");
+  }
   if (Object.hasOwn(verification, "supplementalTests")) assert(fields(verification.supplementalTests, ["mode", "maxRevisions"]) &&
     verification.supplementalTests.mode === "baselinePassingNewFiles" && verification.supplementalTests.maxRevisions === 1,
     "Supplemental tests require explicit baselinePassingNewFiles authorization and one revision");

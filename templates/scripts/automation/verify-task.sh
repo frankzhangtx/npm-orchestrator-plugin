@@ -31,6 +31,12 @@ fi
 
 "$SCRIPT_DIR/scope-gate.sh" "$task_id"
 
+if jq -e '.verification.scope != null' "$contract" >/dev/null; then
+    phase=green
+    [[ "$(automation_read_state "$task_id")" != REVIEWING ]] || phase=review
+    exec node "$AUTOMATION_ROOT/automation/verification/recovery.cjs" --verify-impact "$phase" "$contract" "$AUTOMATION_CONFIG" "$AUTOMATION_ROOT" "$evidence_dir"
+fi
+
 automation_run_configured_unit_tests "$contract" "$AUTOMATION_ROOT"
 
 automation_info "running configured assemble tasks"

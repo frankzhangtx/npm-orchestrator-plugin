@@ -27,7 +27,7 @@ The plan must include:
 - exact files to create or modify;
 - implementation sequence with concrete symbols and interfaces;
 - the first failing behavior test and expected RED reason;
-- focused and full verification commands;
+- focused tests and affected module/variant verification commands, with dependency impact and selection reasons;
 - allowed paths, forbidden paths, maximum changed-file count, and non-goals;
 - device/emulator policy and any residual risk.
 
@@ -41,6 +41,14 @@ The plan must include:
 - Keep names, signatures, resources, and paths consistent across every step
   and with the task contract.
 - Do not introduce unapproved refactors or dependencies.
+
+For discovered capability models, use the generated V7 (or approved V8)
+`verification.scope` policy. Narrow `allowedPaths` to the task before drafting;
+the queue validates the baseline task selection. Debug is the normal variant
+policy; Release-only changes need explicitly approved `variants: "all"`.
+Do not copy the entire capability task matrix into every task's commands.
+Unmapped paths require a revised plan or refreshed discovery before execution.
+Older sealed contracts keep their original verification requirements.
 
 ## Handoff
 

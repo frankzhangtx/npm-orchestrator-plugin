@@ -37,7 +37,7 @@ function preview(value: unknown, depth = 2): unknown {
   return value;
 }
 
-const SUMMARY_KEYS = ["valid", "state", "reasonCode", "decision", "verificationExitCode", "fullTestsExecuted",
+const SUMMARY_KEYS = ["valid", "state", "reasonCode", "decision", "verificationExitCode", "fullTestsExecuted", "affectedTestsExecuted", "mode", "variants", "affectedModules", "selectedVariants", "tasks", "phase",
   "summary", "originalBranchDrifted", "evidence", "bindingChecks", "reviewSummary", "elapsedSeconds",
   "schemaVersion", "title", "acceptanceCriteria", "allowedPaths", "lastFailure", "waitingReason"];
 function resourceSummary(value: unknown): unknown {

@@ -5,6 +5,7 @@ import { homedir, tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import test from 'node:test';
 import { createRequire } from 'node:module';
+const { selectVerification } = createRequire(import.meta.url)('../templates/automation/verification/project.cjs');
 const { runPhase } = createRequire(import.meta.url)('../templates/automation/verification/inventory.cjs');
 import { discoverGradleProjectConfiguration, planAdaptiveProjectTemplates, runProjectInitialization,
   installationDoctorChecks, planProjectUpgrade, applyProjectUpgrade, runProjectUpgrade, planProjectUninstall, applyProjectUninstall,
@@ -80,7 +81,14 @@ dependencies { api project(':${dep}'); ${testing} }
   assert(plan.automationConfig.androidProject.productionPaths.includes(prefix+'components/feature/code/java/**'));
   assert(plan.automationConfig.androidProject.productionPaths.includes(prefix+'components/feature/meta/Manifest.xml'));
   assert(plan.automationConfig.androidProject.testPaths.includes(prefix+'components/feature/checks/resources/**'));
-  const args=[...discovery.gradleVerification.fullUnitTestTasks,...discovery.gradleVerification.assembleTasks,'--console=plain'];
+  const impactContract={id:'TASK-REAL-IMPACT',planPath:'docs/plans/TASK-REAL-IMPACT.md',allowedPaths:[prefix+'components/feature/code/java/**'],
+    targetTests:[{gradleTask:':feature:testStagingUnitTest'}],verification:{scope:{version:1,mode:'affected',variants:'all',maxManualRetries:1}}};
+  const selected=selectVerification({...plan.automationConfig,lintEnabled:false},impactContract,root,[prefix+'components/feature/code/java/example/Feature.java']);
+  assert.deepEqual(selected.affectedModules,[':feature',':surface']);
+  assert.deepEqual(selected.tasks.fullUnitTestTasks,[':feature:testStagingUnitTest',':surface:testStagingUnitTest']);
+  assert.deepEqual(selected.tasks.assembleTasks,[':feature:assembleStaging',':surface:assembleStaging']);
+  write(root,'.git/impact-verification-plan.json',JSON.stringify(selected,null,2));
+  const args=[...selected.tasks.fullUnitTestTasks,...selected.tasks.assembleTasks,'--console=plain'];
   const built=run(join(buildRoot,'gradlew'),args,{cwd:buildRoot});write(root,'.git/capability-build.log',built.stdout+built.stderr);
   assert.equal(built.status,0,built.stdout+built.stderr);
   assert(files(root).some(p=>p.endsWith('.aar')));

@@ -65,13 +65,24 @@ function classifyFailure({ phase, reasonCode = "", log = "", exitCode = null }) 
     category = phase === "red" ? "testPreparation" : "implementation";
   } else if (/status code (?:401|403)\b|AuthenticationError|Unauthorized|invalid (?:API key|credentials)/i.test(log)) {
     category = "configuration"; code = "AUTHENTICATION_FAILURE";
+  } else if (/PKIX|SSLHandshakeException[^\n]*(?:certificate|trust)|certificate[_ ](?:verify|validation|expired)|unable to find valid certification path|No subject alternative|peer not authenticated|handshake_failure|protocol_version/i.test(log)) {
+    category = "configuration"; code = "TLS_CONFIGURATION_FAILURE";
+  } else if (/status code 404\b|HTTP(?:\/\d(?:\.\d)?)?\s+404\b|Could not find [^\n]+\.[a-z]+\b/i.test(log)) {
+    category = "configuration"; code = "DEPENDENCY_NOT_FOUND";
+  } else if (Number.isInteger(exitCode) && exitCode !== 0 &&
+    /Could not (?:download|GET)|Could not resolve|Could not transfer artifact/i.test(log) &&
+    /Remote host (?:terminated|closed) the handshake|SSL peer shut down incorrectly|connection (?:reset|timed out)/i.test(log)) {
+    category = "environment"; code = "DEPENDENCY_TRANSPORT_FAILURE"; retryable = true;
   } else if (Number.isInteger(exitCode) && exitCode !== 0 && /(?:Received status code 429\b|HTTP(?:\/\d(?:\.\d)?)?\s+429\b|Too Many Requests)/i.test(log)) {
     category = "environment"; code = "RATE_LIMIT"; retryable = true;
   } else if (Number.isInteger(exitCode) && exitCode !== 0 && /java\.net\.(?:SocketTimeoutException|ConnectException|UnknownHostException)|\b(?:ECONNRESET|ETIMEDOUT|EAI_AGAIN)\b/.test(log)) {
     category = "environment"; code = "TEMPORARY_NETWORK"; retryable = true;
   }
-  return { phase, category, reasonCode: code, retryable, exitCode,
-    fingerprint: digest([phase, category, code]) };
+  const download = log.match(/Could not (?:GET|download) ['"]?(https?:\/\/[^\s'"<>]+)/i);
+  let dependency;
+  if (download) { try { const url = new URL(download[1]); dependency = { host: url.hostname, artifact: url.pathname.split("/").pop() }; } catch {} }
+  return { phase, category, reasonCode: code, retryable, exitCode, ...(dependency ? { dependency } : {}),
+    fingerprint: digest([phase, category, code, ...(dependency ? [dependency.host, dependency.artifact] : [])]) };
 }
 
 function retryDecision(policy, record, mode, now = Date.now(), random = Math.random) {
@@ -205,7 +216,7 @@ function captureBaseline(contractFile, configFile, root, evidence, mode, expecte
     let result;
     try {
       const args = stage === "baseline-full"
-        ? ["-euc", 'source "$1"; automation_run_gradle_group fullUnitTestTasks "$2"', "baseline-capture", path.join(root, "scripts/automation/lib.sh"), root]
+        ? ["-euc", 'source "$1"; automation_run_baseline_unit_tests "$3" "$2"', "baseline-capture", path.join(root, "scripts/automation/lib.sh"), root, contractFile]
         : [path.join(root, "automation/verification/inventory.cjs"), "baseline", contractFile, configFile, root, evidence];
       result = cp.spawnSync(stage === "baseline-full" ? "bash" : process.execPath, args, { cwd: root, stdio: ["ignore", fd, fd] });
     } finally { fs.closeSync(fd); }
@@ -242,7 +253,7 @@ function captureBaseline(contractFile, configFile, root, evidence, mode, expecte
       atomic(path.join(evidence, "baseline-full.json"), { taskId: contract.id, startedAt: new Date(attempt.startedAt).toISOString(),
         finishedAt: new Date(attempt.finishedAt).toISOString(), head: binding.head, worktree: root,
         cwd: require("./project.cjs").gradleBuildRoot(config, root),
-        command: ["./gradlew", ...config.gradleVerification.fullUnitTestTasks, ...(process.env.AUTOMATION_WORKER_TOKEN ? ["--no-daemon"] : [])], unitTestsEnabled: true, exitCode: 0 }, true);
+        command: ["./gradlew", ...(contract.verification.scope ? require("./project.cjs").selectVerification(config, contract, root, [], true).tasks.fullUnitTestTasks : config.gradleVerification.fullUnitTestTasks), ...(process.env.AUTOMATION_WORKER_TOKEN ? ["--no-daemon"] : [])], unitTestsEnabled: true, exitCode: 0 }, true);
       const { matchesPath } = require("./contract.cjs");
       const protectedFiles = git(root, ["ls-files", "-z"]).split("\0").filter(file => file && config.protectedPaths.some(pattern => matchesPath(pattern, file)));
       fs.writeFileSync(path.join(evidence, "protected.sha256"), protectedFiles.map(file => `${fileHash(path.join(root, file))}  ${path.join(root, file)}\n`).join(""), { flag: "wx" });
@@ -411,12 +422,174 @@ function runStage(phase, contractFile, configFile, root, evidence) {
   } finally { fs.unlinkSync(lock); }
 }
 
-module.exports = { validateExecutionPolicy, validateRecoveryPolicy, validateStageRecoveryPolicy, stageRetryDecision, persistStageRecord, runStage, classifyFailure, retryDecision, captureBaseline, fileHash };
+function verificationBinding(root, contractFile, configFile, contract, evidence) {
+  const project = require("./project.cjs"), config = read(configFile);
+  const buildRoot = project.gradleBuildRoot(config, root);
+  const runtime = project.inspectBuildRuntime(buildRoot);
+  return { ...inputBinding(root, contractFile, configFile, contract, true),
+    diffSha256: helper(root, "automation_worktree_diff_sha", [root]),
+    runtimeSha256: digest(runtime), actualEnvironmentSha256: project.buildEnvironmentBinding(buildRoot, runtime),
+    evidence: Object.fromEntries(["baseline.json", "baseline-inventory.json", "red.json", "test-manifest.json", "test-preflight.json"]
+      .map(name => [name, fileHash(path.join(evidence, name))])) };
+}
+function impactCheckpoint(root, phase, previous, next) {
+  const bridge = process.env.OPENCODE_ANDROID_ORCHESTRATOR_QUEUE_CLI;
+  assert(bridge && path.isAbsolute(bridge), "Trusted queue checkpoint bridge is missing");
+  const result = cp.spawnSync(process.execPath, [bridge, "_stage-record", root, `verification-${phase}`, previous, next], {cwd:root,encoding:"utf8"});
+  assert(result.status === 0, result.stderr || "Cannot seal impact verification evidence");
+}
+function checkImpactFiles(evidence, record) {
+  checkArtifacts(evidence, {attempts:record.attempts,checkpoints:{}});
+  for (const attempt of record.attempts) {
+    assert(attempt.state !== "RUNNING", "Interrupted verification requires process ownership recovery");
+    assert(/^verification-attempt-[a-f0-9-]+\.log$/.test(attempt.log), "Invalid verification log path");
+    assert(fileHash(path.join(evidence, "stage-recovery", attempt.log)) === attempt.logSha256, "Verification log changed");
+  }
+  for (const checkpoint of Object.values(record.checkpoints))
+    for (const [name, sha] of Object.entries(checkpoint.files ?? {})) {
+      assert(/^stage-recovery\/verification-attempt-[a-f0-9-]+-(?:green-inventory|green-verification)\.json$/.test(name), "Invalid checkpoint path");
+      assert(fileHash(path.join(evidence, name)) === sha, "Verification checkpoint evidence changed");
+    }
+}
+function checkImpactVerification(phase, contractFile, configFile, root, evidence) {
+  const contract = read(contractFile), file = path.join(evidence, "stage-recovery", `verification-${phase}.json`);
+  const record = read(file), sha = fileHash(file);
+  impactCheckpoint(root, phase, sha, sha);
+  assert(record.state === "PASSED", "Impact verification has not passed");
+  assert(digest(record.binding) === digest(verificationBinding(root, contractFile, configFile, contract, evidence)), "Verified candidate or environment changed");
+  checkImpactFiles(evidence, record);
+  for (const [name, sha] of Object.entries(record.checkpoints.focused?.liveFiles ?? {}))
+    assert(fileHash(path.join(evidence, name)) === sha, "Current focused evidence changed");
+  return record;
+}
+function runImpactVerification(phase, contractFile, configFile, root, evidence, base, head) {
+  assert(["green", "review", "integration"].includes(phase), "Invalid verification phase");
+  const contract = read(contractFile), config = read(configFile), project = require("./project.cjs");
+  require("./contract.cjs").validateContract(contract, config);
+  assert(contract.verification.scope, "Impact scope approval is missing");
+  helper(root, "automation_require_queue_execution", [contract.id]);
+  const state = helper(root, "automation_read_state", [contract.id]);
+  assert((phase === "green" && ["CODING", "AWAITING_HUMAN"].includes(state)) ||
+    (phase === "review" && state === "REVIEWING") || (phase === "integration" && state === "INTEGRATING"), "Verification phase does not match task state");
+  let paths;
+  if (phase === "integration") {
+    assert(/^[a-f0-9]{40}$/.test(base ?? "") && /^[a-f0-9]{40}$/.test(head ?? ""), "Integration diff endpoints missing");
+    assert(git(root,["rev-parse","HEAD"]).trim() === head && git(root,["rev-parse",`${head}^`]).trim() === base, "Integration candidate changed");
+    paths = git(root,["diff","--name-only","--no-renames","-z",base,head,"--"]).split("\0").filter(Boolean);
+  } else paths = helper(root,"automation_changed_paths_at",[root]).split("\n").filter(Boolean);
+  const plan = project.selectVerification(config, contract, root, paths);
+  const binding = verificationBinding(root, contractFile, configFile, contract, evidence);
+  const directory = path.join(evidence,"stage-recovery"); fs.mkdirSync(directory,{recursive:true});
+  assert(fs.realpathSync(directory) === directory, "Verification evidence directory changed");
+  const file = path.join(directory,`verification-${phase}.json`);
+  let sealed = fs.existsSync(file) ? fileHash(file) : "";
+  if (sealed) impactCheckpoint(root,phase,sealed,sealed);
+  const lock = file + ".lock", fd = fs.openSync(lock,"wx",0o600); fs.closeSync(fd);
+  let record;
+  const save = () => { sealed = persistStageRecord(file,record,sealed,(previous,next)=>impactCheckpoint(root,phase,previous,next)); };
+  try {
+    record = sealed ? read(file) : {version:1,phase,taskId:contract.id,contractSha256:fileHash(contractFile),
+      state:"IDLE",startedAt:Date.now(),lastObservedAt:Date.now(),retriesUsed:0,sameFailureCount:0,
+      manualRetriesUsed:0,lastFailure:null,attempts:[],checkpoints:{}};
+    assert(record.contractSha256 === fileHash(contractFile) && record.phase === phase && record.taskId === contract.id, "Verification authorization changed");
+    checkImpactFiles(evidence,record);
+    if (["EXHAUSTED","ENVIRONMENT_BLOCKED"].includes(record.state)) {
+      const queue = read(path.join(evidence,"../../inbox/queue.json"));
+      const item = queue.items.find(item=>item.taskId===contract.id);
+      assert(queue.active?.id===process.env.AUTOMATION_QUEUE_RUN_ID && queue.active.kind===(phase==="integration"?"recover":"resume") && item?.request?.kind===queue.active.kind, "Environment recovery requires fresh resume-task approval");
+      assert(record.lastFailure?.category==="environment" && record.manualRetriesUsed < contract.verification.scope.maxManualRetries, "Candidate recovery budget exhausted or failure is not environmental");
+      assert(digest(record.binding)===digest(binding) && digest(record.plan)===digest(plan), "Recovery candidate, configuration or environment changed; approve a new contract");
+      record.manualRetriesUsed++; record.startedAt=Date.now();
+    } else {
+      assert(!["RUNNING","BLOCKED"].includes(record.state), "Interrupted or invalid verification cannot resume automatically");
+      record.checkpoints={};
+    }
+    record.binding=binding; record.plan=plan; record.state="IDLE"; record.queueRunId=process.env.AUTOMATION_QUEUE_RUN_ID;
+    atomic(path.join(evidence,"verification-plan.json"),plan); save();
+    process.stdout.write(`Impact verification: ${JSON.stringify(plan)}\n`);
+    const phases = ["focused","unit","assemble","lint","device","inventory-check"];
+    for (const part of phases) {
+      const group = {unit:"fullUnitTestTasks",assemble:"assembleTasks",lint:"lintTasks",device:"deviceTestTasks"}[part];
+      if (group && !plan.tasks[group].length) continue;
+      if (record.checkpoints[part]) {
+        for (const [name, sha] of Object.entries(record.checkpoints[part].liveFiles ?? {}))
+          assert(fileHash(path.join(evidence,name))===sha,"Recovery focused evidence changed");
+        process.stdout.write(`Reusing bound ${part} checkpoint for this candidate\n`); continue; }
+      for (;;) {
+        helper(root,"automation_require_queue_execution",[contract.id]);
+        assert(fileHash(file)===sealed,"Verification ledger changed");
+        checkImpactFiles(evidence,record);
+        assert(digest(binding)===digest(verificationBinding(root,contractFile,configFile,contract,evidence)),"Verification inputs or runtime changed");
+        const now=Date.now();assert(now>=record.lastObservedAt,"Clock moved backwards");record.lastObservedAt=now;
+        if(record.state==="WAITING"){
+          if(now>=record.startedAt+contract.stageRecovery.maxElapsedMs){
+            record.state="EXHAUSTED";record.nextRunAt=null;record.waitingReason=`${part}: recovery window exhausted before retry`;save();return 75;
+          }
+          record.retriesUsed++;record.nextRunAt=null;
+        }
+        const attempt={part,queueRunId:process.env.AUTOMATION_QUEUE_RUN_ID,startedAt:now,state:"RUNNING",log:`verification-attempt-${randomUUID()}.log`};
+        record.attempts.push(attempt);record.state="RUNNING";save();
+        const logPath=path.join(directory,attempt.log), output=fs.openSync(logPath,"wx",0o600);
+        const inventoryStatus=path.join(evidence,"inventory-status.json");
+        const inventoryBefore=fs.existsSync(inventoryStatus)?fileHash(inventoryStatus):null;
+        const args=["-euc",'source "$1"; shift; automation_run_impact_phase "$@"',"impact-verification",
+          path.join(root,"scripts/automation/lib.sh"),part,contractFile,root,JSON.stringify(group?plan.tasks[group]:[])];
+        let result;
+        try { result=cp.spawnSync("bash",args,{cwd:root,stdio:["ignore",output,output],env:{...process.env,AUTOMATION_STAGE_RECOVERY_PHASE:phase}}); }
+        finally {fs.closeSync(output);}
+        attempt.finishedAt=Date.now();attempt.exitCode=result.status;attempt.logSha256=fileHash(logPath);
+        attempt.state=result.status===0?"PASSED":"FAILED";
+        const log=fs.readFileSync(logPath,"utf8");process.stdout.write(log);
+        assert(digest(binding)===digest(verificationBinding(root,contractFile,configFile,contract,evidence)),"Verification changed inputs or runtime");
+        let inventoryFailure;
+        if(fs.existsSync(inventoryStatus) && fileHash(inventoryStatus)!==inventoryBefore){
+          const status=read(inventoryStatus);
+          if(status.attemptPath){
+            assert(/^inventory-attempts\/green-[0-9]+-[a-f0-9-]+$/.test(status.attemptPath),"Unexpected impact inventory attempt path");
+            attempt.files=artifactHashes(evidence,path.join(evidence,status.attemptPath));
+          }
+          if(!status.valid && status.queueRunId===process.env.AUTOMATION_QUEUE_RUN_ID)
+            inventoryFailure=status.failure??classifyFailure({phase,reasonCode:status.reasonCode,log,exitCode:result.status});
+        }
+        if(result.status===0){
+          const files={}, liveFiles={};
+          if(part==="focused") for(const name of ["green-inventory.json","green-verification.json"]){
+            const archived=`stage-recovery/${attempt.log.replace(/\.log$/,"")}-${name}`;
+            fs.copyFileSync(path.join(evidence,name),path.join(evidence,archived),fs.constants.COPYFILE_EXCL);
+            files[archived]=liveFiles[name]=fileHash(path.join(evidence,archived));
+          }
+          record.checkpoints[part]={attempt:record.attempts.length-1,files,liveFiles};record.state="IDLE";record.lastFailure=null;record.sameFailureCount=0;save();break;
+        }
+        let failure=inventoryFailure??classifyFailure({phase:part,log,exitCode:result.status});
+        if(result.signal||result.error||[40,41].includes(result.status))failure={...failure,category:"integrity",retryable:false};
+        record.sameFailureCount=record.lastFailure?.fingerprint===failure.fingerprint?record.sameFailureCount+1:1;
+        record.lastFailure=failure;attempt.failure=failure;
+        const decision=stageRetryDecision(contract.stageRecovery,record,Date.now());record.waitingReason=`${part}: ${failure.reasonCode}; ${decision.reason??"retrying"}`;
+        if(!decision.allowed){record.state=failure.category==="environment"?"EXHAUSTED":"FAILED";save();
+          return failure.category==="environment"?75:["unknown","configuration","integrity"].includes(failure.category)?76:1;}
+        record.state="WAITING";record.nextRunAt=decision.nextRunAt;save();
+        while(Date.now()<record.nextRunAt)Atomics.wait(new Int32Array(new SharedArrayBuffer(4)),0,0,Math.min(500,record.nextRunAt-Date.now()));
+      }
+    }
+    record.state="PASSED";record.lastFailure=null;record.waitingReason=null;save();
+    atomic(path.join(evidence,"verification-result.json"),{phase,state:record.state,plan,ledgerSha256:sealed,binding,attempts:record.attempts});
+    atomic(path.join(evidence,"full-test-verification.json"),{taskId:contract.id,runId:process.env.AUTOMATION_QUEUE_RUN_ID,
+      diffSha256:binding.diffSha256,fullTestsExecuted:false,affectedTestsExecuted:true,phase,tasks:plan.tasks.fullUnitTestTasks,ledgerSha256:sealed});
+    return 0;
+  } catch(error){
+    if(record && (!sealed || fileHash(file)===sealed)){record.state="BLOCKED";record.waitingReason=error.message;save();}
+    throw error;
+  } finally {fs.unlinkSync(lock);}
+}
+
+module.exports = { validateExecutionPolicy, validateRecoveryPolicy, validateStageRecoveryPolicy, stageRetryDecision, persistStageRecord, runStage, classifyFailure, retryDecision, captureBaseline, fileHash, runImpactVerification, checkImpactVerification };
 if (require.main === module) {
   const argv = process.argv.slice(2);
   const [contract, config, root, evidence, mode, expectedHash] = argv;
   try {
-    if (contract === "--stage") process.exitCode = runStage(...argv.slice(1));
+    if (contract === "--verify-impact") process.exitCode = runImpactVerification(...argv.slice(1));
+    else if (contract === "--check-impact") checkImpactVerification(...argv.slice(1));
+    else if (contract === "--stage") process.exitCode = runStage(...argv.slice(1));
     else {
       const result = captureBaseline(contract, config, root, evidence, mode, expectedHash || null);
       if (!result.ok) { console.error(JSON.stringify(result.record.attempts.at(-1).failure)); process.exitCode = 75; }

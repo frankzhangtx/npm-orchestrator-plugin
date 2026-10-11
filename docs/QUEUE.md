@@ -31,7 +31,7 @@ local commit SHA, authorization source and `pushed: false` (未推送).
 | Workspace policy | Commit policy | When the next independent task may start |
 | --- | --- | --- |
 | `inPlaceExclusive` (new-install default) | `humanApproval` (new-install default) | After acceptance, local integration and directory handoff, or approved abort |
-| `inPlaceExclusive` | `autoCommit` (configured default or explicitly sealed override) | After build, full tests, Review, local commit/integration and handoff |
+| `inPlaceExclusive` | `autoCommit` (configured default or explicitly sealed override) | After build, contract-scoped tests, Review, local commit/integration and handoff |
 | `isolatedWorktree` | `humanApproval` | After the worker and its children exit and its result is safely sealed |
 | `isolatedWorktree` | `autoCommit` | V8 must explicitly authorize isolated auto integration; after verified local handoff, or safe sealing and confirmed exit on a pre-commit failure |
 
@@ -48,6 +48,59 @@ Every mutating task script binds the workspace queue key and run ID to the
 active Worker. The script may share the Worker's process group or be a proven
 descendant in a separate OpenCode tool process group; an unrelated process is
 rejected even if it copies the visible run ID.
+
+## Affected verification and recovery
+
+New contracts generated from discovered capabilities use V7 with:
+
+```json
+"scope": { "version": 1, "mode": "affected", "variants": "debug", "maxManualRetries": 1 }
+```
+
+Place this under `verification`. V7 execution, baseline recovery and stage recovery
+policies remain required. A build with no Debug variants generates an explicit
+`all` policy instead. Existing approved contracts retain their prior requirements;
+refresh discovery and approve a new contract to adopt this policy.
+
+Narrow `allowedPaths` before drafting. Intake previews the baseline task selection
+and rejects unmapped source roots. Baseline tests cover this approved envelope;
+GREEN, independent Review and integration select tasks from actual changed paths,
+including deleted/renamed paths and transitive project consumers. The full capability
+matrix remains an allowlist. Test-only changes run the affected unit suites without
+application assembly. Explicit target tests and acceptance build/lint/device evidence
+remain mandatory. Debug does not cover Release-only sources: narrow the scope or
+approve `variants: "all"`. Device source changes require `deviceTestsRequired`.
+Custom source sets that cannot be mapped fail before builds; no full-build fallback
+silently changes the approved policy. Dependency propagation is conservative across
+configurations. Gradle can still compile dependencies of selected tasks.
+
+`verification-plan.json` records modules, source sets, selected variants, reasons
+and task paths. `verification-result.json` and `stage-recovery/verification-*.json`
+record the actual steps and immutable logs. The historical `full-test-verification.json`
+filename has `fullTestsExecuted: false, affectedTestsExecuted: true` for this policy.
+Status/review expose bounded summaries and exact digest-bound evidence reads.
+
+Focused inventory, affected unit tests, assembly, lint, device tests and final
+inventory validation are separate steps. Automatic environment retries repeat only
+the failed step within `stageRecovery` limits. A transport error such as a dependency
+GET failing with “Remote host terminated the handshake” is environmental; certificate,
+authentication, missing-artifact, compilation and assertion errors are not retried as
+network faults. Exhaustion preserves implementation-fix budgets and the candidate.
+
+Use the existing reviewed `resume-task` operation for an environment-blocked GREEN
+or Review candidate. It binds approval to the candidate, target and sealed recovery
+ledger, checks source/configuration/runtime/test evidence again, and consumes a
+`scope.maxManualRetries` allowance. Passed steps are reused only for the same
+candidate and environment; Review recovery still starts a fresh Reviewer decision.
+Source, target, configuration or evidence drift requires a revised task. For a
+committed `INTEGRATION_BLOCKED` candidate use existing `recover`; it retains the
+commit transaction and the same bounded step recovery. Automatic counters are not
+reset by manual recovery or Review corrections. Each new manual attempt gets its
+approved stage elapsed-time window and remains under Worker supervision.
+
+Pausing prevents ordinary reservations and automatic baseline retries. An already
+approved `abort` request may still reserve the slot to archive a retained candidate;
+workspace leases, active process ownership and public fault checks still apply.
 
 ## Service and scheduling
 
@@ -246,7 +299,7 @@ since planning require a revised contract and fresh approval. Planning files of
 other completed queue tasks are not treated as execution configuration changes.
 For an isolated waiting candidate whose local target advanced, request
 `revalidate`; it preserves the original evidence, rebases a nonconflicting
-uncommitted candidate in the same worktree, reruns build/full tests/Review and
+uncommitted candidate in the same worktree, reruns contract-scoped build/tests/Review and
 produces a new candidate ID. Conflicts or policy changes preserve the workspace
 and block progress. Old final acceptance cannot approve the new candidate.
 
@@ -504,7 +557,7 @@ authority from a default policy change. V8 also binds the workspace strategy at
 approval; restore it or approve a revised task after a repository policy change.
 The default example remains V4 and new-install defaults remain human approval.
 
-After fresh full tests, build and independent Review, the same repository slot
+After fresh contract-scoped tests, build and independent Review, the same repository slot
 verifies and fast-forwards the approved local target. The persisted five-stage
 commit transaction binds the candidate, parent, tree and original authorization.
 No remote operation or fabricated human-acceptance record is produced. Pause

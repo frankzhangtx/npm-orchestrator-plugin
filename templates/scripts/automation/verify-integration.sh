@@ -16,6 +16,10 @@ contract="$(automation_contract_path "$task_id")"
 
 "$SCRIPT_DIR/integration-scope-gate.sh" "$task_id" "$base" "$head"
 
+if jq -e '.verification.scope != null' "$contract" >/dev/null; then
+    exec node "$AUTOMATION_ROOT/automation/verification/recovery.cjs" --verify-impact integration "$contract" "$AUTOMATION_CONFIG" "$AUTOMATION_ROOT" "$(automation_evidence_path "$task_id")" "$base" "$head"
+fi
+
 automation_run_configured_unit_tests "$contract" "$AUTOMATION_ROOT" "integration "
 
 automation_info "running configured integration assemble tasks"

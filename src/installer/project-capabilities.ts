@@ -72,8 +72,8 @@ export function capabilityVerification(model: ProjectCapabilities, preferred?: s
   const full: string[] = [], focused: string[] = [], assemble: string[] = [], lint: string[] = [], device: string[] = [];
   for (const m of [...model.modules].sort((a,b) => Number(b.gradlePath === preferred) - Number(a.gradlePath === preferred) || a.gradlePath.localeCompare(b.gradlePath))) {
     const units = m.tasks.filter(t => t.kind === "unit");
-    // All discovered source sets are editable proposals. Verify every available
-    // unit-test variant; prefer Debug for focused feedback without dropping Release.
+    // Preserve all discovered tasks as the authorization allowlist. Impact-scoped
+    // contracts select a candidate-specific subset at verification time.
     const chosen = [...units].sort((a,b) => Number(b.variant?.endsWith("Debug") ?? false) - Number(a.variant?.endsWith("Debug") ?? false) || a.path.localeCompare(b.path));
     full.push(...chosen.map(t => t.path)); focused.push(...chosen.map(t => t.path));
     const builds = m.tasks.filter(t => t.kind === "assemble");
@@ -83,7 +83,7 @@ export function capabilityVerification(model: ProjectCapabilities, preferred?: s
     if (!selectedBuilds.length) fail(`no build capability for ${m.gradlePath}`);
     assemble.push(...selectedBuilds.map(t => t.path));
     const linters = m.tasks.filter(t => t.kind === "lint");
-    lint.push(...(linters.some(t => t.variant === null) ? linters.filter(t => t.variant === null) : linters).map(t => t.path));
+    lint.push(...linters.map(t => t.path));
     device.push(...m.tasks.filter(t => t.kind === "device").map(t => t.path));
   }
   if (!full.length) fail("no local unit-test capability");

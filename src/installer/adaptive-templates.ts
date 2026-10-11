@@ -1,6 +1,7 @@
 import { queuePolicy, type QueuePolicy } from "../config/queue-policy.js";
 import { detectionWithCapabilities, validateProjectCapabilities, validateConfigurationModel, capabilityVerification, buildProtectedPaths, type ProjectCapabilities } from "./project-capabilities.js";
 import { readFileSync } from "node:fs";
+import { createRequire } from "node:module";
 import {
   isAbsolute,
   relative,
@@ -138,7 +139,7 @@ export interface AdaptiveTargetTest {
 
 export interface AdaptiveTaskContractExample {
   readonly [key: string]: unknown;
-  schemaVersion: 4;
+  schemaVersion: 4 | 7;
   allowedPaths: readonly string[];
   forbiddenPaths: readonly string[];
   targetTests: readonly AdaptiveTargetTest[];
@@ -548,16 +549,33 @@ export function planAdaptiveProjectTemplates(
       "Gradle verification configuration has no focused test task.",
     );
   }
+  const scopeVariants = detection.capabilities?.modules.some(m => m.tasks.some(t => t.kind === "assemble" && t.variant?.endsWith("Debug"))) ? "debug" : "all";
+  const scopePaths = detection.capabilities ? (() => {
+    const { sourceMatchesVariant, concreteBuilds } = createRequire(import.meta.url)("../../templates/automation/verification/project.cjs");
+    const modules = detection.capabilities.modules.filter(m => moduleScope === "all" || m.gradlePath === primaryModule.gradlePath);
+    return unique(["production", "test"].flatMap(kind => modules.flatMap(m => m.sources
+      .filter(s => s.kind === kind && !s.name.startsWith("androidTest") && (m.type === "jvm-library" ||
+        concreteBuilds(m).some((t: {variant: string}) => (scopeVariants === "all" || t.variant.endsWith("Debug")) && sourceMatchesVariant(s, t.variant))))
+      .flatMap(s => s.paths))));
+  })() : undefined;
   const taskContractExample = {
     ...taskTemplate,
-    allowedPaths:
+    ...(detection.capabilities ? {
+      schemaVersion: 7,
+      recovery: { version: 1, scope: "baseline", maxEnvironmentRetries: 2, maxManualRetries: 1,
+        maxElapsedMs: 1800000, initialDelayMs: 2000, maxDelayMs: 30000, maxSameFailureRetries: 2 },
+      execution: { version: 1, maxRunMs: 7200000, maxStageMs: 3600000, terminationGraceMs: 10000 },
+      stageRecovery: { version: 1, maxEnvironmentRetries: 2, maxElapsedMs: 1800000,
+        initialDelayMs: 2000, maxDelayMs: 30000, maxSameFailureRetries: 2 },
+    } : {}),
+    allowedPaths: scopePaths ?? (
       moduleScope === "all"
         ? [...productionPaths, ...testPaths]
         : detection.capabilities ? unique([...modelPaths("production", primaryModule.gradlePath), ...modelPaths("test", primaryModule.gradlePath)]) : [
             sourcePattern(primaryModule.directory, "main"),
             sourcePattern(primaryModule.directory, "test"),
             sourcePattern(primaryModule.directory, "androidTest"),
-          ],
+          ]),
     forbiddenPaths: protectedPaths.map(taskForbiddenPath),
     targetTests: [
       {
@@ -567,6 +585,7 @@ export function planAdaptiveProjectTemplates(
     ],
     verification: {
       ...(taskTemplate.verification as Record<string, unknown>),
+      ...(detection.capabilities ? { scope: { version: 1, mode: "affected", variants: scopeVariants, maxManualRetries: 1 } } : {}),
       cases: [{
         ...((taskTemplate.verification as { cases: Record<string, unknown>[] }).cases[0] ?? {}),
         expectedFailure: {

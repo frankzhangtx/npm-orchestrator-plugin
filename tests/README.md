@@ -184,3 +184,14 @@ collection records transformed class directories after their producer finishes.
 Baseline, RED, GREEN and evidence verification run with real JUnit tests.
 The JVM inventory fixture separately covers NO-SOURCE baselines, empty/skip
 policies, parameterized cases and repeated uncached execution.
+
+## Affected verification
+
+`impact-verification.test.mjs` checks source/variant selection, transitive consumers,
+explicit acceptance tasks and strict TLS classification. `impact-queue.test.mjs`
+uses real Workers and managed scripts with deterministic Gradle/agent fixtures for
+scoped baseline/GREEN/Review/integration, subphase retries, manual candidate recovery,
+Review corrections, stale ledger rejection and paused abort maintenance.
+The real `project-capabilities-android.integration.mjs` fixture executes selected
+Staging tasks for a changed library and its consumer, including required dependency
+compilation without running the dependency's unrelated unit suite.

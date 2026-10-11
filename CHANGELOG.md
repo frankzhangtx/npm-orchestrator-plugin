@@ -1,5 +1,16 @@
 # Changelog
 
+## Unreleased
+
+- Select verification tasks from changed source sets and transitive consumers,
+  with approved V7/V8 affected scope and Debug defaults instead of replaying the
+  entire discovered task matrix. Preserve older sealed contract requirements.
+- Separate focused tests, affected unit suites, assembly, lint and device
+  checkpoints; retry transient dependency TLS interruptions only at the failed
+  step, retaining candidate-bound evidence and independent Review.
+- Resume sealed environment-blocked candidates through bounded existing recovery
+  operations; allow approved abort maintenance while the queue is paused.
+
 ## 1.2.2 - 2026-10-10
 
 - Bound interactive task status and operation-review responses to 16 KiB so

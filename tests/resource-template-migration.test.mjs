@@ -9,9 +9,9 @@ const templatesRoot = fileURLToPath(new URL("../templates/", import.meta.url));
 
 const expectedBaselineHashes = new Map([
   ["automation/verification/runtime.init.gradle", "3d3645fdc4197ba5f1c7d04f0d475cca8242a258759f01a24dfd6c0757b1e4f8"],
-  ["automation/verification/project.cjs", "40af2f66d5708c18add40b81bc4c80f8b7ff39421978ccd9c21ffe29534237ff"],
-  ["automation/verification/recovery.cjs", "7c1aaefa92e1a85267f926a08acd72d8b1f66a208198886b375641ea14be3ae0"],
-  ["automation/verification/contract.cjs", "e94c8f43b25e5f7487d9160092c5bdaf75d0dbb7a8ee77ac8a8f32d935634df4"],
+  ["automation/verification/project.cjs", "897d7e8950a1a7312d8bb764a3dc4235db3efeb05829f92ecb3e608d5d9c8464"],
+  ["automation/verification/recovery.cjs", "cba937833554fa524e3b7d063205cf5262cd85f646760e25484577d4466d5cb9"],
+  ["automation/verification/contract.cjs", "5166a9a52d8ee5b9ce8844b022602470faee2509fcd771bec404dcd74e0679c8"],
   ["automation/verification/inventory.cjs", "88e767c73589ef44a3f000ed4e672ba0fb44d29dac18de69baf1bb42daafbf51"],
   ["automation/verification/collect.init.gradle", "9c3d9095876c26f65537fdae4a6cf52d9226f28b9a4c61cb2b91ada65e70a743"],
   [
@@ -24,7 +24,7 @@ const expectedBaselineHashes = new Map([
   ],
   [
     "automation/task-contract.schema.json",
-    "75dc5eae16e8aae39d57ce5f364dca2dcb125cb6dd2b8feb2fb601e6e82b785f",
+    "1b87c280f17811992823a1799813b42a068edabed2428a3663f35b3b0c661730",
   ],
   [
     "automation/tasks/TASK-TEMPLATE.json.example",
@@ -38,7 +38,7 @@ const expectedBaselineHashes = new Map([
 
 const agentsFragmentPath = "AGENTS.md.fragment";
 const expectedAgentsFragmentHash =
-  "29b3ca2a591ca96be89915fed5da7af391c29e5a36e445fe861e0a8615585d5b";
+  "ca93e50446aa2a5173164563dbf4b39dc1dab750348dc665f99f16c825616505";
 
 function listFiles(directory) {
   return readdirSync(directory, { withFileTypes: true }).flatMap((entry) => {

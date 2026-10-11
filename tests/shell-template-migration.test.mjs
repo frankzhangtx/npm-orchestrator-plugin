@@ -55,11 +55,11 @@ const expectedHashes = new Map([
   ],
   [
     "scripts/automation/lib.sh",
-    "b7c443102d17e8c974cb8e99aadca178cecc5e1a344b439e53d56c2e188ca05a",
+    "94f11673ab8aa168c8d9f3c55233c31e2bf9771402c9513e9d595739bbf50bb9",
   ],
   [
     "scripts/automation/orchestrate-task.sh",
-    "e567886880b684db8389bb0d781407f79cd7d4ffa54b9d624d9fd4586d5124a4",
+    "bf3fdd7492a0b1842eb4f61f0971f5591ee1faf0cb93cb999fbab74d3c644dd3",
   ],
   [
     "scripts/automation/preflight.sh",
@@ -71,7 +71,7 @@ const expectedHashes = new Map([
   ],
   [
     "scripts/automation/quality-gate.sh",
-    "a708289a1fb6b1263bcdbb0d6b583f0a060e4de81f43a69c2348104d5896415e",
+    "ea6f626cb73869d0958e7ab4545970ac2f227c8976bfcd5996074a6a56145662",
   ],
   [
     "scripts/automation/queue-task.sh",
@@ -115,7 +115,7 @@ const expectedHashes = new Map([
   ],
   [
     "scripts/automation/submit-review.sh",
-    "532d924706ec4f1ea23619114a0709c67980b1405aabf6299639920e6d54b8d7",
+    "de8ef1d61973c62b8f23877c4004d647a772ce294cce7724284d0e1c811949e4",
   ],
   [
     "scripts/automation/tests/run-tests.sh",
@@ -131,11 +131,11 @@ const expectedHashes = new Map([
   ],
   [
     "scripts/automation/verify-integration.sh",
-    "828563390c3427191b4b5cb7d54b907fb340660467f495bda6f7d8ee5aea2203",
+    "bac5b302d84fae2167c82558fce3dffefd887a682b803d3bb4d6cebbd9bd6e92",
   ],
   [
     "scripts/automation/verify-task.sh",
-    "71e558223878b3930892dcd175faf0234d0cb33e251bcc083ee1a132b1c8690e",
+    "bcc2b56ea9971466bc14d4c6c095cbbbd138a5f2c7006d27ef21dae73d70ed8a",
   ],
 ]);
 

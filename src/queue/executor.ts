@@ -274,6 +274,9 @@ export class QueueExecutor {
     this.assertOwner();
     invariant(this.item().request?.kind !== "abort", "Approved abort requested; stop before automatic local commit");
     const item = this.item();
+    if (recovery && item.request?.verificationRecovery) invariant(
+      JSON.stringify(this.queue.verificationRecovery(item)) === JSON.stringify(item.request.verificationRecovery),
+      "Integration recovery candidate, target or ledger changed after request");
     if (recovery) recoverLock(join(this.queue.storage.runtime, "locks/git.lock"));
     const workspace = this.workspace();
     this.lease(item, item.sourceRoot);
@@ -312,7 +315,12 @@ export class QueueExecutor {
       await script(workspace.taskRoot, "scope-gate.sh", [item.taskId], this.run.id);
       // Require the forced full-test evidence from both Coder and Reviewer.
       const verification = readJson<{fullTestsExecuted: boolean; diffSha256: string}>(join(this.evidence, "full-test-verification.json"));
-      invariant(verification.fullTestsExecuted && verification.diffSha256 === diff, "Full unit-test execution evidence is absent or stale");
+      if ((item.contract.verification as {scope?: unknown} | undefined)?.scope) {
+        const result = spawnSync(process.execPath, [join(workspace.taskRoot, "automation/verification/recovery.cjs"), "--check-impact", "review",
+          join(workspace.taskRoot, "automation/tasks", `${item.taskId}.json`), join(workspace.taskRoot, "automation/config.json"), workspace.taskRoot, this.evidence],
+          {cwd: workspace.taskRoot, encoding: "utf8", env: workerEnvironment(this.run.id)});
+        invariant(result.status === 0, result.stderr || "Affected review evidence is absent or stale");
+      } else invariant(verification.fullTestsExecuted && verification.diffSha256 === diff, "Full unit-test execution evidence is absent or stale");
       const paths = helper(workspace.taskRoot, "automation_changed_paths_at", [workspace.taskRoot], this.run.id).split("\n").filter(Boolean);
       invariant(paths.length >= 3, "Combined commit needs product changes and both planning artifacts");
       const index = join(this.evidence, `commit-index-${randomUUID()}`);
@@ -471,6 +479,22 @@ export class QueueExecutor {
     await script(item.sourceRoot, "orchestrate-task.sh", [item.taskId], this.run.id);
     atomicJson(revalidationPath, { previous: workspace, target, state: "REVIEWED", completedAt: now() });
   }
+  private async resumeVerification(): Promise<void> {
+    const item = this.item(), approved = item.request?.verificationRecovery;
+    invariant(approved, "Explicit candidate recovery approval is missing");
+    const current = this.queue.verificationRecovery(item);
+    invariant(JSON.stringify(current) === JSON.stringify(approved), "Recovery candidate, target or ledger changed after approval");
+    const workspace = this.workspace();
+    invariant(git(workspace.taskRoot, ["rev-parse", "HEAD"]) === workspace.baselineHead && approved.targetHead === workspace.baselineHead,
+      "Recovery baseline changed; approve a revised task");
+    invariant(helper(workspace.taskRoot, "automation_worktree_diff_sha", [workspace.taskRoot], this.run.id) === item.sealedDiff,
+      "Recovery candidate changed after sealing");
+    this.lease(item, item.sourceRoot);
+    this.setState(approved.phase === "green" ? "CODING" : "REVIEWING", "Resuming the sealed candidate after approved environment recovery");
+    if (approved.phase === "green") await script(workspace.taskRoot, "quality-gate.sh", [item.taskId], this.run.id);
+    await script(item.sourceRoot, "orchestrate-task.sh", [item.taskId], this.run.id);
+    if (this.state() === "READY_TO_COMMIT" && this.item().request?.kind !== "abort") await this.integrate();
+  }
   async execute(): Promise<void> {
     let error: string | null = null;
     try {
@@ -497,6 +521,10 @@ export class QueueExecutor {
         case "resume":
         case "resume-review":
         case "abort": {
+          if (this.run.kind === "resume" && item.request?.verificationRecovery) {
+            await this.resumeVerification();
+            break;
+          }
           if (this.run.kind === "resume" && Number(item.contract.schemaVersion) >= 5) {
             await this.captureBaseline();
             await script(item.sourceRoot, "orchestrate-task.sh", [item.taskId], this.run.id);
@@ -526,7 +554,7 @@ export class QueueExecutor {
         }
       } catch { /* A damaged status sidecar must not mask this execution's failure or interrupt cleanup. */ }
       if (Number(this.item().contract.schemaVersion) >= 7) {
-        for (const phase of ["red", "green", "review"]) {
+        for (const phase of ["red", "green", "review", "verification-green", "verification-review", "verification-integration"]) {
           try {
             const file = join(this.evidence, "stage-recovery", `${phase}.json`);
             if (!existsSync(file)) continue;

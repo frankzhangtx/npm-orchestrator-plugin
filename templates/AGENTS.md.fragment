@@ -33,7 +33,7 @@ and returns; the detached repository service runs one executor at a time.
 Task drafts inherit workspace and commit policies from automation/config.json
 unless their reviewed contract explicitly overrides them. New installations use
 inPlaceExclusive and humanApproval. autoCommit is supported only in fixed
-workspaces and preserves build, fresh full unit-test execution and independent
+workspaces and preserves build, fresh contract-scoped unit-test execution and independent
 Review. Final acceptance, retries and integration share the same queue. No
 policy authorizes remote push.
 <!-- opencode-android-orchestrator:end -->

@@ -33,7 +33,7 @@ max_attempts=$((max_fix_loops + 1))
 attempt_log="$evidence_dir/gate-cycle-$coding_cycle-attempt-$attempt.log"
 started_at="$(automation_now)"
 set +e
-if [[ "$(jq -r '.schemaVersion' "$contract")" -ge "7" ]]; then
+if [[ "$(jq -r '.schemaVersion' "$contract")" -ge "7" ]] && ! jq -e '.verification.scope != null' "$contract" >/dev/null; then
     node "$AUTOMATION_ROOT/automation/verification/recovery.cjs" --stage green "$contract" "$AUTOMATION_CONFIG" "$AUTOMATION_ROOT" "$evidence_dir" 2>&1 | tee "$attempt_log"
 else
     "$SCRIPT_DIR/verify-task.sh" "$task_id" 2>&1 | tee "$attempt_log"
@@ -42,7 +42,7 @@ gate_status=${PIPESTATUS[0]}
 set -e
 
 if [[ "$(jq -r '.schemaVersion' "$contract")" -ge "7" && ( "$gate_status" -eq 75 || "$gate_status" -eq 76 ) ]]; then
-    automation_transition_state "$task_id" "CODING" "BLOCKED" "quality-gate" "verification stopped; inspect stage-recovery/green.json; implementation budget retained"
+    automation_transition_state "$task_id" "CODING" "BLOCKED" "quality-gate" "verification stopped; inspect stage-recovery evidence and verification-plan.json; implementation budget retained"
     exit "$gate_status"
 fi
 

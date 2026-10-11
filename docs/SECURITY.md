@@ -42,7 +42,7 @@ Proposal and contract approval always require fresh OpenCode `question`
 selections. The configured `humanApproval` policy additionally requires final
 candidate acceptance. Configured or explicitly selected `autoCommit`
 authorization is sealed during contract approval and replaces only the final
-human question; build, actual full unit tests and independent Review remain
+human question; build, actual contract-scoped unit tests and independent Review remain
 mandatory. Isolated automatic integration additionally requires new V8 authority
 bound to its approved workspace strategy. Planning refresh preserves the original
 approval and is limited to unchanged declared inputs across recorded completed

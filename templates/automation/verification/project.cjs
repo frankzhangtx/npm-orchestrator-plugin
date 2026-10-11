@@ -163,6 +163,112 @@ function validateConfigurationModel(config, root) {
 }
 exports.validateConfigurationModel = validateConfigurationModel;
 
+// The capability matrix is an allowlist, not a command to build every variant.
+// A sealed scope policy selects commands from it for this candidate only.
+function validateVerificationScope(scope) {
+    keys(scope, ["version", "mode", "variants", "maxManualRetries"]);
+    if (scope.version !== 1 || scope.mode !== "affected" || !["debug", "all"].includes(scope.variants) ||
+        !Number.isInteger(scope.maxManualRetries) || scope.maxManualRetries < 0 || scope.maxManualRetries > 3)
+        fail("invalid verification scope policy");
+}
+function concreteBuilds(module) {
+    const builds = module.tasks.filter(t => t.kind === "assemble");
+    if (module.type === "jvm-library") return builds.filter(t => t.variant === null);
+    return builds.filter(t => t.variant !== null && (module.tasks.some(unit => unit.kind === "unit" && unit.variant === t.variant) || !builds.some(other => other !== t && other.variant &&
+        other.variant !== t.variant && (other.variant.startsWith(t.variant) || other.variant.endsWith(t.variant)))));
+}
+function sourceMatchesVariant(source, variant) {
+    if (source.name === "testFixtures") return true;
+    let name = source.name.replace(/^(?:androidTest|test)(?=[A-Z]|$)/, "");
+    if (["", "main", "testFixtures"].includes(name)) return true;
+    const words = value => (value.match(/[A-Z]?[a-z0-9]+|[A-Z]+(?![a-z])/g) ?? []).map(w => w.toLowerCase());
+    const wanted = words(name), actual = words(variant);
+    return wanted.length > 0 && actual.some((_, i) => wanted.every((word, j) => actual[i + j] === word));
+}
+function selectVerification(config, contract, root, changedPaths, baseline = false) {
+    const scope = contract.verification?.scope;
+    validateVerificationScope(scope);
+    validateConfigurationModel(config, root);
+    if (!config.androidProject?.capabilities) fail("impact verification requires refreshed Gradle capability discovery");
+    const model = config.androidProject.capabilities;
+    const { matchesPath } = require("./contract.cjs");
+    const selected = new Map(), production = new Set(), consumers = new Set(), reasons = [];
+    const add = (id, source) => {
+        if (!selected.has(id)) selected.set(id, new Set());
+        if (source) selected.get(id).add(source);
+    };
+    const paths = [...new Set(baseline ? contract.allowedPaths : changedPaths)].sort();
+    for (const file of paths) {
+        if (file === contract.planPath || file === `automation/tasks/${contract.id}.json`) continue;
+        if (!baseline && !contract.allowedPaths.some(pattern => matchesPath(pattern, file))) fail(`changed path outside approved scope: ${file}`);
+        const matches = model.modules.flatMap(m => m.sources.filter(s => s.paths.some(pattern =>
+            baseline ? overlap(pattern, file) || matchesPath(file, base(pattern)) : matchesPath(pattern, file))).map(s => ({ m, s })));
+        if (!matches.length) fail(`cannot map changed or approved path to a source set: ${file}`);
+        for (const { m, s } of matches) {
+            if (s.name.startsWith("androidTest") && !contract.deviceTestsRequired) fail(`device source changes require approved device tests: ${file}`);
+            add(m.gradlePath, s.name);
+            if (s.kind === "production" || s.name === "testFixtures") production.add(m.gradlePath);
+            reasons.push({ path: file, module: m.gradlePath, sourceSet: s.name, kind: s.kind });
+        }
+    }
+    // Library/API/resource changes affect consumers, including transitive ones.
+    for (let changed = true; changed;) {
+        changed = false;
+        for (const m of model.modules) if (m.dependencies.some(dep => production.has(dep))) {
+            if (!production.has(m.gradlePath)) { production.add(m.gradlePath); changed = true; }
+            if (!consumers.has(m.gradlePath)) reasons.push({ module: m.gradlePath, reason: "depends on changed production", dependencies: m.dependencies.filter(dep => production.has(dep)) });
+            consumers.add(m.gradlePath); add(m.gradlePath, null);
+        }
+    }
+    const tasks = { fullUnitTestTasks: [], assembleTasks: [], lintTasks: [], deviceTestTasks: [] };
+    const selectedVariants = {};
+    for (const m of model.modules.filter(m => selected.has(m.gradlePath))) {
+        const builds = concreteBuilds(m);
+        if (!builds.length) fail(`no concrete build tasks for impacted module: ${m.gradlePath}`);
+        let variants = builds.map(t => t.variant);
+        if (m.type !== "jvm-library") {
+            const all = variants;
+            if (scope.variants === "debug") variants = variants.filter(v => v && /Debug$/.test(v));
+            const sources = [...selected.get(m.gradlePath)].map(name => m.sources.find(s => s.name === name));
+            if (sources.length) {
+                for (const source of sources) if (!variants.some(v => sourceMatchesVariant(source, v)))
+                    fail(`source set ${m.gradlePath}:${source.name} is not covered by ${scope.variants}; approve an all-variant scope or narrow allowed paths`);
+                if (!consumers.has(m.gradlePath)) variants = variants.filter(v => sources.some(s => sourceMatchesVariant(s, v)));
+            }
+            if (!variants.length) fail(`no ${scope.variants} variants for impacted module ${m.gradlePath}; discovered ${all.join(", ")}`);
+        }
+        selectedVariants[m.gradlePath] = variants;
+        tasks.fullUnitTestTasks.push(...m.tasks.filter(t => t.kind === "unit" && (m.type === "jvm-library" || variants.includes(t.variant))).map(t => t.path));
+        if (production.has(m.gradlePath)) tasks.assembleTasks.push(...builds.filter(t => variants.includes(t.variant)).map(t => t.path));
+        if (config.lintEnabled && m.type !== "jvm-library") {
+            const lint = m.tasks.filter(t => t.kind === "lint" && variants.includes(t.variant));
+            if (lint.length !== variants.length) fail(`missing variant-specific lint capability: ${m.gradlePath}`);
+            tasks.lintTasks.push(...lint.map(t => t.path));
+        }
+        if (contract.deviceTestsRequired && m.type !== "jvm-library") {
+            const devices = m.tasks.filter(t => t.kind === "device" && variants.includes(t.variant));
+            if (devices.length !== variants.length) fail(`missing variant-specific device capability: ${m.gradlePath}`);
+            tasks.deviceTestTasks.push(...devices.map(t => t.path));
+        }
+    }
+    // Declared behavioral tests and explicit acceptance evidence remain mandatory.
+    tasks.fullUnitTestTasks.push(...contract.targetTests.map(t => t.gradleTask));
+    const groups = { build: "assembleTasks", lint: "lintTasks", device: "deviceTestTasks" };
+    for (const evidence of contract.verification.criteriaEvidence ?? []) if (groups[evidence.kind])
+        tasks[groups[evidence.kind]].push(...evidence.references);
+    for (const [group, values] of Object.entries(tasks)) {
+        tasks[group] = [...new Set(values)].sort();
+        if (tasks[group].some(t => !config.gradleVerification[group].includes(t))) fail(`selected task outside configured capabilities: ${group}`);
+    }
+    if (!tasks.fullUnitTestTasks.length) fail("no unit tests cover this candidate");
+    return { version: 1, mode: "affected", variants: scope.variants, baseline, changedPaths: paths,
+        affectedModules: [...selected.keys()].sort(), selectedVariants, reasons, tasks };
+}
+exports.validateVerificationScope = validateVerificationScope;
+exports.selectVerification = selectVerification;
+exports.concreteBuilds = concreteBuilds;
+exports.sourceMatchesVariant = sourceMatchesVariant;
+
 // Shared actual-runtime diagnostics. PATH java is only a launcher candidate;
 // it is never substituted for the wrapper's build JVM attestation.
 function parseBuildRuntime(output) {
@@ -225,6 +331,10 @@ if (require.main === module) {
         const config = JSON.parse(require("node:fs").readFileSync(process.argv[2], "utf8"));
         const root = gradleBuildRoot(config, process.argv[3]);
         if (process.argv[4] === "--build-root") console.log(root);
+        if (process.argv[4] === "--select-baseline") {
+            const contract = JSON.parse(require("node:fs").readFileSync(process.argv[5], "utf8"));
+            console.log(JSON.stringify(selectVerification(config, contract, process.argv[3], [], true)));
+        }
     }
     catch (error) { console.error(error.message); process.exitCode = 1; }
 }

@@ -237,7 +237,7 @@ are not silently approved or imported.
 
 Schema V6 preserves the selected workspace strategy and defaults missing commit
 policy to `humanApproval`. Old contract approvals never acquire `autoCommit`
-from a changed global default. Queue execution requires full unit tests enabled;
+from a changed global default. Queue execution requires unit tests enabled;
 a migrated `unitTestsEnabled: false` remains preserved but blocks queue
 consumption until the operator enables and commits the setting.
 

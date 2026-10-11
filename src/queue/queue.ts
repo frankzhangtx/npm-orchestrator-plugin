@@ -62,7 +62,7 @@ export interface QueueItem extends Draft {
   waitingReason: string | null;
   runId: string | null;
   taskRoot: string | null;
-  request: { kind: JobKind; approval: string | null; candidate: string | null; proof?: ApprovalProof } | null;
+  request: { kind: JobKind; approval: string | null; candidate: string | null; proof?: ApprovalProof; verificationRecovery?: { phase: string; ledgerSha256: string; targetHead: string; candidateId: string } } | null;
   sealedDiff: string | null;
   sealedRunId: string | null;
   candidateId: string | null;
@@ -411,9 +411,15 @@ export class TaskQueue {
     invariant((allowEmpty || path.length > 0) && !path.includes("\0") && !path.startsWith("/") && Buffer.byteLength(path, "utf8") <= 4096, "Snapshot path is invalid or too long");
     invariant(!path.split(/[\\/]/).some(part => part === ".." || part === ".git"), "Snapshot path is not allowed");
   }
+  verificationPreview(contract: Record<string, unknown>): unknown {
+    if (!(contract.verification as {scope?: unknown} | undefined)?.scope) return null;
+    const project = createRequire(import.meta.url)("../../templates/automation/verification/project.cjs");
+    return project.selectVerification(this.config(), contract, this.storage.root, [], true);
+  }
   draft(input: DraftInput, proposalApproval?: ApprovalProof): Draft {
     const config = this.config();
     validateContract(input.contract, config);
+    this.verificationPreview(input.contract);
     invariant(input.plan.trim().length >= 20 && Buffer.byteLength(input.plan) <= 1024 * 1024, "A complete plan of at most 1 MiB is required");
     invariant(/^[a-f0-9]{40,64}$/.test(input.planningHead), "A fixed planning commit is required");
     git(this.storage.root, ["check-ref-format", `refs/heads/${input.targetBranch}`]);
@@ -451,8 +457,9 @@ export class TaskQueue {
     });
   }
   approvalText(draft: Draft): string {
+    const verification = (draft.contract.verification as {scope?: unknown} | undefined)?.scope ? "影响范围内的编译、单测" : "构建、全量单测";
     const text = draft.commitPolicy === "autoCommit"
-      ? `批准入队 ${draft.key}：通过构建、全量单测和独立 Review 后自动本地提交并集成，不推送远程。`
+      ? `批准入队 ${draft.key}：通过${verification}和独立 Review 后自动本地提交并集成，不推送远程。`
       : `批准入队 ${draft.key}：执行后等待人工确认提交，不推送远程。`;
     const policy = continuityPolicy(draft.contract);
     return policy ? text + (policy.isolatedAutoIntegration ? "隔离工作区自动集成已授权。" : "") +
@@ -541,7 +548,7 @@ export class TaskQueue {
     const item = this.item(key);
     const evidence: Record<string, unknown> = {};
     for (const name of ["acceptance-report", "review", "full-test-verification", "commit-transaction", "integration", "planning-baseline",
-      "baseline-inventory", "baseline-recovery", "test-preflight", "test-manifest", "test-supplement", "green-inventory", "inventory-status"]) {
+      "baseline-inventory", "baseline-recovery", "test-preflight", "test-manifest", "test-supplement", "green-inventory", "inventory-status", "verification-plan", "verification-result"]) {
       const path = join(this.storage.runtime, "evidence", item.taskId, `${name}.json`);
       if (existsSync(path)) evidence[name] = readJson<unknown>(path);
     }
@@ -549,7 +556,7 @@ export class TaskQueue {
     const run = document.active?.key === item.key ? document.active : [...document.runs].reverse().find(candidate => candidate.key === item.key);
     if (run?.supervision) evidence.workerSupervision = supervisionEvidence(run.supervision);
     const stages: Record<string, unknown> = {};
-    for (const phase of ["red", "green", "review"]) {
+    for (const phase of ["red", "green", "review", "verification-green", "verification-review", "verification-integration"]) {
       const file = join(this.storage.runtime, "evidence", item.taskId, "stage-recovery", `${phase}.json`);
       if (existsSync(file)) stages[phase] = readJson<unknown>(file);
     }
@@ -585,6 +592,26 @@ export class TaskQueue {
       return document;
     });
   }
+  verificationRecovery(item: QueueItem): NonNullable<QueueItem["request"]>["verificationRecovery"] {
+    if (!(item.contract.verification as {scope?: unknown} | undefined)?.scope ||
+      !existsSync(join(this.storage.runtime, "evidence", item.taskId, "red.json"))) return undefined;
+    invariant(["BLOCKED", "INTEGRATION_BLOCKED"].includes(item.state) && item.candidateId && item.sealedDiff, "Candidate is not an environment-blocked sealed task");
+    for (const phase of item.state === "INTEGRATION_BLOCKED" ? ["integration"] : ["review", "green"]) {
+      const file = join(this.storage.runtime, "evidence", item.taskId, "stage-recovery", `verification-${phase}.json`);
+      if (!existsSync(file)) continue;
+      const bytes = readFileSync(file), record = JSON.parse(bytes.toString());
+      if (!["EXHAUSTED", "ENVIRONMENT_BLOCKED"].includes(record.state)) continue;
+      invariant(sha256(bytes) === item.stageRecovery?.[`verification-${phase}`]?.sha256, "Recovery ledger changed");
+      invariant(record.lastFailure?.category === "environment" && record.manualRetriesUsed <
+        (item.contract.verification as {scope: {maxManualRetries: number}}).scope.maxManualRetries, "Candidate recovery is not authorized or its budget is exhausted");
+      return {phase, ledgerSha256: sha256(bytes), targetHead: git(item.sourceRoot, ["rev-parse", `refs/heads/${item.targetBranch}`]), candidateId: item.candidateId};
+    }
+    throw new Error("No recoverable environmental verification failure; preserve evidence and approve a revised task");
+  }
+  operationBinding(item: QueueItem, operation: string): string {
+    const recovery = operation === "resume-task" ? this.verificationRecovery(item) : undefined;
+    return `${item.key}:${item.digest}:${item.candidateId}:${operation}${recovery ? `:${sha256(JSON.stringify(recovery))}` : ""}`;
+  }
   request(key: string, kind: Exclude<JobKind, "execute">, approval?: string, candidate?: string, proof?: ApprovalProof): void {
     invariant(kind !== "retry-baseline", "Automatic baseline recovery is reserved for the approved scheduler policy");
     const config = this.config();
@@ -602,7 +629,9 @@ export class TaskQueue {
         invariant(approval === phrase, `Explicit ${kind} approval is required`);
       }
       if (kind === "revalidate") invariant(item.workspaceStrategy === "isolatedWorktree" && item.state === "AWAITING_HUMAN", "Only a sealed isolated candidate can be revalidated");
-      item.request = { kind, approval: approval ?? null, candidate: candidate ?? null, ...(proof ? { proof } : {}) };
+      const verificationRecovery = kind === "resume" || (kind === "recover" && item.stageRecovery?.["verification-integration"]) ? this.verificationRecovery(item) : undefined;
+      invariant(kind !== "resume" || verificationRecovery?.phase !== "integration", "Committed candidates use recover, not resume-task");
+      item.request = { ...(verificationRecovery ? {verificationRecovery} : {}), kind, approval: approval ?? null, candidate: candidate ?? null, ...(proof ? { proof } : {}) };
       this.notify(document, item, `${kind} requested; waiting for the repository execution slot`);
     });
   }
@@ -618,8 +647,8 @@ export class TaskQueue {
     }
     return this.storage.transaction(document => {
       if (existsSync(join(this.storage.runtime, "locks/lifecycle.lock"))) return null;
-      if (document.active || document.paused || document.fault) return null;
-      if (!config.unitTestsEnabled) { document.fault = "Queued execution requires full unit tests; enable unitTestsEnabled"; return null; }
+      if (document.active || document.fault) return null;
+
       const occupied = document.items.filter(item => item.taskRoot && !TERMINAL.has(item.state));
       if (occupied.some(item => item.workspaceStrategy !== config.workspaceStrategy)) {
         document.fault = "Workspace strategy changed while tasks retain a workspace; restore the recorded strategy";
@@ -631,11 +660,12 @@ export class TaskQueue {
         document.fault = "Repository workspace lease is incomplete; recover its ownership before scheduling";
         return null;
       }
-      const requests = document.items.filter(item => item.request).sort((a, b) => a.sequence - b.sequence);
-      const retries = document.items.filter(item => !item.request && item.state === "BLOCKED" && Number(item.contract.schemaVersion) >= 5 && item.baselineRecovery?.nextRunAt != null)
+      const requests = document.items.filter(item => item.request && (!document.paused || item.request.kind === "abort")).sort((a, b) => a.sequence - b.sequence);
+      const retries = document.items.filter(item => !document.paused && !item.request && item.state === "BLOCKED" && Number(item.contract.schemaVersion) >= 5 && item.baselineRecovery?.nextRunAt != null)
         .sort((a, b) => a.sequence - b.sequence);
-      const pending = document.items.filter(item => item.state === "QUEUED").sort((a, b) => b.queuePriority - a.queuePriority || a.sequence - b.sequence);
+      const pending = document.items.filter(item => !document.paused && item.state === "QUEUED").sort((a, b) => b.queuePriority - a.queuePriority || a.sequence - b.sequence);
       for (const item of [...requests, ...retries, ...pending]) {
+        if (item.request?.kind !== "abort" && !config.unitTestsEnabled) { document.fault = "Queued execution requires unit tests; enable unitTestsEnabled"; return null; }
         item.waitingReason = null;
         const retry = !item.request && item.state === "BLOCKED" ? item.baselineRecovery : null;
         if (retry) {

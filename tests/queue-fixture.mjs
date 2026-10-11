@@ -47,7 +47,7 @@ console.log(${JSON.stringify(runtimeOutput.trim())});
 if(args[0]==='help') process.exit(0);
 for (const fault of ${JSON.stringify(stageFaults)}) {
   if (fault.phase !== process.env.AUTOMATION_STAGE_RECOVERY_PHASE) continue;
-  const part=inventoryArg?'inventory':args.includes('testDebugUnitTest')?'full':'assemble';
+  const part=inventoryArg?'inventory':args.some(arg=>arg==='testDebugUnitTest'||arg===':app:testDebugUnitTest')?'full':'assemble';
   if (fault.part && fault.part!==part) continue;
   if (fault.calls) {
     const callFile=${JSON.stringify(join(base, "stage-calls-"))}+fault.phase+'-'+part;
@@ -66,7 +66,7 @@ const workerHang=${JSON.stringify(workerHang)};
 const hangMarker=${JSON.stringify(join(base, "hanging-processes.json"))};
 const integrationHang=workerHang==='integration';
 const integrationReady=!integrationHang || (fs.existsSync('.git/automation-runtime/evidence/TASK-COMMIT/commit-transaction.json') && !fs.existsSync(hangMarker));
-if(workerHang && integrationReady && process.env.AUTOMATION_WORKER_TOKEN && !inventoryArg && args.includes('testDebugUnitTest') && !args.includes('--tests')) {
+if(workerHang && integrationReady && process.env.AUTOMATION_WORKER_TOKEN && !inventoryArg && args.some(arg=>arg==='testDebugUnitTest'||arg===':app:testDebugUnitTest') && !args.includes('--tests')) {
   const cp=require('node:child_process');
   const hold="process.on('SIGTERM',()=>{});setInterval(()=>{},1000);";
   const child=cp.spawn(process.execPath,['-e',hold],{detached:true,stdio:'ignore'});child.unref();
@@ -82,7 +82,7 @@ function injectBaselineFault(stage) {
   fs.writeFileSync(counter,String(count+1));
   console.error(baselineFault.message); process.exit(1);
 }
-if(!inventoryArg && args.includes('testDebugUnitTest') && !args.includes('--tests')) injectBaselineFault('full');
+if(!inventoryArg && args.some(arg=>arg==='testDebugUnitTest'||arg===':app:testDebugUnitTest') && !args.includes('--tests')) injectBaselineFault('full');
 if (inventoryArg) {
   const request=JSON.parse(fs.readFileSync(inventoryArg.slice('-Dorchestrator.inventoryRequest='.length)));
   const id=request.targets[0].filter;
@@ -124,7 +124,7 @@ if (filterIndex >= 0) {
   }
   if (!fs.existsSync('app/src/main/java/'+id+'.kt')) { console.log('expected missing behavior'); process.exit(1); }
 }
-if (args.includes('testDebugUnitTest')) {
+if (args.some(arg=>arg==='testDebugUnitTest'||arg===':app:testDebugUnitTest')) {
   console.log('ORCHESTRATOR_TEST_EXPECTED|:app:testDebugUnitTest');
   console.log('ORCHESTRATOR_TEST_RESULT|:app:testDebugUnitTest|2|0|0');
 }

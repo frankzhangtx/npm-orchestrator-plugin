@@ -265,7 +265,7 @@ session or a missing notification is not evidence that a task never started.
 | Dead transaction owner | Inspect the lock record and use explicit `queue recover-lock .`; a live PID or surviving child process blocks takeover. |
 | OpenCode process failure | Inspect the task's agent log and repair the diagnosed cause. Use the applicable approved recovery or abort route. An agent exit alone does not set a shared fault; fixed mode still retains its workspace, while sealed isolated failures allow independent tasks to continue. |
 | Local commit already exists but task is blocked | Use `queue recover . TASK-ID`; it reuses the sealed transaction instead of creating another visible commit. |
-| Target advanced for an isolated candidate | Request `revalidate`, wait for fresh full tests/Review, and confirm the new candidate. |
+| Target advanced for an isolated candidate | Request `revalidate`, wait for fresh contract-scoped tests/Review, and confirm the new candidate. |
 | Upgrade/uninstall reports a retained workspace | Stop scheduling and finish or approve abort before replacing runtime resources. |
 
 The service launches the packaged queue entry with Node.js, independently of the

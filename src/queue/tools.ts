@@ -53,7 +53,7 @@ export function createQueueTools(worktree: string, approvals = new ApprovalLedge
           const approvalText = queue.approvalText(draft);
           const question = approvals.prepare(context.sessionID, "enqueue", `${draft.key}:${draft.digest}`, "合同确认",
             `确认将 ${draft.key}（摘要 ${draft.digest.slice(0, 12)}，目标 ${draft.targetBranch}）按已展示的合同及提交策略入队？`, approvalText);
-          return JSON.stringify({ ...draft, approvalText, question });
+          return JSON.stringify({ ...draft, verificationPreview: queue.verificationPreview(draft.contract), approvalText, question });
         }
         // An exact duplicate only returns the already authorized record; it
         // cannot recreate a cancelled task or widen its policy.
@@ -96,7 +96,7 @@ export function createQueueTools(worktree: string, approvals = new ApprovalLedge
           const config = queue.config();
           const approval = args.operation === "integrate" ? config.approvalPhrases.acceptance : args.operation === "abort" ? config.approvalPhrases.abort : config.approvalPhrases.resume;
           invariant(approval, "Approval phrase is missing");
-          const binding = `${item.key}:${item.digest}:${item.candidateId}:${args.operation}`;
+          const binding = queue.operationBinding(item, args.operation);
           const question = approvals.prepare(context.sessionID, args.operation, binding,
             args.operation === "integrate" ? "最终验收" : args.operation === "abort" ? "中止确认" : "恢复确认",
             `确认对 ${item.key} 执行 ${args.operation}？候选 ${item.candidateId?.slice(0, 12) ?? "未封存"}，目标 ${item.targetBranch}；仅在本地处理，不推送。`, approval);
@@ -114,7 +114,7 @@ export function createQueueTools(worktree: string, approvals = new ApprovalLedge
         else {
           const item = queue.item(args.key ?? "");
           const needsApproval = ["integrate", "resume-task", "resume-review", "abort"].includes(args.action);
-          const proof = needsApproval ? approvals.consume(context, args.action, `${item.key}:${item.digest}:${item.candidateId}:${args.action}`) : undefined;
+          const proof = needsApproval ? approvals.consume(context, args.action, queue.operationBinding(item, args.action)) : undefined;
           queue.request(args.key ?? "", (args.action === "resume-task" ? "resume" : args.action) as Exclude<JobKind, "execute">, args.approval, args.candidate, proof);
           startService(queue);
         }
@@ -138,7 +138,12 @@ export function guardExecutorCommand(input: { tool: string }, output: { args: un
   invariant(readOnlyGit.test(command) || scripts.test(command) || gradle.test(command), "Command is outside the unattended allowlist; direct or indirect remote push and Git mutation are forbidden");
   if (gradle.test(command)) {
     invariant(directory, "Gradle execution requires the recorded project configuration");
-    const config = new TaskQueue(directory).config();
+    const queue = new TaskQueue(directory);
+    const document = queue.storage.read();
+    const activeItem = document.items.find(item => item.key === document.active?.key);
+    invariant(!(activeItem?.contract.verification as {scope?: unknown} | undefined)?.scope,
+      "Affected verification requires the managed scripts to select and record tasks before execution");
+    const config = queue.config();
     invariant(gradleBuildRoot(config, directory) === resolve(directory),
       "Nested builds must use the managed verification scripts, which select the recorded Gradle root");
     const allowed = Object.values(config.gradleVerification).flat();

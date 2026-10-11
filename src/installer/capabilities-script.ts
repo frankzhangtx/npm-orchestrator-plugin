@@ -7,19 +7,6 @@ gradle.projectsEvaluated {
         "com.android.dynamic-feature":"dynamic-feature", "com.android.test":"test", "com.android.asset-pack":"asset-pack"]
     def projects = gradle.rootProject.allprojects.collectEntries { [(it.path): it] }
     def android = projects.values().findAll { p -> androidIds.keySet().any { p.pluginManager.hasPlugin(it) } }
-    def dependencies = projects.collectEntries { key, p ->
-        def deps = [] as Set
-        p.configurations.each { c -> c.dependencies.withType(org.gradle.api.artifacts.ProjectDependency).each { d ->
-            def target = d.metaClass.respondsTo(d, "getPath") ? d.getPath() : d.getDependencyProject().path
-            deps.add(target)
-        } }
-        [(key): deps.toList().sort()]
-    }
-    def selected = android.collect { it.path } as Set
-    for (boolean changed = true; changed;) {
-        changed = false
-        selected.toList().each { key -> dependencies[key].each { dep -> if (selected.add(dep)) changed = true } }
-    }
     def get = { owner, name ->
         if (owner == null) return null
         // Gradle extensions (notably kotlin on AGP 4.x source sets) can be
@@ -30,6 +17,26 @@ gradle.projectsEvaluated {
             if (missing.property != name) throw missing
             return null
         }
+    }
+    def dependencies = projects.collectEntries { key, p ->
+        def deps = [] as Set
+        p.configurations.each { c -> c.dependencies.withType(org.gradle.api.artifacts.ProjectDependency).each { d ->
+            def target = d.metaClass.respondsTo(d, "getPath") ? d.getPath() : d.getDependencyProject().path
+            deps.add(target)
+        } }
+        // Packaging declarations may not appear as ordinary ProjectDependency
+        // edges. Treat their outputs as inputs to the application package.
+        def extension = p.extensions.findByName("android")
+        ["dynamicFeatures", "assetPacks"].each { name ->
+            def declared = get(extension, name)
+            if (declared != null) declared.each { deps.add(it.toString()) }
+        }
+        [(key): deps.toList().sort()]
+    }
+    def selected = android.collect { it.path } as Set
+    for (boolean changed = true; changed;) {
+        changed = false
+        selected.toList().each { key -> dependencies[key].each { dep -> if (selected.add(dep)) changed = true } }
     }
     def modules = selected.toList().sort().collect { key ->
         def p = projects[key]

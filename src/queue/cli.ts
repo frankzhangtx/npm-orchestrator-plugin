@@ -45,7 +45,7 @@ export async function queueCli(args: string[]): Promise<unknown> {
   const queue = new TaskQueue(directory);
   if (action === "_stage-record") {
     const [phase, previous, next] = values;
-    invariant(phase && ["red", "green", "review"].includes(phase) && previous !== undefined && next && /^[a-f0-9]{64}$/.test(next), "Invalid stage checkpoint");
+    invariant(phase && ["red", "green", "review", "verification-green", "verification-review", "verification-integration"].includes(phase) && previous !== undefined && next && /^[a-f0-9]{64}$/.test(next), "Invalid stage checkpoint");
     queue.storage.transaction(document => {
       const active = document.active;
       invariant(active?.id === process.env.AUTOMATION_QUEUE_RUN_ID && active?.worker && isAlive(active.worker) &&
@@ -53,6 +53,7 @@ export async function queueCli(args: string[]): Promise<unknown> {
         "Stage checkpoint requires the supervised Worker");
       const item = document.items.find(candidate => candidate.key === active.key)!;
       invariant(Number(item.contract.schemaVersion) >= 7, "Stage checkpoint requires V7 approval");
+      if (phase.startsWith("verification-")) invariant((item.contract.verification as {scope?: unknown})?.scope, "Impact scope approval is missing");
       invariant((item.stageRecovery?.[phase]?.sha256 ?? "") === previous, "Stage recovery ledger changed outside its owner");
       const file = join(queue.storage.runtime, "evidence", item.taskId, "stage-recovery", `${phase}.json`);
       invariant(sha256(readFileSync(file)) === next, "Stage recovery bytes changed before checkpoint");

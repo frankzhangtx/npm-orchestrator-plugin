@@ -769,6 +769,27 @@
           ]
         }
       }
+    },
+    {
+      "if": {
+        "properties": {
+          "verification": {
+            "required": [
+              "scope"
+            ]
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "schemaVersion": {
+            "enum": [
+              7,
+              8
+            ]
+          }
+        }
+      }
     }
   ]
 }

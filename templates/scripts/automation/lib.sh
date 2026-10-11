@@ -522,6 +522,47 @@ GRADLE
     automation_info "fresh full unit tests executed in ${elapsed}s; log: $log_file"
 }
 
+automation_baseline_tasks_json() {
+    local contract="$1" root="${2:-$AUTOMATION_ROOT}"
+    if jq -e '.verification.scope != null' "$contract" >/dev/null; then
+        node "$root/automation/verification/project.cjs" "$AUTOMATION_CONFIG" "$root" --select-baseline "$contract" | jq -ce '.tasks.fullUnitTestTasks'
+    else
+        jq -ce '.gradleVerification.fullUnitTestTasks' "$AUTOMATION_CONFIG"
+    fi
+}
+
+automation_run_baseline_unit_tests() {
+    local contract="$1" root="$2" json task
+    local -a tasks=()
+    json="$(automation_baseline_tasks_json "$contract" "$root")" || return 41
+    while IFS= read -r task; do tasks[${#tasks[@]}]="$task"; done < <(printf '%s' "$json" | jq -r '.[]')
+    [[ "${#tasks[@]}" -gt 0 ]] || return 41
+    if [[ -n "${AUTOMATION_QUEUE_RUN_ID:-}" ]]; then
+        automation_run_fresh_unit_tests "$root" "${tasks[@]}"
+    else
+        (cd "$(automation_gradle_build_root "$root")" && ./gradlew "${tasks[@]}")
+    fi
+}
+
+automation_run_impact_phase() {
+    local phase="$1" contract="$2" root="$3" json="$4" task
+    local -a tasks=()
+    automation_require_queue_execution "$(jq -er '.id' "$contract")"
+    case "$phase" in
+        focused) automation_run_inventory green "$(jq -er '.id' "$contract")" "$root"; return $? ;;
+        inventory-check) automation_run_inventory check "$(jq -er '.id' "$contract")" "$root"; return $? ;;
+        unit|assemble|lint|device) ;;
+        *) automation_die "Unknown impact verification phase"; return 41 ;;
+    esac
+    while IFS= read -r task; do automation_validate_gradle_task "$task" || return 41; tasks[${#tasks[@]}]="$task"; done < <(printf '%s' "$json" | jq -r '.[]')
+    [[ "${#tasks[@]}" -gt 0 ]] || return 41
+    if [[ "$phase" == unit ]]; then
+        automation_run_fresh_unit_tests "$root" "${tasks[@]}"
+    else
+        (cd "$(automation_gradle_build_root "$root")" && ./gradlew "${tasks[@]}" ${AUTOMATION_WORKER_TOKEN:+--no-daemon})
+    fi
+}
+
 automation_run_configured_unit_tests() {
     local contract="${1:-}"
     local root="${2:-$AUTOMATION_ROOT}"

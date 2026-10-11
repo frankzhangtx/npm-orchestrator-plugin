@@ -37,7 +37,7 @@ unless they explicitly override them. Fixed-directory tasks may use
 `autoCommit`. Optional isolated worktrees allow independent tasks to proceed.
 V8 contracts in 1.1.0 may explicitly approve isolated automatic local integration
 and bounded planning refresh; see [V8 continuity](docs/QUEUE.md#v8-isolated-integration-and-planning-refresh-110). Every queued
-execution requires build, fresh full unit tests and independent Review. All
+execution requires build, fresh contract-scoped unit tests and independent Review. All
 completion and recovery paths remain local and never push.
 Version `1.0.2` also allows queue-owned OpenCode shell commands to use a
 separate process group while preserving Worker ancestry checks. Version `1.0.1`
