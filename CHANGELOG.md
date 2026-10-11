@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 1.2.3 - 2026-10-11
 
 - Select verification tasks from changed source sets and transitive consumers,
   with approved V7/V8 affected scope and Debug defaults instead of replaying the
