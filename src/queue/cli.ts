@@ -75,7 +75,7 @@ export async function queueCli(args: string[]): Promise<unknown> {
   if (action === "draft") {
     invariant(values.length === 1, "draft requires an input JSON file");
     const draft = queue.draft(JSON.parse(readFileSync(values[0]!, "utf8")) as DraftInput);
-    return { ...draft, approvalText: queue.approvalText(draft) };
+    return { ...draft, readiness: queue.reviewDraft(draft), approvalText: queue.approvalText(draft) };
   }
   if (action === "enqueue") {
     invariant(values.length === 3, "enqueue requires key, digest and exact review approval");

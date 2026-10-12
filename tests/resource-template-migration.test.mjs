@@ -8,6 +8,7 @@ import { fileURLToPath } from "node:url";
 const templatesRoot = fileURLToPath(new URL("../templates/", import.meta.url));
 
 const expectedBaselineHashes = new Map([
+  ["automation/verification/worktree.cjs", "2ad71c57580ca2fd97f0abdcc87e80f3081fefbd293f3379fabc699587b3ed8c"],
   ["automation/verification/runtime.init.gradle", "3d3645fdc4197ba5f1c7d04f0d475cca8242a258759f01a24dfd6c0757b1e4f8"],
   ["automation/verification/project.cjs", "897d7e8950a1a7312d8bb764a3dc4235db3efeb05829f92ecb3e608d5d9c8464"],
   ["automation/verification/recovery.cjs", "cba937833554fa524e3b7d063205cf5262cd85f646760e25484577d4466d5cb9"],

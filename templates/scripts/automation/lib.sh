@@ -1185,9 +1185,9 @@ automation_worktree_status_at() {
 
 automation_worktree_is_clean() {
     local root="${1:-$AUTOMATION_ROOT}"
-    local changed_paths
-    changed_paths="$(automation_changed_paths_at "$root")" || return 1
-    [[ -z "$changed_paths" ]]
+    local allowlist
+    allowlist="$(automation_effective_worktree_allowlist_json_at "$root")" || return 1
+    node "$AUTOMATION_ROOT/automation/verification/worktree.cjs" "$root" "$allowlist"
 }
 
 automation_create_lock_dir() {

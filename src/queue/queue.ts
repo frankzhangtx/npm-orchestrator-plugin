@@ -1,3 +1,4 @@
+import { evaluateReadiness, assertReadyForIntake, readinessMessage, type Readiness, type ReadinessScan } from "./preconditions.js";
 import { initialSupervision, supervisionEvidence, type Supervision, type ExecutionPolicy } from "./supervision.js";
 import { ownedTree, processSnapshot } from "./process-ownership.js";
 import type { ApprovalProof } from "./approvals.js";
@@ -53,6 +54,7 @@ export interface Draft {
   digest: string;
 }
 export interface QueueItem extends Draft {
+  precondition?: Readiness;
   approvedWorkspaceStrategy: WorkspaceStrategy;
   queuePriority: number;
   sequence: number;
@@ -259,7 +261,7 @@ export function draftFromItem(item: QueueItem): Draft {
   const { sequence: _sequence, approvedAt: _approvedAt, authorization: _authorization,
     state: _state, waitingReason: _waitingReason, runId: _runId, taskRoot: _taskRoot,
     request: _request, sealedDiff: _sealedDiff, sealedRunId: _sealedRunId, candidateId: _candidateId, completedCommit: _commit,
-    baselineRecovery: _baselineRecovery, stageRecovery: _stageRecovery,
+    baselineRecovery: _baselineRecovery, stageRecovery: _stageRecovery, precondition: _precondition,
     approvedWorkspaceStrategy, queuePriority: _priority, ...draft } = item;
   return { ...draft, workspaceStrategy: approvedWorkspaceStrategy };
 }
@@ -304,6 +306,19 @@ export class TaskQueue {
   readonly storage: QueueStorage<QueueDocument>;
   constructor(directory: string) {
     this.storage = new QueueStorage(directory, () => ({ schemaVersion: 1, sequence: 0, paused: false, fault: null, strategy: null, drafts: [], items: [], active: null, runs: [], notifications: [] }));
+    const document = this.storage.read();
+    invariant(document.schemaVersion === 1, "Unsupported queue document; use the matching plugin version");
+    for (const item of document.items) {
+      if (item.state !== "WAITING_PRECONDITION") continue;
+      const result = item.precondition;
+      invariant(!item.taskRoot && result?.codingStarted === false && result.workspaceCreated === false && result?.version === 1 && result.authorizationDigest === item.digest && result.planningHead === item.planningHead &&
+        ["WAITING_PRECONDITION", "WAITING_PREDECESSOR", "REPLAN_REQUIRED"].includes(result.state) &&
+        Array.isArray(result.paths) && result.paths.every(row => typeof row.path === "string" && typeof row.status === "string") &&
+        typeof result.nextAction === "string" && typeof result.reasonCode === "string" && typeof result.checkedAt === "string" &&
+        /^[a-f0-9]{64}$/.test(result.fingerprint), "Invalid startup waiting record; retain evidence and recover explicitly");
+      const { checkedAt: _checkedAt, fingerprint, ...condition } = result;
+      invariant(sha256(JSON.stringify(condition)) === fingerprint, "Invalid startup waiting fingerprint; retain evidence and recover explicitly");
+    }
   }
   config(): QueueConfiguration {
     const config = readJson<QueueConfiguration>(join(this.storage.root, "automation/config.json"));
@@ -321,6 +336,7 @@ export class TaskQueue {
     const branch = targetBranch ?? occupied?.targetBranch ?? git(this.storage.root, ["symbolic-ref", "--short", "HEAD"]);
     git(this.storage.root, ["check-ref-format", `refs/heads/${branch}`]);
     const head = git(this.storage.root, ["rev-parse", "--verify", `refs/heads/${branch}^{commit}`]);
+    assertReadyForIntake(evaluateReadiness(this, head, branch, undefined, document), true);
     return { sourceRoot: this.storage.root, targetBranch: branch, planningHead: head };
   }
   private sensitive(path: string): boolean {
@@ -452,9 +468,27 @@ export class TaskQueue {
         planningHead: input.planningHead, targetBranch: input.targetBranch, sourceRoot: this.storage.root,
         workspaceStrategy, commitPolicy, notBefore, dependsOn: dependencies, priority, createdAt: now() };
       const draft = { ...sealed, digest: draftDigest(sealed) };
+      assertReadyForIntake(this.readiness(draft, document), true);
       document.drafts.push(draft);
       return draft;
     });
+  }
+  reviewDraft(draft: Draft): Readiness {
+    const readiness = this.readiness(draft);
+    atomicJson(join(this.storage.runtime, "inbox", `${draft.key}.readiness.json`), readiness);
+    return readiness;
+  }
+  readiness(draft: Draft, document = this.storage.read()): Readiness {
+    return evaluateReadiness(this, draft.planningHead, draft.targetBranch, draft, document);
+  }
+  waitForPrecondition(document: QueueDocument, item: QueueItem, result: Readiness): void {
+    invariant(!item.taskRoot, "Started workspaces cannot enter startup waiting");
+    if (item.precondition?.fingerprint !== result.fingerprint) {
+      item.precondition = result;
+      item.state = "WAITING_PRECONDITION";
+      item.waitingReason = readinessMessage(result);
+      this.notify(document, item, item.waitingReason);
+    }
   }
   approvalText(draft: Draft): string {
     const verification = (draft.contract.verification as {scope?: unknown} | undefined)?.scope ? "影响范围内的编译、单测" : "构建、全量单测";
@@ -478,6 +512,7 @@ export class TaskQueue {
       invariant(this.approvalText(draft) === approval, "Explicit approval for this version and commit policy is required");
       invariant(!document.items.some(item => item.taskId === draft.taskId && item.state !== "CANCELLED" && item.state !== "SUPERSEDED"), "This task already has an approved execution; use a new task ID or cancel its unstarted version");
       for (const dependency of draft.dependsOn) invariant(document.items.some(item => item.taskId === dependency && item.state !== "CANCELLED"), `Approve dependency first: ${dependency}`);
+      assertReadyForIntake(this.readiness(draft, document));
       const item: QueueItem = { ...draft, approvedWorkspaceStrategy: draft.workspaceStrategy, queuePriority: draft.priority,
         sequence: ++document.sequence, approvedAt: now(),
         authorization: { source: "contractApproval", digest, commitPolicy: draft.commitPolicy, pushAfterAcceptance: false, revoked: false, ...(proof ? { proof } : {}) },
@@ -500,7 +535,7 @@ export class TaskQueue {
     invariant(Number.isInteger(priority) && priority >= -100 && priority <= 100, "Priority must be an integer from -100 to 100");
     this.storage.transaction(document => {
       const item = this.findItem(document, key);
-      invariant(item?.state === "QUEUED", "Only unstarted queue items may be reordered");
+      invariant(item && ["QUEUED", "WAITING_PRECONDITION"].includes(item.state), "Only unstarted queue items may be reordered");
       item.queuePriority = priority;
     });
   }
@@ -545,7 +580,18 @@ export class TaskQueue {
     });
   }
   details(key: string): Record<string, unknown> {
-    const item = this.item(key);
+    const stored = this.storage.read();
+    const approved = this.findItem(stored, key);
+    if (!approved) {
+      const draft = stored.drafts.find(candidate => candidate.key === key);
+      invariant(draft, `Unknown task or draft: ${key}`);
+      const reviewPath = join(this.storage.runtime, "inbox", `${draft.key}.readiness.json`);
+      const readiness = existsSync(reviewPath) ? readJson<Readiness>(reviewPath) : null;
+      return { ...draft, state: "DRAFT", candidateId: null, currentTargetHead: git(draft.sourceRoot, ["rev-parse", `refs/heads/${draft.targetBranch}`]),
+        authorization: { source: "draft", revoked: false, pushAfterAcceptance: false }, precondition: readiness,
+        evidence: readiness ? { precondition: readiness } : {} };
+    }
+    const item = approved;
     const evidence: Record<string, unknown> = {};
     for (const name of ["acceptance-report", "review", "full-test-verification", "commit-transaction", "integration", "planning-baseline",
       "baseline-inventory", "baseline-recovery", "test-preflight", "test-manifest", "test-supplement", "green-inventory", "inventory-status", "verification-plan", "verification-result"]) {
@@ -561,6 +607,7 @@ export class TaskQueue {
       if (existsSync(file)) stages[phase] = readJson<unknown>(file);
     }
     if (Object.keys(stages).length) evidence.stageRecovery = stages;
+    if (item.precondition) evidence.precondition = item.precondition;
     return { ...item, currentTargetHead: git(item.sourceRoot, ["rev-parse", `refs/heads/${item.targetBranch}`]), evidence };
   }
   notify(document: QueueDocument, item: QueueItem, message: string): void {
@@ -645,7 +692,17 @@ export class TaskQueue {
       invariant(usage.status === 0, "Cannot measure retained workspace disk usage");
       workspaceBytes += Number(usage.stdout.trim().split(/\s+/)[0]) * 1024;
     }
+    const observed = this.storage.read();
+    const observedDigest = sha256(JSON.stringify(observed));
+    const readinessByKey = new Map<string, Readiness>();
+    const scan: ReadinessScan = {};
+    if (!observed.active && !observed.fault && !observed.paused) {
+      for (const item of observed.items.filter(item => ["QUEUED", "WAITING_PRECONDITION"].includes(item.state))) {
+        readinessByKey.set(item.key, evaluateReadiness(this, item.planningHead, item.targetBranch, item, observed, scan));
+      }
+    }
     return this.storage.transaction(document => {
+      if (sha256(JSON.stringify(document)) !== observedDigest) return null;
       if (existsSync(join(this.storage.runtime, "locks/lifecycle.lock"))) return null;
       if (document.active || document.fault) return null;
 
@@ -663,10 +720,10 @@ export class TaskQueue {
       const requests = document.items.filter(item => item.request && (!document.paused || item.request.kind === "abort")).sort((a, b) => a.sequence - b.sequence);
       const retries = document.items.filter(item => !document.paused && !item.request && item.state === "BLOCKED" && Number(item.contract.schemaVersion) >= 5 && item.baselineRecovery?.nextRunAt != null)
         .sort((a, b) => a.sequence - b.sequence);
-      const pending = document.items.filter(item => !document.paused && item.state === "QUEUED").sort((a, b) => b.queuePriority - a.queuePriority || a.sequence - b.sequence);
+      const pending = document.items.filter(item => !document.paused && ["QUEUED", "WAITING_PRECONDITION"].includes(item.state)).sort((a, b) => b.queuePriority - a.queuePriority || a.sequence - b.sequence);
       for (const item of [...requests, ...retries, ...pending]) {
         if (item.request?.kind !== "abort" && !config.unitTestsEnabled) { document.fault = "Queued execution requires unit tests; enable unitTestsEnabled"; return null; }
-        item.waitingReason = null;
+        if (item.state !== "WAITING_PRECONDITION") item.waitingReason = null;
         const retry = !item.request && item.state === "BLOCKED" ? item.baselineRecovery : null;
         if (retry) {
           if (Date.now() >= retry.deadline) { item.waitingReason = "Baseline recovery elapsed-time budget exhausted"; retry.nextRunAt = null; continue; }
@@ -692,6 +749,13 @@ export class TaskQueue {
         if (existsSync(leasePath)) {
           const lease = readJson<{taskId: string}>(leasePath);
           if (lease.taskId !== item.taskId) { item.waitingReason = `Repository workspace is leased by ${lease.taskId}`; continue; }
+        }
+        if (!item.request && !retry) {
+          const readiness = readinessByKey.get(item.key);
+          invariant(readiness, "Startup readiness observation is missing");
+          if (readiness.state !== "READY") { this.waitForPrecondition(document, item, readiness); continue; }
+          delete item.precondition;
+          item.waitingReason = null;
         }
         const launcher = processIdentity(process.pid);
         invariant(launcher, "Cannot establish execution launcher identity");

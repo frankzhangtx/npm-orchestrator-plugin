@@ -49,17 +49,20 @@ export function createQueueTools(worktree: string, approvals = new ApprovalLedge
       async execute(args, context) {
         const queue = bounded(context, true);
         if (args.action === "draft") {
-          const draft = queue.draft(JSON.parse(args.draftJson ?? "{}") as DraftInput, approvals.consume(context, "proposal", "proposal"));
+          const draft = queue.draft(JSON.parse(args.draftJson ?? "{}") as DraftInput, approvals.peek(context, "proposal", "proposal"));
+          approvals.consume(context, "proposal", "proposal");
+          queue.reviewDraft(draft);
           const approvalText = queue.approvalText(draft);
           const question = approvals.prepare(context.sessionID, "enqueue", `${draft.key}:${draft.digest}`, "合同确认",
             `确认将 ${draft.key}（摘要 ${draft.digest.slice(0, 12)}，目标 ${draft.targetBranch}）按已展示的合同及提交策略入队？`, approvalText);
-          return JSON.stringify({ ...draft, verificationPreview: queue.verificationPreview(draft.contract), approvalText, question });
+          return queueResponse({ ...compactTaskDetails(queue.details(draft.key)), verificationPreview: queue.verificationPreview(draft.contract), approvalText, question });
         }
         // An exact duplicate only returns the already authorized record; it
         // cannot recreate a cancelled task or widen its policy.
         const existing = queue.storage.read().items.some(item => item.key === args.key);
-        const proof = existing ? undefined : approvals.consume(context, "enqueue", `${args.key}:${args.digest}`);
+        const proof = existing ? undefined : approvals.peek(context, "enqueue", `${args.key}:${args.digest}`);
         const item = queue.enqueue(args.key ?? "", args.digest ?? "", args.approval ?? "", proof);
+        if (proof) approvals.consume(context, "enqueue", `${args.key}:${args.digest}`);
         let serviceError: string | null = null;
         try { startService(queue); } catch (error) { serviceError = String(error); }
         return JSON.stringify({ key: item.key, state: item.state, workspaceStrategy: item.workspaceStrategy, commitPolicy: item.commitPolicy,
@@ -87,7 +90,7 @@ export function createQueueTools(worktree: string, approvals = new ApprovalLedge
           if (args.key) return queueResponse(compactTaskDetails(queue.details(args.key)));
           const document = queue.storage.read();
           return JSON.stringify({ service: serviceStatus(queue), paused: document.paused, fault: document.fault, active: publicRun(document.active),
-            items: document.items.map(({ key, taskId, state, waitingReason, workspaceStrategy, commitPolicy, targetBranch, taskRoot, dependsOn, sealedDiff, candidateId, completedCommit }) => ({ key, taskId, state, waitingReason, workspaceStrategy, commitPolicy, targetBranch, taskRoot, dependsOn, sealedDiff, candidateId, completedCommit, pushed: false })),
+            items: document.items.map(({ key, taskId, state, waitingReason, workspaceStrategy, commitPolicy, targetBranch, taskRoot, dependsOn, sealedDiff, candidateId, completedCommit, precondition }) => ({ readiness: precondition ? { state: precondition.state, reasonCode: precondition.reasonCode, checkedAt: precondition.checkedAt, planningHead: precondition.planningHead, pathCount: precondition.paths.length, codingStarted: false, workspaceCreated: false } : null, key, taskId, state, waitingReason, workspaceStrategy, commitPolicy, targetBranch, taskRoot, dependsOn, sealedDiff, candidateId, completedCommit, pushed: false })),
             notifications: document.notifications.filter(notification => !notification.acknowledged) });
         }
         if (args.action === "review") {

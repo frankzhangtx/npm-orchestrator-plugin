@@ -79,12 +79,16 @@ export class ApprovalLedger {
     } });
   }
 
-  consume(context: Pick<ToolContext, "sessionID" | "messageID">, kind: string, binding: string): ApprovalProof {
+  peek(context: Pick<ToolContext, "sessionID" | "messageID">, kind: string, binding: string): ApprovalProof {
     const selected = this.selections.get(context.sessionID);
     invariant(selected && selected.kind === kind && selected.binding === binding &&
       Date.now() - Date.parse(selected.proof.approvedAt) <= MAX_AGE_MS,
     "A fresh, matching single-choice question selection is required; approval text is not a receipt");
-    this.selections.delete(context.sessionID);
     return { ...selected.proof, messageID: context.messageID };
+  }
+  consume(context: Pick<ToolContext, "sessionID" | "messageID">, kind: string, binding: string): ApprovalProof {
+    const proof = this.peek(context, kind, binding);
+    this.selections.delete(context.sessionID);
+    return proof;
   }
 }

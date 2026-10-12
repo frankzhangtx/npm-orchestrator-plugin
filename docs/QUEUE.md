@@ -1,6 +1,6 @@
 # Queue and background execution
 
-Version `1.2.3` stores proposals and approved contracts under
+Version `1.3.0` stores proposals and approved contracts under
 `<git-common-dir>/automation-runtime/inbox/queue.json`. A contract is runnable
 only after its full plan, version, digest, target branch and commit policy are
 approved and durably recorded. Planning reads a fixed `planningHead`, so another
@@ -214,7 +214,7 @@ It does not run `clean` or rerun all dependency tasks. Coder, Reviewer and local
 integration perform the configured full suite and build gates. Evidence records
 fresh-test logs, configured tasks and elapsed seconds.
 
-The 1.2.3 templates generate task-contract schema V4 with verification
+The 1.3.0 templates generate task-contract schema V4 with verification
 version 2. The 1.0.5 package
 does not include this protocol. Every verification case
 has a stable ID, a one-based acceptance-criterion reference, an evidence source,
@@ -597,3 +597,46 @@ The original contract, planning HEAD and input digest remain unchanged; queue
 tasks and decision. Prepare and capture a new baseline on that execution HEAD;
 never reuse another task's baseline, RED or Review evidence. Refresh is available
 only before execution, not a way to reset an existing task's retry budgets.
+
+## Startup readiness in 1.3.0
+
+Snapshot and draft sealing check for uncommitted execution inputs. Review and commit
+an installation upgrade before planning against it. Equal version numbers do not
+prove equal configuration. The approval card includes readiness, its check time,
+planning and observed HEAD, changed-path count and the next action. Full path evidence
+is available through `readEvidence`, including for a draft key. Enqueue rechecks the
+current condition; a previous card is not a permanent clearance.
+
+`WAITING_PRECONDITION` means no coding workspace has been created. The item retains
+its original digest, approval, baseline and scheduling policy. The scheduler does
+not launch Coder or Gradle, consume repair budgets or hold the executor slot while
+waiting. Existing wake events and bounded periodic scanning recheck conditions.
+Identical conditions do not generate repeated notifications or queue writes.
+
+Use `cancel` for an unstarted wait; `abort` requires an existing task workspace.
+Pause prevents automatic starts. Restart preserves waits. Cancelled versions never
+revive. A restored workspace can resume automatically; a changed configuration or
+unauthorized baseline produces `REPLAN_REQUIRED` inside the wait record. Cancel
+that unstarted version, take a new snapshot and approve a new contract. V8 baseline
+refresh still requires its original completed-queue-task policy and sealed commit
+transactions. Older contracts keep their original baseline policy.
+
+A running or retained predecessor can coexist with planning and queue intake when
+ownership is provable: matching workspace metadata and lease, a verified worker or
+sealed candidate, and exact approved artifacts or the sealed diff. Arbitrary edits
+inside allowedPaths are not ownership evidence. During a live, unsealed edit whose
+origin cannot be established, intake retains the draft and asks for a recheck after
+sealing; isolated worktrees allow continued intake while Coder edits its own tree.
+
+Both staged and unstaged changes to `automation/automation-commit-prefix` are exempt,
+even under `automation/**` protection. This exception does not include other files
+with that name. Rename sources and destinations are checked independently. Prefix
+format validation remains separate (`COMMIT_PREFIX_INVALID`). Committed changes still
+obey the existing baseline and planning-input authorization rules.
+
+Approval receipts are read before the synchronous enqueue transaction and consumed
+only after durable publication. A failed check/write retains the unconsumed receipt
+in the live plugin process; a process restart requires a fresh question if no item
+was published. If publication succeeded before interruption, replay of the exact key,
+digest and approval returns the existing item, including cancelled items, without
+creating a second execution. The approval proof is stored in that item's authorization.

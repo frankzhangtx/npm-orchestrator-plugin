@@ -2,11 +2,17 @@
 
 Reusable OpenCode orchestration for macOS Android projects.
 
+Version 1.3.0 checks task startup conditions before approval and execution.
+Unstarted tasks wait durably when their workspace becomes unavailable; resolving
+the condition resumes scheduling only within the original approval. Uncommitted
+installation changes require a fresh snapshot. Changes to the exact
+`automation/automation-commit-prefix` path are exempt from dirty-workspace checks.
+
 Version 1.2.3 selects verification tasks from changed source sets and their
 transitive consumers under explicitly approved contracts. Environment recovery
 retries only failed verification steps while preserving candidate-bound evidence.
-The commands below pin the 1.2.3 npm package.
-See [development validation](release/1.2.3-development-validation.md) for evidence.
+The commands below pin the 1.3.0 npm package.
+See [development validation](release/1.3.0-development-validation.md) for evidence.
 
 Version `0.2.0` is the first published lifecycle release. Version `0.3.0` adds
 default all-module orchestration and stronger verification contracts. Version
@@ -82,9 +88,9 @@ project builds retain their configured cache behavior.
 ## Quick start
 
 ```sh
-npx @frankzhang2026/opencode-android-orchestrator@1.2.3 init .
+npx @frankzhang2026/opencode-android-orchestrator@1.3.0 init .
 $EDITOR automation/automation-commit-prefix
-npx @frankzhang2026/opencode-android-orchestrator@1.2.3 doctor .
+npx @frankzhang2026/opencode-android-orchestrator@1.3.0 doctor .
 opencode --agent scheduled-planner .
 ```
 
@@ -94,7 +100,7 @@ a task contract without selecting a primary module. To intentionally restrict
 generated contracts to one module, opt into primary-module scope:
 
 ```sh
-npx @frankzhang2026/opencode-android-orchestrator@1.2.3 init . \
+npx @frankzhang2026/opencode-android-orchestrator@1.3.0 init . \
   --module-scope primary \
   --primary-module :mobile
 ```
@@ -122,7 +128,7 @@ For an existing manifest-managed installation whose generated module/task
 lists are incomplete, refresh all derived Gradle data in one upgrade:
 
 ```sh
-npx @frankzhang2026/opencode-android-orchestrator@1.2.3 upgrade . \
+npx @frankzhang2026/opencode-android-orchestrator@1.3.0 upgrade . \
   --refresh-gradle-discovery
 ```
 
@@ -479,7 +485,7 @@ preparation alone as resource installation;
 ## Init
 
 ```sh
-npx @frankzhang2026/opencode-android-orchestrator@1.2.3 init .
+npx @frankzhang2026/opencode-android-orchestrator@1.3.0 init .
 $EDITOR automation/automation-commit-prefix
 opencode --agent scheduled-planner .
 ```

@@ -44,7 +44,7 @@ import {
 } from "../installer/opencode-config.js";
 import type { DoctorCheck } from "./index.js";
 
-export const EXPECTED_MANAGED_FILE_COUNT = 53;
+export const EXPECTED_MANAGED_FILE_COUNT = 54;
 
 interface ExpectedManagedFile {
   path: string;
@@ -109,6 +109,7 @@ const AUTOMATION_SCRIPT_PATHS = [
 ] as const;
 
 const OTHER_TEMPLATE_PATHS = [
+  "automation/verification/worktree.cjs",
   "automation/verification/project.cjs",
   "automation/verification/runtime.init.gradle",
   "automation/verification/recovery.cjs",

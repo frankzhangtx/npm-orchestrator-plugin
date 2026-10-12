@@ -54,6 +54,10 @@ export function compactTaskDetails(details: Details): Details {
   const result: Details = Object.fromEntries(fields.map(key => [key, details[key]]));
   result.format = "task-summary-v1";
   result.pushed = false;
+  const readiness = details.precondition as Record<string, unknown> | undefined;
+  if (readiness) result.readiness = { state: readiness.state, reasonCode: readiness.reasonCode, checkedAt: readiness.checkedAt,
+    planningHead: readiness.planningHead, observedHead: readiness.observedHead, codingStarted: false, workspaceCreated: false,
+    pathCount: (readiness.paths as unknown[]).length, nextAction: preview(readiness.nextAction) };
   result.waitingReason = preview(details.waitingReason);
   result.waitingReasonTruncated = result.waitingReason !== details.waitingReason;
   const authorization = details.authorization as Record<string, unknown>;

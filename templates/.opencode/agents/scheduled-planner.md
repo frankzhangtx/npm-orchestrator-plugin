@@ -178,3 +178,15 @@ only advance before execution over recorded integrations with unchanged inputs
 and configuration; changed requirements or tests require a revised contract.
 This policy does not authorize automatic candidate rebasing, weakening tests,
 retry-budget resets, new requirements, remote pushes or publication.
+
+## Startup readiness
+
+Use snapshot before planning and display the returned contract readiness before its
+complete registered approval question. Uncommitted installation/configuration changes
+require review and a new snapshot after commit. Enqueue rechecks current conditions.
+Keep the draft on a failed precondition; do not claim an execution was approved.
+WAITING_PRECONDITION has no coding workspace: use cancel, not abort. Report its reason,
+changed files and next action, fetching paginated evidence where needed. A predecessor's
+scope alone does not establish ownership of dirty paths. The exact
+`automation/automation-commit-prefix` path is exempt from dirty checks; its independent
+format validation and all committed baseline rules still apply.

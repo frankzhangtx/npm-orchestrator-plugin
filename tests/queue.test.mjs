@@ -6,17 +6,16 @@ import { assertAuthorized, TaskQueue } from "../dist/queue/queue.js";
 import { guardExecutorCommand } from "../dist/queue/tools.js";
 import { fixture, draft, enqueue, command } from "./queue-fixture.mjs";
 
-test("intake reads a stable commit and never changes an occupied working diff", () => {
+test("planning reads a stable commit but external edits prevent approval from entering the queue", () => {
   const f = fixture();
   try {
-    writeFileSync(join(f.root, "app/src/main/java/Baseline.kt"), "live Coder edits\n");
+    writeFileSync(join(f.root, "app/src/main/java/Baseline.kt"), "unattributed edits\n");
     const before = command(f.root, ["diff"]);
-    const first = enqueue(f, "TASK-A");
-    enqueue(f, "TASK-B");
+    const first = draft(f, "TASK-A");
     assert.equal(f.queue.readSnapshot(first.planningHead, "app/src/main/java/Baseline.kt"), "class Baseline");
+    assert.throws(() => f.queue.enqueue(first.key, first.digest, f.queue.approvalText(first)), /WORKTREE_DIRTY/);
     assert.equal(command(f.root, ["diff"]), before);
-    assert.equal(existsSync(join(f.root, "automation/tasks/TASK-A.json")), false);
-    assert.equal(new TaskQueue(f.root).storage.read().items.length, 2);
+    assert.equal(new TaskQueue(f.root).storage.read().items.length, 0);
   } finally { f.cleanup(); }
 });
 
@@ -167,6 +166,8 @@ test("legacy configuration without a commit policy retains human approval", () =
     const config = JSON.parse(readFileSync(configPath, "utf8"));
     delete config.commitPolicy;
     writeFileSync(configPath, `${JSON.stringify(config, null, 2)}\n`);
+    command(f.root, ["add", "automation/config.json"]);
+    command(f.root, ["commit", "-qm", "Commit legacy configuration"]);
     assert.equal(draft(f, "TASK-LEGACY").commitPolicy, "humanApproval");
   } finally { f.cleanup(); }
 });
@@ -231,7 +232,7 @@ test("unattended commands reject direct and indirect Git mutation paths", () => 
   }
 });
 
-test("claim-time mode selection preserves sealed commit policy and priority authorization", () => {
+test("uncommitted claim-time policy change waits without changing sealed authorization", () => {
   const f = fixture();
   try {
     enqueue(f, "TASK-HUMAN");
@@ -241,8 +242,9 @@ test("claim-time mode selection preserves sealed commit policy and priority auth
     f.queue.control("pause");
     f.queue.setPolicy("isolatedWorktree", "humanApproval");
     f.queue.control("resume");
-    assert.equal(f.queue.reserve().key, "TASK-HUMAN@1");
-    assert.equal(f.queue.item("TASK-HUMAN").workspaceStrategy, "isolatedWorktree");
+    assert.equal(f.queue.reserve(), null);
+    assert.equal(f.queue.item("TASK-HUMAN").state, "WAITING_PRECONDITION");
+    assert.equal(f.queue.item("TASK-HUMAN").workspaceStrategy, "inPlaceExclusive");
     assertAuthorized(f.queue.item("TASK-HUMAN"));
     assert.match(f.queue.item("TASK-AUTO").waitingReason, /unsupported/);
     assert.equal(f.queue.item("TASK-AUTO").commitPolicy, "autoCommit");

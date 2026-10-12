@@ -90,11 +90,12 @@ test('isolated automatic A then dependent B refreshes only unchanged declared in
     assert.equal(f.queue.item('TASK-B').planningHead,baseline,'original approval was not rewritten');
     assert.equal(command(f.root,['rev-list','--count',`${baseline}..main`]),'2');
     assert.equal(command(f.root,['status','--porcelain']),'');assert.equal(command(f.root,['remote']), '');
-    const blocked=await execute(f);
-    assert.equal(blocked.item.taskId,'TASK-INPUT-DEPENDENT');assert.equal(blocked.item.state,'BASELINE_REVIEW',blocked.output);
-    assert.equal(blocked.item.taskRoot,null);
-    assert.match(read(join(f.queue.storage.runtime,'evidence/TASK-INPUT-DEPENDENT/planning-baseline.json')).refresh.reason,/planning inputs changed/);
     assert.equal(f.queue.reserve(),null);
+    const blocked=f.queue.item('TASK-INPUT-DEPENDENT');
+    assert.equal(blocked.state,'WAITING_PRECONDITION');assert.equal(blocked.precondition.state,'REPLAN_REQUIRED');
+    assert.equal(blocked.taskRoot,null);assert.equal(blocked.runId,null);
+    assert.equal(blocked.precondition.reasonCode,'PLANNING_BASELINE_CHANGED');
+    assert.equal(existsSync(join(f.queue.storage.runtime,'evidence/TASK-INPUT-DEPENDENT/agent-runs.jsonl')),false);
   } finally {f.cleanup();}
 });
 
@@ -120,11 +121,12 @@ for(const kind of ['input','external','configuration','refresh-disabled']) test(
     const path=kind==='input'?'app/src/main/java/Baseline.kt':kind==='configuration'?'gradlew':'unrelated.txt';
     writeFileSync(join(f.root,path),'\n// baseline changed\n',{flag:'a'});
     command(f.root,['add',path]);command(f.root,['commit','-qm','Unapproved planning drift']);
-    const result=await execute(f);assert.equal(result.item.state,'BASELINE_REVIEW',result.output+result.item.waitingReason);
-    assert.equal(result.item.taskRoot,null);assert.equal(existsSync(join(f.base,'agent-calls.jsonl')),false);
-    const reason=read(join(f.queue.storage.runtime,'evidence/TASK-STALE/planning-baseline.json')).refresh.reason;
-    assert.equal(result.item.waitingReason,reason);
-    assert.match(reason,kind==='input'?/planning inputs/:kind==='configuration'?/configuration/:kind==='refresh-disabled'?/not approved/:/outside completed queue/);
+    assert.equal(f.queue.reserve(),null);
+    const item=f.queue.item('TASK-STALE');assert.equal(item.state,'WAITING_PRECONDITION');assert.equal(item.precondition.state,'REPLAN_REQUIRED');
+    assert.equal(item.taskRoot,null);assert.equal(item.runId,null);assert.equal(existsSync(join(f.base,'agent-calls.jsonl')),false);
+    assert.equal(item.precondition.reasonCode,kind==='configuration'?'EXECUTION_CONFIG_CHANGED':'PLANNING_BASELINE_CHANGED');
+    assert.ok(item.precondition.paths.some(row=>row.path===path));
+    assertAuthorized(item);
   } finally {f.cleanup();}
 });
 

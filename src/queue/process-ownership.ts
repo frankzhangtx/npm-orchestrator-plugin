@@ -17,7 +17,7 @@ export function parseProcessTable(output: string, token: string): OwnedProcess[]
 
 export function processSnapshot(token: string): OwnedProcess[] {
   const result = spawnSync("ps", ["axeww", "-o", "pid=,ppid=,pgid=,lstart=,stat=,command="],
-    { encoding: "utf8", timeout: 10000, maxBuffer: 64 * 1024 * 1024 });
+    { encoding: "utf8", env: { ...process.env, LC_ALL: "C", LANG: "C" }, timeout: 10000, maxBuffer: 64 * 1024 * 1024 });
   // Do not include ps stdout/stderr: it contains unrelated process environments.
   invariant(result.status === 0 && !result.error && result.stdout.trim(), "Cannot obtain complete process ownership snapshot");
   return parseProcessTable(result.stdout, token);

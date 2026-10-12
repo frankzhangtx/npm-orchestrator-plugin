@@ -1,3 +1,4 @@
+import { readinessMessage } from "./preconditions.js";
 import { spawn, spawnSync } from "node:child_process";
 import { randomUUID } from "node:crypto";
 import { createRequire } from "node:module";
@@ -5,7 +6,7 @@ import { existsSync, mkdirSync, readFileSync, realpathSync, writeFileSync } from
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { assertAuthorized, continuityPolicy, isolatedAutoIntegrationAuthorized, planningInputsDigest, matchesPath, now, TaskQueue, type QueueItem, type QueueRun } from "./queue.js";
-import { atomicJson, fileLock, git, invariant, processIdentity, readJson, recoverLock, safePath, sha256 } from "./storage.js";
+import { atomicJson, fileLock, git, gitBuffer, invariant, processIdentity, readJson, recoverLock, safePath, sha256 } from "./storage.js";
 
 interface Workspace {
   taskId: string; sourceRoot: string; originalBranch: string; baselineHead: string;
@@ -40,7 +41,7 @@ export function helper(root: string, name: string, args: string[] = [], runId = 
   const result = spawnSync("bash", ["-euc", 'source "$1"; shift; "$@"', "automation-helper", join(root, "scripts/automation/lib.sh"), name, ...args], {
     cwd: root, encoding: "utf8", maxBuffer: 16 * 1024 * 1024, env: workerEnvironment(runId),
   });
-  invariant(result.status === 0, result.error?.message ?? (result.stderr || result.stdout).trim());
+  invariant(result.status === 0 && !result.error, `${name}: exit=${result.status} signal=${result.signal}: ${result.error?.message || (result.stderr || result.stdout || "").trim().slice(-8000) || "no diagnostic output"}`);
   return result.stdout.trimEnd();
 }
 
@@ -112,8 +113,20 @@ export class QueueExecutor {
       (path === other.contract.planPath || path === `automation/tasks/${other.taskId}.json`));
     return !otherArtifact && this.queue.config().protectedPaths.some(pattern => matchesPath(pattern, path));
   }
+  private startupReady(item: QueueItem): boolean {
+    const readiness = this.queue.readiness(item);
+    if (readiness.state !== "READY") {
+      this.queue.storage.transaction(document => {
+        invariant(document.active?.id === this.run.id, "Executor lost its slot during precondition check");
+        this.queue.waitForPrecondition(document, document.items.find(candidate => candidate.key === item.key)!, readiness);
+      });
+      return false;
+    }
+    return true;
+  }
   private prepare(): boolean {
     const item = this.item();
+    if (!this.startupReady(item)) return false;
     const config = this.queue.config();
     if (item.workspaceStrategy === "isolatedWorktree") {
       const shared = createRequire(import.meta.url)("../../templates/automation/verification/project.cjs") as {
@@ -125,7 +138,7 @@ export class QueueExecutor {
     invariant(config.unitTestsEnabled === true, "Queued execution requires full unit tests; enable unitTestsEnabled");
     const target = git(item.sourceRoot, ["rev-parse", `refs/heads/${item.targetBranch}`]);
     git(item.sourceRoot, ["merge-base", "--is-ancestor", item.planningHead, target]);
-    const changed = target === item.planningHead ? [] : git(item.sourceRoot, ["diff", "--name-only", item.planningHead, target, "--"]).split("\n").filter(Boolean);
+    const changed = target === item.planningHead ? [] : gitBuffer(item.sourceRoot, ["diff", "--no-renames", "--name-only", "-z", item.planningHead, target, "--"]).toString("utf8").split("\0").filter(Boolean);
     const relevant = changed.filter(path => (item.contract.allowedPaths as string[]).some(pattern => matchesPath(pattern, path)) || this.executionInputsChanged(path, item));
     const policy = continuityPolicy(item.contract);
     const refresh: { policy: string; inputDigest?: string; integratedTasks: string[]; reason: string | null } = {
@@ -168,7 +181,6 @@ export class QueueExecutor {
       this.setState("BASELINE_REVIEW", refresh.reason);
       return false;
     }
-    helper(item.sourceRoot, "automation_worktree_is_clean", [item.sourceRoot], this.run.id);
     invariant(git(item.sourceRoot, ["symbolic-ref", "--short", "HEAD"]) === item.targetBranch, "Source root must be on the approved local target branch");
     const taskBranch = `automation/${item.taskId.toLowerCase()}-v${item.version}`;
     const branchCheck = spawnSync("git", ["-C", item.sourceRoot, "show-ref", "--verify", "--quiet", `refs/heads/${taskBranch}`]);
@@ -182,6 +194,7 @@ export class QueueExecutor {
       taskRoot = join(base, `${item.taskId.toLowerCase()}-v${item.version}`);
       invariant(!existsSync(taskRoot), "Task worktree already exists");
     }
+    if (!this.startupReady(item)) return false;
     this.lease(item, item.sourceRoot);
     const allowlist = JSON.parse(helper(item.sourceRoot, "automation_worktree_allowlist_file_json_at", [item.sourceRoot], this.run.id)) as string[];
     const workspace: Workspace = { taskId: item.taskId, sourceRoot: item.sourceRoot, originalBranch: item.targetBranch,
@@ -507,7 +520,7 @@ export class QueueExecutor {
             await script(item.sourceRoot, "orchestrate-task.sh", [item.taskId], this.run.id);
             if (this.state() === "READY_TO_COMMIT" && this.item().request?.kind !== "abort") await this.integrate();
           } else {
-            error = readJson<{refresh: {reason: string}}>(join(this.evidence, "planning-baseline.json")).refresh.reason;
+            error = this.item().precondition ? readinessMessage(this.item().precondition!) : readJson<{refresh: {reason: string}}>(join(this.evidence, "planning-baseline.json")).refresh.reason;
           }
           break;
         case "retry-baseline":
@@ -570,7 +583,13 @@ export class QueueExecutor {
       const recovery = this.item().baselineRecovery;
       if (recovery?.failure) error += `; baseline ${String(recovery.failure.category)}/${String(recovery.failure.reasonCode)}; ${recovery.nextRunAt === null ? recovery.waitingReason ?? "explicit recovery required" : `retry scheduled for ${new Date(recovery.nextRunAt).toISOString()}`}`;
     } finally {
-      if (!["COMPLETED", "ABORTED", "BASELINE_REVIEW"].includes(this.state())) {
+      if (!error && ["BLOCKED", "TEST_FAILED", "NEEDS_HUMAN", "INTEGRATION_BLOCKED"].includes(this.state())) {
+        const statePath = join(this.queue.storage.runtime, "state", `${this.item().taskId}.json`);
+        const note = existsSync(statePath) ? readJson<{note?: string}>(statePath).note : null;
+        error = this.item().request?.kind === "abort" ? "Approved abort requested; preserve the candidate" :
+          note?.trim() || `${this.state()}: execution stopped without diagnostic output; inspect retained task evidence`;
+      }
+      if (!["COMPLETED", "ABORTED", "BASELINE_REVIEW", "WAITING_PRECONDITION"].includes(this.state())) {
         try { this.seal(); } catch (failure) { error = `${error ?? ""} Unable to seal workspace: ${String(failure)}`; }
       }
       this.queue.storage.transaction(document => {

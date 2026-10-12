@@ -1,5 +1,19 @@
 # Changelog
 
+## 1.3.0
+
+- Check installation/configuration drift before planning and sealing; recheck exact
+  drafts before enqueue and startup, preserving approval receipts on failed writes.
+- Persist `WAITING_PRECONDITION` without starting Coder or Gradle; resume only under
+  the original baseline authorization, with cancellation, pause and restart support.
+- Share NUL-delimited Git path checks across queue and Shell, including rename sides
+  and the exact staged/unstaged commit-prefix exception.
+- Expose bounded readiness summaries and complete paginated evidence; report command
+  failures even when subprocess output is empty.
+- Capture process identities consistently with C locale and refuse unsafe recovery
+  of ambiguous legacy localized ownership.
+
+
 ## 1.2.3 - 2026-10-11
 
 - Select verification tasks from changed source sets and transitive consumers,

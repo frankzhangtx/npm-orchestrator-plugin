@@ -20,7 +20,7 @@ export function git(root: string, args: readonly string[], input?: string): stri
     ...(input === undefined ? {} : { input }),
     env: { ...process.env, GIT_TERMINAL_PROMPT: "0" },
   });
-  invariant(result.status === 0, result.error?.message ?? result.stderr.trim() ?? "Git command failed");
+  invariant(result.status === 0, result.error?.message || result.stderr?.trim() || `Git ${args[0]} failed: exit=${result.status} signal=${result.signal}; no diagnostic output`);
   return result.stdout.trimEnd();
 }
 
@@ -30,7 +30,7 @@ export function gitBuffer(root: string, args: readonly string[]): Buffer {
     encoding: null, maxBuffer: 16 * 1024 * 1024,
     env: { ...process.env, GIT_TERMINAL_PROMPT: "0" },
   });
-  invariant(result.status === 0, result.error?.message ?? result.stderr.toString("utf8").trim() ?? "Git command failed");
+  invariant(result.status === 0, result.error?.message || result.stderr?.toString("utf8").trim() || `Git ${args[0]} failed: exit=${result.status} signal=${result.signal}; no diagnostic output`);
   return result.stdout;
 }
 
@@ -69,7 +69,7 @@ export interface ProcessIdentity { pid: number; started: string }
 
 export function processIdentity(pid: number): ProcessIdentity | null {
   invariant(Number.isInteger(pid) && pid > 0, "Invalid process ID");
-  const result = spawnSync("ps", ["-p", String(pid), "-o", "lstart=", "-o", "stat="], { encoding: "utf8" });
+  const result = spawnSync("ps", ["-p", String(pid), "-o", "lstart=", "-o", "stat="], { encoding: "utf8", env: { ...process.env, LC_ALL: "C", LANG: "C" } });
   invariant(!result.error, `Cannot inspect process ownership: ${result.error?.message}`);
   if (result.status === 1 && !result.stdout.trim()) return null;
   invariant(result.status === 0 && result.stdout.trim(), "Cannot prove process ownership; recovery required");
@@ -79,7 +79,14 @@ export function processIdentity(pid: number): ProcessIdentity | null {
 }
 
 export function isAlive(owner: ProcessIdentity): boolean {
-  return processIdentity(owner.pid)?.started === owner.started;
+  const current = processIdentity(owner.pid);
+  if (!current) return false;
+  if (current.started === owner.started) return true;
+  // Known canonical records permit PID-reuse detection. Unknown old localized
+  // records must not be treated as proof that the process exited.
+  invariant(/^(Mon|Tue|Wed|Thu|Fri|Sat|Sun) (Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec) \d{1,2} \d{2}:\d{2}:\d{2} \d{4}$/.test(owner.started),
+    "PROCESS_IDENTITY_UNCERTAIN: legacy localized process identity; retain locks and service ownership until the recorded PID exits");
+  return false;
 }
 
 export function processGroupAlive(pid: number): boolean {
@@ -161,8 +168,9 @@ export class QueueStorage<T> {
     const release = fileLock(this.lockPath);
     try {
       const document = this.read();
+      const before = JSON.stringify(document);
       const result = action(document);
-      atomicJson(this.path, document);
+      if (JSON.stringify(document) !== before || !existsSync(this.path)) atomicJson(this.path, document);
       return result;
     } finally { release(); }
   }
