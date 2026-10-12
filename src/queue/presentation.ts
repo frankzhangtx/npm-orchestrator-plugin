@@ -50,7 +50,7 @@ function resourceSummary(value: unknown): unknown {
 export function compactTaskDetails(details: Details): Details {
   const fields = ["key", "taskId", "version", "state", "digest", "targetBranch", "planningHead", "currentTargetHead",
     "workspaceStrategy", "commitPolicy", "taskRoot", "runId", "sealedDiff", "candidateId", "completedCommit",
-    "contractSha256", "planSha256"];
+    "contractSha256", "planSha256", "recordedState", "progress", "verificationFallbackReason"];
   const result: Details = Object.fromEntries(fields.map(key => [key, details[key]]));
   result.format = "task-summary-v1";
   result.pushed = false;

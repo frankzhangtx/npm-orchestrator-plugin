@@ -1,4 +1,5 @@
 import { evaluateReadiness, assertReadyForIntake, readinessMessage, type Readiness, type ReadinessScan } from "./preconditions.js";
+import { runtimePresentation } from "./progress.js";
 import { initialSupervision, supervisionEvidence, type Supervision, type ExecutionPolicy } from "./supervision.js";
 import { ownedTree, processSnapshot } from "./process-ownership.js";
 import type { ApprovalProof } from "./approvals.js";
@@ -17,6 +18,7 @@ export type WorkspaceStrategy = "inPlaceExclusive" | "isolatedWorktree";
 export type CommitPolicy = "humanApproval" | "autoCommit";
 export type JobKind = "execute" | "integrate" | "revalidate" | "resume" | "resume-review" | "abort" | "recover" | "retry-baseline";
 export interface QueueConfiguration {
+  androidProject?: { capabilities?: unknown };
   schemaVersion: number;
   enabled: boolean;
   mode: string;
@@ -32,6 +34,7 @@ export interface QueueConfiguration {
   gradleVerification: { fullUnitTestTasks: string[]; focusedTestTasks: string[]; assembleTasks: string[]; deviceTestTasks?: string[] };
 }
 export interface Draft {
+  verificationFallbackReason?: string;
   planningInputsSha256?: string;
   proposalApproval?: ApprovalProof;
   key: string;
@@ -102,6 +105,7 @@ export interface QueueDocument {
   notifications: QueueNotification[];
 }
 export interface DraftInput {
+  verificationFallbackReason?: string;
   contract: Record<string, unknown>; plan: string; planningHead: string; targetBranch: string;
   workspaceStrategy?: WorkspaceStrategy; commitPolicy?: CommitPolicy;
   notBefore?: string; dependsOn?: string[]; priority?: number;
@@ -436,6 +440,13 @@ export class TaskQueue {
     const config = this.config();
     validateContract(input.contract, config);
     this.verificationPreview(input.contract);
+    const scoped = Boolean((input.contract.verification as {scope?: unknown} | undefined)?.scope);
+    const verificationFallbackReason = input.verificationFallbackReason;
+    if (verificationFallbackReason !== undefined) invariant(!scoped && typeof verificationFallbackReason === "string" &&
+      verificationFallbackReason.trim().length >= 10 && Buffer.byteLength(verificationFallbackReason) <= 512,
+      "Full verification requires a meaningful verificationFallbackReason of at most 512 UTF-8 bytes; scoped contracts must omit it");
+    invariant(!config.androidProject?.capabilities || scoped || verificationFallbackReason !== undefined,
+      "New drafts with project capabilities require V7/V8 verification.scope (affected Debug by default), or an explicit verificationFallbackReason for full verification; existing approvals remain unchanged");
     invariant(input.plan.trim().length >= 20 && Buffer.byteLength(input.plan) <= 1024 * 1024, "A complete plan of at most 1 MiB is required");
     invariant(/^[a-f0-9]{40,64}$/.test(input.planningHead), "A fixed planning commit is required");
     git(this.storage.root, ["check-ref-format", `refs/heads/${input.targetBranch}`]);
@@ -463,7 +474,7 @@ export class TaskQueue {
     return this.storage.transaction(document => {
       const taskId = String(input.contract.id);
       const version = Math.max(0, ...document.drafts.filter(draft => draft.taskId === taskId).map(draft => draft.version)) + 1;
-      const sealed = { ...(proposalApproval ? { proposalApproval } : {}), ...(planningInputsSha256 ? { planningInputsSha256 } : {}), key: `${taskId}@${version}`, taskId, version, contract: input.contract, contractText,
+      const sealed = { ...(verificationFallbackReason !== undefined ? { verificationFallbackReason } : {}), ...(proposalApproval ? { proposalApproval } : {}), ...(planningInputsSha256 ? { planningInputsSha256 } : {}), key: `${taskId}@${version}`, taskId, version, contract: input.contract, contractText,
         plan: input.plan, contractSha256: sha256(contractText), planSha256: sha256(input.plan),
         planningHead: input.planningHead, targetBranch: input.targetBranch, sourceRoot: this.storage.root,
         workspaceStrategy, commitPolicy, notBefore, dependsOn: dependencies, priority, createdAt: now() };
@@ -492,9 +503,10 @@ export class TaskQueue {
   }
   approvalText(draft: Draft): string {
     const verification = (draft.contract.verification as {scope?: unknown} | undefined)?.scope ? "影响范围内的编译、单测" : "构建、全量单测";
-    const text = draft.commitPolicy === "autoCommit"
+    let text = draft.commitPolicy === "autoCommit"
       ? `批准入队 ${draft.key}：通过${verification}和独立 Review 后自动本地提交并集成，不推送远程。`
       : `批准入队 ${draft.key}：执行后等待人工确认提交，不推送远程。`;
+    if (draft.verificationFallbackReason) text += `使用全量验证（包含配置中的全部构建变体）；原因：${draft.verificationFallbackReason}`;
     const policy = continuityPolicy(draft.contract);
     return policy ? text + (policy.isolatedAutoIntegration ? "隔离工作区自动集成已授权。" : "") +
       (policy.planningRefresh === "completedQueueTasks" ? "仅允许已完成队列提交且声明的规划输入未变化时刷新基线。" : "规划基线变化须重新审批。") : text;
@@ -579,6 +591,9 @@ export class TaskQueue {
       document.active = null;
     });
   }
+  present(item: QueueItem, document: QueueDocument = this.storage.read()): Record<string, unknown> {
+    return { ...item, ...runtimePresentation(this.storage.runtime, item, document.active) };
+  }
   details(key: string): Record<string, unknown> {
     const stored = this.storage.read();
     const approved = this.findItem(stored, key);
@@ -608,7 +623,7 @@ export class TaskQueue {
     }
     if (Object.keys(stages).length) evidence.stageRecovery = stages;
     if (item.precondition) evidence.precondition = item.precondition;
-    return { ...item, currentTargetHead: git(item.sourceRoot, ["rev-parse", `refs/heads/${item.targetBranch}`]), evidence };
+    return { ...this.present(item, stored), currentTargetHead: git(item.sourceRoot, ["rev-parse", `refs/heads/${item.targetBranch}`]), evidence };
   }
   notify(document: QueueDocument, item: QueueItem, message: string): void {
     const id = sha256(`${item.key}:${item.state}:${item.candidateId}:${item.completedCommit}:${message}`);

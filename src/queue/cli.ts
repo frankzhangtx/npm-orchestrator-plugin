@@ -66,7 +66,7 @@ export async function queueCli(args: string[]): Promise<unknown> {
   if (action === "status") {
     if (values[0]) return queue.details(values[0]);
     const document = queue.storage.read();
-    return { service: serviceStatus(queue), ...document, active: publicRun(document.active), runs: document.runs.map(publicRun) };
+    return { service: serviceStatus(queue), ...document, items: document.items.map(item => queue.present(item, document)), active: publicRun(document.active), runs: document.runs.map(publicRun) };
   }
   if (action === "snapshot") return queue.snapshot(values[0]);
   if (action === "list") return queue.listSnapshot(values[0] ?? "", values[1], values[2], values[3], values[4] === undefined ? undefined : Number(values[4]));

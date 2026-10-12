@@ -1,5 +1,15 @@
 # Changelog
 
+## 1.3.1
+
+- Align Planner proposals with the generated V7 affected Debug template. New
+  unscoped drafts with project capabilities require an explicit full-verification
+  reason sealed into the draft and shown in approval text. Preserve old approvals.
+- Show live Shell stages and elapsed time in queue CLI, list and task details,
+  with the recorded queue state alongside. Bind observations to the current run
+  and workspace; ignore stale, malformed and terminal runtime observations.
+- Attach run IDs to executor and Shell state updates, including resumed runs.
+
 ## 1.3.0
 
 - Check installation/configuration drift before planning and sealing; recheck exact

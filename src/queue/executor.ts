@@ -82,7 +82,7 @@ export class QueueExecutor {
     const item = this.item();
     const path = join(this.queue.storage.runtime, "state", `${item.taskId}.json`);
     const previous = existsSync(path) ? readJson<{revision: number}>(path) : { revision: 0 };
-    atomicJson(path, { taskId: item.taskId, state, revision: previous.revision + 1, updatedAt: now(), updatedBy: "queue-executor", note });
+    atomicJson(path, { taskId: item.taskId, queueRunId: this.run.id, state, revision: previous.revision + 1, updatedAt: now(), updatedBy: "queue-executor", note });
     this.queue.storage.transaction(document => {
       invariant(document.active?.id === this.run.id, "Executor no longer owns the queue slot");
       const current = document.items.find(candidate => candidate.key === item.key)!;

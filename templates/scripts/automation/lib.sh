@@ -1406,7 +1406,8 @@ automation_initialize_state() {
         --arg updatedAt "$now" \
         --arg updatedBy "$actor" \
         --arg note "$note" \
-        '{taskId: $taskId, state: $state, revision: 1, updatedAt: $updatedAt, updatedBy: $updatedBy, note: $note}' \
+        --arg queueRunId "${AUTOMATION_QUEUE_RUN_ID:-}" \
+        '{queueRunId: $queueRunId, taskId: $taskId, state: $state, revision: 1, updatedAt: $updatedAt, updatedBy: $updatedBy, note: $note}' \
         > "$tmp"
     mv "$tmp" "$state_file"
     jq -nc \
@@ -1465,7 +1466,8 @@ automation_transition_state() {
         --arg updatedAt "$now" \
         --arg updatedBy "$actor" \
         --arg note "$note" \
-        '.state = $state | .revision = $revision | .updatedAt = $updatedAt | .updatedBy = $updatedBy | .note = $note' \
+        --arg queueRunId "${AUTOMATION_QUEUE_RUN_ID:-}" \
+        '.queueRunId = $queueRunId | .state = $state | .revision = $revision | .updatedAt = $updatedAt | .updatedBy = $updatedBy | .note = $note' \
         "$state_file" > "$tmp"
     mv "$tmp" "$state_file"
     jq -nc \

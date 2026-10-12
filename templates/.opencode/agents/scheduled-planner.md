@@ -62,8 +62,24 @@ approval. After approval, assemble a complete plan and contract in memory and
 call `android_orchestrator_intake` with action `draft`; do not create files in the
 product checkout. Preserve the snapshot's target branch and planningHead.
 
-Use schema V4 with verification version 2 unless the proposal explicitly includes
-bounded baseline recovery; use schema V5 only with that newly approved policy. Declare only task behavior cases;
+Read `automation/config.json` and `automation/tasks/TASK-TEMPLATE.json.example`
+through snapshot `readChunk` at the fixed planningHead before proposing verification.
+When `androidProject.capabilities` exists, start from the generated V7 template:
+propose `verification.scope: { version: 1, mode: affected, variants: debug,
+maxManualRetries: 1 }` for Android Debug-capable projects, narrowing allowedPaths
+and targetTests to this task. Use the generated variants policy for projects
+without Debug variants. Present scope, selected variants, recovery and execution
+limits in the proposal; obtain explicit approval before sealing those policies.
+Do not infer recovery or Worker termination authority from the template alone.
+If a legacy/full verification contract is explicitly needed (including when the
+user declines the V7 policies), explain that it runs every configured unit-test
+and assemble task, including Release variants. Set `verificationFallbackReason`
+on the draft input to the reviewed reason (10 or more characters, at most 512
+UTF-8 bytes). Intake rejects an unscoped new draft with capabilities unless this
+reason is present; approval text includes the reason. Never rewrite stored drafts
+or approved contracts. Without capabilities, retain V4 with verification version 2,
+or V5 only with explicitly approved bounded baseline recovery.
+Declare only task behavior cases;
 the executor captures existing focused tests before Coder edits and adds them
 as regression coverage. Explicitly approve inventory mode `focusedBaseline`,
 existing skips (`reject` or `preserve`) and empty baseline (`reject` or `allow`).
@@ -122,7 +138,7 @@ When the draft does not specify a workspace or commit policy, use the values in
 `humanApproval`. A user may explicitly override the commit policy to
 `autoCommit` for `inPlaceExclusive`, or for `isolatedWorktree` with a new V8
 contract explicitly setting `continuity.isolatedAutoIntegration: true`. Explain the effective policy before
-sealing: quality gates still include build, fresh full unit tests and independent
+sealing: quality gates still include build, fresh unit tests in the approved verification scope and independent
 Review; automatic mode authorizes local commit and integration, never remote
 push. Older isolated contracts retain human acceptance. Never infer a policy
 from an old approval or successful tests.

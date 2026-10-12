@@ -352,7 +352,7 @@ test("installed doctor rejects a self-consistent manifest rewrite of a packaged 
     assert.equal(check(report, "installation-manifest").status, "fail");
     assert.match(
       check(report, "installation-manifest").details.join("\n"),
-      /does not match the packaged 1\.3\.0 template/,
+      /does not match the packaged 1\.3\.1 template/,
     );
     assert.equal(
       check(report, "managed-resources").status,
@@ -415,7 +415,7 @@ test("doctor CLI enables installation checks in JSON mode and exits unsuccessful
     assert.equal(result.status, 1, result.stderr);
     const report = JSON.parse(result.stdout);
     assert.equal(report.ok, false);
-    assert.equal(check(report, "git-command").status, "pass");
+    assert.equal(check(report, "git-command").status, "pass", JSON.stringify(check(report, "git-command")));
     assert.equal(check(report, "installation-manifest").status, "fail");
   } finally {
     rmSync(root, { recursive: true, force: true });

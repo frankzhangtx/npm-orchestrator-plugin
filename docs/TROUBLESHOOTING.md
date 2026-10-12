@@ -1,7 +1,7 @@
 # Troubleshooting
 
 Use this guide for
-`@frankzhang2026/opencode-android-orchestrator@1.3.0`.
+`@frankzhang2026/opencode-android-orchestrator@1.3.1`.
 
 ## Start with read-only evidence
 
@@ -11,7 +11,7 @@ From the repository root, capture:
 git status --short --branch
 git rev-parse HEAD
 opencode --version
-npx @frankzhang2026/opencode-android-orchestrator@1.3.0 doctor . --json
+npx @frankzhang2026/opencode-android-orchestrator@1.3.1 doctor . --json
 ```
 
 If installation never completed, doctor will correctly report a missing or
@@ -51,9 +51,9 @@ command-scoped override:
 
 ```sh
 npm --registry=https://registry.npmjs.org/ view \
-  @frankzhang2026/opencode-android-orchestrator@1.3.0 version
+  @frankzhang2026/opencode-android-orchestrator@1.3.1 version
 npx --yes --registry=https://registry.npmjs.org/ \
-  @frankzhang2026/opencode-android-orchestrator@1.3.0 upgrade . --json
+  @frankzhang2026/opencode-android-orchestrator@1.3.1 upgrade . --json
 ```
 
 This leaves the company's saved npm configuration unchanged. Use the option
@@ -83,7 +83,7 @@ Git-backed Superpowers plugin at runtime.
 | Invalid `--long-command-timeout-ms` | The value is not an integer from `120000` through `7200000`. | Use the `1800000` ms default or pass an intentional bounded value to `init`/`upgrade`; do not edit the generated config directly. |
 | Android SDK failure | No valid explicit SDK, `ANDROID_HOME`, `ANDROID_SDK_ROOT`, or `local.properties` `sdk.dir` was found. | Configure one real SDK root containing `platforms/` and `build-tools/`. Do not publish `local.properties`. |
 | Missing `git`, `jq`, `rg`, `shasum`, or Java | Required deterministic command is unavailable on `PATH`. | Install or restore the missing command, record its version, and rerun the read-only checks. |
-| `Bundled Orchestrator skill is unavailable` | The installed `1.3.0` package is incomplete, damaged, or loaded from an unsupported partial copy. | Reinstall the exact package, inspect its `resources/third-party/superpowers-v6.2.0/skills/` entries, restart OpenCode, and rerun `opencode debug skill`. Do not add an external Superpowers plugin as a fallback. |
+| `Bundled Orchestrator skill is unavailable` | The installed `1.3.1` package is incomplete, damaged, or loaded from an unsupported partial copy. | Reinstall the exact package, inspect its `resources/third-party/superpowers-v6.2.0/skills/` entries, restart OpenCode, and rerun `opencode debug skill`. Do not add an external Superpowers plugin as a fallback. |
 | `current process does not own this task queue execution` immediately after Coder start on 1.0.1 | OpenCode created the tool shell in a separate process group, so 1.0.1 rejected a legitimate Worker descendant. | Upgrade to 1.0.2 or later, restart OpenCode, then use the approved resume or abort workflow for the retained task. Do not edit the queue or lease files. |
 | The exact Superpowers v6.2.0 plugin remains after upgrade | That entry existed in the verified pre-install OpenCode file and is therefore user-owned. | Leave it in place or remove it as a separate reviewed configuration change. Upgrade only removes the old Orchestrator-managed entry. |
 
@@ -100,7 +100,7 @@ silence of `./gradlew tasks --all --console=plain | rg ...` in a large build.
 For an existing installation, run:
 
 ```sh
-npx @frankzhang2026/opencode-android-orchestrator@1.3.0 upgrade . \
+npx @frankzhang2026/opencode-android-orchestrator@1.3.1 upgrade . \
   --refresh-gradle-discovery
 ```
 
@@ -109,7 +109,7 @@ least `1800000` milliseconds. A higher timeout already supplied by the caller
 is preserved; unrelated Bash commands are unchanged. To configure one hour,
 run `upgrade . --long-command-timeout-ms 3600000` on a healthy installation.
 If a command still reports `120000 ms`, confirm that the project manifest and
-OpenCode plugin reference are both `1.3.0`, restart the OpenCode session so the
+OpenCode plugin reference are both `1.3.1`, restart the OpenCode session so the
 plugin reloads, and rerun doctor before attempting recovery.
 
 After installation, inspect OpenCode discovery separately:
@@ -354,7 +354,7 @@ use queue `recover` after diagnosis; this reuses the same local commit. It must
 not be discarded to free capacity. Other safely sealed pre-commit failures do
 not stop independent tasks, but dependents continue waiting for integration.
 
-## Startup waits and stale planning (1.3.0)
+## Startup waits and stale planning (1.3.1)
 
 - `EXECUTION_CONFIG_CHANGED`: inspect listed plugin/configuration files and the
   committed/installed version fields. Review and commit intended changes, then
@@ -374,3 +374,14 @@ not stop independent tasks, but dependents continue waiting for integration.
 
 A wait with `workspaceCreated: false` uses `queue cancel`; an occupied task uses the
 approved abort flow. No repair budget is spent while waiting for startup conditions.
+
+
+## Long Release builds or PENDING while Coder is active
+
+Version 1.3.1 aligns Planner with generated affected Debug contracts and projects
+live Shell state into queue status. Check `state`, `recordedState` and `progress`;
+`workerAlive` and elapsed time do not establish build progress or a deadlock.
+Already approved V4 contracts still execute their original full verification,
+including configured Release tasks. Upgrade does not narrow their authority.
+Use the existing approved abort/cancel workflow and obtain a new scoped proposal
+when a different verification policy is needed; do not edit a sealed contract.

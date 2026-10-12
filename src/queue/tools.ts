@@ -90,7 +90,16 @@ export function createQueueTools(worktree: string, approvals = new ApprovalLedge
           if (args.key) return queueResponse(compactTaskDetails(queue.details(args.key)));
           const document = queue.storage.read();
           return JSON.stringify({ service: serviceStatus(queue), paused: document.paused, fault: document.fault, active: publicRun(document.active),
-            items: document.items.map(({ key, taskId, state, waitingReason, workspaceStrategy, commitPolicy, targetBranch, taskRoot, dependsOn, sealedDiff, candidateId, completedCommit, precondition }) => ({ readiness: precondition ? { state: precondition.state, reasonCode: precondition.reasonCode, checkedAt: precondition.checkedAt, planningHead: precondition.planningHead, pathCount: precondition.paths.length, codingStarted: false, workspaceCreated: false } : null, key, taskId, state, waitingReason, workspaceStrategy, commitPolicy, targetBranch, taskRoot, dependsOn, sealedDiff, candidateId, completedCommit, pushed: false })),
+            items: document.items.map(item => {
+              const { key, taskId, state, recordedState, progress, waitingReason, workspaceStrategy, commitPolicy,
+                targetBranch, taskRoot, dependsOn, sealedDiff, candidateId, completedCommit } = queue.present(item, document);
+              const { precondition } = item;
+              return { readiness: precondition ? { state: precondition.state, reasonCode: precondition.reasonCode,
+                checkedAt: precondition.checkedAt, planningHead: precondition.planningHead, pathCount: precondition.paths.length,
+                codingStarted: false, workspaceCreated: false } : null,
+                key, taskId, state, recordedState, progress, waitingReason, workspaceStrategy, commitPolicy,
+                targetBranch, taskRoot, dependsOn, sealedDiff, candidateId, completedCommit, pushed: false };
+            }),
             notifications: document.notifications.filter(notification => !notification.acknowledged) });
         }
         if (args.action === "review") {

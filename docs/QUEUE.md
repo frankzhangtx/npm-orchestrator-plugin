@@ -1,6 +1,6 @@
 # Queue and background execution
 
-Version `1.3.0` stores proposals and approved contracts under
+Version `1.3.1` stores proposals and approved contracts under
 `<git-common-dir>/automation-runtime/inbox/queue.json`. A contract is runnable
 only after its full plan, version, digest, target branch and commit policy are
 approved and durably recorded. Planning reads a fixed `planningHead`, so another
@@ -211,11 +211,13 @@ script disables up-to-date and output-cache reuse only for Test tasks, records
 actual suite results and rejects missing/skipped-only evidence. The invocation
 uses `--no-configuration-cache`; compilation and build caches remain usable.
 It does not run `clean` or rerun all dependency tasks. Coder, Reviewer and local
-integration perform the configured full suite and build gates. Evidence records
+integration perform the unit-test and build gates selected by the approved scope.
+Unscoped legacy contracts retain the configured full suite and build gates. Evidence records
 fresh-test logs, configured tasks and elapsed seconds.
 
-The 1.3.0 templates generate task-contract schema V4 with verification
-version 2. The 1.0.5 package
+The 1.3.1 installer generates schema V7 with affected verification when project
+capabilities exist; Android variants default to Debug. Projects without capabilities
+retain schema V4. Both use verification version 2. The 1.0.5 package
 does not include this protocol. Every verification case
 has a stable ID, a one-based acceptance-criterion reference, an evidence source,
 an exact test identity, and a pre-change classification:
@@ -598,7 +600,7 @@ tasks and decision. Prepare and capture a new baseline on that execution HEAD;
 never reuse another task's baseline, RED or Review evidence. Refresh is available
 only before execution, not a way to reset an existing task's retry budgets.
 
-## Startup readiness in 1.3.0
+## Startup readiness in 1.3.1
 
 Snapshot and draft sealing check for uncommitted execution inputs. Review and commit
 an installation upgrade before planning against it. Equal version numbers do not
@@ -640,3 +642,25 @@ in the live plugin process; a process restart requires a fresh question if no it
 was published. If publication succeeded before interruption, replay of the exact key,
 digest and approval returns the existing item, including cancelled items, without
 creating a second execution. The approval proof is stored in that item's authorization.
+
+
+## Planning defaults and live progress in 1.3.1
+
+Planner reads the generated task template and capability configuration at its fixed
+planning commit. It presents affected scope, variants, recovery and execution
+limits for explicit approval. A new unscoped draft in a capable project must include
+`verificationFallbackReason` (at least 10 characters, at most 512 UTF-8 bytes) on
+the draft input. This reason is sealed into the digest and displayed in approval
+text; full verification may include every configured Release build. Scoped drafts
+omit the reason. Existing stored drafts and approvals retain their original policy.
+
+`queue status`, per-task details and the OpenCode queue tool report the current
+Shell `state` while its owning worker is live. `recordedState` retains the durable
+scheduler value; `progress` includes the run ID, observed stage, update time,
+elapsed time and a bounded note. A live worker is not proof that Gradle is making
+progress: elapsed time is measured since the last state update, not a heartbeat.
+Only observations matching the active run, task and workspace are used. Corrupt,
+stale or terminal observations cannot complete a task or release a queue slot;
+execution and authorization continue to use durable records. Legacy initial runs
+can be displayed using workspace binding; resumed runs need a fresh run-bound
+state update.
