@@ -92,7 +92,10 @@ for(const [inventoryMode,workspaceStrategy,recovery] of [[false,'inPlaceExclusiv
         recovery:{version:1,scope:'baseline',maxEnvironmentRetries:1,maxManualRetries:0,maxElapsedMs:600000,initialDelayMs:1000,maxDelayMs:1000,maxSameFailureRetries:1},
         execution:{version:1,maxRunMs:180000,maxStageMs:120000,terminationGraceMs:1000},
         stageRecovery:{version:1,maxEnvironmentRetries:1,maxElapsedMs:600000,initialDelayMs:1000,maxDelayMs:1000,maxSameFailureRetries:1}});
-      const sealed=f.queue.draft({contract,plan:'# Approved nested behavior\n',...f.queue.snapshot()});
+      // These compatibility cases intentionally exercise the complete configured task set.
+      const verificationFallbackReason='Validate nested build routing across all configured tasks for this legacy compatibility case.';
+      const sealed=f.queue.draft({contract,plan:'# Approved nested behavior\n',verificationFallbackReason,...f.queue.snapshot()});
+      assert(f.queue.approvalText(sealed).includes(verificationFallbackReason));
       f.queue.enqueue(sealed.key,sealed.digest,f.queue.approvalText(sealed));
       const result=await run(f);
       assert.equal(result.item.state,'AWAITING_HUMAN',result.output+result.item.waitingReason);
