@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.3.3
+
+- Carry forward the 1.3.1 functionality with updated package metadata and
+  current-version installation and migration guidance. No runtime behavior
+  changes are included in this release.
+
 ## 1.3.1
 
 - Align Planner proposals with the generated V7 affected Debug template. New
