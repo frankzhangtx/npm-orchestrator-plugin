@@ -53,7 +53,13 @@ test('driver restart recovers its recorded Planner without relaunching the nativ
    if(existsSync(ownership)){record=JSON.parse(readFileSync(ownership,'utf8'));if(record.root)break;}
    await new Promise(r=>setTimeout(r,50));
   }
-  assert.ok(record?.root);child.kill('SIGKILL');await new Promise(r=>child.once('exit',r));
+  assert.ok(record?.root);
+  const witness=record.known.find(p=>p.pid===record.root.pid);
+  assert.equal(witness?.started,record.root.started);assert.equal(witness?.pgid,record.root.pid);
+  const {ownedTree}=await import('../dist/queue/process-ownership.js');
+  assert.deepEqual(ownedTree([{...witness,owned:false}],record.root,record.known),[{...witness,owned:false}]);
+  assert.throws(()=>ownedTree([{...witness,started:'different',owned:false}],record.root,record.known),/identity changed/);
+  child.kill('SIGKILL');await new Promise(r=>child.once('exit',r));
   await recoverModelProcesses(ownership,100,Date.now()+10000);
   assert.equal(processIdentity(record.root.pid),null);
   assert.equal(JSON.parse(readFileSync(ownership,'utf8')).state,'EXITED');
@@ -62,5 +68,12 @@ test('driver restart recovers its recorded Planner without relaunching the nativ
   child?.kill('SIGKILL');
   if(record?.root)await recoverModelProcesses(ownership,100,Date.now()+10000);
   rmSync(root,{recursive:true,force:true});
+ }
+});
+
+test('fast failing hosts preserve their actual exit without an ownership race', {timeout:30000}, async()=>{
+ for(let i=0;i<8;i++){
+  const {result}=await probe('process.exit(7);');
+  assert.equal(result.reason,'EXITED');assert.equal(result.exitCode,7);assert.equal(result.processesExited,true);
  }
 });

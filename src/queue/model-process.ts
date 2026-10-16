@@ -101,8 +101,12 @@ export async function runBoundedModel(options: ModelProcessOptions): Promise<Mod
     invariant(child.pid, "Model process has no PID");
     root = processIdentity(child.pid);
     invariant(root, "Cannot prove model process identity; supervisor must retain ownership");
-    ownership("RUNNING");
-    let known: OwnedProcess[] = [], termAt: number | null = null, empty = 0;
+    // spawn directly establishes the root identity and detached process group.
+    // Persist that witness before sampling: a fast-exiting macOS process can
+    // lose its visible environment before the first process-table snapshot.
+    let known: OwnedProcess[] = [{...root, ppid: process.pid, pgid: child.pid, owned: true}];
+    ownership("RUNNING", known);
+    let termAt: number | null = null, empty = 0;
     for (;;) {
       const now = Date.now();
       if (now < startedAt || now >= options.deadline) stop("DEADLINE");

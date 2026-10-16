@@ -1,6 +1,8 @@
 # Changelog
 
-## 1.3.4-rc.1 (local candidate, unpublished)
+## 1.3.4-rc.2 (local candidate, unpublished)
+
+- Persist the directly spawned model process identity before the first process snapshot to handle fast exits without losing ownership proof.
 
 - Add immutable local tarball installation identities and bounded trial execution
   with native delegated intake and mandatory original-installation restoration.
