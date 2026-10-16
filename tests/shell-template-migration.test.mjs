@@ -59,7 +59,7 @@ const expectedHashes = new Map([
   ],
   [
     "scripts/automation/orchestrate-task.sh",
-    "bf3fdd7492a0b1842eb4f61f0971f5591ee1faf0cb93cb999fbab74d3c644dd3",
+    "5fd14c8f2a97e96a99b1d4ac776dc457dd1dc27519b0d84d7f7adae662b726ee",
   ],
   [
     "scripts/automation/preflight.sh",
@@ -111,7 +111,7 @@ const expectedHashes = new Map([
   ],
   [
     "scripts/automation/status.sh",
-    "7ae4f3b7370463e083f23dc87c577cb45c90eb4ce0e9a5cc162d4e2f97d8f1fe",
+    "5cface48d778461ea7ad70054dd9579969bfb4001a3543cf2ac4eefa30ffd4a6",
   ],
   [
     "scripts/automation/submit-review.sh",

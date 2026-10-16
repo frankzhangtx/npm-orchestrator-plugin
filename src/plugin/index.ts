@@ -1,3 +1,6 @@
+import { TaskQueue } from "../queue/queue.js";
+import { DELEGATION_ENV } from "../queue/delegation.js";
+import { currentPackageSource, assertConfiguredPackageSource } from "../installer/package-source.js";
 import { lstatSync } from "node:fs";
 import { resolve } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -74,6 +77,7 @@ export const createCompatiblePlugin: CompatiblePlugin = async ({
 
   return defineCompatibleHooks({
     config: async (config) => {
+      assertConfiguredPackageSource(currentPackageSource(), config.plugin);
       const compatibleConfig = config as typeof config & ConfigWithSkillPaths;
       compatibleConfig.skills = compatibleConfig.skills ?? {};
       compatibleConfig.skills.paths = compatibleConfig.skills.paths ?? [];
@@ -86,6 +90,13 @@ export const createCompatiblePlugin: CompatiblePlugin = async ({
       worktree: projectWorktree,
       shell: $,
     }), ...createQueueTools(projectWorktree, approvals) },
+    "command.execute.before": async (input, output) => {
+      const id = process.env[DELEGATION_ENV];
+      if (!id || input.command !== "change") return;
+      new TaskQueue(projectWorktree).bindDelegation(id, input.sessionID, input.arguments);
+      for (const part of output.parts) if (part.type === "text") part.text +=
+        "\nTrusted delegated run: first read android_orchestrator_snapshot. Only its verified delegation field can replace the two question approvals. Generate and display the complete plan and contract, then draft and enqueue through intake. Never simulate a human selection. Unresolved product choices stop the delegated run.";
+    },
     "shell.env": async (_input, output) => {
       output.env[ORCHESTRATOR_DIRECTORY_ENV] = projectDirectory;
       output.env[ORCHESTRATOR_WORKTREE_ENV] = projectWorktree;

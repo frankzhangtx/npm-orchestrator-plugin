@@ -44,6 +44,7 @@ test("exports a loadable OpenCode plugin using only common hooks", async () => {
   assert.deepEqual(Object.keys(hooks), [
     "config",
     "tool",
+    "command.execute.before",
     "shell.env",
     "tool.execute.before",
     "tool.execute.after",

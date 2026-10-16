@@ -85,7 +85,7 @@ export interface ReadOnlyToolsOptions {
 
 const TASK_ID_PATTERN = /^TASK-[A-Z0-9-]+$/;
 const STATUS_SCRIPT_RELATIVE_PATH = "scripts/automation/status.sh";
-const MAX_STATUS_OUTPUT_BYTES = 1024 * 1024;
+const MAX_STATUS_OUTPUT_BYTES = 16 * 1024;
 const REQUIRED_STATUS_CHECKS = [
   "installation-manifest",
   "managed-resources",
@@ -293,7 +293,7 @@ export function createReadOnlyTools(
 
         const status = parseStatusOutput(result.stdout, taskId);
         return {
-          output: `${JSON.stringify(status, null, 2)}\n`,
+          output: `${JSON.stringify(status)}\n`,
           metadata: {
             readOnly: true,
             taskId,

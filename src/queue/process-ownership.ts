@@ -1,26 +1,28 @@
 import { spawnSync } from "node:child_process";
 import { invariant, type ProcessIdentity } from "./storage.js";
 
+export type OwnershipMarker = "AUTOMATION_WORKER_TOKEN" | "AUTOMATION_MODEL_CALL_TOKEN";
+
 export interface OwnedProcess extends ProcessIdentity { ppid: number; pgid: number; owned: boolean }
 
 /** Discard command/environment text immediately: only identities may enter evidence. */
-export function parseProcessTable(output: string, token: string): OwnedProcess[] {
+export function parseProcessTable(output: string, token: string, marker: OwnershipMarker = "AUTOMATION_WORKER_TOKEN"): OwnedProcess[] {
   invariant(/^[a-f0-9]{64}$/.test(token), "Invalid Worker ownership token");
   return output.split("\n").filter(line => line.trim()).map(line => {
     const match = line.match(/^\s*(\d+)\s+(\d+)\s+(\d+)\s+(\S+\s+\S+\s+\d+\s+\S+\s+\d+)\s+(\S+)\s*(.*)$/);
     invariant(match, "Cannot parse process ownership snapshot");
     return { pid: Number(match[1]), ppid: Number(match[2]), pgid: Number(match[3]),
       started: match[4]!.trim().replace(/\s+/g, " "), zombie: match[5]!.startsWith("Z"),
-      owned: (` ${match[6]} `).includes(` AUTOMATION_WORKER_TOKEN=${token} `) };
+      owned: (` ${match[6]} `).includes(` ${marker}=${token} `) };
   }).filter(row => !row.zombie).map(({ zombie: _zombie, ...row }) => row);
 }
 
-export function processSnapshot(token: string): OwnedProcess[] {
+export function processSnapshot(token: string, marker: OwnershipMarker = "AUTOMATION_WORKER_TOKEN"): OwnedProcess[] {
   const result = spawnSync("ps", ["axeww", "-o", "pid=,ppid=,pgid=,lstart=,stat=,command="],
     { encoding: "utf8", env: { ...process.env, LC_ALL: "C", LANG: "C" }, timeout: 10000, maxBuffer: 64 * 1024 * 1024 });
   // Do not include ps stdout/stderr: it contains unrelated process environments.
   invariant(result.status === 0 && !result.error && result.stdout.trim(), "Cannot obtain complete process ownership snapshot");
-  return parseProcessTable(result.stdout, token);
+  return parseProcessTable(result.stdout, token, marker);
 }
 
 export function ownedTree(rows: OwnedProcess[], worker: ProcessIdentity, known: OwnedProcess[] = []): OwnedProcess[] {
@@ -42,8 +44,8 @@ export function ownedTree(rows: OwnedProcess[], worker: ProcessIdentity, known: 
   return tree;
 }
 
-export function signalOwned(token: string, expected: ProcessIdentity, signal: NodeJS.Signals, known: OwnedProcess[] = []): boolean {
-  const current = processSnapshot(token).find(row => row.pid === expected.pid);
+export function signalOwned(token: string, expected: ProcessIdentity, signal: NodeJS.Signals, known: OwnedProcess[] = [], marker: OwnershipMarker = "AUTOMATION_WORKER_TOKEN"): boolean {
+  const current = processSnapshot(token, marker).find(row => row.pid === expected.pid);
   if (!current) return false;
   const witnessed = known.some(p => p.pid === current.pid && p.started === current.started && p.pgid === current.pgid);
   invariant(current.started === expected.started && (current.owned || witnessed), "Process identity changed before signal; refusing termination");

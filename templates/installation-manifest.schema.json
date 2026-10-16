@@ -27,20 +27,199 @@
     },
     "managedPath": {
       "allOf": [
-        { "$ref": "#/$defs/relativePath" },
-        { "pattern": "^(?!\\.automation-plugin(?:/|$)).+" }
+        {
+          "$ref": "#/$defs/relativePath"
+        },
+        {
+          "pattern": "^(?!\\.automation-plugin(?:/|$)).+"
+        }
       ]
     }
   },
   "properties": {
-    "schemaVersion": { "const": 1 },
+    "schemaVersion": {
+      "const": 1
+    },
     "package": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["name", "version"],
+      "required": [
+        "name",
+        "version"
+      ],
       "properties": {
-        "name": { "type": "string", "minLength": 1 },
-        "version": { "type": "string", "minLength": 1 }
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "version": {
+          "type": "string",
+          "minLength": 1
+        },
+        "source": {
+          "oneOf": [
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "kind",
+                "name",
+                "version"
+              ],
+              "properties": {
+                "kind": {
+                  "const": "registry"
+                },
+                "name": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "version": {
+                  "type": "string",
+                  "minLength": 1
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "kind",
+                "name",
+                "version",
+                "artifact",
+                "sha256",
+                "sha512",
+                "packageRoot",
+                "entry",
+                "files"
+              ],
+              "properties": {
+                "kind": {
+                  "const": "local-tgz"
+                },
+                "name": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "version": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "artifact": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "sha256": {
+                  "$ref": "#/$defs/sha256"
+                },
+                "sha512": {
+                  "type": "string",
+                  "pattern": "^[a-f0-9]{128}$"
+                },
+                "packageRoot": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "entry": {
+                  "type": "string",
+                  "pattern": "^file:"
+                },
+                "files": {
+                  "type": "object",
+                  "propertyNames": {
+                    "$ref": "#/$defs/relativePath"
+                  },
+                  "additionalProperties": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": [
+                      "sha256",
+                      "mode"
+                    ],
+                    "properties": {
+                      "sha256": {
+                        "$ref": "#/$defs/sha256"
+                      },
+                      "mode": {
+                        "type": "integer",
+                        "minimum": 0,
+                        "maximum": 511
+                      }
+                    }
+                  }
+                },
+                "installation": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "root",
+                    "lockSha256",
+                    "files"
+                  ],
+                  "properties": {
+                    "root": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "lockSha256": {
+                      "$ref": "#/$defs/sha256"
+                    },
+                    "files": {
+                      "type": "object",
+                      "propertyNames": {
+                        "$ref": "#/$defs/relativePath"
+                      },
+                      "additionalProperties": {
+                        "oneOf": [
+                          {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "required": [
+                              "kind",
+                              "sha256",
+                              "mode"
+                            ],
+                            "properties": {
+                              "kind": {
+                                "const": "file"
+                              },
+                              "sha256": {
+                                "$ref": "#/$defs/sha256"
+                              },
+                              "mode": {
+                                "type": "integer",
+                                "minimum": 0,
+                                "maximum": 511
+                              }
+                            }
+                          },
+                          {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "required": [
+                              "kind",
+                              "target"
+                            ],
+                            "properties": {
+                              "kind": {
+                                "const": "symlink"
+                              },
+                              "target": {
+                                "type": "string",
+                                "minLength": 1
+                              }
+                            }
+                          }
+                        ]
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          ]
+        }
       }
     },
     "installation": {
@@ -58,45 +237,89 @@
           "type": "string",
           "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$"
         },
-        "state": { "enum": ["prepared", "installed", "rolledBack"] },
-        "preparedAt": { "$ref": "#/$defs/timestamp" },
+        "state": {
+          "enum": [
+            "prepared",
+            "installed",
+            "rolledBack"
+          ]
+        },
+        "preparedAt": {
+          "$ref": "#/$defs/timestamp"
+        },
         "installedAt": {
           "oneOf": [
-            { "$ref": "#/$defs/timestamp" },
-            { "type": "null" }
+            {
+              "$ref": "#/$defs/timestamp"
+            },
+            {
+              "type": "null"
+            }
           ]
         },
         "rolledBackAt": {
           "oneOf": [
-            { "$ref": "#/$defs/timestamp" },
-            { "type": "null" }
+            {
+              "$ref": "#/$defs/timestamp"
+            },
+            {
+              "type": "null"
+            }
           ]
         }
       },
       "allOf": [
         {
-          "if": { "properties": { "state": { "const": "prepared" } } },
+          "if": {
+            "properties": {
+              "state": {
+                "const": "prepared"
+              }
+            }
+          },
           "then": {
             "properties": {
-              "installedAt": { "type": "null" },
-              "rolledBackAt": { "type": "null" }
+              "installedAt": {
+                "type": "null"
+              },
+              "rolledBackAt": {
+                "type": "null"
+              }
             }
           }
         },
         {
-          "if": { "properties": { "state": { "const": "installed" } } },
+          "if": {
+            "properties": {
+              "state": {
+                "const": "installed"
+              }
+            }
+          },
           "then": {
             "properties": {
-              "installedAt": { "$ref": "#/$defs/timestamp" },
-              "rolledBackAt": { "type": "null" }
+              "installedAt": {
+                "$ref": "#/$defs/timestamp"
+              },
+              "rolledBackAt": {
+                "type": "null"
+              }
             }
           }
         },
         {
-          "if": { "properties": { "state": { "const": "rolledBack" } } },
+          "if": {
+            "properties": {
+              "state": {
+                "const": "rolledBack"
+              }
+            }
+          },
           "then": {
             "properties": {
-              "rolledBackAt": { "$ref": "#/$defs/timestamp" }
+              "rolledBackAt": {
+                "$ref": "#/$defs/timestamp"
+              }
             }
           }
         }
@@ -104,7 +327,9 @@
     },
     "backupDirectory": {
       "allOf": [
-        { "$ref": "#/$defs/relativePath" },
+        {
+          "$ref": "#/$defs/relativePath"
+        },
         {
           "pattern": "^\\.automation-plugin/backups/[A-Za-z0-9][A-Za-z0-9._-]{0,127}$"
         }
@@ -126,12 +351,31 @@
           "previous"
         ],
         "properties": {
-          "path": { "$ref": "#/$defs/managedPath" },
-          "source": { "$ref": "#/$defs/relativePath" },
-          "strategy": { "enum": ["copy", "generate", "merge"] },
-          "sha256": { "$ref": "#/$defs/sha256" },
-          "size": { "type": "integer", "minimum": 0 },
-          "mode": { "type": "integer", "minimum": 0, "maximum": 511 },
+          "path": {
+            "$ref": "#/$defs/managedPath"
+          },
+          "source": {
+            "$ref": "#/$defs/relativePath"
+          },
+          "strategy": {
+            "enum": [
+              "copy",
+              "generate",
+              "merge"
+            ]
+          },
+          "sha256": {
+            "$ref": "#/$defs/sha256"
+          },
+          "size": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "mode": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 511
+          },
           "previous": {
             "type": "object",
             "additionalProperties": false,
@@ -143,52 +387,104 @@
               "backupPath"
             ],
             "properties": {
-              "existed": { "type": "boolean" },
+              "existed": {
+                "type": "boolean"
+              },
               "sha256": {
                 "oneOf": [
-                  { "$ref": "#/$defs/sha256" },
-                  { "type": "null" }
+                  {
+                    "$ref": "#/$defs/sha256"
+                  },
+                  {
+                    "type": "null"
+                  }
                 ]
               },
               "size": {
                 "oneOf": [
-                  { "type": "integer", "minimum": 0 },
-                  { "type": "null" }
+                  {
+                    "type": "integer",
+                    "minimum": 0
+                  },
+                  {
+                    "type": "null"
+                  }
                 ]
               },
               "mode": {
                 "oneOf": [
-                  { "type": "integer", "minimum": 0, "maximum": 511 },
-                  { "type": "null" }
+                  {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 511
+                  },
+                  {
+                    "type": "null"
+                  }
                 ]
               },
               "backupPath": {
                 "oneOf": [
-                  { "$ref": "#/$defs/relativePath" },
-                  { "type": "null" }
+                  {
+                    "$ref": "#/$defs/relativePath"
+                  },
+                  {
+                    "type": "null"
+                  }
                 ]
               }
             },
             "allOf": [
               {
-                "if": { "properties": { "existed": { "const": false } } },
+                "if": {
+                  "properties": {
+                    "existed": {
+                      "const": false
+                    }
+                  }
+                },
                 "then": {
                   "properties": {
-                    "sha256": { "type": "null" },
-                    "size": { "type": "null" },
-                    "mode": { "type": "null" },
-                    "backupPath": { "type": "null" }
+                    "sha256": {
+                      "type": "null"
+                    },
+                    "size": {
+                      "type": "null"
+                    },
+                    "mode": {
+                      "type": "null"
+                    },
+                    "backupPath": {
+                      "type": "null"
+                    }
                   }
                 }
               },
               {
-                "if": { "properties": { "existed": { "const": true } } },
+                "if": {
+                  "properties": {
+                    "existed": {
+                      "const": true
+                    }
+                  }
+                },
                 "then": {
                   "properties": {
-                    "sha256": { "$ref": "#/$defs/sha256" },
-                    "size": { "type": "integer", "minimum": 0 },
-                    "mode": { "type": "integer", "minimum": 0, "maximum": 511 },
-                    "backupPath": { "$ref": "#/$defs/relativePath" }
+                    "sha256": {
+                      "$ref": "#/$defs/sha256"
+                    },
+                    "size": {
+                      "type": "integer",
+                      "minimum": 0
+                    },
+                    "mode": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 511
+                    },
+                    "backupPath": {
+                      "$ref": "#/$defs/relativePath"
+                    }
                   }
                 }
               }

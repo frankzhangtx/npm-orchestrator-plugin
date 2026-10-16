@@ -71,7 +71,7 @@ dependencies { testImplementation files(${JSON.stringify(junit)}, ${JSON.stringi
   const discovery = discoverGradleProjectConfiguration(root, run, { timeoutMs: 240000 });
   const installed = runProjectInitialization(root, { projectDetection: discovery.detection,
     gradleVerification: discovery.gradleVerification, androidSdkDirectory: sdk, processRunner: runner });
-  assert.equal(installed.managedFileCount, 54);
+  assert.equal(installed.managedFileCount, 55);
   const configFile = join(root, 'automation/config.json');
   const config = JSON.parse(readFileSync(configFile));
   assert(config.androidProject.productionPaths.includes('library/code/kotlin/**'));

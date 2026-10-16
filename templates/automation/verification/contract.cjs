@@ -17,7 +17,7 @@ function validateContract(contract, config) {
   assert(fields(contract, ["schemaVersion", "id", "title", "designApproved", "planPath", "ambiguityPolicy",
     "maxFixLoops", "maxChangedFiles", "allowedPaths", "forbiddenPaths", "allowedWorkflowSkills",
     "acceptanceCriteria", "nonGoals", "targetTests", "deviceTestsRequired", "testPolicy", "verification"],
-    contract.schemaVersion === 8 ? ["testPolicyReason", "recovery", "execution", "stageRecovery", "continuity"] : contract.schemaVersion === 7 ? ["testPolicyReason", "recovery", "execution", "stageRecovery"] : contract.schemaVersion === 6 ? ["testPolicyReason", "recovery", "execution"] : contract.schemaVersion === 5 ? ["testPolicyReason", "recovery"] : ["testPolicyReason"]), "Invalid inventory contract fields");
+    contract.schemaVersion === 8 ? ["testPolicyReason", "recovery", "execution", "stageRecovery", "continuity", "modelContinuation"] : contract.schemaVersion === 7 ? ["testPolicyReason", "recovery", "execution", "stageRecovery"] : contract.schemaVersion === 6 ? ["testPolicyReason", "recovery", "execution"] : contract.schemaVersion === 5 ? ["testPolicyReason", "recovery"] : ["testPolicyReason"]), "Invalid inventory contract fields");
   assert([4, 5, 6, 7, 8].includes(contract.schemaVersion) && /^TASK-[A-Z0-9-]+$/.test(contract.id), "Invalid inventory contract identity");
   if (contract.schemaVersion >= 5) require("./recovery.cjs").validateRecoveryPolicy(contract.recovery);
   if (contract.schemaVersion >= 6) require("./recovery.cjs").validateExecutionPolicy(contract.execution);
@@ -30,6 +30,14 @@ function validateContract(contract, config) {
       new Set(policy.planningInputs).size === policy.planningInputs.length && policy.planningInputs.every(p =>
         typeof p === "string" && p.length <= 512 && /^[A-Za-z0-9._/?*-]+$/.test(p) &&
         !p.startsWith("/") && !p.includes("..") && p.split("/").every(part => part && part !== "." && part !== ".git")), "Invalid planning inputs");
+  }
+  if (Object.hasOwn(contract, "modelContinuation")) {
+    const p = contract.modelContinuation;
+    assert(contract.schemaVersion === 8 && fields(p, ["version", "maxContinuations", "maxCalls", "maxElapsedMs", "stepLimit"]) &&
+      p.version === 1 && Number.isInteger(p.maxContinuations) && p.maxContinuations >= 0 && p.maxContinuations <= 1 &&
+      Number.isInteger(p.maxCalls) && p.maxCalls >= 1 && p.maxCalls <= 16 &&
+      Number.isSafeInteger(p.maxElapsedMs) && p.maxElapsedMs >= 1000 && p.maxElapsedMs <= contract.execution.maxRunMs &&
+      Number.isInteger(p.stepLimit) && p.stepLimit >= 1 && p.stepLimit <= 256, "Invalid bounded model continuation policy");
   }
   assert(text(contract.title) && contract.designApproved === true && contract.ambiguityPolicy === "BLOCKED", "An approved bounded design is required");
   assert(contract.planPath === `docs/plans/${contract.id}.md`, "Invalid task plan path");

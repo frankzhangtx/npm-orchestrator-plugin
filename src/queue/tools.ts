@@ -1,3 +1,4 @@
+import { DELEGATION_ENV, type DelegationContext } from "./delegation.js";
 import { tool, type ToolContext, type ToolDefinition } from "@opencode-ai/plugin";
 import { resolve } from "node:path";
 import { gradleBuildRoot } from "../installer/project-capabilities.js";
@@ -22,6 +23,12 @@ export function createQueueTools(worktree: string, approvals = new ApprovalLedge
     }
     return new TaskQueue(root);
   }
+  function delegation(queue: TaskQueue, context: ToolContext): DelegationContext | undefined {
+    const id = process.env[DELEGATION_ENV];
+    if (!id) return undefined;
+    queue.sessionDelegation(id, context.sessionID);
+    return { id, sessionID: context.sessionID, messageID: context.messageID };
+  }
   return {
     android_orchestrator_snapshot: tool({
       description: "Read stable committed planning code without following the active Coder's branch or working files. Request compact snapshot metadata, discover paths with bounded list pages, then read exact files or chunks at the same planningHead.",
@@ -33,7 +40,11 @@ export function createQueueTools(worktree: string, approvals = new ApprovalLedge
       },
       async execute(args, context) {
         const queue = bounded(context);
-        if (args.action === "snapshot") return JSON.stringify(queue.snapshot(args.targetBranch));
+        const delegated = delegation(queue, context);
+        const grant = delegated ? queue.sessionDelegation(delegated.id, context.sessionID).grant : undefined;
+        if (grant) invariant(!args.targetBranch || args.targetBranch === grant.targetBranch, "Delegated snapshot target mismatch");
+        if (args.action === "snapshot") return JSON.stringify({ ...queue.snapshot(grant?.targetBranch ?? args.targetBranch),
+          ...(grant ? { delegation: { source: "delegatedApproval", ...grant, instructions: "Generate the complete plan and contract within this grant. Draft and enqueue consume explicit delegated approval; do not request or simulate question selections." } } : {}) });
         if (args.action === "list") return JSON.stringify(queue.listSnapshot(args.planningHead ?? "", args.prefix, args.query, args.cursor, args.limit));
         if (args.action === "readChunk") return JSON.stringify(queue.readSnapshotChunk(args.planningHead ?? "", args.path ?? "", args.cursor));
         return JSON.stringify(queue.readSnapshot(args.planningHead ?? "", args.path ?? ""));
@@ -48,11 +59,16 @@ export function createQueueTools(worktree: string, approvals = new ApprovalLedge
       },
       async execute(args, context) {
         const queue = bounded(context, true);
+        const delegated = delegation(queue, context);
         if (args.action === "draft") {
-          const draft = queue.draft(JSON.parse(args.draftJson ?? "{}") as DraftInput, approvals.peek(context, "proposal", "proposal"));
-          approvals.consume(context, "proposal", "proposal");
+          const draft = queue.draft(JSON.parse(args.draftJson ?? "{}") as DraftInput,
+            delegated ? undefined : approvals.peek(context, "proposal", "proposal"), delegated);
+          if (!delegated) approvals.consume(context, "proposal", "proposal");
           queue.reviewDraft(draft);
           const approvalText = queue.approvalText(draft);
+          if (delegated) return queueResponse({ ...compactTaskDetails(queue.details(draft.key)),
+            verificationPreview: queue.verificationPreview(draft.contract), approvalText, approvalSource: "delegatedApproval",
+            delegationId: delegated.id, instruction: "Display the sealed contract, then enqueue this exact key and digest with approvalText. The trusted grant is consumed atomically; no question receipt is generated." });
           const question = approvals.prepare(context.sessionID, "enqueue", `${draft.key}:${draft.digest}`, "合同确认",
             `确认将 ${draft.key}（摘要 ${draft.digest.slice(0, 12)}，目标 ${draft.targetBranch}）按已展示的合同及提交策略入队？`, approvalText);
           return queueResponse({ ...compactTaskDetails(queue.details(draft.key)), verificationPreview: queue.verificationPreview(draft.contract), approvalText, question });
@@ -60,13 +76,13 @@ export function createQueueTools(worktree: string, approvals = new ApprovalLedge
         // An exact duplicate only returns the already authorized record; it
         // cannot recreate a cancelled task or widen its policy.
         const existing = queue.storage.read().items.some(item => item.key === args.key);
-        const proof = existing ? undefined : approvals.peek(context, "enqueue", `${args.key}:${args.digest}`);
-        const item = queue.enqueue(args.key ?? "", args.digest ?? "", args.approval ?? "", proof);
+        const proof = existing || delegated ? undefined : approvals.peek(context, "enqueue", `${args.key}:${args.digest}`);
+        const item = queue.enqueue(args.key ?? "", args.digest ?? "", args.approval ?? "", proof, delegated);
         if (proof) approvals.consume(context, "enqueue", `${args.key}:${args.digest}`);
         let serviceError: string | null = null;
-        try { startService(queue); } catch (error) { serviceError = String(error); }
+        if (!delegated) try { startService(queue); } catch (error) { serviceError = String(error); }
         return JSON.stringify({ key: item.key, state: item.state, workspaceStrategy: item.workspaceStrategy, commitPolicy: item.commitPolicy,
-          waitingReason: item.waitingReason, serviceError, pushed: false });
+          waitingReason: item.waitingReason, serviceError, ...(delegated ? { serviceOwner: "trusted-trial-driver" } : {}), pushed: false });
       },
     }),
     android_orchestrator_queue: tool({
@@ -82,6 +98,10 @@ export function createQueueTools(worktree: string, approvals = new ApprovalLedge
       },
       async execute(args, context) {
         const queue = bounded(context, !["status", "review", "readEvidence"].includes(args.action));
+        if (process.env[DELEGATION_ENV]) {
+          delegation(queue, context);
+          invariant(["status", "readEvidence"].includes(args.action), "Delegated Planner cannot widen queue controls; the trusted driver owns cleanup");
+        }
         if (args.action === "readEvidence") {
           invariant(args.key && args.name, "Evidence read requires a task key and resource name");
           return queueResponse(readTaskEvidence(queue.details(args.key), args.name, args.evidenceSha256 ?? "", args.cursor));

@@ -31,7 +31,8 @@ starts execution, or grants approval.
    - focused test filter and device-test policy;
    - protected paths and explicit non-goals.
 6. Hand the proposal back to `scheduled-quality-orchestrator` for its formal
-   `方案确认` boundary.
+   approval boundary. Use its verified delegated path only when the native
+   snapshot tool returns a matching delegation; otherwise require `方案确认`.
 
 ## Boundaries
 

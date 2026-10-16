@@ -1,3 +1,4 @@
+import { packageRuntimeIdentity } from "../installer/package-source.js";
 import { spawn } from "node:child_process";
 import { closeSync, existsSync, mkdirSync, openSync, watch } from "node:fs";
 import { join } from "node:path";
@@ -64,6 +65,8 @@ export async function runWorker(queue: TaskQueue, runId: string): Promise<void> 
       invariant(document.active.supervision.state === "RUNNING" && document.active.supervision.owner && isAlive(document.active.supervision.owner), "Approved Worker supervisor is not running");
       invariant(process.env.AUTOMATION_WORKER_TOKEN === document.active.supervision.token, "Supervised Worker ownership token is missing");
     }
+    invariant(!document.active.packageIdentity || JSON.stringify(document.active.packageIdentity) === JSON.stringify(packageRuntimeIdentity()),
+      "Worker package identity differs from its reservation");
     document.active.worker = owner;
     run = structuredClone(document.active);
   });
@@ -122,7 +125,7 @@ export async function serve(queue: TaskQueue): Promise<void> {
   } finally { lifecycleRelease(); }
   const owner = processIdentity(process.pid);
   invariant(owner, "Cannot identify scheduler process");
-  atomicJson(join(queue.storage.runtime, "service.json"), owner);
+  atomicJson(join(queue.storage.runtime, "service.json"), { ...owner, packageIdentity: packageRuntimeIdentity() });
   let stopped = false;
   let wake: (() => void) | null = null;
   const stop = () => { stopped = true; wake?.(); };

@@ -38,6 +38,11 @@ run_agent() {
     local cycle="$3"
     local attempt="${4:-0}"
     local log_file exit_code
+    if jq -e 'has("modelContinuation")' "$(automation_contract_path "$task_id")" >/dev/null; then
+        [[ -n "${OPENCODE_ANDROID_ORCHESTRATOR_QUEUE_CLI:-}" ]] || automation_die "trusted model bridge is missing"
+        node "$OPENCODE_ANDROID_ORCHESTRATOR_QUEUE_CLI" _model-run "$source_root" "$role" "$prompt" "$cycle" "$attempt"
+        return $?
+    fi
     if [[ "$attempt" -eq 0 ]]; then
         log_file="$(automation_evidence_path "$task_id")/${role}-cycle-${cycle}.log"
     else

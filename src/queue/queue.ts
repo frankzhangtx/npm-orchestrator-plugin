@@ -1,3 +1,8 @@
+import { currentPackageSource, verifyPackageSource, packageRuntimeIdentity } from "../installer/package-source.js";
+import { validateDelegationGrant, delegationRecord, bindDelegationSession, checkDelegatedDraft, sealDelegatedDraft, consumeDelegation,
+  type DelegationGrant, type DelegationRecord, type DelegationContext, type DelegationProof } from "./delegation.js";
+import type { ModelLedger } from "./model-ledger.js";
+import { scopeAllows, validateRunScope, type RunScope } from "./run-scope.js";
 import { evaluateReadiness, assertReadyForIntake, readinessMessage, type Readiness, type ReadinessScan } from "./preconditions.js";
 import { runtimePresentation } from "./progress.js";
 import { initialSupervision, supervisionEvidence, type Supervision, type ExecutionPolicy } from "./supervision.js";
@@ -6,7 +11,7 @@ import type { ApprovalProof } from "./approvals.js";
 import { randomUUID } from "node:crypto";
 import { spawnSync } from "node:child_process";
 import { createRequire } from "node:module";
-import { existsSync, readFileSync } from "node:fs";
+import { existsSync, readFileSync, statSync } from "node:fs";
 import { join } from "node:path";
 import {
   atomicJson, fileLock, git, gitBuffer, invariant, isAlive, processGroupAlive, processIdentity, readJson,
@@ -57,12 +62,13 @@ export interface Draft {
   digest: string;
 }
 export interface QueueItem extends Draft {
+  modelLedger?: ModelLedger;
   precondition?: Readiness;
   approvedWorkspaceStrategy: WorkspaceStrategy;
   queuePriority: number;
   sequence: number;
   approvedAt: string;
-  authorization: { source: "contractApproval"; digest: string; commitPolicy: CommitPolicy; pushAfterAcceptance: false; revoked: boolean; proof?: ApprovalProof };
+  authorization: { source: "contractApproval" | "delegatedApproval"; delegation?: DelegationProof; digest: string; commitPolicy: CommitPolicy; pushAfterAcceptance: false; revoked: boolean; proof?: ApprovalProof };
   state: string;
   waitingReason: string | null;
   runId: string | null;
@@ -76,6 +82,7 @@ export interface QueueItem extends Draft {
   stageRecovery?: Record<string, { sha256: string }>;
 }
 export interface QueueRun {
+  packageIdentity?: ReturnType<typeof packageRuntimeIdentity>;
   id: string;
   key: string;
   kind: JobKind;
@@ -93,6 +100,8 @@ export interface QueueNotification {
   sealedDiff: string | null; commit: string | null; pushed: false; acknowledged: boolean;
 }
 export interface QueueDocument {
+  delegations?: DelegationRecord[];
+  runScope?: RunScope;
   schemaVersion: 1;
   sequence: number;
   paused: boolean;
@@ -265,7 +274,7 @@ export function draftFromItem(item: QueueItem): Draft {
   const { sequence: _sequence, approvedAt: _approvedAt, authorization: _authorization,
     state: _state, waitingReason: _waitingReason, runId: _runId, taskRoot: _taskRoot,
     request: _request, sealedDiff: _sealedDiff, sealedRunId: _sealedRunId, candidateId: _candidateId, completedCommit: _commit,
-    baselineRecovery: _baselineRecovery, stageRecovery: _stageRecovery, precondition: _precondition,
+    modelLedger: _modelLedger, baselineRecovery: _baselineRecovery, stageRecovery: _stageRecovery, precondition: _precondition,
     approvedWorkspaceStrategy, queuePriority: _priority, ...draft } = item;
   return { ...draft, workspaceStrategy: approvedWorkspaceStrategy };
 }
@@ -436,7 +445,47 @@ export class TaskQueue {
     const project = createRequire(import.meta.url)("../../templates/automation/verification/project.cjs");
     return project.selectVerification(this.config(), contract, this.storage.root, [], true);
   }
-  draft(input: DraftInput, proposalApproval?: ApprovalProof): Draft {
+  checkedDelegation(document: QueueDocument, id: string): DelegationRecord {
+    const record = delegationRecord(document, id), grant = record.grant;
+    invariant(grant.sourceRoot === this.storage.root, "Delegation repository changed");
+    const source = currentPackageSource();
+    invariant(source.kind === "local-tgz" && source.sha256 === grant.candidateSha256, "Delegation candidate package changed");
+    verifyPackageSource(source);
+    invariant(sha256(readFileSync(join(this.storage.root, "automation/config.json"))) === grant.configSha256 &&
+      git(this.storage.root, ["rev-parse", `refs/heads/${grant.targetBranch}`]) === grant.planningHead,
+      "Delegation configuration or planning HEAD changed");
+    return record;
+  }
+  issueDelegation(grant: DelegationGrant): void {
+    validateDelegationGrant(grant);
+    invariant(grant.sourceRoot === this.storage.root && Date.now() < Date.parse(grant.expiresAt), "Delegation repository or expiry mismatch");
+    invariant(git(this.storage.root, ["rev-parse", `${grant.planningHead}^`]) === grant.originalHead,
+      "Delegation planning baseline must be the single registered upgrade commit");
+    const changed = git(this.storage.root, ["diff", "--name-only", grant.originalHead, grant.planningHead]).split("\n").filter(Boolean);
+    invariant(changed.length > 0 && changed.every(p => grant.upgradePaths.includes(p)), "Unregistered change in upgrade baseline");
+    const manifest = readJson<{files: Array<{path: string}>}>(join(this.storage.root, ".automation-plugin/manifest.json"));
+    const managed = new Set(manifest.files.map(f => f.path));
+    invariant(grant.upgradePaths.every(p => managed.has(p) || p.startsWith(".automation-plugin/")), "Upgrade baseline includes unmanaged files");
+    this.storage.transaction(document => {
+      invariant(document.paused && !document.active, "Delegation issuance requires paused idle queue");
+      invariant(!document.delegations?.some(r => r.grant.id === grant.id || r.grant.taskId === grant.taskId ||
+        r.grant.candidateSha256 === grant.candidateSha256), "Candidate delegation already issued");
+      document.delegations ??= [];
+      invariant(document.delegations.filter(r => r.grant.runId === grant.runId).length < 3, "Candidate delegation limit exhausted");
+      document.delegations.push({grant, grantSha256: sha256(JSON.stringify(grant)), createdAt: now(), sessionID: null,
+        requestMessage: null, draft: null, consumedAt: null});
+      this.checkedDelegation(document, grant.id);
+    });
+  }
+  bindDelegation(id: string, sessionID: string, request: string): void {
+    this.storage.transaction(document => bindDelegationSession(this.checkedDelegation(document, id), sessionID, request));
+  }
+  sessionDelegation(id: string, sessionID: string): DelegationRecord {
+    const record = this.checkedDelegation(this.storage.read(), id);
+    invariant(record.sessionID === sessionID, "Delegation is not bound to this native change session");
+    return record;
+  }
+  draft(input: DraftInput, proposalApproval?: ApprovalProof, delegated?: DelegationContext): Draft {
     const config = this.config();
     validateContract(input.contract, config);
     this.verificationPreview(input.contract);
@@ -472,6 +521,14 @@ export class TaskQueue {
     const notBefore = input.notBefore === undefined ? null : new Date(input.notBefore).toISOString();
     const contractText = `${JSON.stringify(input.contract, null, 2)}\n`;
     return this.storage.transaction(document => {
+      const delegation = delegated ? this.checkedDelegation(document, delegated.id) : undefined;
+      if (delegation) checkDelegatedDraft(delegation, input, delegated!);
+      if (delegation?.draft) {
+        const previous = document.drafts.find(d => d.key === delegation.draft!.key);
+        invariant(previous && previous.contractSha256 === sha256(contractText) && previous.planSha256 === sha256(input.plan),
+          "Delegated draft already sealed with different content");
+        return previous;
+      }
       const taskId = String(input.contract.id);
       const version = Math.max(0, ...document.drafts.filter(draft => draft.taskId === taskId).map(draft => draft.version)) + 1;
       const sealed = { ...(verificationFallbackReason !== undefined ? { verificationFallbackReason } : {}), ...(proposalApproval ? { proposalApproval } : {}), ...(planningInputsSha256 ? { planningInputsSha256 } : {}), key: `${taskId}@${version}`, taskId, version, contract: input.contract, contractText,
@@ -480,6 +537,7 @@ export class TaskQueue {
         workspaceStrategy, commitPolicy, notBefore, dependsOn: dependencies, priority, createdAt: now() };
       const draft = { ...sealed, digest: draftDigest(sealed) };
       assertReadyForIntake(this.readiness(draft, document), true);
+      if (delegation) sealDelegatedDraft(delegation, draft, delegated!);
       document.drafts.push(draft);
       return draft;
     });
@@ -511,11 +569,14 @@ export class TaskQueue {
     return policy ? text + (policy.isolatedAutoIntegration ? "隔离工作区自动集成已授权。" : "") +
       (policy.planningRefresh === "completedQueueTasks" ? "仅允许已完成队列提交且声明的规划输入未变化时刷新基线。" : "规划基线变化须重新审批。") : text;
   }
-  enqueue(key: string, digest: string, approval: string, proof?: ApprovalProof): QueueItem {
+  enqueue(key: string, digest: string, approval: string, proof?: ApprovalProof, delegated?: DelegationContext): QueueItem {
     this.config();
     return this.storage.transaction(document => {
       const existing = document.items.find(item => item.key === key);
       if (existing) {
+        if (delegated) invariant(existing.authorization.source === "delegatedApproval" &&
+          existing.authorization.delegation?.id === delegated.id && existing.authorization.delegation.sessionID === delegated.sessionID,
+          "Delegated duplicate does not match the original session");
         invariant(existing.digest === digest && this.approvalText(existing) === approval, "Repeated approval does not match the sealed contract");
         return existing;
       }
@@ -525,12 +586,14 @@ export class TaskQueue {
       invariant(!document.items.some(item => item.taskId === draft.taskId && item.state !== "CANCELLED" && item.state !== "SUPERSEDED"), "This task already has an approved execution; use a new task ID or cancel its unstarted version");
       for (const dependency of draft.dependsOn) invariant(document.items.some(item => item.taskId === dependency && item.state !== "CANCELLED"), `Approve dependency first: ${dependency}`);
       assertReadyForIntake(this.readiness(draft, document));
+      invariant(delegated || !document.delegations?.some(r => r.draft?.key === key), "Delegated draft requires atomic grant consumption");
+      const delegationProof = delegated ? consumeDelegation(this.checkedDelegation(document, delegated.id), draft, delegated) : undefined;
       const item: QueueItem = { ...draft, approvedWorkspaceStrategy: draft.workspaceStrategy, queuePriority: draft.priority,
         sequence: ++document.sequence, approvedAt: now(),
-        authorization: { source: "contractApproval", digest, commitPolicy: draft.commitPolicy, pushAfterAcceptance: false, revoked: false, ...(proof ? { proof } : {}) },
+        authorization: { source: delegationProof ? "delegatedApproval" : "contractApproval", ...(delegationProof ? { delegation: delegationProof } : {}), digest, commitPolicy: draft.commitPolicy, pushAfterAcceptance: false, revoked: false, ...(proof ? { proof } : {}) },
         state: "QUEUED", waitingReason: null, runId: null, taskRoot: null, request: null, sealedDiff: null, sealedRunId: null, candidateId: null, completedCommit: null };
       document.items.push(item);
-      document.paused = false;
+      if (scopeAllows(document.runScope, item.key)) document.paused = false;
       this.notify(document, item, "Contract approved and durably enqueued");
       return item;
     });
@@ -561,7 +624,8 @@ export class TaskQueue {
         const config = this.config();
         helperFreeCleanCheck(this.storage.root);
         const policy = queuePolicy({ ...config, workspaceStrategy, commitPolicy });
-        atomicJson(join(this.storage.root, "automation/config.json"), { ...config, ...policy });
+        const configPath = join(this.storage.root, "automation/config.json");
+        atomicJson(configPath, { ...config, ...policy }, statSync(configPath).mode & 0o777);
         document.strategy = workspaceStrategy;
       });
     } finally { release(); }
@@ -609,7 +673,7 @@ export class TaskQueue {
     const item = approved;
     const evidence: Record<string, unknown> = {};
     for (const name of ["acceptance-report", "review", "full-test-verification", "commit-transaction", "integration", "planning-baseline",
-      "baseline-inventory", "baseline-recovery", "test-preflight", "test-manifest", "test-supplement", "green-inventory", "inventory-status", "verification-plan", "verification-result"]) {
+      "model-continuation", "baseline-inventory", "baseline-recovery", "test-preflight", "test-manifest", "test-supplement", "green-inventory", "inventory-status", "verification-plan", "verification-result"]) {
       const path = join(this.storage.runtime, "evidence", item.taskId, `${name}.json`);
       if (existsSync(path)) evidence[name] = readJson<unknown>(path);
     }
@@ -697,6 +761,15 @@ export class TaskQueue {
       this.notify(document, item, `${kind} requested; waiting for the repository execution slot`);
     });
   }
+  setRunScope(scope: RunScope): void {
+    validateRunScope(scope);
+    this.storage.transaction(document => {
+      invariant(document.paused && !document.active, "Run scope changes require a paused, idle queue");
+      invariant(!document.runScope || JSON.stringify(document.runScope) === JSON.stringify(scope), "Existing run scope is immutable; finish restoration before starting another batch");
+      invariant(!document.items.some(item => item.taskRoot && !TERMINAL.has(item.state)), "Cannot scope a queue with retained task workspaces");
+      document.runScope = structuredClone(scope);
+    });
+  }
   reserve(): QueueRun | null {
     const config = this.config();
     // Disk traversal stays outside the intake transaction.
@@ -712,7 +785,7 @@ export class TaskQueue {
     const readinessByKey = new Map<string, Readiness>();
     const scan: ReadinessScan = {};
     if (!observed.active && !observed.fault && !observed.paused) {
-      for (const item of observed.items.filter(item => ["QUEUED", "WAITING_PRECONDITION"].includes(item.state))) {
+      for (const item of observed.items.filter(item => scopeAllows(observed.runScope, item.key) && ["QUEUED", "WAITING_PRECONDITION"].includes(item.state))) {
         readinessByKey.set(item.key, evaluateReadiness(this, item.planningHead, item.targetBranch, item, observed, scan));
       }
     }
@@ -737,6 +810,11 @@ export class TaskQueue {
         .sort((a, b) => a.sequence - b.sequence);
       const pending = document.items.filter(item => !document.paused && ["QUEUED", "WAITING_PRECONDITION"].includes(item.state)).sort((a, b) => b.queuePriority - a.queuePriority || a.sequence - b.sequence);
       for (const item of [...requests, ...retries, ...pending]) {
+        if (!scopeAllows(document.runScope, item.key, item.request?.kind === "abort")) continue;
+        if (document.runScope && Number(item.contract.schemaVersion) < 6) {
+          item.waitingReason = "Scoped runs require an explicitly approved supervised execution policy";
+          continue;
+        }
         if (item.request?.kind !== "abort" && !config.unitTestsEnabled) { document.fault = "Queued execution requires unit tests; enable unitTestsEnabled"; return null; }
         if (item.state !== "WAITING_PRECONDITION") item.waitingReason = null;
         const retry = !item.request && item.state === "BLOCKED" ? item.baselineRecovery : null;
@@ -774,11 +852,16 @@ export class TaskQueue {
         }
         const launcher = processIdentity(process.pid);
         invariant(launcher, "Cannot establish execution launcher identity");
-        const run: QueueRun = { id: randomUUID(), key: item.key, kind: item.request?.kind ?? (retry ? "retry-baseline" : "execute"), createdAt: now(), launcher, worker: null, outcome: null };
+        const run: QueueRun = { packageIdentity: packageRuntimeIdentity(), id: randomUUID(), key: item.key, kind: item.request?.kind ?? (retry ? "retry-baseline" : "execute"), createdAt: now(), launcher, worker: null, outcome: null };
         // Consume the scheduled wake before launch. A crash or rejected input
         // must not replay it indefinitely without a new durable failed attempt.
         if (item.baselineRecovery && (run.kind === "retry-baseline" || run.kind === "resume")) item.baselineRecovery.nextRunAt = null;
         if (Number(item.contract.schemaVersion) >= 6) run.supervision = initialSupervision(item.contract.execution as unknown as ExecutionPolicy, Date.now());
+        if (document.runScope && run.supervision) {
+          const deadline = Date.parse(run.kind === "abort" ? document.runScope.cleanupExpiresAt : document.runScope.expiresAt);
+          run.supervision.deadline = Math.min(run.supervision.deadline, deadline);
+          run.supervision.stageDeadline = Math.min(run.supervision.stageDeadline, deadline);
+        }
         document.active = run; document.strategy = config.workspaceStrategy;
         item.runId = run.id;
         item.sealedRunId = null;

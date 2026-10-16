@@ -1,3 +1,5 @@
+import { parse } from "jsonc-parser";
+import { currentPackageSource, verifyPackageSource, type PackageSource } from "../installer/package-source.js";
 import { spawnSync } from "node:child_process";
 import { createRequire } from "node:module";
 import { existsSync, readFileSync } from "node:fs";
@@ -67,9 +69,25 @@ export function evaluateReadiness(queue: TaskQueue, planningHead: string, target
     targetHead = git(root, ["rev-parse", `refs/heads/${targetBranch}^{commit}`]);
     const configPaths = gitBuffer(root, ["ls-tree", "--name-only", "-z", planningHead, "--", "opencode.json", "opencode.jsonc"]).toString("utf8").split("\0").filter(Boolean);
     const pinned = configPaths.map(path => git(root, ["show", `${planningHead}:${path}`])).join("\n");
-    versions.committed = pinned.match(/opencode-android-orchestrator@([\d.]+)/)?.[1] ?? null;
+    versions.committed = pinned.match(/opencode-android-orchestrator@([0-9]+\.[0-9]+\.[0-9]+(?:-[0-9A-Za-z.-]+)?(?:\+[0-9A-Za-z.-]+)?)/)?.[1] ?? null;
     const manifest = join(root, ".automation-plugin/manifest.json");
-    if (existsSync(manifest)) versions.installed = readJson<{package: {version: string}}>(manifest).package.version;
+    if (existsSync(manifest)) {
+      const installed = readJson<{package: {version: string; source?: PackageSource}}>(manifest).package;
+      versions.installed = installed.version;
+      if (installed.source?.kind === "local-tgz") {
+        verifyPackageSource(installed.source);
+        invariant(JSON.stringify(currentPackageSource()) === JSON.stringify(installed.source), "Running package source differs from installed candidate");
+        const references = configPaths.flatMap(path => {
+          const errors: import("jsonc-parser").ParseError[] = [];
+          const parsed = parse(git(root, ["show", `${planningHead}:${path}`]), errors);
+          invariant(errors.length === 0 && Array.isArray(parsed?.plugin), "Invalid committed plugin configuration");
+          return parsed.plugin as string[];
+        });
+        invariant(references.filter(ref => ref === (installed.source as import("../installer/package-source.js").LocalPackageSource).entry).length === 1 &&
+          !references.some(ref => ref.startsWith(installed.source!.name + "@")), "Committed plugin entry differs from installed candidate");
+        versions.committed = installed.version;
+      }
+    }
     if (!scan.changes) {
       const allowlist = JSON.parse(readHelper(root, "automation_effective_worktree_allowlist_json_at")) as string[];
       scan.changes = shared.changes(root, allowlist);

@@ -1,7 +1,7 @@
 import { createHash, randomUUID } from "node:crypto";
 import { spawnSync } from "node:child_process";
 import {
-  closeSync, existsSync, fsyncSync, linkSync, lstatSync, mkdirSync, openSync,
+  closeSync, existsSync, fchmodSync, fsyncSync, linkSync, lstatSync, mkdirSync, openSync,
   readFileSync, realpathSync, renameSync, unlinkSync, writeFileSync,
 } from "node:fs";
 import { dirname, isAbsolute, join, relative, resolve, sep } from "node:path";
@@ -51,13 +51,14 @@ export function readJson<T>(path: string): T {
 }
 
 /** Replace a complete document; flush both bytes and its directory entry. */
-export function atomicJson(path: string, value: unknown): void {
+export function atomicJson(path: string, value: unknown, mode = 0o600): void {
   mkdirSync(dirname(path), { recursive: true, mode: 0o700 });
   if (existsSync(path)) invariant(!lstatSync(path).isSymbolicLink(), `Refusing symbolic link: ${path}`);
   const temporary = `${path}.${randomUUID()}.tmp`;
   const descriptor = openSync(temporary, "wx", 0o600);
   try {
     writeFileSync(descriptor, `${JSON.stringify(value, null, 2)}\n`);
+    fchmodSync(descriptor, mode);
     fsyncSync(descriptor);
   } finally { closeSync(descriptor); }
   renameSync(temporary, path);

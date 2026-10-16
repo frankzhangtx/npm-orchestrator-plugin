@@ -1,3 +1,4 @@
+import { currentPackageSource } from "./package-source.js";
 import { lstatSync, readFileSync, statSync } from "node:fs";
 import { join, resolve } from "node:path";
 
@@ -15,9 +16,12 @@ import {
 
 export const ORCHESTRATOR_PACKAGE_NAME =
   "@frankzhang2026/opencode-android-orchestrator";
-export const ORCHESTRATOR_PACKAGE_VERSION = "1.3.3";
+const runtimePackageSource = currentPackageSource();
+export const ORCHESTRATOR_PACKAGE_VERSION = runtimePackageSource.version;
 export const ORCHESTRATOR_PLUGIN_REFERENCE =
-  `${ORCHESTRATOR_PACKAGE_NAME}@${ORCHESTRATOR_PACKAGE_VERSION}`;
+  runtimePackageSource.kind === "local-tgz"
+    ? runtimePackageSource.entry
+    : `${ORCHESTRATOR_PACKAGE_NAME}@${ORCHESTRATOR_PACKAGE_VERSION}`;
 export const OPENCODE_CONFIG_SCHEMA_URL =
   "https://opencode.ai/config.json";
 export const REQUIRED_PLUGIN_REFERENCES = [

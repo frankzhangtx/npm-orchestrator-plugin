@@ -147,6 +147,7 @@ function evaluateCoverage(contract, baseline, collection, phase, manifest) {
     }
     const entry = { id: item.id, taskPath: item.taskPath, className: item.className, name: item.name,
       classification: item.classification, intent: item.intent ?? "regression", valid: Boolean(valid), actual: result,
+      expectedFailure: item.expectedFailure ?? null, actualFailureTypes: (result.failures ?? []).map(failure => failure.type),
       allowSkip: item.classification === "regression" && item.result === "SKIPPED" && result.result === "SKIPPED" };
     cases.push(entry);
     if (!valid) (result.result === "SKIPPED" ? coverage : mismatches).push({ ...entry, problem: result.result === "SKIPPED" ? "newly-skipped" : "unexpected-result" });

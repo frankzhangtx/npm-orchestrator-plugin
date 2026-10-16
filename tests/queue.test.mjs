@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { existsSync, readFileSync, writeFileSync } from "node:fs";
+import { existsSync, readFileSync, writeFileSync, statSync } from "node:fs";
 import { join } from "node:path";
 import test from "node:test";
 import { assertAuthorized, TaskQueue } from "../dist/queue/queue.js";
@@ -240,7 +240,9 @@ test("uncommitted claim-time policy change waits without changing sealed authori
     f.queue.reorder("TASK-AUTO", 100);
     assertAuthorized(f.queue.item("TASK-AUTO"));
     f.queue.control("pause");
+    const configMode = statSync(join(f.root, "automation/config.json")).mode & 0o777;
     f.queue.setPolicy("isolatedWorktree", "humanApproval");
+    assert.equal(statSync(join(f.root, "automation/config.json")).mode & 0o777, configMode);
     f.queue.control("resume");
     assert.equal(f.queue.reserve(), null);
     assert.equal(f.queue.item("TASK-HUMAN").state, "WAITING_PRECONDITION");

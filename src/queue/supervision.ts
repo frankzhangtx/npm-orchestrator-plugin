@@ -1,3 +1,4 @@
+import { packageRuntimeIdentity } from "../installer/package-source.js";
 import { spawn } from "node:child_process";
 import { randomBytes } from "node:crypto";
 import { existsSync } from "node:fs";
@@ -121,6 +122,8 @@ export async function supervise(queue: TaskQueue, runId: string): Promise<void> 
   invariant(owner, "Cannot identify Worker supervisor");
   let run = queue.storage.read().active;
   invariant(run?.id === runId && run.supervision, "Missing approved supervision reservation");
+  invariant(!run.packageIdentity || JSON.stringify(run.packageIdentity) === JSON.stringify(packageRuntimeIdentity()),
+    "Supervisor package identity differs from its reservation");
   const previous = run.supervision.owner;
   if (previous && isAlive(previous)) return;
   recoverOwnedTransaction(queue, run.supervision, run.worker);

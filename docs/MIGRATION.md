@@ -437,3 +437,9 @@ still requires a newly approved V8 contract with explicit continuity authority.
 Old queued tasks never inherit that permission. V8 planning snapshots are sealed
 with the draft; existing drafts cannot acquire them through in-place edits.
 See QUEUE.md for planning inputs, completed-queue refresh and recovery boundaries.
+
+## Local candidate validation
+
+See [local candidate trials](LOCAL-TRIAL.md) for artifact identity, bounded delegation,
+model continuation, and mandatory original-installation restoration. This path
+requires its own recorded validation and does not publish to npm.

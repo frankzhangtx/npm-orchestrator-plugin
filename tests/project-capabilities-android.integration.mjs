@@ -99,7 +99,7 @@ dependencies { api project(':${dep}'); ${testing} }
     return run(exe,args,opts);
   };
   const installed=runProjectInitialization(buildRoot,{projectDetection:discovery.detection,gradleVerification:discovery.gradleVerification,androidSdkDirectory:sdk,processRunner:installRunner});
-  assert.equal(installed.managedFileCount,54);
+  assert.equal(installed.managedFileCount,55);
   assert.equal(installed.targetDirectory,root);
   if(nested)assert.equal(existsSync(join(buildRoot,'automation')),false);
   const checks=installationDoctorChecks(root);assert(checks.every(c=>c.status!=='fail'),JSON.stringify(checks));

@@ -614,6 +614,41 @@
           }
         }
       }
+    },
+    "modelContinuation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "version",
+        "maxContinuations",
+        "maxCalls",
+        "maxElapsedMs",
+        "stepLimit"
+      ],
+      "properties": {
+        "version": {
+          "const": 1
+        },
+        "maxContinuations": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "maxCalls": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 16
+        },
+        "maxElapsedMs": {
+          "type": "integer",
+          "minimum": 1000
+        },
+        "stepLimit": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 256
+        }
+      }
     }
   },
   "allOf": [
@@ -787,6 +822,20 @@
               7,
               8
             ]
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "required": [
+          "modelContinuation"
+        ]
+      },
+      "then": {
+        "properties": {
+          "schemaVersion": {
+            "const": 8
           }
         }
       }

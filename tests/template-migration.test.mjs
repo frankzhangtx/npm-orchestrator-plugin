@@ -11,11 +11,11 @@ const opencodeTemplateRoot = join(templatesRoot, ".opencode");
 const expectedHashes = new Map([
   [
     ".opencode/agents/scheduled-coder.md",
-    "3ddc55f09ba54a6cf8d93b11ca93927a768158e253fbd9a91d70494be33bc778",
+    "a4e21132fad70837019caf39b76d4a522aa51018da46bf65fada88195ab1a11d",
   ],
   [
     ".opencode/agents/scheduled-planner.md",
-    "9f490cdfd4b0cfeee55792cb0902a9c76741618589302d300500edc066c8081f",
+    "120045428517062f31ffd64827dc256b498dae290929efe7e47deaf0560afc40",
   ],
   [
     ".opencode/agents/scheduled-reviewer.md",
@@ -31,7 +31,7 @@ const expectedHashes = new Map([
   ],
   [
     ".opencode/commands/change.md",
-    "096bf0487e64b0a2bf79d4845e67e4d6f54a06c1dc147693a12a0249df7ff3b2",
+    "ddbcab57d501f10dcd3dc2bb174f7ac51974b9d2dd50d42d49cb8035047dec49",
   ],
   [
     ".opencode/commands/resume-review.md",
@@ -47,7 +47,7 @@ const expectedHashes = new Map([
   ],
   [
     ".opencode/skills/scheduled-quality-orchestrator/SKILL.md",
-    "bf3c7c4d523ebc8931286cdfa2c10e55b63c81350caec830e75350fa4bd01912",
+    "328c9999bf8d6b37a20f14db6e7ec4eb9276f111ba8b45d6e783a4ddcc008555",
   ],
   [
     ".opencode/skills/scheduled-quality-reviewer/SKILL.md",

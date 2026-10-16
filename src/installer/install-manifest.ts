@@ -1,3 +1,4 @@
+import { currentPackageSource, validatePackageSource, type PackageSource } from "./package-source.js";
 import { createHash, randomUUID } from "node:crypto";
 import {
   chmodSync,
@@ -138,6 +139,7 @@ export interface InstallationManifestFile {
 export interface InstallationManifest {
   schemaVersion: 1;
   package: {
+    source?: PackageSource;
     name: string;
     version: string;
   };
@@ -865,7 +867,7 @@ function parseManifest(content: string): InstallationManifest {
     ]) ||
     value.schemaVersion !== INSTALLATION_MANIFEST_SCHEMA_VERSION ||
     !isRecord(value.package) ||
-    !exactKeys(value.package, ["name", "version"]) ||
+    !exactKeys(value.package, ["name", "version", ...(value.package.source === undefined ? [] : ["source"])]) ||
     typeof value.package.name !== "string" ||
     value.package.name.length === 0 ||
     typeof value.package.version !== "string" ||
@@ -1002,6 +1004,13 @@ function parseManifest(content: string): InstallationManifest {
     files.push(candidate as unknown as InstallationManifestFile);
   }
 
+  if (value.package.source !== undefined) {
+    try {
+      validatePackageSource(value.package.source as PackageSource);
+      const source = value.package.source as PackageSource;
+      if (source.name !== value.package.name || source.version !== value.package.version) return invalidManifest("Package source identity differs from manifest");
+    } catch { return invalidManifest("Invalid package source metadata"); }
+  }
   const sortedPaths = files.map((file) => file.path).sort();
   if (!files.every((file, index) => file.path === sortedPaths[index])) {
     return invalidManifest("Installation manifest files must be sorted by path.");
@@ -1010,6 +1019,7 @@ function parseManifest(content: string): InstallationManifest {
   return {
     schemaVersion: INSTALLATION_MANIFEST_SCHEMA_VERSION,
     package: {
+      ...(value.package.source === undefined ? {} : { source: value.package.source as PackageSource }),
       name: value.package.name,
       version: value.package.version,
     },
@@ -1207,6 +1217,7 @@ export function planInstallationPreparation(
     package: {
       name: ORCHESTRATOR_PACKAGE_NAME,
       version: ORCHESTRATOR_PACKAGE_VERSION,
+      ...(currentPackageSource().kind === "local-tgz" ? { source: currentPackageSource() } : {}),
     },
     installation: {
       id: installationId,

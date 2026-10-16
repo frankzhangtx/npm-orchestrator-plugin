@@ -8,6 +8,7 @@ const repositoryRoot = fileURLToPath(new URL("../", import.meta.url));
 const documents = [
   "docs/GRADLE-6.7.1.md",
   "docs/QUEUE.md",
+  "docs/LOCAL-TRIAL.md",
   "docs/MIGRATION.md",
   "docs/SECURITY.md",
   "docs/TROUBLESHOOTING.md",

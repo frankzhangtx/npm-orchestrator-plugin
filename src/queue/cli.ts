@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+import { runQueuedModel } from "./model-run.js";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -43,6 +44,10 @@ export async function queueCli(args: string[]): Promise<unknown> {
   }
   const [directory = process.cwd(), ...values] = rest;
   const queue = new TaskQueue(directory);
+  if (action === "_model-run") {
+    invariant(values.length === 4, "Invalid model bridge invocation");
+    return runQueuedModel(queue, values[0]!, values[1]!, Number(values[2]), Number(values[3]));
+  }
   if (action === "_stage-record") {
     const [phase, previous, next] = values;
     invariant(phase && ["red", "green", "review", "verification-green", "verification-review", "verification-integration"].includes(phase) && previous !== undefined && next && /^[a-f0-9]{64}$/.test(next), "Invalid stage checkpoint");
@@ -61,6 +66,16 @@ export async function queueCli(args: string[]): Promise<unknown> {
       item.stageRecovery[phase] = { sha256: next };
     });
     return;
+  }
+  if (action === "issue-delegation") {
+    invariant(values.length === 1, "issue-delegation requires a trusted grant JSON file");
+    queue.issueDelegation(JSON.parse(readFileSync(values[0]!, "utf8")));
+    return { issued: true };
+  }
+  if (action === "set-run-scope") {
+    invariant(values.length === 1, "set-run-scope requires a scope JSON file");
+    queue.setRunScope(JSON.parse(readFileSync(values[0]!, "utf8")));
+    return { runScope: queue.storage.read().runScope };
   }
   if (action === "_serve") return serve(queue);
   if (action === "status") {

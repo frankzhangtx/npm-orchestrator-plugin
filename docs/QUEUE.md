@@ -664,3 +664,9 @@ stale or terminal observations cannot complete a task or release a queue slot;
 execution and authorization continue to use durable records. Legacy initial runs
 can be displayed using workspace binding; resumed runs need a fresh run-bound
 state update.
+
+## Local candidate validation
+
+See [local candidate trials](LOCAL-TRIAL.md) for artifact identity, bounded delegation,
+model continuation, and mandatory original-installation restoration. This path
+requires its own recorded validation and does not publish to npm.

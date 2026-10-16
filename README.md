@@ -730,3 +730,9 @@ keep their authority. See [V6 policy and recovery](docs/QUEUE.md#v6-worker-safet
 New V7 contracts can approve independent environment retry budgets for RED,
 GREEN and Reviewer verification. Only identified transient command failures
 retry; model calls and commits are not replayed. See [V7 policy and evidence](docs/QUEUE.md#v7-verification-environment-recovery-110).
+
+## Local candidate validation
+
+See [local candidate trials](docs/LOCAL-TRIAL.md) for artifact identity, bounded delegation,
+model continuation, and mandatory original-installation restoration. This path
+requires its own recorded validation and does not publish to npm.

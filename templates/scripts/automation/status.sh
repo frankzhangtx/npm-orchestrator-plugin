@@ -16,44 +16,11 @@ workspace_file="$(automation_workspace_path "$task_id")"
 origin_file="$(automation_origin_path "$task_id")"
 evidence_dir="$(automation_evidence_path "$task_id")"
 
-state_json="$(if [[ -f "$state_file" ]]; then jq -c . "$state_file"; else printf 'null'; fi)"
+if [[ "${2:-}" == "--evidence" ]]; then
+    exec node "$AUTOMATION_DIR/verification/status.cjs" "$AUTOMATION_ROOT" "$AUTOMATION_RUNTIME_ROOT" "$task_id" "${@:2}"
+fi
+[[ "$#" -eq 1 ]] || automation_die "unexpected status arguments"
 workspace_json="$(if [[ -f "$workspace_file" ]]; then jq -c . "$workspace_file"; else printf 'null'; fi)"
-origin_json="$(if [[ -f "$origin_file" ]]; then jq -c . "$origin_file"; else printf 'null'; fi)"
-baseline_json="$(if [[ -f "$evidence_dir/baseline.json" ]]; then jq -c . "$evidence_dir/baseline.json"; else printf 'null'; fi)"
-red_json="$(if [[ -f "$evidence_dir/red.json" ]]; then jq -c . "$evidence_dir/red.json"; else printf 'null'; fi)"
-preflight_json="$(if [[ -f "$evidence_dir/test-preflight.json" ]]; then jq -c . "$evidence_dir/test-preflight.json"; else printf 'null'; fi)"
-supplement_json="$(if [[ -f "$evidence_dir/test-supplement.json" ]]; then jq -c . "$evidence_dir/test-supplement.json"; else printf 'null'; fi)"
-manifest_json="$(if [[ -f "$evidence_dir/test-manifest.json" ]]; then jq -c . "$evidence_dir/test-manifest.json"; else printf 'null'; fi)"
-inventory_baseline_json="$(if [[ -f "$evidence_dir/baseline-inventory.json" ]]; then jq -c . "$evidence_dir/baseline-inventory.json"; else printf 'null'; fi)"
-inventory_green_json="$(if [[ -f "$evidence_dir/green-inventory.json" ]]; then jq -c . "$evidence_dir/green-inventory.json"; else printf 'null'; fi)"
-inventory_status_json="$(if [[ -f "$evidence_dir/inventory-status.json" ]]; then jq -c . "$evidence_dir/inventory-status.json"; else printf 'null'; fi)"
-baseline_recovery_json="$(if [[ -f "$evidence_dir/baseline-recovery.json" ]]; then jq -c . "$evidence_dir/baseline-recovery.json"; else printf 'null'; fi)"
-stage_recovery_json='{}'
-for phase in red green review; do
-    if [[ -f "$evidence_dir/stage-recovery/$phase.json" ]]; then
-        stage_recovery_json="$(jq -nc --argjson current "$stage_recovery_json" --arg phase "$phase" \
-            --slurpfile record "$evidence_dir/stage-recovery/$phase.json" '$current + {($phase): $record[0]}')"
-    fi
-done
-supervision_json=null
-if [[ -f "$AUTOMATION_RUNTIME_ROOT/inbox/queue.json" ]]; then
-    supervision_json="$(jq -c --arg task "$task_id" '
-        ([.items[]? | select(.taskId == $task)] | last | .key) as $key |
-        ([.runs[]?, .active] | map(select(.key == $key)) | last | .supervision) |
-        if . == null then null else {state, stage, deadline, stageDeadline, stopReason, termAt, killAt} end
-    ' "$AUTOMATION_RUNTIME_ROOT/inbox/queue.json")"
-    supervision_json="${supervision_json:-null}"
-fi
-ready_json="$(if [[ -f "$evidence_dir/ready.json" ]]; then jq -c . "$evidence_dir/ready.json"; else printf 'null'; fi)"
-review_json="$(if [[ -f "$evidence_dir/review.json" ]]; then jq -c . "$evidence_dir/review.json"; else printf 'null'; fi)"
-gate_json=null
-if [[ "$ready_json" != "null" ]]; then
-    coding_cycle="$(jq -r '.codingCycle // 0' <<< "$ready_json")"
-    gate_file="$evidence_dir/gate-attempts-cycle-$coding_cycle.json"
-    if [[ -f "$gate_file" ]]; then
-        gate_json="$(jq -c . "$gate_file")"
-    fi
-fi
 
 current_diff_sha=""
 effective_worktree_allowlist_json='[]'
@@ -109,62 +76,19 @@ if [[ "$workspace_json" != "null" ]]; then
 fi
 
 [[ -f "$contract" ]] || automation_die "contract not found: $contract"
-jq -n \
-    --slurpfile contract "$contract" \
-    --argjson state "$state_json" \
-    --argjson workspace "$workspace_json" \
-    --argjson origin "$origin_json" \
-    --argjson baseline "$baseline_json" \
-    --argjson red "$red_json" \
-    --argjson testPreflight "$preflight_json" \
-    --argjson testSupplement "$supplement_json" \
-    --argjson testManifest "$manifest_json" \
-    --argjson baselineInventory "$inventory_baseline_json" \
-    --argjson greenInventory "$inventory_green_json" \
-    --argjson inventoryStatus "$inventory_status_json" \
-    --argjson baselineRecovery "$baseline_recovery_json" \
-    --argjson stageRecovery "$stage_recovery_json" \
-    --argjson workerSupervision "$supervision_json" \
-    --argjson ready "$ready_json" \
-    --argjson gate "$gate_json" \
-    --argjson review "$review_json" \
+jq -nc \
     --argjson repositoryLease "$lease_json" \
     --argjson repositoryLeaseMatches "$lease_matches" \
     --argjson taskBranchExists "$task_branch_exists" \
     --argjson effectiveWorktreeAllowlist "$effective_worktree_allowlist_json" \
     --arg originalHeadCurrent "$original_head_current" \
     --argjson originalBranchDrifted "$original_branch_drifted" \
-    --arg evidence "$evidence_dir" \
     --arg currentDiffSha256 "$current_diff_sha" \
-    '{contract: $contract[0], state: $state, workspace: $workspace, origin: $origin,
-      runtime: {
+    '{currentDiffSha256: $currentDiffSha256, runtime: {
         repositoryLease: $repositoryLease,
         repositoryLeaseMatches: $repositoryLeaseMatches,
         taskBranchExists: $taskBranchExists,
         effectiveWorktreeAllowlist: $effectiveWorktreeAllowlist,
         originalHeadCurrent: ($originalHeadCurrent | if length == 0 then null else . end),
         originalBranchDrifted: $originalBranchDrifted
-      },
-      evidenceDirectory: $evidence,
-      evidence: {
-        directory: $evidence,
-        baseline: $baseline,
-        red: $red,
-        testPreflight: $testPreflight,
-        testManifest: $testManifest,
-        testSupplement: $testSupplement,
-        baselineInventory: $baselineInventory,
-        greenInventory: $greenInventory,
-        inventoryStatus: $inventoryStatus,
-        baselineRecovery: $baselineRecovery,
-        stageRecovery: $stageRecovery,
-        workerSupervision: $workerSupervision,
-        ready: $ready,
-        latestGate: $gate,
-        review: $review,
-        currentDiffSha256: ($currentDiffSha256 | if length == 0 then null else . end),
-        sealedDiffMatches: (if ($ready == null or ($currentDiffSha256 | length) == 0)
-                            then null
-                            else $ready.diffSha256 == $currentDiffSha256
-                            end)
-      }}'
+    }}' | node "$AUTOMATION_DIR/verification/status.cjs" "$AUTOMATION_ROOT" "$AUTOMATION_RUNTIME_ROOT" "$task_id"

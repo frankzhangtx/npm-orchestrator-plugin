@@ -1,3 +1,5 @@
+import { validPackageVersion } from "./package-source.js";
+import { currentPackageSource } from "./package-source.js";
 import { queuePolicy, type QueuePolicy } from "../config/queue-policy.js";
 import { validateProjectCapabilities } from "./project-capabilities.js";
 import { assertQueueIdle, withQueueLifecycleLock } from "../queue/lifecycle.js";
@@ -608,8 +610,8 @@ function assertNoUpgradeMarker(targetDirectory: string): void {
 }
 
 function exactSemanticVersion(value: string): ReturnType<typeof parseOpenCodeVersion> {
-  const parsed = parseOpenCodeVersion(value);
-  return parsed !== null && parsed.normalized === value ? parsed : null;
+  if (!validPackageVersion(value)) return null;
+  return parseOpenCodeVersion(value.split("+")[0]!);
 }
 
 function versionRelation(fromVersion: string, toVersion: string): number {
@@ -1063,6 +1065,7 @@ function desiredManifest(
     package: {
       name: ORCHESTRATOR_PACKAGE_NAME,
       version: ORCHESTRATOR_PACKAGE_VERSION,
+      ...(currentPackageSource().kind === "local-tgz" ? { source: currentPackageSource() } : {}),
     },
     installation: {
       id: upgradeId,

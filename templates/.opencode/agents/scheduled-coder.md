@@ -2,7 +2,7 @@
 description: Implements or repairs exactly one orchestrated task with TDD and deterministic quality gates
 mode: primary
 temperature: 0.1
-steps: 32
+steps: 64
 permission:
   "*": deny
   android_orchestrator_status: allow
@@ -137,3 +137,10 @@ Controlled Gradle entries disable shared-daemon reuse. Never unset Worker
 ownership variables, launch persistent detached services, or bypass controlled
 entries to extend a deadline. If ownership or termination is blocked, preserve
 the candidate and stop; no extra implementation or retry is authorized.
+
+Use the bounded status summary once at each meaningful phase change. Full evidence
+is available through its named, digest-bound pages; do not repeatedly dump inventories.
+Use read/glob/grep tools to inspect source; arbitrary bash commands such as sed,
+cat, rg and shell pipelines are not allowed. Do not retry denied command variants.
+After successful RED, prioritize the production fix and quality-gate invocation;
+reserve at least eight tool calls for implementation, verification and reporting.

@@ -1,5 +1,9 @@
 #!/usr/bin/env node
 
+import { runTrial, type TrialSpecification } from "./trial/driver.js";
+import { captureInstallationRestorePoint, sealInstallationSwitch, restoreInstallation } from "./installer/restore.js";
+
+import { installLocalPackage } from "./installer/local-package.js";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import process from "node:process";
@@ -41,6 +45,9 @@ function printHelp(): void {
   process.stdout.write(`  upgrade    Upgrade unchanged managed resources\n`);
   process.stdout.write(`  uninstall  Remove unchanged managed resources\n`);
   process.stdout.write(`  queue      Manage durable contract intake and background execution\n`);
+  process.stdout.write(`  local-package  Install a tgz in an immutable candidate directory\n`);
+  process.stdout.write(`  trial-run  Run one bounded candidate and restore the original installation\n`);
+  process.stdout.write(`  installation-snapshot / installation-seal / installation-restore  Manage restoration evidence\n`);
 }
 
 function printInitHelp(): void {
@@ -154,7 +161,34 @@ function readGradleVerificationConfiguration(
 
 const [command, ...commandArguments] = process.argv.slice(2);
 
-if (command === "queue") {
+if (command === "trial-run") {
+  try {
+    if (commandArguments.length !== 1) throw new Error("Usage: trial-run SPECIFICATION.json");
+    const result = await runTrial(JSON.parse(readFileSync(commandArguments[0]!, "utf8")) as TrialSpecification);
+    process.stdout.write(JSON.stringify(result, null, 2) + "\n");
+    if (result.phase !== "VERIFIED" || result.error || result.result !== "COMPLETED") process.exitCode = 1;
+  } catch (error) { printCommandError(error); process.exitCode = 1; }
+} else if (["installation-snapshot", "installation-seal", "installation-restore"].includes(command ?? "")) {
+  try {
+    let result;
+    if (command === "installation-snapshot") {
+      const [directory, destination, paths] = commandArguments;
+      if (!directory || !destination || commandArguments.length > 3) throw new Error("Usage: installation-snapshot DIRECTORY DESTINATION [DESIRED_PATHS.json]");
+      result = captureInstallationRestorePoint(directory, destination, paths ? JSON.parse(readFileSync(paths, "utf8")) : []);
+    } else {
+      if (commandArguments.length !== 1) throw new Error(`Usage: ${command} SNAPSHOT_DIRECTORY`);
+      result = command === "installation-seal" ? sealInstallationSwitch(commandArguments[0]!) : restoreInstallation(commandArguments[0]!);
+    }
+    process.stdout.write(JSON.stringify(result, null, 2) + "\n");
+  } catch (error) { printCommandError(error); process.exitCode = 1; }
+} else if (command === "local-package") {
+  try {
+    const [artifact, directory, flag] = commandArguments;
+    if (!artifact || !directory || (flag !== undefined && flag !== "--offline") || commandArguments.length > 3) throw new Error("Usage: local-package ARTIFACT.tgz INSTALLATION_BASE [--offline]");
+    const source = installLocalPackage(artifact, directory, flag === "--offline");
+    process.stdout.write(JSON.stringify({ source, cli: resolve(source.packageRoot, "dist/cli.js") }, null, 2) + "\n");
+  } catch (error) { printCommandError(error); process.exitCode = 1; }
+} else if (command === "queue") {
   try {
     const result = await queueCli(commandArguments);
     if (result !== undefined) process.stdout.write(`${JSON.stringify(result, null, 2)}\n`);

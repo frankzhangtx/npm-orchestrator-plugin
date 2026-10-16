@@ -1,3 +1,4 @@
+import { currentPackageSource, verifyPackageSource } from "../installer/package-source.js";
 import { queuePolicy } from "../config/queue-policy.js";
 import { validateProjectCapabilities } from "../installer/project-capabilities.js";
 import { createHash } from "node:crypto";
@@ -44,7 +45,7 @@ import {
 } from "../installer/opencode-config.js";
 import type { DoctorCheck } from "./index.js";
 
-export const EXPECTED_MANAGED_FILE_COUNT = 54;
+export const EXPECTED_MANAGED_FILE_COUNT = 55;
 
 interface ExpectedManagedFile {
   path: string;
@@ -109,6 +110,7 @@ const AUTOMATION_SCRIPT_PATHS = [
 ] as const;
 
 const OTHER_TEMPLATE_PATHS = [
+  "automation/verification/status.cjs",
   "automation/verification/worktree.cjs",
   "automation/verification/project.cjs",
   "automation/verification/runtime.init.gradle",
@@ -261,6 +263,12 @@ function inspectRegularFile(
 
 function manifestInventoryIssues(manifest: InstallationManifest): string[] {
   const issues: string[] = [];
+  try {
+    const runtime = currentPackageSource();
+    if (manifest.package.source) verifyPackageSource(manifest.package.source);
+    if ((runtime.kind === "local-tgz" || manifest.package.source?.kind === "local-tgz") &&
+        JSON.stringify(runtime) !== JSON.stringify(manifest.package.source)) issues.push("Installed source does not match the running package source");
+  } catch (error) { issues.push(`Package source verification failed: ${String(error)}`); }
   if (manifest.package.name !== ORCHESTRATOR_PACKAGE_NAME) {
     issues.push(
       `Package name is ${manifest.package.name}; expected ${ORCHESTRATOR_PACKAGE_NAME}.`,

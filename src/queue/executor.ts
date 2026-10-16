@@ -1,3 +1,4 @@
+import { scopeAllows } from "./run-scope.js";
 import { readinessMessage } from "./preconditions.js";
 import { spawn, spawnSync } from "node:child_process";
 import { randomUUID } from "node:crypto";
@@ -87,11 +88,15 @@ export class QueueExecutor {
       invariant(document.active?.id === this.run.id, "Executor no longer owns the queue slot");
       const current = document.items.find(candidate => candidate.key === item.key)!;
       current.state = state;
+      // Publish the reason with the state, before asynchronous reconciliation.
+      current.waitingReason = ["BLOCKED", "TEST_FAILED", "NEEDS_HUMAN", "INTEGRATION_BLOCKED"].includes(state) ? note : null;
       this.queue.notify(document, current, note);
     });
   }
   private assertOwner(): void {
-    const active = this.queue.storage.read().active;
+    const document = this.queue.storage.read();
+    invariant(scopeAllows(document.runScope, this.run.key, this.run.kind === "abort"), "Run scope expired or excludes this task");
+    const active = document.active;
     invariant(!active?.supervision || active.supervision.state === "RUNNING", "Worker termination is pending; no new execution action is authorized");
     invariant(active?.id === this.run.id && active.worker?.pid === process.pid, "Executor does not own the repository slot");
     invariant(active.worker.started === processIdentity(process.pid)?.started, "Executor process identity changed");

@@ -299,3 +299,9 @@ codes, hashes, and redacted evidence. Do not publish credentials, proprietary
 diffs, recovery archives, or exploit details that would expose another
 project. See [Troubleshooting](TROUBLESHOOTING.md) for safe first-response
 commands.
+
+## Local candidate validation
+
+See [local candidate trials](LOCAL-TRIAL.md) for artifact identity, bounded delegation,
+model continuation, and mandatory original-installation restoration. This path
+requires its own recorded validation and does not publish to npm.

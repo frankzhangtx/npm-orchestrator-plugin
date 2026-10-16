@@ -8,12 +8,13 @@ import { fileURLToPath } from "node:url";
 const templatesRoot = fileURLToPath(new URL("../templates/", import.meta.url));
 
 const expectedBaselineHashes = new Map([
+  ["automation/verification/status.cjs", "996cd42c47b94e1ab8d1ac0de855649904ab4348b8ca16cca94f7ee1bf8e65fb"],
   ["automation/verification/worktree.cjs", "2ad71c57580ca2fd97f0abdcc87e80f3081fefbd293f3379fabc699587b3ed8c"],
   ["automation/verification/runtime.init.gradle", "3d3645fdc4197ba5f1c7d04f0d475cca8242a258759f01a24dfd6c0757b1e4f8"],
   ["automation/verification/project.cjs", "897d7e8950a1a7312d8bb764a3dc4235db3efeb05829f92ecb3e608d5d9c8464"],
   ["automation/verification/recovery.cjs", "cba937833554fa524e3b7d063205cf5262cd85f646760e25484577d4466d5cb9"],
-  ["automation/verification/contract.cjs", "5166a9a52d8ee5b9ce8844b022602470faee2509fcd771bec404dcd74e0679c8"],
-  ["automation/verification/inventory.cjs", "88e767c73589ef44a3f000ed4e672ba0fb44d29dac18de69baf1bb42daafbf51"],
+  ["automation/verification/contract.cjs", "ba364cf49dc2dad76c08449bb9a108f27b365637d3c3840a0f6d8687e1fa88c6"],
+  ["automation/verification/inventory.cjs", "d36ff2ed28f7edc3cf2e7b6ebb8234558de1ff7368f103014963c66ede4dddd5"],
   ["automation/verification/collect.init.gradle", "9c3d9095876c26f65537fdae4a6cf52d9226f28b9a4c61cb2b91ada65e70a743"],
   [
     "automation/config.json",
@@ -25,7 +26,7 @@ const expectedBaselineHashes = new Map([
   ],
   [
     "automation/task-contract.schema.json",
-    "1b87c280f17811992823a1799813b42a068edabed2428a3663f35b3b0c661730",
+    "ca51da02550809b95ba39705d4a04586a7f76e45b49c2b415d018c1a09f82d03",
   ],
   [
     "automation/tasks/TASK-TEMPLATE.json.example",
@@ -39,7 +40,7 @@ const expectedBaselineHashes = new Map([
 
 const agentsFragmentPath = "AGENTS.md.fragment";
 const expectedAgentsFragmentHash =
-  "ca93e50446aa2a5173164563dbf4b39dc1dab750348dc665f99f16c825616505";
+  "0f450d14d028f5f641394f8d54e97700da08abdfed07a314c03cd6555566ee14";
 
 function listFiles(directory) {
   return readdirSync(directory, { withFileTypes: true }).flatMap((entry) => {
@@ -230,6 +231,8 @@ test("provides one portable and bounded AGENTS managed block", () => {
   assert.match(fragment, /gradleVerification\.fullUnitTestTasks/);
   assert.doesNotMatch(fragment, /\.\/gradlew testDebugUnitTest/);
   assert.match(fragment, /single-choice `question` selection/);
+  assert.match(fragment, /matching delegation for the[\s\S]*native `\/change` session/);
+  assert.match(fragment, /With no verified grant, use ordinary approval/);
   assert.match(fragment, /must not push Git changes/);
   assert.match(fragment, /\.automation-worktree-allowlist/);
   assert.doesNotMatch(

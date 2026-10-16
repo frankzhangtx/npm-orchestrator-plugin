@@ -1,5 +1,15 @@
 # Changelog
 
+## 1.3.4-rc.1 (local candidate, unpublished)
+
+- Add immutable local tarball installation identities and bounded trial execution
+  with native delegated intake and mandatory original-installation restoration.
+- Add durable model-call budgets and checkpoint-bound Coder continuation.
+- Bound status summaries and provide digest-bound paging for full evidence.
+- Preserve configuration permissions when changing queue policy and publish
+  blocked-state diagnostics atomically with the state.
+- This candidate requires its recorded package and real-project validation.
+
 ## 1.3.3
 
 - Carry forward the 1.3.1 functionality with updated package metadata and
