@@ -61,8 +61,23 @@ export function delegationRecord(document: QueueDocument, id: string, at = Date.
     Date.parse(document.runScope.cleanupExpiresAt) <= Date.parse(record.grant.cleanupExpiresAt), "Delegation run scope changed");
   return record;
 }
+/** Match raw /change input or the single-argument transport emitted by OpenCode run.
+ * This is not JSON or shell decoding: only embedded double quotes are escaped;
+ * backslashes, newlines and whitespace in the authorized request stay literal.
+ */
+function matchesNativeRequest(argumentsText: string, expectedSha256: string): boolean {
+  if (typeof argumentsText !== "string") return false;
+  if (sha256(argumentsText) === expectedSha256) return true;
+  if (!argumentsText.startsWith('"') || !argumentsText.endsWith('"')) return false;
+  const request = argumentsText.slice(1, -1).replaceAll('\\"', '"');
+  // The CLI wraps arguments containing a literal space. Require its exact
+  // encoding, rejecting extra arguments, noncanonical escapes and extra layers.
+  return request.includes(" ") &&
+    '"' + request.replaceAll('"', '\\"') + '"' === argumentsText &&
+    sha256(request) === expectedSha256;
+}
 export function bindDelegationSession(record: DelegationRecord, sessionID: string, request: string): void {
-  invariant(typeof sessionID === "string" && sessionID.length > 0 && sha256(request) === record.grant.requestSha256,
+  invariant(typeof sessionID === "string" && sessionID.length > 0 && matchesNativeRequest(request, record.grant.requestSha256),
     "Native change request does not match delegated requirement");
   invariant(!record.consumedAt && (!record.sessionID || record.sessionID === sessionID), "Delegation is already bound or consumed");
   record.sessionID = sessionID;

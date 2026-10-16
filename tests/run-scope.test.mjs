@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import { fixture, enqueue, taskContract } from './queue-fixture.mjs';
 import { TaskQueue } from '../dist/queue/queue.js';
-import { scopeAllows } from '../dist/queue/run-scope.js';
+import { scopeAllows, validateRunScope } from '../dist/queue/run-scope.js';
 const execution = { version: 1, maxRunMs: 180000, maxStageMs: 30000, terminationGraceMs: 1000 };
 const recovery = { version: 1, scope: 'baseline', maxEnvironmentRetries: 0, maxManualRetries: 0, maxElapsedMs: 900000, initialDelayMs: 1000, maxDelayMs: 60000, maxSameFailureRetries: 0 };
 const scope = () => ({ version: 1, runId: 'test-validation', taskKeys: ['TASK-CANDIDATE@1'], expiresAt: new Date(Date.now() + 60000).toISOString(), cleanupExpiresAt: new Date(Date.now() + 120000).toISOString() });
@@ -39,4 +39,13 @@ test('expired scope remains closed across resume; only bounded scoped cleanup is
     f.queue.control('pause');
     assert.throws(() => f.queue.setRunScope({ ...s, taskKeys: ['TASK-HISTORICAL@1'] }), /immutable/);
   } finally { f.cleanup(); }
+});
+
+test('five explicitly scoped candidates are accepted but a sixth or duplicate is rejected',()=>{
+ const s={...scope(),taskKeys:Array.from({length:5},(_,i)=>`TASK-CANDIDATE-${i+1}@1`)};
+ validateRunScope(s);
+ assert.equal(scopeAllows(s,'TASK-CANDIDATE-5@1'),true);
+ assert.equal(scopeAllows(s,'TASK-CANDIDATE-6@1'),false);
+ assert.throws(()=>validateRunScope({...s,taskKeys:[...s.taskKeys,'TASK-CANDIDATE-6@1']}),/task keys/);
+ assert.throws(()=>validateRunScope({...s,taskKeys:[...s.taskKeys.slice(0,4),s.taskKeys[0]]}),/task keys/);
 });

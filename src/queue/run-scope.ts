@@ -1,5 +1,7 @@
 import { invariant } from "./storage.js";
 
+export const MAX_TRIAL_CANDIDATES = 5;
+
 /** Durable restriction. Expiration closes execution; it never removes the filter. */
 export interface RunScope {
   version: 1;
@@ -11,7 +13,7 @@ export interface RunScope {
 export function validateRunScope(value: RunScope): void {
   invariant(value && value.version === 1 && Object.keys(value).sort().join(",") === "cleanupExpiresAt,expiresAt,runId,taskKeys,version", "Invalid run scope");
   invariant(typeof value.runId === "string" && /^[a-zA-Z0-9-]{1,100}$/.test(value.runId), "Invalid run scope identity");
-  invariant(Array.isArray(value.taskKeys) && value.taskKeys.length > 0 && value.taskKeys.length <= 3 &&
+  invariant(Array.isArray(value.taskKeys) && value.taskKeys.length > 0 && value.taskKeys.length <= MAX_TRIAL_CANDIDATES &&
     value.taskKeys.every(key => typeof key === "string" && /^TASK-[A-Z0-9-]+@[1-9][0-9]*$/.test(key)) &&
     new Set(value.taskKeys).size === value.taskKeys.length, "Invalid run scope task keys");
   invariant(typeof value.expiresAt === "string" && typeof value.cleanupExpiresAt === "string" &&

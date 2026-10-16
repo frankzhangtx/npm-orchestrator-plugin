@@ -8,7 +8,7 @@ import { captureInstallationRestorePoint, sealInstallationSwitch, restoreInstall
 import { TaskQueue } from "../queue/queue.js";
 import { assertQueueIdle } from "../queue/lifecycle.js";
 import { DELEGATION_ENV, type DelegationGrant } from "../queue/delegation.js";
-import { type RunScope, validateRunScope } from "../queue/run-scope.js";
+import { MAX_TRIAL_CANDIDATES, type RunScope, validateRunScope } from "../queue/run-scope.js";
 import { runBoundedModel, recoverModelProcesses } from "../queue/model-process.js";
 import { serviceStatus, startService, stopService } from "../queue/service.js";
 import { atomicJson, fileLock, git, invariant, readJson, sha256 } from "../queue/storage.js";
@@ -72,7 +72,7 @@ export async function runTrial(spec: TrialSpecification): Promise<TrialLedger> {
     const previous = batch.candidates.find(c => c.sha256 === source.sha256);
     if (previous) invariant(previous.taskId === spec.taskId && previous.evidence === evidence, "Candidate already registered with a different task or evidence directory");
     else {
-      invariant(batch.candidates.length < 3 && !batch.candidates.some(c => c.taskId === spec.taskId), "Candidate or real-task budget exhausted");
+      invariant(batch.candidates.length < MAX_TRIAL_CANDIDATES && !batch.candidates.some(c => c.taskId === spec.taskId), "Candidate or real-task budget exhausted");
       batch.candidates.push({sha256: source.sha256, taskId: spec.taskId, evidence}); atomicJson(batchFile, batch);
     }
   } finally { batchRelease(); }

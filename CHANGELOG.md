@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.3.4-rc.4 (local candidate, unpublished)
+
+- Increase the shared candidate, delegated grant and run-scope task limit to five; retain one task per candidate and immutable existing scopes/deadlines.
+
+- Match native OpenCode single-argument quoting against the original delegated request digest without changing whitespace or literal backslashes; reject extra arguments and noncanonical encodings. Add captured host fixtures and an opt-in real-CLI check that stops before model invocation.
+
 ## 1.3.4-rc.3 (local candidate, unpublished)
 
 - Bind every OpenCode model session to the execution directory with `--dir` and a matching `PWD`, including trials launched from an external evidence directory.

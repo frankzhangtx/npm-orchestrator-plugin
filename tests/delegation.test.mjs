@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
+import {readFileSync} from 'node:fs';
 import {sha256} from '../dist/queue/storage.js';
 import {validateDelegationGrant,delegationRecord,bindDelegationSession,checkDelegatedDraft,sealDelegatedDraft,consumeDelegation} from '../dist/queue/delegation.js';
 const now=Date.now();
@@ -64,12 +65,14 @@ test('queue transaction consumes delegation with enqueue and repeats return the 
    policies:{recovery:c.recovery,execution:c.execution,stageRecovery:c.stageRecovery,continuity:c.continuity,
     modelContinuation:c.modelContinuation,maxFixLoops:c.maxFixLoops,deviceTestsRequired:c.deviceTestsRequired,
     verificationScope:c.verification.scope ?? null,maxPreparationFixes:c.verification.maxPreparationFixes,inventory:c.verification.inventory}};
-  const record={...s.record,grant,grantSha256:sha256(JSON.stringify(grant)),sessionID:s.context.sessionID};
+  const record={...s.record,grant,grantSha256:sha256(JSON.stringify(grant)),sessionID:null};
   // Isolate queue persistence from the separately tested artifact loader. The
   // production checkedDelegation also verifies actual package/config/HEAD.
   f.queue.checkedDelegation=(document,id)=>delegationRecord(document,id);
   f.queue.control('pause');f.queue.setRunScope({...s.document.runScope});
   f.queue.storage.transaction(d=>{d.delegations=[record];});
+  f.queue.bindDelegation(grant.id,s.context.sessionID,'"exact requirement"');
+  assert.equal(f.queue.storage.read().delegations[0].sessionID,s.context.sessionID);
   const input={contract:c,plan:'# Complete approved delegated behavior plan\n',...snapshot,workspaceStrategy:'isolatedWorktree',commitPolicy:'autoCommit'};
   const draft=f.queue.draft(input,undefined,s.context);
   assert.deepEqual(f.queue.draft(input,undefined,s.context),draft);
@@ -83,4 +86,45 @@ test('queue transaction consumes delegation with enqueue and repeats return the 
   assert.deepEqual(f.queue.enqueue(draft.key,draft.digest,f.queue.approvalText(draft),undefined,s.context),item);
   assert.equal(f.queue.storage.read().items.length,1);
  } finally {f.cleanup();}
+});
+
+const nativeArguments=JSON.parse(readFileSync(new URL('./fixtures/native-change-arguments.json',import.meta.url),'utf8'));
+test('real OpenCode native argument transports bind the original requirement digest',()=>{
+ for(const {request,arguments:transport} of nativeArguments.cases){
+  for(const input of [request,transport]){
+   const {record}=sample();record.grant.requestSha256=sha256(request);
+   bindDelegationSession(record,'native-session',input);
+   assert.equal(record.sessionID,'native-session');
+   assert.equal(record.grant.requestSha256,sha256(request));
+   assert.equal(record.consumedAt,null);
+   assert.throws(()=>bindDelegationSession(record,'different-session',input),/bound/);
+  }
+ }
+});
+test('native transport rejects altered content, multiple arguments and noncanonical decoding without binding',()=>{
+ const request='exact "US" requirement';
+ const valid='"exact \\"US\\" requirement"';
+ const invalid=[valid+' trailing',valid+' "extra"',' '+valid,valid+' ',
+  '"exact "US" requirement"',JSON.stringify(valid),
+  '"exact \\"us\\" requirement"','"exact  \\"US\\" requirement"',
+  '"exact \\"US\\" requirement "','"exact \\"US\\"" "requirement"',
+  '"exact \\u0022US\\u0022 requirement"'];
+ for(const input of invalid){
+  const {record}=sample();record.grant.requestSha256=sha256(request);
+  const before=structuredClone(record);
+  assert.throws(()=>bindDelegationSession(record,'native-session',input),/requirement/);
+  assert.deepEqual(record,before);
+ }
+});
+test('native transport preserves literal backslash sequences, surrounding whitespace and quotes',()=>{
+ for(const request of [String.raw`path C:\new\test with space`,String.raw`literal \n with space`,
+   '  exact requirement  ','"exact requirement"','exact requirement\nnext line','ends with \\']){
+  const transport='"'+request.replaceAll('"','\\"')+'"';
+  const {record}=sample();record.grant.requestSha256=sha256(request);
+  bindDelegationSession(record,'native-session',transport);
+  const consumed={...record,consumedAt:new Date().toISOString()};
+  assert.throws(()=>bindDelegationSession(consumed,'native-session',transport),/consumed/);
+ }
+ const {record}=sample();record.grant.requestSha256=sha256('literal \n with space');
+ assert.throws(()=>bindDelegationSession(record,'native-session','"literal \\n with space"'),/requirement/);
 });

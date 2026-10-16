@@ -79,7 +79,7 @@ if(args[0]==='run'&&args.includes('--command')){
  if(${failNative}){console.error('Injected native planner failure');process.exitCode=1;return;}
  (async()=>{
   const {hooks}=await pluginHooks(),sessionID='fixture-native-session';
-  await hooks['command.execute.before']({command:'change',sessionID,arguments:args.at(-1)},{parts:[{type:'text',text:'native change'}]});
+  await hooks['command.execute.before']({command:'change',sessionID,arguments:JSON.stringify(args.at(-1))},{parts:[{type:'text',text:'native change'}]});
   const ctx={directory:process.cwd(),worktree:process.cwd(),sessionID,messageID:'fixture-planner-message',agent:'scheduled-planner',abort:new AbortController().signal};
   const snap=JSON.parse(await hooks.tool.android_orchestrator_snapshot.execute({action:'snapshot'},ctx));
   if(!snap.delegation)throw new Error('Missing native delegation');
@@ -97,7 +97,7 @@ command(f.root,['add','--all']);command(f.root,['commit','-qm','Install original
 enqueue(f,'TASK-HISTORY');f.queue.control('pause');
 const historical=JSON.stringify(f.queue.item('TASK-HISTORY'));
 const head=command(f.root,['rev-parse','HEAD']),now=Date.now();
-const spec={version:1,runId:'fixture-batch',repository:f.root,evidenceDirectory:join(f.base,'trial'),batchDirectory:join(f.base,'batch'),originalHead:head,originalBranch:'main',originalPackageRoot:old,originalInstallationRoot:old,targetBranch:'trial/fixture',taskId:id,request:'Implement one fixture behavior with a regression test.',candidateSha256:source.sha256,allowedPaths:c.allowedPaths,targetTests:c.targetTests,
+const spec={version:1,runId:'fixture-batch',repository:f.root,evidenceDirectory:join(f.base,'trial'),batchDirectory:join(f.base,'batch'),originalHead:head,originalBranch:'main',originalPackageRoot:old,originalInstallationRoot:old,targetBranch:'trial/fixture',taskId:id,request:'Implement one "fixture" behavior with a regression test.',candidateSha256:source.sha256,allowedPaths:c.allowedPaths,targetTests:c.targetTests,
  policies:{recovery:c.recovery,execution:c.execution,stageRecovery:c.stageRecovery,continuity:c.continuity,modelContinuation:c.modelContinuation,maxFixLoops:c.maxFixLoops,deviceTestsRequired:c.deviceTestsRequired,verificationScope:c.verification.scope??null,maxPreparationFixes:c.verification.maxPreparationFixes,inventory:c.verification.inventory},
  runScope:{version:1,runId:'fixture-batch',taskKeys:[id+'@1'],expiresAt:new Date(now+240000).toISOString(),cleanupExpiresAt:new Date(now+360000).toISOString()}};
 const specFile=join(f.base,'spec.json');writeFileSync(specFile,JSON.stringify(spec,null,2));

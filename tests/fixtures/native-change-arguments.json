@@ -1,0 +1,34 @@
+{
+  "hostVersion": "1.15.13",
+  "source": "Observed command.execute.before arguments from real OpenCode run; diagnostic stopped before model invocation.",
+  "cases": [
+    {
+      "request": "\u4f18\u5316\u57df\u540d\u6ce8\u518c\u65f6\u7684\u7535\u8bdd\u533a\u53f7\u67e5\u8be2\uff1a\u56fd\u5bb6\u4ee3\u7801\u5ffd\u7565\u5927\u5c0f\u5199\u548c\u9996\u5c3e\u7a7a\u683c\uff0c\u4f8b\u5982 US\u3001us\u3001\" US \" \u90fd\u8fd4\u56de\u533a\u53f7 1\u3002\u7a7a\u767d\u6216\u672a\u77e5\u56fd\u5bb6\u4ee3\u7801\u8fd4\u56de\u7a7a\u503c\u3002\u4fdd\u6301\u5176\u4ed6\u624b\u673a\u53f7\u5904\u7406\u884c\u4e3a\u4e0d\u53d8\uff0c\u5e76\u8865\u5145\u5355\u5143\u6d4b\u8bd5\u3002",
+      "arguments": "\"\u4f18\u5316\u57df\u540d\u6ce8\u518c\u65f6\u7684\u7535\u8bdd\u533a\u53f7\u67e5\u8be2\uff1a\u56fd\u5bb6\u4ee3\u7801\u5ffd\u7565\u5927\u5c0f\u5199\u548c\u9996\u5c3e\u7a7a\u683c\uff0c\u4f8b\u5982 US\u3001us\u3001\\\" US \\\" \u90fd\u8fd4\u56de\u533a\u53f7 1\u3002\u7a7a\u767d\u6216\u672a\u77e5\u56fd\u5bb6\u4ee3\u7801\u8fd4\u56de\u7a7a\u503c\u3002\u4fdd\u6301\u5176\u4ed6\u624b\u673a\u53f7\u5904\u7406\u884c\u4e3a\u4e0d\u53d8\uff0c\u5e76\u8865\u5145\u5355\u5143\u6d4b\u8bd5\u3002\""
+    },
+    {
+      "request": "plain",
+      "arguments": "plain"
+    },
+    {
+      "request": "contains \"quotes\"",
+      "arguments": "\"contains \\\"quotes\\\"\""
+    },
+    {
+      "request": "path C:\\Users\\test with space",
+      "arguments": "\"path C:\\Users\\test with space\""
+    },
+    {
+      "request": "line one\nline two",
+      "arguments": "\"line one\nline two\""
+    },
+    {
+      "request": "tab\tvalue",
+      "arguments": "tab\tvalue"
+    },
+    {
+      "request": "quote \\\" and slash \\\\ here",
+      "arguments": "\"quote \\\\\" and slash \\\\ here\""
+    }
+  ]
+}

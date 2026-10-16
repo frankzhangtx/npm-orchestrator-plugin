@@ -2,7 +2,7 @@ import { currentPackageSource, verifyPackageSource, packageRuntimeIdentity } fro
 import { validateDelegationGrant, delegationRecord, bindDelegationSession, checkDelegatedDraft, sealDelegatedDraft, consumeDelegation,
   type DelegationGrant, type DelegationRecord, type DelegationContext, type DelegationProof } from "./delegation.js";
 import type { ModelLedger } from "./model-ledger.js";
-import { scopeAllows, validateRunScope, type RunScope } from "./run-scope.js";
+import { MAX_TRIAL_CANDIDATES, scopeAllows, validateRunScope, type RunScope } from "./run-scope.js";
 import { evaluateReadiness, assertReadyForIntake, readinessMessage, type Readiness, type ReadinessScan } from "./preconditions.js";
 import { runtimePresentation } from "./progress.js";
 import { initialSupervision, supervisionEvidence, type Supervision, type ExecutionPolicy } from "./supervision.js";
@@ -471,7 +471,7 @@ export class TaskQueue {
       invariant(!document.delegations?.some(r => r.grant.id === grant.id || r.grant.taskId === grant.taskId ||
         r.grant.candidateSha256 === grant.candidateSha256), "Candidate delegation already issued");
       document.delegations ??= [];
-      invariant(document.delegations.filter(r => r.grant.runId === grant.runId).length < 3, "Candidate delegation limit exhausted");
+      invariant(document.delegations.filter(r => r.grant.runId === grant.runId).length < MAX_TRIAL_CANDIDATES, "Candidate delegation limit exhausted");
       document.delegations.push({grant, grantSha256: sha256(JSON.stringify(grant)), createdAt: now(), sessionID: null,
         requestMessage: null, draft: null, consumedAt: null});
       this.checkedDelegation(document, grant.id);

@@ -39,7 +39,16 @@ plan/contract digests and is consumed atomically at enqueue. It records
 `delegatedApproval`, never a fabricated human question receipt. Normal manual
 approval is unchanged.
 
-The batch allows at most three candidates and one task per candidate. Re-entry
+The request digest always covers the original requirement bytes. Native binding
+also accepts the exact single-argument quoting used by OpenCode `run`: arguments
+containing a literal space are wrapped in double quotes, with embedded double
+quotes escaped. The adapter reverses only that one transport layer and requires
+an exact re-encoding before checking the original digest. It does not parse JSON
+or shell syntax, trim whitespace, normalize Unicode, or decode backslash escape
+sequences. Extra arguments, changed content and noncanonical encodings are
+rejected without binding or consuming the grant.
+
+The batch allows at most five candidates and one task per candidate. Re-entry
 must use the same specification and deadlines. The persisted run scope blocks
 historical tasks, including after expiry. The model call ledger permits only an
 explicitly authorized Coder continuation after an owned `STEP_BUDGET` stop with
@@ -79,3 +88,9 @@ fixture: it uses real installer, plugin hooks, delegation, queue and restoration
 with deterministic model transport and Gradle output. It retains its evidence
 outside the source checkout. A frozen candidate still requires independent
 installation/host loading checks and the authorized real project trial.
+
+For the native argument adapter, run `node tests/native-change-arguments.integration.mjs`
+after building. This opt-in check uses the installed OpenCode CLI and the actual
+binding function in a temporary project's command hook. It verifies accepted and
+rejected argument transports, then deliberately stops before model invocation;
+it neither creates a business task nor replaces a full real-project trial.
