@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { mkdtempSync, writeFileSync, readFileSync, rmSync } from 'node:fs';
+import { mkdtempSync, writeFileSync, readFileSync, rmSync, mkdirSync, chmodSync, realpathSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import test from 'node:test';
@@ -77,3 +77,16 @@ test('fast failing hosts preserve their actual exit without an ownership race', 
   assert.equal(result.reason,'EXITED');assert.equal(result.exitCode,7);assert.equal(result.processesExited,true);
  }
 });
+
+ test('model host binds its session directory even when the parent PWD differs', async()=>{
+  const root=mkdtempSync(join(tmpdir(),'orchestrator-model-directory-'));
+  try{
+   const bin=join(root,'bin');mkdirSync(bin);const host=join(bin,'opencode');
+   writeFileSync(host,`#!${process.execPath}
+console.log(JSON.stringify({type:'text',cwd:process.cwd(),pwd:process.env.PWD,args:process.argv.slice(2)}));setTimeout(()=>{},200);
+`);chmodSync(host,0o755);
+   const result=await runBoundedModel({cwd:root,agent:'scheduled-coder',prompt:'fixture',stepLimit:1,deadline:Date.now()+10000,graceMs:100,eventLog:join(root,'events'),stderrLog:join(root,'errors'),environment:{PATH:bin+':'+process.env.PATH,PWD:'/unrelated-parent'}});
+   assert.equal(result.exitCode,0);const event=JSON.parse(readFileSync(join(root,'events'),'utf8'));
+   assert.equal(event.cwd,realpathSync(root));assert.equal(event.pwd,root);assert.equal(event.args[event.args.indexOf('--dir')+1],root);
+  }finally{rmSync(root,{recursive:true,force:true});}
+ });

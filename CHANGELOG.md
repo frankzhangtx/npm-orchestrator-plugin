@@ -1,6 +1,8 @@
 # Changelog
 
-## 1.3.4-rc.2 (local candidate, unpublished)
+## 1.3.4-rc.3 (local candidate, unpublished)
+
+- Bind every OpenCode model session to the execution directory with `--dir` and a matching `PWD`, including trials launched from an external evidence directory.
 
 - Persist the directly spawned model process identity before the first process snapshot to handle fast exits without losing ownership proof.
 

@@ -43,7 +43,7 @@ export async function runBoundedModel(options: ModelProcessOptions): Promise<Mod
   let errorFd: number;
   try { errorFd = openSync(options.stderrLog, "wx", 0o600); }
   catch (error) { closeSync(eventFd); throw error; }
-  const command = options.command ?? ["opencode", "run", "--format", "json", "--agent", options.agent,
+  const command = options.command ?? ["opencode", "run", "--dir", options.cwd, "--format", "json", "--agent", options.agent,
     ...(options.nativeCommand ? ["--command", options.nativeCommand] : []), "--", options.prompt];
   let child: ReturnType<typeof spawn> | undefined;
   let root: ProcessIdentity | null = null;
@@ -77,7 +77,7 @@ export async function runBoundedModel(options: ModelProcessOptions): Promise<Mod
   try {
     ownership("SPAWNING");
     child = spawn(command[0]!, command.slice(1), { cwd: options.cwd, detached: true,
-      env: { ...process.env, ...options.environment, [marker]: token }, stdio: ["ignore", "pipe", "pipe"] });
+      env: { ...process.env, ...options.environment, PWD: options.cwd, [marker]: token }, stdio: ["ignore", "pipe", "pipe"] });
     child.once("error", error => { spawnError = error; ended = true; stop("HOST_ERROR"); });
     child.once("close", () => { ended = true; pending += decoder.end(); if (pending.trim()) event(pending); pending = ""; });
     child.stdout!.on("data", (chunk: Buffer) => {
