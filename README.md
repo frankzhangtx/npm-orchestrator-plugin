@@ -2,7 +2,9 @@
 
 Reusable OpenCode orchestration for macOS Android projects.
 
-Version 1.3.3 carries forward the 1.3.1 Planner and live queue status behavior.
+Version 1.3.4 adds bounded local candidate trials, exact native request binding,
+and durable model process ownership and continuation. It retains the Planner
+and live queue status behavior from 1.3.1.
 Full verification requires a reviewed fallback reason when project capabilities
 exist; existing approvals are preserved.
 
@@ -15,7 +17,7 @@ installation changes require a fresh snapshot. Changes to the exact
 Version 1.2.3 selects verification tasks from changed source sets and their
 transitive consumers under explicitly approved contracts. Environment recovery
 retries only failed verification steps while preserving candidate-bound evidence.
-The commands below pin the 1.3.3 npm package.
+The commands below pin the 1.3.4 npm package.
 See the [changelog](CHANGELOG.md) for release details.
 
 Version `0.2.0` is the first published lifecycle release. Version `0.3.0` adds
@@ -92,9 +94,9 @@ project builds retain their configured cache behavior.
 ## Quick start
 
 ```sh
-npx @frankzhang2026/opencode-android-orchestrator@1.3.3 init .
+npx @frankzhang2026/opencode-android-orchestrator@1.3.4 init .
 $EDITOR automation/automation-commit-prefix
-npx @frankzhang2026/opencode-android-orchestrator@1.3.3 doctor .
+npx @frankzhang2026/opencode-android-orchestrator@1.3.4 doctor .
 opencode --agent scheduled-planner .
 ```
 
@@ -104,7 +106,7 @@ a task contract without selecting a primary module. To intentionally restrict
 generated contracts to one module, opt into primary-module scope:
 
 ```sh
-npx @frankzhang2026/opencode-android-orchestrator@1.3.3 init . \
+npx @frankzhang2026/opencode-android-orchestrator@1.3.4 init . \
   --module-scope primary \
   --primary-module :mobile
 ```
@@ -132,7 +134,7 @@ For an existing manifest-managed installation whose generated module/task
 lists are incomplete, refresh all derived Gradle data in one upgrade:
 
 ```sh
-npx @frankzhang2026/opencode-android-orchestrator@1.3.3 upgrade . \
+npx @frankzhang2026/opencode-android-orchestrator@1.3.4 upgrade . \
   --refresh-gradle-discovery
 ```
 
@@ -489,7 +491,7 @@ preparation alone as resource installation;
 ## Init
 
 ```sh
-npx @frankzhang2026/opencode-android-orchestrator@1.3.3 init .
+npx @frankzhang2026/opencode-android-orchestrator@1.3.4 init .
 $EDITOR automation/automation-commit-prefix
 opencode --agent scheduled-planner .
 ```

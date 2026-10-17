@@ -1,12 +1,11 @@
 # Changelog
 
-## 1.3.4-rc.4 (local candidate, unpublished)
+## 1.3.4 - 2026-10-17
 
 - Increase the shared candidate, delegated grant and run-scope task limit to five; retain one task per candidate and immutable existing scopes/deadlines.
 
 - Match native OpenCode single-argument quoting against the original delegated request digest without changing whitespace or literal backslashes; reject extra arguments and noncanonical encodings. Add captured host fixtures and an opt-in real-CLI check that stops before model invocation.
 
-## 1.3.4-rc.3 (local candidate, unpublished)
 
 - Bind every OpenCode model session to the execution directory with `--dir` and a matching `PWD`, including trials launched from an external evidence directory.
 
@@ -18,7 +17,9 @@
 - Bound status summaries and provide digest-bound paging for full evidence.
 - Preserve configuration permissions when changing queue policy and publish
   blocked-state diagnostics atomically with the state.
-- This candidate requires its recorded package and real-project validation.
+- Validate the rc.4 implementation through a complete WordPress task: baseline,
+  RED/GREEN, independent review, affected Debug builds/tests and local integration.
+  The 1.3.4 release promotes that implementation without runtime code changes.
 
 ## 1.3.3
 
