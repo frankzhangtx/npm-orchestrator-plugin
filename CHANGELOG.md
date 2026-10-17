@@ -1,6 +1,6 @@
 # Changelog
 
-## 1.3.5-rc.1 - Unreleased
+## 1.3.5 - 2026-10-17
 
 - Fix installation and upgrade transaction self-tests by copying the status helper
   into the isolated fixture alongside the worktree helper.
