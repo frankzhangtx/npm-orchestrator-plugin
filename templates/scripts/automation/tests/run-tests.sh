@@ -90,6 +90,7 @@ mkdir -p \
 
 cp "$SOURCE_SCRIPT_DIR"/*.sh "$fixture/scripts/automation/"
 cp "$SOURCE_SCRIPT_DIR/../../automation/verification/worktree.cjs" "$fixture/automation/verification/"
+cp "$SOURCE_SCRIPT_DIR/../../automation/verification/status.cjs" "$fixture/automation/verification/"
 chmod +x "$fixture/scripts/automation/"*.sh
 printf '%s\n' '# Approved test plan' > "$fixture/docs/plans/TASK-TEST-001.md"
 printf '%s\n' 'operator baseline' > "$fixture/local/operator-note.txt"

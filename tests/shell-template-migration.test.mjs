@@ -119,7 +119,7 @@ const expectedHashes = new Map([
   ],
   [
     "scripts/automation/tests/run-tests.sh",
-    "9b45cf7d4222fd67fd12630d724c6f64e197251f08a230a7fe3e1850dbdd600b",
+    "7e473cc551beb901b936ebd940eb4ef88fed2af4e9060e95eff244ac481d8a94",
   ],
   [
     "scripts/automation/transition-state.sh",

@@ -1,5 +1,14 @@
 # Changelog
 
+## 1.3.5-rc.1 - Unreleased
+
+- Fix installation and upgrade transaction self-tests by copying the status helper
+  into the isolated fixture alongside the worktree helper.
+- Add an executable regression that runs all 46 shipped transaction checks, rather
+  than relying only on lifecycle tests with mocked process output.
+- Preserve managed-file integrity checks: switching Git branches does not switch
+  the ignored local installation manifest or its backups.
+
 ## 1.3.4 - 2026-10-17
 
 - Increase the shared candidate, delegated grant and run-scope task limit to five; retain one task per candidate and immutable existing scopes/deadlines.
