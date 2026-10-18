@@ -1,6 +1,6 @@
 {
   "name": "@frankzhang2026/opencode-android-orchestrator",
-  "version": "1.3.6-rc.1",
+  "version": "1.3.6",
   "description": "Reusable OpenCode orchestration for Android projects",
   "license": "MIT",
   "author": "frankzhang2026",

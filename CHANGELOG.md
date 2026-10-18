@@ -1,6 +1,6 @@
 # Changelog
 
-## 1.3.6-rc.1 - Unreleased
+## 1.3.6 - 2026-10-18
 
 - Restore interrupted local trials on SIGINT/SIGTERM; provide cleanup-only
   recovery after a killed driver without replaying its model or resetting budgets.
