@@ -4,15 +4,17 @@ import { join, resolve } from "node:path";
 import { directoryIdentity, verifyDirectoryIdentity, restoreMissingPackageDirectory, type DirectoryIdentity } from "../installer/directory-identity.js";
 import { currentPackageSource, verifyPackageSource } from "../installer/package-source.js";
 import { planProjectUpgrade, applyProjectUpgrade } from "../installer/upgrade.js";
-import { captureInstallationRestorePoint, sealInstallationSwitch, restoreInstallation } from "../installer/restore.js";
+import { captureInstallationRestorePoint, sealInstallationSwitch, restoreInstallation, verifyInstallationRestorePoint } from "../installer/restore.js";
 import { TaskQueue } from "../queue/queue.js";
 import { assertQueueIdle } from "../queue/lifecycle.js";
 import { DELEGATION_ENV, type DelegationGrant } from "../queue/delegation.js";
 import { MAX_TRIAL_CANDIDATES, type RunScope, validateRunScope } from "../queue/run-scope.js";
 import { runBoundedModel, recoverModelProcesses } from "../queue/model-process.js";
 import { serviceStatus, startService, stopService } from "../queue/service.js";
-import { atomicJson, fileLock, git, invariant, readJson, sha256 } from "../queue/storage.js";
+import { atomicJson, fileLock, git, invariant, readJson, sha256, recoverLock } from "../queue/storage.js";
 import { openTrialLedger, trialBudget, recordTrialIntent, finishTrialIntent, type TrialLedger } from "./ledger.js";
+
+import { assertRestorationOwner, recordRestoration, type RestorationOwner } from "./restoration.js";
 
 export interface TrialSpecification {
   version: 1; runId: string; repository: string; evidenceDirectory: string; batchDirectory: string;
@@ -43,7 +45,20 @@ function doctor(root: string, packageRoot: string, deadline: number): unknown {
 }
 
 /** One frozen candidate, one native change invocation, always followed by restoration. */
-export async function runTrial(spec: TrialSpecification): Promise<TrialLedger> {
+export async function runTrial(spec: TrialSpecification, recoverOnly = false): Promise<TrialLedger> {
+  const queue = new TaskQueue(spec.repository);
+  assertRestorationOwner(queue.storage.runtime, sha256(JSON.stringify(spec)));
+  const lock = join(queue.storage.runtime, "locks/trial-driver.lock");
+  if (recoverOnly) {
+    invariant(existsSync(join(resolve(spec.evidenceDirectory), "trial.json")), "Recovery requires an existing trial ledger");
+    recoverLock(lock);
+    recoverLock(join(resolve(spec.evidenceDirectory), "driver.lock"));
+  }
+  const release = fileLock(lock);
+  try { return await runTrialOwned(spec, recoverOnly); } finally { release(); }
+}
+
+async function runTrialOwned(spec: TrialSpecification, recoverOnly: boolean): Promise<TrialLedger> {
   invariant(spec.version === 1 && spec.repository === realpathSync(spec.repository) &&
     spec.originalPackageRoot === resolve(spec.originalPackageRoot) && spec.originalInstallationRoot === resolve(spec.originalInstallationRoot) &&
     (spec.originalPackageRoot === spec.originalInstallationRoot || spec.originalPackageRoot.startsWith(spec.originalInstallationRoot + "/")) && spec.request.length > 0 && spec.request.length <= 16384,
@@ -81,30 +96,55 @@ export async function runTrial(spec: TrialSpecification): Promise<TrialLedger> {
   let ledger: TrialLedger;
   try { ledger = openTrialLedger(evidence, spec, source.sha256, Date.parse(spec.runScope.expiresAt), Date.parse(spec.runScope.cleanupExpiresAt)); }
   catch (error) { release(); throw error; }
+  const owner: RestorationOwner = {version: 1, repository: root, runId: spec.runId, taskKey: `${spec.taskId}@1`,
+    specificationSha256: ledger.specificationSha256, candidateSha256: source.sha256, evidence,
+    originalBranch: spec.originalBranch, originalHead: spec.originalHead, state: "PENDING"};
+  const cancellation = new AbortController();
+  const interrupt = (signal: NodeJS.Signals) => {
+    if (cancellation.signal.aborted) return;
+    cancellation.abort(new Error(`Trial interrupted by ${signal}; restoration required`));
+    ledger.error ??= `Trial interrupted by ${signal}; restoration required`;
+    atomicJson(ledgerFile, ledger);
+  };
+  const onTerm = () => interrupt("SIGTERM"), onInt = () => interrupt("SIGINT");
+  process.on("SIGTERM", onTerm); process.on("SIGINT", onInt);
+  const verifyRestored = (deadline: number) => {
+    verifyInstallationRestorePoint(restoration);
+    invariant(git(root, ["branch", "--show-current"]) === spec.originalBranch &&
+      git(root, ["rev-parse", "HEAD"]) === spec.originalHead && git(root, ["status", "--porcelain"]) === "",
+      "Original branch, HEAD or working tree changed");
+    verifyDirectoryIdentity(spec.originalInstallationRoot, readJson<DirectoryIdentity>(join(evidence, "original-package-identity.json")));
+    assertQueueIdle(root);
+    invariant(queue.storage.read().paused && !queue.storage.read().fault, "Restored queue must be paused without a fault");
+    const worktrees = join(evidence, "original-worktrees.json");
+    if (existsSync(worktrees)) invariant(git(root, ["worktree", "list", "--porcelain"]) === readJson<string>(worktrees), "Trial worktrees were not restored");
+    atomicJson(join(evidence, "restored-doctor.json"), doctor(root, spec.originalPackageRoot, deadline));
+    atomicJson(join(evidence, "restored-load.json"), hostLoad(root, spec.originalPackageRoot, deadline));
+    // Host loading may write ignored installation files; acceptance checks again.
+    verifyInstallationRestorePoint(restoration);
+  };
   const save = () => atomicJson(ledgerFile, ledger);
-  const begin = (phase: string, cleanup = false) => { recordTrialIntent(ledger, phase, cleanup); save(); };
+  const begin = (phase: string, cleanup = false) => { if (!cleanup) cancellation.signal.throwIfAborted(); recordTrialIntent(ledger, phase, cleanup); save(); };
   const done = (phase: string) => { finishTrialIntent(ledger, phase); save(); };
   const historical = () => queue.storage.read().items.filter(item => !spec.runScope.taskKeys.includes(item.key));
   try {
-    if (ledger.phase === "VERIFIED") return ledger;
+    if (ledger.phase === "VERIFIED") {
+      verifyRestored(Date.now() + 120000);
+      recordRestoration(queue.storage.runtime, {...owner, state: "VERIFIED"});
+      return ledger;
+    }
     try {
-      if (ledger.intent) {
-        // A stopped driver never replays an unknown installation, commit or
-        // native model invocation. Reconcile an already enqueued task, or clean up.
-        if (ledger.intent === "TASK_FINISHED") {
-          ledger.intent = null; ledger.phase = "PLANNED"; save();
-        } else if (ledger.intent === "PLANNED" && existsSync(ownership)) {
-          await recoverModelProcesses(ownership, 1000, ledger.cleanupDeadline);
-          const item = queue.storage.read().items.find(i => i.key === `${spec.taskId}@1`);
-          invariant(item?.authorization.delegation?.candidateSha256 === source.sha256, "Interrupted Planner did not enqueue its authorized task");
-          ledger.taskKey = item.key; done("PLANNED");
-        } else throw new Error(`Interrupted trial operation ${ledger.intent}; restoration required before another candidate`);
+      const interrupted = recoverOnly || ledger.intent || ledger.phase !== "PREPARED";
+      if (interrupted) {
+        throw new Error(`Interrupted trial at ${ledger.intent ?? ledger.phase}; cleanup only, no model replay`);
       }
       if (ledger.phase === "PREPARED") {
         trialBudget(ledger); assertQueueIdle(root);
         invariant(queue.storage.read().paused && git(root, ["status", "--porcelain"]) === "" &&
           git(root, ["rev-parse", "HEAD"]) === spec.originalHead && git(root, ["branch", "--show-current"]) === spec.originalBranch,
           "Trial baseline must be clean, paused and on its original branch");
+        atomicJson(join(evidence, "original-doctor.json"), doctor(root, spec.originalPackageRoot, ledger.executionDeadline));
+        atomicJson(join(evidence, "original-worktrees.json"), git(root, ["worktree", "list", "--porcelain"]));
         atomicJson(join(evidence, "historical-items.json"), historical());
         const originalPackageIdentity = directoryIdentity(spec.originalInstallationRoot);
         atomicJson(join(evidence, "original-package-identity.json"), originalPackageIdentity);
@@ -115,7 +155,9 @@ export async function runTrial(spec: TrialSpecification): Promise<TrialLedger> {
         invariant(plan.status === "upgrade" && plan.toVersion !== plan.fromVersion, "A candidate requires a new package version");
         const paths = [...new Set([...plan.desiredFiles.map(f => f.path), ...plan.removedFiles.map(f => f.path)])];
         atomicJson(join(evidence, "upgrade-paths.json"), paths);
+        atomicJson(join(evidence, "specification.json"), spec);
         captureInstallationRestorePoint(root, restoration, paths);
+        recordRestoration(queue.storage.runtime, owner);
         git(root, ["switch", "-c", spec.targetBranch]);
         applyProjectUpgrade(plan);
         atomicJson(join(evidence, "candidate-load.json"), hostLoad(root, source.packageRoot, ledger.executionDeadline));
@@ -150,12 +192,16 @@ export async function runTrial(spec: TrialSpecification): Promise<TrialLedger> {
         queue.issueDelegation(grant); atomicJson(join(evidence, "delegation.json"), grant); done("AUTHORIZED");
       }
       if (ledger.phase === "AUTHORIZED") {
+        // Deliver pending termination signals before launching a detached model.
+        await new Promise<void>(resolve => setImmediate(resolve));
+        cancellation.signal.throwIfAborted();
         begin("PLANNED");
         const grant = readJson<DelegationGrant>(join(evidence, "delegation.json"));
-        const result = await runBoundedModel({cwd: root, agent: "scheduled-planner", nativeCommand: "change", prompt: spec.request,
+        const result = await runBoundedModel({signal: cancellation.signal, cwd: root, agent: "scheduled-planner", nativeCommand: "change", prompt: spec.request,
           stepLimit: 256, deadline: ledger.executionDeadline, graceMs: 1000, ownershipRecord: ownership,
           environment: {[DELEGATION_ENV]: grant.id}, eventLog: join(evidence, "planner-events.jsonl"), stderrLog: join(evidence, "planner-stderr.log")});
         atomicJson(join(evidence, "planner-result.json"), result);
+        cancellation.signal.throwIfAborted();
         const item = queue.storage.read().items.find(i => i.key === `${spec.taskId}@1`);
         invariant(item?.authorization.source === "delegatedApproval" && item.authorization.delegation?.id === grant.id,
           `Native change did not enqueue its authorized task (${result.reason})`);
@@ -164,6 +210,7 @@ export async function runTrial(spec: TrialSpecification): Promise<TrialLedger> {
       if (ledger.phase === "PLANNED") {
         begin("TASK_FINISHED"); startService(queue);
         for (;;) {
+          cancellation.signal.throwIfAborted();
           trialBudget(ledger);
           const live = queue.storage.read();
           if (serviceStatus(queue).running) {
@@ -181,7 +228,7 @@ export async function runTrial(spec: TrialSpecification): Promise<TrialLedger> {
         invariant(ledger.result === "COMPLETED", `Trial task ended in ${ledger.result}`); done("TASK_FINISHED");
       }
     } catch (error) {
-      ledger.error = String(error); ledger.events.push({phase: ledger.intent ?? ledger.phase, at: Date.now(), event: "FAILED"});
+      ledger.error ??= String(error); ledger.events.push({phase: ledger.intent ?? ledger.phase, at: Date.now(), event: "FAILED"});
       ledger.intent = null; save();
     }
 
@@ -189,6 +236,7 @@ export async function runTrial(spec: TrialSpecification): Promise<TrialLedger> {
       ledger.phase = "PRECONDITION_FAILED"; save(); return ledger;
     }
     // Cleanup uses its original separate deadline even if execution has expired.
+    recordRestoration(queue.storage.runtime, owner);
     begin("RESTORED", true);
     queue.control("pause");
     atomicJson(join(evidence, "cleanup-authorization.json"), {source: "delegatedCleanup", specificationSha256: ledger.specificationSha256,
@@ -200,6 +248,7 @@ export async function runTrial(spec: TrialSpecification): Promise<TrialLedger> {
       if (document.active) {
         invariant(document.active.key === item?.key, "Unrelated task owns the queue; trial cannot stop it");
         if (!item.request) queue.request(item.key, "abort", queue.config().approvalPhrases.abort);
+        startService(queue);
         await wait(1000); continue;
       }
       if (item && !["COMPLETED", "ABORTED", "CANCELLED"].includes(item.state)) {
@@ -250,9 +299,17 @@ export async function runTrial(spec: TrialSpecification): Promise<TrialLedger> {
     if (existsSync(join(restoration, "transaction.json"))) restoreInstallation(restoration);
     invariant(sha256(JSON.stringify(historical())) === sha256(JSON.stringify(readJson(join(evidence, "historical-items.json")))), "Historical queue items changed during the trial");
     invariant(queue.storage.read().paused && !queue.storage.read().active && !serviceStatus(queue).running, "Restored queue must remain paused and stopped");
-    done("VERIFIED"); return ledger;
+    verifyRestored(ledger.cleanupDeadline);
+    done("VERIFIED");
+    atomicJson(join(evidence, "restoration-result.json"), {status: "PASSED", originalBranch: spec.originalBranch,
+      originalHead: spec.originalHead, specificationSha256: ledger.specificationSha256, verifiedAt: new Date().toISOString(),
+      businessResult: ledger.result, businessError: ledger.error});
+    recordRestoration(queue.storage.runtime, {...owner, state: "VERIFIED"});
+    return ledger;
   } catch (error) {
     ledger.error = `${ledger.error ? ledger.error + "; " : ""}${String(error)}`;
-    ledger.phase = "RESTORATION_BLOCKED"; save(); throw error;
-  } finally { release(); }
+    ledger.phase = "RESTORATION_BLOCKED"; save();
+    if (existsSync(join(restoration, "snapshot.json"))) recordRestoration(queue.storage.runtime, owner);
+    throw error;
+  } finally { process.off("SIGTERM", onTerm); process.off("SIGINT", onInt); release(); }
 }

@@ -1,5 +1,14 @@
 # Changelog
 
+## 1.3.6-rc.1 - Unreleased
+
+- Restore interrupted local trials on SIGINT/SIGTERM; provide cleanup-only
+  recovery after a killed driver without replaying its model or resetting budgets.
+- Bind pending restoration to the original installation across batches and
+  delegated retests, even after queue cleanup or a branch switch.
+- Recheck installation snapshots, original branch/worktrees, package identity,
+  doctor and host loading before accepting restoration or replaying VERIFIED.
+
 ## 1.3.5 - 2026-10-17
 
 - Fix installation and upgrade transaction self-tests by copying the status helper

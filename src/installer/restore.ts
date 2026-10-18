@@ -159,3 +159,12 @@ export function restoreInstallation(snapshot: string): RestoreTransaction {
     atomicJson(transactionFile, transaction); return transaction;
   });
 }
+
+/** Read-only acceptance: never repair drift while reporting restoration success. */
+export function verifyInstallationRestorePoint(snapshot: string): void {
+  const {point, digest} = load(snapshot);
+  const transaction = readJson<RestoreTransaction>(join(snapshot, "transaction.json"));
+  invariant(transaction.version === 1 && transaction.snapshotSha256 === digest && transaction.state === "RESTORED",
+    "Installation restoration has not completed");
+  invariant(same(inspect(point.root, point.paths), point.before), "Restored installation drifted from the original snapshot");
+}

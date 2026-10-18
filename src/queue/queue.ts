@@ -1,3 +1,4 @@
+import { assertRestorationScope, pendingRestoration as pendingRestorationForScope } from "../trial/restoration.js";
 import { currentPackageSource, verifyPackageSource, packageRuntimeIdentity } from "../installer/package-source.js";
 import { validateDelegationGrant, delegationRecord, bindDelegationSession, checkDelegatedDraft, sealDelegatedDraft, consumeDelegation,
   type DelegationGrant, type DelegationRecord, type DelegationContext, type DelegationProof } from "./delegation.js";
@@ -458,6 +459,7 @@ export class TaskQueue {
   }
   issueDelegation(grant: DelegationGrant): void {
     validateDelegationGrant(grant);
+    assertRestorationScope(this.storage.runtime, grant.runId, [`${grant.taskId}@1`]);
     invariant(grant.sourceRoot === this.storage.root && Date.now() < Date.parse(grant.expiresAt), "Delegation repository or expiry mismatch");
     invariant(git(this.storage.root, ["rev-parse", `${grant.planningHead}^`]) === grant.originalHead,
       "Delegation planning baseline must be the single registered upgrade commit");
@@ -763,6 +765,11 @@ export class TaskQueue {
   }
   setRunScope(scope: RunScope): void {
     validateRunScope(scope);
+    const owner = pendingRestorationForScope(this.storage.runtime);
+    if (owner) {
+      invariant(scope.taskKeys.includes(owner.taskKey), "Run scope excludes the pending restoration task");
+      assertRestorationScope(this.storage.runtime, scope.runId, [owner.taskKey]);
+    }
     this.storage.transaction(document => {
       invariant(document.paused && !document.active, "Run scope changes require a paused, idle queue");
       invariant(!document.runScope || JSON.stringify(document.runScope) === JSON.stringify(scope), "Existing run scope is immutable; finish restoration before starting another batch");

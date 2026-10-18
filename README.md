@@ -2,7 +2,8 @@
 
 Reusable OpenCode orchestration for macOS Android projects.
 
-Version 1.3.5 fixes the installation and upgrade self-test fixture missing the
+Version 1.3.6-rc.1 is an unpublished trial-recovery candidate. It adds interrupted
+trial cleanup and fresh restoration acceptance, and retains the fix for the
 status helper. Version 1.3.4 added bounded local
 candidate trials, exact native request binding,
 and durable model process ownership and continuation. It retains the Planner
@@ -19,7 +20,8 @@ installation changes require a fresh snapshot. Changes to the exact
 Version 1.2.3 selects verification tasks from changed source sets and their
 transitive consumers under explicitly approved contracts. Environment recovery
 retries only failed verification steps while preserving candidate-bound evidence.
-The commands below pin the 1.3.5 npm package.
+The commands below show the target 1.3.6-rc.1 version. This candidate is not
+published to npm; use the frozen local-package workflow in docs/LOCAL-TRIAL.md.
 See the [changelog](CHANGELOG.md) for release details.
 
 Version `0.2.0` is the first published lifecycle release. Version `0.3.0` adds
@@ -96,9 +98,9 @@ project builds retain their configured cache behavior.
 ## Quick start
 
 ```sh
-npx @frankzhang2026/opencode-android-orchestrator@1.3.5 init .
+npx @frankzhang2026/opencode-android-orchestrator@1.3.6-rc.1 init .
 $EDITOR automation/automation-commit-prefix
-npx @frankzhang2026/opencode-android-orchestrator@1.3.5 doctor .
+npx @frankzhang2026/opencode-android-orchestrator@1.3.6-rc.1 doctor .
 opencode --agent scheduled-planner .
 ```
 
@@ -108,7 +110,7 @@ a task contract without selecting a primary module. To intentionally restrict
 generated contracts to one module, opt into primary-module scope:
 
 ```sh
-npx @frankzhang2026/opencode-android-orchestrator@1.3.5 init . \
+npx @frankzhang2026/opencode-android-orchestrator@1.3.6-rc.1 init . \
   --module-scope primary \
   --primary-module :mobile
 ```
@@ -136,7 +138,7 @@ For an existing manifest-managed installation whose generated module/task
 lists are incomplete, refresh all derived Gradle data in one upgrade:
 
 ```sh
-npx @frankzhang2026/opencode-android-orchestrator@1.3.5 upgrade . \
+npx @frankzhang2026/opencode-android-orchestrator@1.3.6-rc.1 upgrade . \
   --refresh-gradle-discovery
 ```
 
@@ -493,7 +495,7 @@ preparation alone as resource installation;
 ## Init
 
 ```sh
-npx @frankzhang2026/opencode-android-orchestrator@1.3.5 init .
+npx @frankzhang2026/opencode-android-orchestrator@1.3.6-rc.1 init .
 $EDITOR automation/automation-commit-prefix
 opencode --agent scheduled-planner .
 ```

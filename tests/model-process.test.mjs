@@ -90,3 +90,14 @@ console.log(JSON.stringify({type:'text',cwd:process.cwd(),pwd:process.env.PWD,ar
    assert.equal(event.cwd,realpathSync(root));assert.equal(event.pwd,root);assert.equal(event.args[event.args.indexOf('--dir')+1],root);
   }finally{rmSync(root,{recursive:true,force:true});}
  });
+
+test('driver cancellation terminates its owned model before the execution deadline', {timeout:20000}, async()=>{
+ const controller=new AbortController();
+ const timer=setTimeout(()=>controller.abort(),1000);
+ try {
+  const {result}=await probe('setInterval(()=>{},1000)',{signal:controller.signal,stepLimit:64});
+  assert.equal(result.reason,'CANCELLED');
+  assert.equal(result.processesExited,true);
+  assert.ok(result.endedAt-result.startedAt<8000);
+ }finally{clearTimeout(timer);}
+});

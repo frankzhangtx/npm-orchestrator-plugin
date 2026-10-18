@@ -46,6 +46,7 @@ function printHelp(): void {
   process.stdout.write(`  uninstall  Remove unchanged managed resources\n`);
   process.stdout.write(`  queue      Manage durable contract intake and background execution\n`);
   process.stdout.write(`  local-package  Install a tgz in an immutable candidate directory\n`);
+  process.stdout.write(`  trial-recover  Restore an interrupted trial without replaying its model task\n`);
   process.stdout.write(`  trial-run  Run one bounded candidate and restore the original installation\n`);
   process.stdout.write(`  installation-snapshot / installation-seal / installation-restore  Manage restoration evidence\n`);
 }
@@ -161,12 +162,12 @@ function readGradleVerificationConfiguration(
 
 const [command, ...commandArguments] = process.argv.slice(2);
 
-if (command === "trial-run") {
+if (command === "trial-run" || command === "trial-recover") {
   try {
-    if (commandArguments.length !== 1) throw new Error("Usage: trial-run SPECIFICATION.json");
-    const result = await runTrial(JSON.parse(readFileSync(commandArguments[0]!, "utf8")) as TrialSpecification);
+    if (commandArguments.length !== 1) throw new Error(`Usage: ${command} SPECIFICATION.json`);
+    const result = await runTrial(JSON.parse(readFileSync(commandArguments[0]!, "utf8")) as TrialSpecification, command === "trial-recover");
     process.stdout.write(JSON.stringify(result, null, 2) + "\n");
-    if (result.phase !== "VERIFIED" || result.error || result.result !== "COMPLETED") process.exitCode = 1;
+    if (result.phase !== "VERIFIED" || command !== "trial-recover" && (result.error || result.result !== "COMPLETED")) process.exitCode = 1;
   } catch (error) { printCommandError(error); process.exitCode = 1; }
 } else if (["installation-snapshot", "installation-seal", "installation-restore"].includes(command ?? "")) {
   try {

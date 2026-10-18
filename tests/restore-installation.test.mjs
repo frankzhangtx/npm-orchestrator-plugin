@@ -53,3 +53,17 @@ test('restoration requires paused idle queue and does not snapshot runtime task 
   sealInstallationSwitch(f.snapshot);f.queue.control('resume');assert.throws(()=>restoreInstallation(f.snapshot),/paused queue/);
  }finally{f.cleanup();}
 });
+
+test('final acceptance detects ignored manifest drift without overwriting it',async()=>{
+ const {verifyInstallationRestorePoint}=await import('../dist/installer/restore.js');
+ const f=setup();try{
+  captureInstallationRestorePoint(f.root,f.snapshot);switchFiles(f);sealInstallationSwitch(f.snapshot);
+  assert.throws(()=>verifyInstallationRestorePoint(f.snapshot),/not completed/);
+  restoreInstallation(f.snapshot);verifyInstallationRestorePoint(f.snapshot);
+  const manifest=join(f.root,'.automation-plugin/manifest.json');
+  writeFileSync(manifest,readFileSync(manifest,'utf8')+' ');
+  const drift=readFileSync(manifest);
+  assert.throws(()=>verifyInstallationRestorePoint(f.snapshot),/drifted/);
+  assert.deepEqual(readFileSync(manifest),drift);
+ }finally{f.cleanup();}
+});

@@ -80,6 +80,46 @@ Low-level recovery commands are `installation-snapshot DIRECTORY DESTINATION
 installation files, not task history or arbitrary user edits. Never replace a
 current queue with a saved queue snapshot.
 
+## Interrupted trials and final acceptance
+
+SIGINT and SIGTERM request bounded cleanup instead of terminating the driver
+immediately. The owned Planner is cancelled, the trial task is stopped using
+normal queue recovery, and installation restoration runs within the original
+cleanup deadline. SIGKILL or machine shutdown cannot run cleanup in-process.
+Use the same frozen candidate CLI and unchanged specification to recover:
+
+```sh
+node /absolute/candidate/dist/cli.js trial-recover /absolute/specification.json
+```
+
+This command recovers only provably dead driver locks, never replays planning
+or starts a new business task, and does not reset either deadline. A successful
+exit means restoration passed, not that the interrupted business task passed.
+If the cleanup deadline has expired or ownership cannot be proved, recovery
+remains blocked; preserve the ledger and snapshots for explicit operator recovery.
+
+A repository-wide record at `<git-common-dir>/automation-runtime/trial-restoration.json`
+binds unfinished restoration to the initial branch, HEAD, specification and
+installation snapshot. New batches and different delegated tasks cannot adopt
+that candidate installation as a fresh baseline. Clearing queue items or changing
+Git branches does not clear this record. Older trials without this record still
+require their original ledger/snapshot to recover; never invent a replacement baseline.
+
+Final acceptance compares the captured installation bytes and modes, original
+branch and HEAD, clean Git state, original worktree inventory and package identity,
+paused/stopped queue without a fault, doctor and actual host loading. Reopening
+a VERIFIED ledger rechecks the current environment instead of returning historical
+success. Acceptance is read-only with respect to restoration: a mismatched
+manifest is reported, not silently rewritten. Evidence includes
+`restoration-result.json`, with business result and restoration status separated.
+
+A later checkout of a branch containing another plugin version does not switch
+the ignored installation manifest. Restore a verified matching installation
+before upgrading; a clean Git tree alone is insufficient. This also applies to
+custom same-version retest drivers: they must honor pending restoration and must
+not describe restoration to a candidate branch as restoration to the user's
+original installation.
+
 ## Verification
 
 Run `npm test` for unit/regression checks. Run

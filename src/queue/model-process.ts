@@ -5,7 +5,7 @@ import { closeSync, existsSync, openSync, writeSync } from "node:fs";
 import { atomicJson, readJson, invariant, processIdentity, type ProcessIdentity } from "./storage.js";
 import { ownedTree, processSnapshot, signalOwned, type OwnedProcess } from "./process-ownership.js";
 
-export type ModelStopReason = "EXITED" | "STEP_BUDGET" | "DEADLINE" | "INVALID_EVENTS" | "OUTPUT_LIMIT" | "HOST_ERROR";
+export type ModelStopReason = "EXITED" | "STEP_BUDGET" | "DEADLINE" | "INVALID_EVENTS" | "OUTPUT_LIMIT" | "HOST_ERROR" | "CANCELLED";
 export interface ModelProcessResult {
   reason: ModelStopReason;
   steps: number;
@@ -21,6 +21,7 @@ export interface ModelProcessOptions {
   graceMs: number; eventLog: string; stderrLog: string;
   nativeCommand?: "change";
   environment?: NodeJS.ProcessEnv;
+  signal?: AbortSignal;
   ownershipRecord?: string;
   /** Test harness injection; production callers always use the fixed OpenCode command. */
   command?: readonly string[];
@@ -38,6 +39,7 @@ export async function runBoundedModel(options: ModelProcessOptions): Promise<Mod
     "Planner invocation requires native change and durable ownership");
   invariant(!options.nativeCommand || options.agent === "scheduled-planner", "Native change is reserved for Planner");
   invariant(!options.ownershipRecord || !existsSync(options.ownershipRecord), "Model ownership record already exists; recover instead of relaunching");
+  options.signal?.throwIfAborted();
   const token = randomBytes(32).toString("hex"), startedAt = Date.now();
   const eventFd = openSync(options.eventLog, "wx", 0o600);
   let errorFd: number;
@@ -109,6 +111,7 @@ export async function runBoundedModel(options: ModelProcessOptions): Promise<Mod
     let termAt: number | null = null, empty = 0;
     for (;;) {
       const now = Date.now();
+      if (options.signal?.aborted) stop("CANCELLED");
       if (now < startedAt || now >= options.deadline) stop("DEADLINE");
       const tree = ownedTree(processSnapshot(token, marker), root, known);
       const additions = tree.filter(p => !known.some(k => k.pid === p.pid && k.started === p.started));
