@@ -1,0 +1,1427 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OpenCode Scheduler 定时编程质量门禁方案</title>
+    <style>
+        :root {
+            color-scheme: light;
+            --bg: #f4efe7;
+            --surface: rgba(255, 250, 244, 0.94);
+            --surface-strong: #fff9f2;
+            --ink: #201b16;
+            --muted: #675d52;
+            --line: rgba(84, 66, 47, 0.16);
+            --line-strong: rgba(84, 66, 47, 0.28);
+            --accent: #b14b1e;
+            --accent-soft: rgba(177, 75, 30, 0.12);
+            --teal: #176b63;
+            --teal-soft: rgba(23, 107, 99, 0.12);
+            --gold: #9d6918;
+            --gold-soft: rgba(157, 105, 24, 0.12);
+            --red: #a33a32;
+            --red-soft: rgba(163, 58, 50, 0.10);
+            --blue: #315f8c;
+            --blue-soft: rgba(49, 95, 140, 0.10);
+            --shadow: 0 26px 72px rgba(47, 31, 20, 0.12);
+            --radius-xl: 28px;
+            --radius-lg: 20px;
+            --radius-md: 14px;
+            --max: 1260px;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        html {
+            scroll-behavior: smooth;
+        }
+
+        body {
+            margin: 0;
+            color: var(--ink);
+            font-family: "Avenir Next", "PingFang SC", "Noto Sans SC", sans-serif;
+            background:
+                radial-gradient(circle at top left, rgba(177, 75, 30, 0.16), transparent 30%),
+                radial-gradient(circle at top right, rgba(23, 107, 99, 0.12), transparent 28%),
+                linear-gradient(180deg, #fcf8f2 0%, var(--bg) 44%, #eee3d5 100%);
+        }
+
+        h1, h2, h3, h4, p {
+            margin: 0;
+        }
+
+        a {
+            color: var(--teal);
+            text-decoration-thickness: 1px;
+            text-underline-offset: 3px;
+        }
+
+        code {
+            padding: 0.12em 0.38em;
+            border-radius: 8px;
+            background: rgba(42, 33, 26, 0.06);
+            font-family: "SFMono-Regular", "Menlo", "Monaco", monospace;
+            font-size: 0.92em;
+        }
+
+        .page {
+            width: min(calc(100% - 32px), var(--max));
+            margin: 0 auto;
+            padding: 28px 0 72px;
+        }
+
+        .hero,
+        .panel {
+            border: 1px solid var(--line);
+            border-radius: var(--radius-xl);
+            background: var(--surface);
+            box-shadow: var(--shadow);
+            backdrop-filter: blur(10px);
+        }
+
+        .hero {
+            position: relative;
+            overflow: hidden;
+            padding: 36px;
+        }
+
+        .hero::before {
+            content: "";
+            position: absolute;
+            inset: auto -80px -120px auto;
+            width: 320px;
+            height: 320px;
+            border-radius: 999px;
+            background: radial-gradient(circle, rgba(23, 107, 99, 0.20), transparent 68%);
+        }
+
+        .eyebrow {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 14px;
+            border-radius: 999px;
+            background: var(--accent-soft);
+            color: var(--accent);
+            font-size: 13px;
+            font-weight: 750;
+            letter-spacing: 0.04em;
+            text-transform: uppercase;
+        }
+
+        .hero h1 {
+            margin-top: 18px;
+            max-width: 920px;
+            font-size: clamp(34px, 4.5vw, 58px);
+            line-height: 1.04;
+        }
+
+        .hero .lead {
+            margin-top: 16px;
+            max-width: 900px;
+            color: var(--muted);
+            font-size: 18px;
+            line-height: 1.75;
+        }
+
+        .meta-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+            margin-top: 24px;
+        }
+
+        .meta-item {
+            padding: 12px 14px;
+            border: 1px solid var(--line);
+            border-radius: 14px;
+            background: rgba(255, 255, 255, 0.46);
+            color: var(--muted);
+            font-size: 14px;
+        }
+
+        .verdict {
+            position: relative;
+            margin-top: 20px;
+            padding: 20px 22px;
+            border: 1px solid rgba(23, 107, 99, 0.24);
+            border-radius: 18px;
+            background: linear-gradient(135deg, var(--teal-soft), rgba(255, 255, 255, 0.52));
+        }
+
+        .verdict strong {
+            display: block;
+            color: var(--teal);
+            font-size: 17px;
+        }
+
+        .verdict p {
+            margin-top: 7px;
+            max-width: 980px;
+            color: #315a55;
+            line-height: 1.72;
+        }
+
+        .panel {
+            margin-top: 22px;
+            padding: 28px;
+        }
+
+        .panel-header {
+            display: flex;
+            align-items: end;
+            justify-content: space-between;
+            gap: 18px;
+            margin-bottom: 20px;
+        }
+
+        .panel-title {
+            font-size: 27px;
+        }
+
+        .panel-subtitle {
+            margin-top: 6px;
+            max-width: 820px;
+            color: var(--muted);
+            font-size: 14px;
+            line-height: 1.65;
+        }
+
+        .status-banner {
+            display: grid;
+            grid-template-columns: auto 1fr;
+            gap: 16px;
+            align-items: start;
+            margin-top: 22px;
+            padding: 20px 22px;
+            border: 1px solid rgba(163, 58, 50, 0.24);
+            border-radius: 20px;
+            background: var(--red-soft);
+        }
+
+        .status-icon {
+            display: grid;
+            width: 42px;
+            height: 42px;
+            place-items: center;
+            border-radius: 50%;
+            background: var(--red);
+            color: white;
+            font-weight: 800;
+        }
+
+        .status-banner h2 {
+            color: var(--red);
+            font-size: 20px;
+        }
+
+        .status-banner p {
+            margin-top: 7px;
+            color: #673d38;
+            line-height: 1.72;
+        }
+
+        .grid-2 {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 18px;
+        }
+
+        .grid-3 {
+            display: grid;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 14px;
+        }
+
+        .summary-grid {
+            display: grid;
+            grid-template-columns: repeat(5, minmax(0, 1fr));
+            gap: 12px;
+        }
+
+        .summary-card,
+        .info-card,
+        .role-card,
+        .phase-card {
+            padding: 17px;
+            border: 1px solid var(--line);
+            border-radius: 17px;
+            background: rgba(255, 255, 255, 0.48);
+        }
+
+        .summary-card .number,
+        .phase-card .number {
+            display: grid;
+            width: 30px;
+            height: 30px;
+            place-items: center;
+            margin-bottom: 11px;
+            border-radius: 10px;
+            background: var(--accent-soft);
+            color: var(--accent);
+            font-size: 13px;
+            font-weight: 800;
+        }
+
+        .summary-card h3,
+        .info-card h3,
+        .role-card h3,
+        .phase-card h3 {
+            font-size: 16px;
+        }
+
+        .summary-card p,
+        .info-card p,
+        .role-card p,
+        .phase-card p {
+            margin-top: 8px;
+            color: var(--muted);
+            font-size: 14px;
+            line-height: 1.7;
+        }
+
+        .role-card.coder {
+            border-top: 4px solid var(--accent);
+        }
+
+        .role-card.gate {
+            border-top: 4px solid var(--gold);
+        }
+
+        .role-card.reviewer {
+            border-top: 4px solid var(--teal);
+        }
+
+        .evidence-table,
+        .gate-table,
+        .state-table {
+            width: 100%;
+            border-collapse: separate;
+            border-spacing: 0;
+            overflow: hidden;
+            border: 1px solid var(--line);
+            border-radius: 16px;
+            background: rgba(255, 255, 255, 0.42);
+        }
+
+        th,
+        td {
+            padding: 14px 15px;
+            border-bottom: 1px solid var(--line);
+            text-align: left;
+            vertical-align: top;
+            font-size: 14px;
+            line-height: 1.65;
+        }
+
+        th {
+            background: rgba(177, 75, 30, 0.07);
+            color: #58473a;
+            font-size: 13px;
+            letter-spacing: 0.02em;
+        }
+
+        tr:last-child td {
+            border-bottom: 0;
+        }
+
+        .tag {
+            display: inline-flex;
+            align-items: center;
+            padding: 4px 9px;
+            border-radius: 999px;
+            font-size: 12px;
+            font-weight: 750;
+            white-space: nowrap;
+        }
+
+        .tag.pass {
+            color: var(--teal);
+            background: var(--teal-soft);
+        }
+
+        .tag.fail {
+            color: var(--red);
+            background: var(--red-soft);
+        }
+
+        .tag.hard {
+            color: var(--accent);
+            background: var(--accent-soft);
+        }
+
+        .tag.conditional {
+            color: var(--gold);
+            background: var(--gold-soft);
+        }
+
+        .diagram-wrap {
+            overflow: auto;
+            padding: 10px;
+            border: 1px solid var(--line);
+            border-radius: 22px;
+            background: linear-gradient(180deg, rgba(255, 253, 250, 0.74), rgba(244, 236, 227, 0.94));
+        }
+
+        svg {
+            display: block;
+            width: 100%;
+            min-width: 1040px;
+            height: auto;
+        }
+
+        .caption {
+            margin-top: 14px;
+            color: var(--muted);
+            font-size: 14px;
+            line-height: 1.7;
+        }
+
+        .tree {
+            overflow: auto;
+            min-height: 100%;
+            padding: 20px;
+            border: 1px solid var(--line);
+            border-radius: 18px;
+            background: #28231e;
+            color: #f7eadb;
+        }
+
+        pre {
+            margin: 0;
+            font-family: "SFMono-Regular", "Menlo", "Monaco", monospace;
+            font-size: 13px;
+            line-height: 1.75;
+            white-space: pre;
+        }
+
+        .tree .folder {
+            color: #f4c36f;
+        }
+
+        .tree .new {
+            color: #84d6c8;
+        }
+
+        .tree .existing {
+            color: #d5c7b8;
+        }
+
+        .code-block {
+            overflow: auto;
+            margin-top: 14px;
+            padding: 20px;
+            border: 1px solid rgba(33, 27, 22, 0.08);
+            border-radius: var(--radius-lg);
+            background: linear-gradient(180deg, rgba(255, 255, 255, 0.70), rgba(249, 243, 234, 0.90));
+        }
+
+        .code-block pre {
+            color: #1e1a15;
+        }
+
+        .comment {
+            color: var(--teal);
+        }
+
+        .code-label {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            margin-top: 22px;
+        }
+
+        .code-label h3 {
+            font-size: 18px;
+        }
+
+        .code-label span {
+            color: var(--muted);
+            font-size: 13px;
+        }
+
+        .callout {
+            margin-top: 17px;
+            padding: 17px 19px;
+            border-left: 4px solid var(--gold);
+            border-radius: 14px;
+            background: var(--gold-soft);
+            color: #4f3917;
+            font-size: 14px;
+            line-height: 1.72;
+        }
+
+        .callout.teal {
+            border-left-color: var(--teal);
+            background: var(--teal-soft);
+            color: #28554f;
+        }
+
+        .callout.red {
+            border-left-color: var(--red);
+            background: var(--red-soft);
+            color: #653833;
+        }
+
+        .steps {
+            display: grid;
+            gap: 12px;
+        }
+
+        .step {
+            display: grid;
+            grid-template-columns: 44px 1fr;
+            gap: 14px;
+            align-items: start;
+            padding: 16px;
+            border: 1px solid var(--line);
+            border-radius: 16px;
+            background: rgba(255, 255, 255, 0.46);
+        }
+
+        .step-index {
+            display: grid;
+            width: 40px;
+            height: 40px;
+            place-items: center;
+            border-radius: 13px;
+            background: var(--teal-soft);
+            color: var(--teal);
+            font-weight: 850;
+        }
+
+        .step h3 {
+            font-size: 16px;
+        }
+
+        .step p {
+            margin-top: 6px;
+            color: var(--muted);
+            font-size: 14px;
+            line-height: 1.7;
+        }
+
+        .check-list {
+            display: grid;
+            gap: 10px;
+            margin: 0;
+            padding: 0;
+            list-style: none;
+        }
+
+        .check-list li {
+            position: relative;
+            padding: 13px 14px 13px 42px;
+            border: 1px solid var(--line);
+            border-radius: 14px;
+            background: rgba(255, 255, 255, 0.44);
+            color: var(--muted);
+            font-size: 14px;
+            line-height: 1.65;
+        }
+
+        .check-list li::before {
+            content: "✓";
+            position: absolute;
+            left: 14px;
+            top: 13px;
+            color: var(--teal);
+            font-weight: 900;
+        }
+
+        .sources {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 12px;
+        }
+
+        .source-card {
+            padding: 15px 16px;
+            border: 1px solid var(--line);
+            border-radius: 15px;
+            background: rgba(255, 255, 255, 0.44);
+            font-size: 14px;
+            line-height: 1.65;
+        }
+
+        .source-card span {
+            display: block;
+            margin-top: 4px;
+            color: var(--muted);
+        }
+
+        @media (max-width: 1080px) {
+            .summary-grid {
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+            }
+
+            .grid-3 {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        @media (max-width: 820px) {
+            .grid-2,
+            .sources {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        @media (max-width: 720px) {
+            .page {
+                width: min(calc(100% - 20px), var(--max));
+                padding: 18px 0 52px;
+            }
+
+            .hero,
+            .panel {
+                padding: 20px;
+                border-radius: 22px;
+            }
+
+            .hero .lead {
+                font-size: 16px;
+            }
+
+            .summary-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .status-banner {
+                grid-template-columns: 1fr;
+            }
+
+            pre {
+                font-size: 12px;
+            }
+
+            th,
+            td {
+                min-width: 150px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <main class="page">
+        <section class="hero">
+            <div class="eyebrow">OpenCode Scheduler × Android Quality Gate</div>
+            <h1>定时编程、单测验收与独立大模型评审方案</h1>
+            <p class="lead">
+                面向当前 <code>cctest</code> Android 工程的可落地自动化设计：让 Scheduler 只负责可靠触发，
+                让确定性的 Gradle 测试承担验收，让第二个只读模型承担代码评审，最后由人决定是否合入。
+            </p>
+            <div class="meta-list">
+                <div class="meta-item">目标工程：<code>/Users/zhanglong/files/program/cctest</code></div>
+                <div class="meta-item">已安装：<code>opencode-scheduler 1.3.0</code></div>
+                <div class="meta-item">平台：macOS / <code>launchd</code></div>
+                <div class="meta-item">文档类型：实施方案，不修改应用源码</div>
+            </div>
+            <div class="verdict">
+                <strong>推荐结论：双任务、双角色、三道硬门禁、人工合入</strong>
+                <p>
+                    不让编码模型自己宣布“完成”。编码作业只生成候选改动；单元测试与构建命令根据退出码裁决；
+                    独立评审作业复查需求、差异和测试质量。任何失败都停止推进，绝不自动推送、合并或发布。
+                </p>
+            </div>
+        </section>
+
+        <section class="status-banner" aria-label="当前阻塞项">
+            <div class="status-icon">!</div>
+            <div>
+                <h2>启用定时编程前，必须先把单测基线修到全绿</h2>
+                <p>
+                    2026-08-06 实际执行 <code>./gradlew testDebugUnitTest</code>：共 15 个测试，1 个失败。
+                    失败点为 <code>app/src/test/java/com/example/cctest/ExampleUnitTest.kt:15</code>，当前断言是
+                    <code>assertEquals(3, 2 + 2)</code>。此外当前主工作区存在未提交改动，因此不应直接作为无人值守的编码目录。
+                </p>
+            </div>
+        </section>
+
+        <section class="panel">
+            <div class="panel-header">
+                <div>
+                    <h2 class="panel-title">阅读抓手</h2>
+                    <p class="panel-subtitle">先抓住这五条原则，再看后面的目录、配置和提示词模板。</p>
+                </div>
+            </div>
+            <div class="summary-grid">
+                <article class="summary-card">
+                    <div class="number">01</div>
+                    <h3>任务必须可验收</h3>
+                    <p>每个任务都写清允许修改范围、禁止项和可执行的验收命令；没有验收标准就不领取。</p>
+                </article>
+                <article class="summary-card">
+                    <div class="number">02</div>
+                    <h3>隔离工作区</h3>
+                    <p>使用专门的 Git worktree，避免夜间任务覆盖你白天尚未提交的改动。</p>
+                </article>
+                <article class="summary-card">
+                    <div class="number">03</div>
+                    <h3>测试退出码裁决</h3>
+                    <p>模型的文字总结不算通过；只有 Gradle 命令返回 0 且报告存在，才允许进入评审。</p>
+                </article>
+                <article class="summary-card">
+                    <div class="number">04</div>
+                    <h3>评审角色只读</h3>
+                    <p>评审模型不能修改业务代码，只能读差异、重跑测试并写结构化评审报告。</p>
+                </article>
+                <article class="summary-card">
+                    <div class="number">05</div>
+                    <h3>人工决定合入</h3>
+                    <p>第一阶段禁止自动 push、merge、发布和删除；通过评审也只进入待人工确认状态。</p>
+                </article>
+            </div>
+        </section>
+
+        <section class="panel">
+            <div class="panel-header">
+                <div>
+                    <h2 class="panel-title">当前工程事实与方案依据</h2>
+                    <p class="panel-subtitle">这些结论来自当前仓库和本机已安装插件，不是抽象示例。</p>
+                </div>
+            </div>
+            <div style="overflow:auto">
+                <table class="evidence-table">
+                    <thead>
+                        <tr>
+                            <th>观察项</th>
+                            <th>当前事实</th>
+                            <th>对方案的影响</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>工程类型</td>
+                            <td>单模块 Android，Gradle Kotlin DSL，Java/Kotlin 11</td>
+                            <td>质量门禁直接复用 Gradle Wrapper，避免模型自行拼装编译命令。</td>
+                        </tr>
+                        <tr>
+                            <td>本地单测</td>
+                            <td><code>app/src/test/</code> 使用 JUnit4；实际执行 15 个测试、1 个失败</td>
+                            <td>基线为红时禁止领取新任务，否则无法区分“旧失败”和“新回归”。</td>
+                        </tr>
+                        <tr>
+                            <td>仪器测试</td>
+                            <td><code>app/src/androidTest/</code> 已有 Espresso 核心流程；设备并非始终在线</td>
+                            <td>默认作为条件门禁：有受管模拟器时执行，否则编译并记录“未运行”，不能伪报通过。</td>
+                        </tr>
+                        <tr>
+                            <td>仓库规则</td>
+                            <td><code>AGENTS.md</code> 已声明 <code>testDebugUnitTest</code>、<code>assembleDebug</code>、<code>lint</code></td>
+                            <td>编码与评审模型都必须遵守同一套项目规则和命令入口。</td>
+                        </tr>
+                        <tr>
+                            <td>Scheduler</td>
+                            <td>全局启用 <code>opencode-scheduler 1.3.0</code>，作业按工作目录隔离</td>
+                            <td>定时作业应指向专用 worktree；插件负责 launchd、超时、日志和单作业防重入。</td>
+                        </tr>
+                        <tr>
+                            <td>工作区状态</td>
+                            <td>当前 <code>main</code> 工作区有未提交和未跟踪文件</td>
+                            <td>绝不把当前目录直接交给无人值守编码代理；先建立自动化专用 worktree。</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+        <section class="panel">
+            <div class="panel-header">
+                <div>
+                    <h2 class="panel-title">主执行流程图</h2>
+                    <p class="panel-subtitle">两个 Scheduler 作业通过状态文件交接；任何失败都走“保留证据并停止”的支路。</p>
+                </div>
+            </div>
+            <div class="diagram-wrap">
+                <svg viewBox="0 0 1180 1540" role="img" aria-label="定时编程、测试门禁和独立模型评审执行流程图">
+                    <defs>
+                        <marker id="arrow" markerWidth="10" markerHeight="10" refX="8" refY="5" orient="auto" markerUnits="strokeWidth">
+                            <path d="M0,0 L10,5 L0,10 z" fill="#5d4c3a"></path>
+                        </marker>
+                        <style>
+                            .flow-line { stroke: #5d4c3a; stroke-width: 3; fill: none; marker-end: url(#arrow); }
+                            .flow-dash { stroke: #8f7c69; stroke-width: 2.5; stroke-dasharray: 9 8; fill: none; marker-end: url(#arrow); }
+                            .flow-text { fill: #201b16; font-family: 'Avenir Next', 'PingFang SC', 'Noto Sans SC', sans-serif; font-size: 20px; font-weight: 700; }
+                            .flow-sub { fill: #675d52; font-family: 'Avenir Next', 'PingFang SC', 'Noto Sans SC', sans-serif; font-size: 15px; }
+                            .flow-label { fill: #8a4a2e; font-family: 'Avenir Next', 'PingFang SC', sans-serif; font-size: 16px; font-weight: 750; }
+                            .box { fill: #fffaf4; stroke: #c9b49e; stroke-width: 2.4; rx: 20; }
+                            .box-accent { fill: #fff2ea; stroke: #d7926f; stroke-width: 2.4; rx: 20; }
+                            .box-teal { fill: #eff9f7; stroke: #6fb3aa; stroke-width: 2.4; rx: 20; }
+                            .box-gold { fill: #fff7ea; stroke: #d0ab65; stroke-width: 2.4; rx: 20; }
+                            .box-red { fill: #fff1ef; stroke: #c97870; stroke-width: 2.4; rx: 20; }
+                            .decision { fill: #fffdf8; stroke: #b08c58; stroke-width: 2.6; }
+                            .end { fill: #efe6d8; stroke: #8c745a; stroke-width: 2.6; }
+                            .lane { fill: rgba(255,255,255,0.24); stroke: #d8cab9; stroke-width: 2; rx: 28; }
+                        </style>
+                    </defs>
+
+                    <rect class="lane" x="45" y="36" width="1090" height="790"></rect>
+                    <text class="flow-label" x="78" y="78">作业 A：scheduled-coder（建议 01:00）</text>
+
+                    <ellipse class="end" cx="590" cy="116" rx="168" ry="38"></ellipse>
+                    <text class="flow-text" x="590" y="123" text-anchor="middle">launchd 触发编码作业</text>
+
+                    <rect class="box" x="390" y="190" width="400" height="98"></rect>
+                    <text class="flow-text" x="590" y="230" text-anchor="middle">预检与领取 1 个任务</text>
+                    <text class="flow-sub" x="590" y="258" text-anchor="middle">独立 worktree / 无锁 / 有明确验收标准</text>
+
+                    <polygon class="decision" points="590,326 760,414 590,502 420,414"></polygon>
+                    <text class="flow-text" x="590" y="408" text-anchor="middle">基线单测全绿且</text>
+                    <text class="flow-text" x="590" y="434" text-anchor="middle">工作区满足条件？</text>
+
+                    <rect class="box-red" x="840" y="360" width="245" height="108"></rect>
+                    <text class="flow-text" x="962" y="400" text-anchor="middle">标记 BLOCKED</text>
+                    <text class="flow-sub" x="962" y="428" text-anchor="middle">保存原因与日志</text>
+                    <text class="flow-sub" x="962" y="450" text-anchor="middle">不修改业务代码</text>
+
+                    <rect class="box-accent" x="385" y="542" width="410" height="104"></rect>
+                    <text class="flow-text" x="590" y="582" text-anchor="middle">编码 Agent 实现任务</text>
+                    <text class="flow-sub" x="590" y="610" text-anchor="middle">只改允许路径；补测试；最多 1 次修复循环</text>
+
+                    <rect class="box-gold" x="390" y="684" width="400" height="102"></rect>
+                    <text class="flow-text" x="590" y="724" text-anchor="middle">确定性质量门禁</text>
+                    <text class="flow-sub" x="590" y="752" text-anchor="middle">unit test → assembleDebug → lint</text>
+
+                    <rect class="box-red" x="85" y="682" width="235" height="106"></rect>
+                    <text class="flow-text" x="202" y="722" text-anchor="middle">TEST_FAILED</text>
+                    <text class="flow-sub" x="202" y="750" text-anchor="middle">保留 diff / 报告</text>
+                    <text class="flow-sub" x="202" y="772" text-anchor="middle">禁止进入评审</text>
+
+                    <rect class="lane" x="45" y="858" width="1090" height="600"></rect>
+                    <text class="flow-label" x="78" y="900">作业 B：scheduled-reviewer（建议 03:30）</text>
+
+                    <rect class="box-teal" x="384" y="928" width="412" height="106"></rect>
+                    <text class="flow-text" x="590" y="968" text-anchor="middle">状态为 READY_FOR_REVIEW</text>
+                    <text class="flow-sub" x="590" y="996" text-anchor="middle">校验任务 ID、基准提交、diff 摘要与测试报告</text>
+
+                    <rect class="box-teal" x="382" y="1072" width="416" height="112"></rect>
+                    <text class="flow-text" x="590" y="1112" text-anchor="middle">独立 Reviewer 只读复验</text>
+                    <text class="flow-sub" x="590" y="1140" text-anchor="middle">需求覆盖 / 回归风险 / 测试有效性 / 安全边界</text>
+                    <text class="flow-sub" x="590" y="1163" text-anchor="middle">优先使用不同模型；重新执行必要测试</text>
+
+                    <polygon class="decision" points="590,1220 744,1300 590,1380 436,1300"></polygon>
+                    <text class="flow-text" x="590" y="1294" text-anchor="middle">评审结论是否</text>
+                    <text class="flow-text" x="590" y="1320" text-anchor="middle">APPROVED？</text>
+
+                    <rect class="box-red" x="90" y="1248" width="270" height="106"></rect>
+                    <text class="flow-text" x="225" y="1288" text-anchor="middle">CHANGES_REQUESTED</text>
+                    <text class="flow-sub" x="225" y="1316" text-anchor="middle">列出阻塞问题</text>
+                    <text class="flow-sub" x="225" y="1338" text-anchor="middle">等待下一次修复或人工处理</text>
+
+                    <rect class="box-gold" x="820" y="1248" width="270" height="106"></rect>
+                    <text class="flow-text" x="955" y="1288" text-anchor="middle">AWAITING_HUMAN</text>
+                    <text class="flow-sub" x="955" y="1316" text-anchor="middle">通过但不自动合并</text>
+                    <text class="flow-sub" x="955" y="1338" text-anchor="middle">人审后 commit / merge</text>
+
+                    <ellipse class="end" cx="590" cy="1418" rx="176" ry="36"></ellipse>
+                    <text class="flow-text" x="590" y="1425" text-anchor="middle">本轮结束，证据可追溯</text>
+
+                    <path class="flow-line" d="M590 154 L590 190"></path>
+                    <path class="flow-line" d="M590 288 L590 326"></path>
+                    <path class="flow-line" d="M760 414 L840 414"></path>
+                    <text class="flow-sub" x="792" y="397">否</text>
+                    <path class="flow-line" d="M590 502 L590 542"></path>
+                    <text class="flow-sub" x="607" y="526">是</text>
+                    <path class="flow-line" d="M590 646 L590 684"></path>
+                    <path class="flow-line" d="M390 735 L320 735"></path>
+                    <text class="flow-sub" x="342" y="718">失败</text>
+                    <path class="flow-dash" d="M590 786 L590 928"></path>
+                    <text class="flow-sub" x="608" y="858">全部通过 → READY_FOR_REVIEW</text>
+                    <path class="flow-line" d="M590 1034 L590 1072"></path>
+                    <path class="flow-line" d="M590 1184 L590 1220"></path>
+                    <path class="flow-line" d="M436 1300 L360 1300"></path>
+                    <text class="flow-sub" x="382" y="1283">否</text>
+                    <path class="flow-line" d="M744 1300 L820 1300"></path>
+                    <text class="flow-sub" x="770" y="1283">是</text>
+                    <path class="flow-line" d="M225 1354 L225 1418 L414 1418"></path>
+                    <path class="flow-line" d="M955 1354 L955 1418 L766 1418"></path>
+                    <path class="flow-dash" d="M962 468 L962 806 L1095 806 L1095 1418 L766 1418"></path>
+                    <path class="flow-dash" d="M202 788 L202 858 L65 858 L65 1418 L414 1418"></path>
+                </svg>
+            </div>
+            <p class="caption">
+                菱形是硬判断，圆角矩形是可执行步骤，虚线代表两个独立 Scheduler 作业之间通过状态文件交接。
+                插件只能保证同一个作业不重入，因此方案还要求使用共享的原子目录锁，防止编码作业与评审作业交叉修改状态。
+            </p>
+        </section>
+
+        <section class="panel">
+            <div class="panel-header">
+                <div>
+                    <h2 class="panel-title">三个角色的边界</h2>
+                    <p class="panel-subtitle">准确性来自职责分离：模型负责推理，脚本负责裁决，人在最终风险点签字。</p>
+                </div>
+            </div>
+            <div class="grid-3">
+                <article class="role-card coder">
+                    <h3>编码 Agent</h3>
+                    <p>
+                        每次最多领取一个任务；先读 <code>AGENTS.md</code> 和任务契约；先跑基线；实现最小变更并添加测试。
+                        可编辑工程，但禁止 push、merge、发布、删除工作区以及修改测试以掩盖失败。
+                    </p>
+                </article>
+                <article class="role-card gate">
+                    <h3>质量门禁脚本</h3>
+                    <p>
+                        使用固定命令和退出码，不接受自然语言“看起来通过”。保存命令、开始/结束时间、退出码、测试报告路径和 diff 摘要，失败立即停止。
+                    </p>
+                </article>
+                <article class="role-card reviewer">
+                    <h3>独立 Reviewer</h3>
+                    <p>
+                        新会话、低温度、优先不同模型；业务代码只读。核对任务与 diff，重跑关键测试，寻找测试弱化、越界修改、隐患和遗漏，并输出结构化结论。
+                    </p>
+                </article>
+            </div>
+        </section>
+
+        <section class="panel">
+            <div class="panel-header">
+                <div>
+                    <h2 class="panel-title">建议的仓库结构</h2>
+                    <p class="panel-subtitle">绿色标记为建议新增；本文只给出方案，尚未创建这些自动化文件。</p>
+                </div>
+            </div>
+            <div class="grid-2">
+                <div class="tree">
+<pre><span class="existing">cctest/</span>
+├── <span class="existing">AGENTS.md</span>                         # 已有项目规则
+├── <span class="folder">.opencode/</span>
+│   ├── <span class="folder">agents/</span>
+│   │   ├── <span class="new">scheduled-coder.md</span>          # 可编辑、受限命令
+│   │   └── <span class="new">scheduled-reviewer.md</span>       # 源码只读
+│   ├── <span class="folder">commands/</span>
+│   │   ├── <span class="new">automation-code.md</span>          # 版本化编码提示词
+│   │   └── <span class="new">automation-review.md</span>        # 版本化评审提示词
+│   └── <span class="folder">automation/</span>
+│       ├── <span class="new">task-template.md</span>
+│       ├── <span class="folder">tasks/</span>
+│       │   ├── <span class="folder">pending/</span>
+│       │   ├── <span class="folder">active/</span>
+│       │   └── <span class="folder">closed/</span>
+│       ├── <span class="folder">state/</span>                    # 建议 gitignore
+│       └── <span class="folder">runs/&lt;run-id&gt;/</span>           # 建议 gitignore
+├── <span class="folder">scripts/automation/</span>
+│   ├── <span class="new">preflight.sh</span>                    # 基线与锁
+│   ├── <span class="new">quality-gate.sh</span>                 # 硬门禁
+│   └── <span class="new">record-result.sh</span>                # 证据归档
+└── <span class="folder">代码结构文档/</span>
+    └── <span class="new">scheduled-coding-quality-gate-explained.html</span></pre>
+                </div>
+                <div class="steps">
+                    <div class="step">
+                        <div class="step-index">1</div>
+                        <div>
+                            <h3>提示词进入版本控制</h3>
+                            <p>Scheduler 只调用 <code>automation-code</code> / <code>automation-review</code> 命令，具体流程写在 Markdown 中，方便审查和迭代。</p>
+                        </div>
+                    </div>
+                    <div class="step">
+                        <div class="step-index">2</div>
+                        <div>
+                            <h3>任务是一份契约</h3>
+                            <p>任务文件至少包含目标、允许路径、禁止项、验收命令、人工关注点和最大改动范围；模型不能自行扩大范围。</p>
+                        </div>
+                    </div>
+                    <div class="step">
+                        <div class="step-index">3</div>
+                        <div>
+                            <h3>运行证据不混进业务提交</h3>
+                            <p><code>state/</code> 和 <code>runs/</code> 保存本机运行材料并加入 <code>.gitignore</code>；正式任务与 Agent 配置可以提交。</p>
+                        </div>
+                    </div>
+                    <div class="step">
+                        <div class="step-index">4</div>
+                        <div>
+                            <h3>专用 worktree</h3>
+                            <p>建议另建 <code>/Users/zhanglong/files/program/cctest-automation</code>，Scheduler 的 <code>workdir</code> 固定指向它。</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="callout red">
+                当前主工作区已有用户改动。创建专用 worktree 前应先由你决定这些改动如何保存；自动化流程不得执行
+                <code>git reset --hard</code>、<code>git clean</code> 或任何试图替你“清理现场”的命令。
+            </div>
+        </section>
+
+        <section class="panel">
+            <div class="panel-header">
+                <div>
+                    <h2 class="panel-title">状态机与交接协议</h2>
+                    <p class="panel-subtitle">状态是两个独立模型之间唯一可信的控制面；聊天文本不作为状态。</p>
+                </div>
+            </div>
+            <div style="overflow:auto">
+                <table class="state-table">
+                    <thead>
+                        <tr>
+                            <th>状态</th>
+                            <th>谁可以进入</th>
+                            <th>必备证据</th>
+                            <th>下一步</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><code>PENDING</code></td>
+                            <td>人工创建任务</td>
+                            <td>任务 ID、目标、允许路径、验收命令</td>
+                            <td>编码作业原子领取</td>
+                        </tr>
+                        <tr>
+                            <td><code>CODING</code></td>
+                            <td>编码作业</td>
+                            <td>基准提交、worktree、开始时间、锁所有者</td>
+                            <td>运行质量门禁</td>
+                        </tr>
+                        <tr>
+                            <td><code>TEST_FAILED</code></td>
+                            <td>门禁脚本</td>
+                            <td>退出码、失败测试、日志、当前 diff</td>
+                            <td>停止；等待人工或下一轮修复</td>
+                        </tr>
+                        <tr>
+                            <td><code>READY_FOR_REVIEW</code></td>
+                            <td>全部硬门禁通过后</td>
+                            <td>diff 校验值、测试报告、构建与 lint 结果</td>
+                            <td>评审作业领取</td>
+                        </tr>
+                        <tr>
+                            <td><code>CHANGES_REQUESTED</code></td>
+                            <td>Reviewer</td>
+                            <td>按严重级别排序的问题与可复现证据</td>
+                            <td>返回修复或人工终止</td>
+                        </tr>
+                        <tr>
+                            <td><code>AWAITING_HUMAN</code></td>
+                            <td>Reviewer 通过后</td>
+                            <td><code>APPROVED</code> 报告和全部门禁证据</td>
+                            <td>人工查看、commit / merge 或拒绝</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+            <div class="callout teal">
+                两个作业都先尝试用 <code>mkdir</code> 创建同一个锁目录。创建失败表示另一个流程仍在运行，当前作业只记录
+                <code>SKIPPED_LOCKED</code> 并退出；不要依赖两个 Cron 时间“应该不会撞车”。
+            </div>
+        </section>
+
+        <section class="panel">
+            <div class="panel-header">
+                <div>
+                    <h2 class="panel-title">质量门禁矩阵</h2>
+                    <p class="panel-subtitle">“硬门禁”失败立即终止；条件门禁必须明确记录是否具备运行环境。</p>
+                </div>
+            </div>
+            <div style="overflow:auto">
+                <table class="gate-table">
+                    <thead>
+                        <tr>
+                            <th>门禁</th>
+                            <th>命令 / 检查</th>
+                            <th>类型</th>
+                            <th>通过标准</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>G0 基线</td>
+                            <td><code>./gradlew testDebugUnitTest</code>（编码前）</td>
+                            <td><span class="tag hard">硬门禁</span></td>
+                            <td>退出码 0；当前已失败，所以暂不具备启用条件。</td>
+                        </tr>
+                        <tr>
+                            <td>G1 任务测试</td>
+                            <td>针对本次功能新增或修改的 JUnit4 / Espresso 测试</td>
+                            <td><span class="tag hard">硬门禁</span></td>
+                            <td>测试真正覆盖任务验收条件；不得只有“能编译”或恒真断言。</td>
+                        </tr>
+                        <tr>
+                            <td>G2 全量单测</td>
+                            <td><code>./gradlew testDebugUnitTest</code>（编码后）</td>
+                            <td><span class="tag hard">硬门禁</span></td>
+                            <td>全部通过，不允许删除测试、加 <code>@Ignore</code> 或弱化断言换绿。</td>
+                        </tr>
+                        <tr>
+                            <td>G3 构建</td>
+                            <td><code>./gradlew assembleDebug</code></td>
+                            <td><span class="tag hard">硬门禁</span></td>
+                            <td>退出码 0，生成可安装的 Debug APK。</td>
+                        </tr>
+                        <tr>
+                            <td>G4 静态检查</td>
+                            <td><code>./gradlew lint</code></td>
+                            <td><span class="tag hard">硬门禁</span></td>
+                            <td>退出码 0；新增问题不能通过改配置隐藏。</td>
+                        </tr>
+                        <tr>
+                            <td>G5 设备验收</td>
+                            <td><code>./gradlew connectedDebugAndroidTest</code></td>
+                            <td><span class="tag conditional">条件门禁</span></td>
+                            <td>有受管模拟器时全绿；没有设备时明确记为 <code>NOT_RUN</code>，不能写 PASS。</td>
+                        </tr>
+                        <tr>
+                            <td>G6 模型评审</td>
+                            <td>独立 Reviewer + 必要测试复跑</td>
+                            <td><span class="tag hard">硬门禁</span></td>
+                            <td>没有 Blocker / High 问题，测试未被削弱，改动未超范围。</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+        <section class="panel">
+            <div class="panel-header">
+                <div>
+                    <h2 class="panel-title">实施模板（带阅读注释）</h2>
+                    <p class="panel-subtitle">
+                        以下内容是建议新增文件的模板，注释仅用于说明方案；它们目前没有写入仓库，也不是现有业务源码。
+                    </p>
+                </div>
+            </div>
+
+            <div class="code-label">
+                <h3>1. 编码命令：<code>.opencode/commands/automation-code.md</code></h3>
+                <span>Scheduler 调用的版本化主提示词</span>
+            </div>
+            <div class="code-block">
+<pre><code>---
+description: Process exactly one queued coding task with deterministic gates
+agent: scheduled-coder
+---
+
+<span class="comment"># 只领取一个任务，避免一次夜间运行产生不可审查的大 diff。</span>
+从 .opencode/automation/tasks/pending 中按文件名顺序领取一个任务。
+如果没有任务，输出 NO_TASK 并结束，不要自行发明需求。
+
+<span class="comment"># 先验证环境；基线红时禁止把旧失败归因于本次实现。</span>
+读取 AGENTS.md 和任务文件，执行 scripts/automation/preflight.sh。
+如果工作区、锁、任务契约或基线单测不合格，记录 BLOCKED 并结束。
+
+<span class="comment"># 模型只能在任务契约允许的边界内做最小实现。</span>
+实现任务并添加能够证明验收条件的测试。不要改弱、跳过或删除现有测试。
+不得读取或输出密钥，不得 push、merge、发布、清理工作区或扩大需求范围。
+
+<span class="comment"># 由脚本退出码裁决，不接受模型用文字自报成功。</span>
+执行 scripts/automation/quality-gate.sh。
+失败时保存失败证据并标记 TEST_FAILED；最多只允许一次针对失败原因的修复循环。
+
+<span class="comment"># 只有完整证据才可以交给第二个模型。</span>
+全部门禁通过后，保存任务 ID、基准提交、git diff、diff 校验值、测试报告路径，
+把状态写为 READY_FOR_REVIEW，然后结束。不要提交、推送或合并。</code></pre>
+            </div>
+
+            <div class="code-label">
+                <h3>2. 受限编码 Agent：<code>.opencode/agents/scheduled-coder.md</code></h3>
+                <span>能改业务代码，但不能改规则和门禁</span>
+            </div>
+            <div class="code-block">
+<pre><code>---
+description: Implement exactly one contracted task in the automation worktree
+mode: primary
+temperature: 0.1
+permission:
+  read: allow
+  glob: allow
+  grep: allow
+  list: allow
+  edit:
+    "*": allow
+    "AGENTS.md": deny
+    "opencode.json*": deny
+    ".opencode/agents/**": deny
+    ".opencode/commands/**": deny
+    ".opencode/automation/tasks/**": deny
+    "scripts/automation/**": deny
+  bash:
+    "*": deny
+    "git status": allow
+    "git status *": allow
+    "git diff": allow
+    "git diff *": allow
+    "scripts/automation/preflight.sh": allow
+    "scripts/automation/quality-gate.sh": allow
+    "scripts/automation/record-result.sh *": allow
+  external_directory: deny
+  webfetch: deny
+  websearch: deny
+  question: deny
+---
+
+<span class="comment"># 固定规则、任务契约和门禁脚本都不可由被验收对象自行修改。</span>
+你只能实现 preflight 已领取的一个任务。遵守 AGENTS.md 和任务允许路径；
+没有明确证据时宁可标记 BLOCKED，不得猜测需求或绕过门禁。</code></pre>
+            </div>
+
+            <div class="code-label">
+                <h3>3. 只读评审 Agent：<code>.opencode/agents/scheduled-reviewer.md</code></h3>
+                <span>源码不可写，只允许报告目录写入</span>
+            </div>
+            <div class="code-block">
+<pre><code>---
+description: Independently review one tested automation candidate
+mode: primary
+temperature: 0.1
+permission:
+  read: allow
+  glob: allow
+  grep: allow
+  list: allow
+  edit:
+    "*": deny
+    ".opencode/automation/runs/**": allow
+  bash:
+    "*": deny
+    "git status": allow
+    "git status *": allow
+    "git diff": allow
+    "git diff *": allow
+    "git log": allow
+    "git log *": allow
+    "./gradlew testDebugUnitTest": allow
+    "./gradlew assembleDebug": allow
+    "./gradlew lint": allow
+  external_directory: deny
+  webfetch: deny
+  websearch: deny
+  question: deny
+---
+
+<span class="comment"># Reviewer 与 Coder 的目标不同：主动找出拒绝合入的理由。</span>
+你是独立代码评审者。不得修改业务源码、测试源码、构建配置或候选 diff。
+
+核对任务契约、基准提交、当前 diff 与质量门禁证据，并重点检查：
+- 需求是否完整实现，是否有边界条件和回归风险；
+- 是否删除、跳过、弱化测试，或只写了无法失败的测试；
+- 是否修改了允许范围之外的文件；
+- 是否引入线程、生命周期、资源、导航、安全或敏感信息问题；
+- AGENTS.md 中的 Android / Kotlin 约定是否满足。
+
+必要时重新运行允许的 Gradle 命令。最终只输出 APPROVED 或 CHANGES_REQUESTED，
+并在 runs 目录写入包含 severity、path、line、evidence、recommendation 的 review.json。</code></pre>
+            </div>
+
+            <div class="code-label">
+                <h3>4. 硬门禁：<code>scripts/automation/quality-gate.sh</code></h3>
+                <span>示意版本，落地时再补日志归档与设备检测</span>
+            </div>
+            <div class="code-block">
+<pre><code>#!/usr/bin/env bash
+set -euo pipefail
+
+<span class="comment"># JVM 单元测试先执行：最快发现行为回归。</span>
+./gradlew testDebugUnitTest
+
+<span class="comment"># 单测通过后验证完整 Debug 构建。</span>
+./gradlew assembleDebug
+
+<span class="comment"># 最后执行 Android Lint；任一命令非零都会立即终止。</span>
+./gradlew lint
+
+<span class="comment"># connectedDebugAndroidTest 不应在无受管设备时伪装成必过项。</span>
+# 如果检测到指定 emulator serial，再执行：
+# ./gradlew connectedDebugAndroidTest</code></pre>
+            </div>
+
+            <div class="callout">
+                OpenCode 的无人值守运行不能停下来等你点击授权。Agent 的权限应采用“默认拒绝、逐项允许”的方式，
+                并显式拒绝 <code>git push</code>、合并、发布、破坏性清理和项目外目录。上面的命令匹配规则在落地时应使用
+                <code>opencode debug config</code> 与一次手工 <code>run_job</code> 验证最终解析结果。
+            </div>
+        </section>
+
+        <section class="panel">
+            <div class="panel-header">
+                <div>
+                    <h2 class="panel-title">任务契约模板</h2>
+                    <p class="panel-subtitle">模型准确率不够时，最有效的杠杆不是把提示词写得更长，而是把可变需求变成可验证输入。</p>
+                </div>
+            </div>
+            <div class="code-block">
+<pre><code>---
+id: AUTO-001
+title: 为个人信息解析补充手机号格式校验
+status: PENDING
+max_changed_files: 6
+allowed_paths:
+  - app/src/main/java/com/example/cctest/routing/parser/**
+  - app/src/test/java/com/example/cctest/routing/**
+forbidden_paths:
+  - app/build.gradle.kts
+  - gradle/**
+---
+
+## 目标
+说明用户可观察到的行为，不写“优化一下”这类不可验收描述。
+
+## 验收标准
+1. 合法手机号保持现有行为。
+2. 非法手机号返回明确的校验错误。
+3. 至少新增正常、边界、异常三类单元测试。
+4. ./gradlew testDebugUnitTest、assembleDebug、lint 全部通过。
+
+## 非目标
+- 不调整页面视觉样式。
+- 不重构无关导航或网络模块。
+
+## 人工评审关注点
+- 是否误伤已有中文输入解析；
+- 是否把用户文案硬编码进 Kotlin；
+- 测试是否真的能在实现错误时失败。</code></pre>
+            </div>
+        </section>
+
+        <section class="panel">
+            <div class="panel-header">
+                <div>
+                    <h2 class="panel-title">Scheduler 作业配置建议</h2>
+                    <p class="panel-subtitle">先手工触发验证，再启用 Cron。模型 ID 使用你已配置的真实 <code>provider/model</code> 替换占位符。</p>
+                </div>
+            </div>
+            <div class="grid-2">
+                <article class="info-card">
+                    <h3>作业 A：夜间编码</h3>
+                    <p>建议时间 <code>0 1 * * *</code>，超时 7200 秒。使用编码模型和 <code>scheduled-coder</code> Agent，每次只处理一个任务。</p>
+                    <div class="code-block">
+<pre><code>请调用 schedule_job：
+name: scheduled-coder
+schedule: 0 1 * * *
+workdir: /Users/zhanglong/files/program/cctest-automation
+command: automation-code
+agent: scheduled-coder
+model: provider/coding-model
+timeoutSeconds: 7200</code></pre>
+                    </div>
+                </article>
+                <article class="info-card">
+                    <h3>作业 B：独立评审</h3>
+                    <p>建议时间 <code>30 3 * * *</code>，超时 3600 秒。优先选择不同厂商或不同模型家族，并固定新会话。</p>
+                    <div class="code-block">
+<pre><code>请调用 schedule_job：
+name: scheduled-reviewer
+schedule: 30 3 * * *
+workdir: /Users/zhanglong/files/program/cctest-automation
+command: automation-review
+agent: scheduled-reviewer
+model: provider/review-model
+timeoutSeconds: 3600</code></pre>
+                    </div>
+                </article>
+            </div>
+            <div class="callout teal">
+                Reviewer 到点时如果状态不是 <code>READY_FOR_REVIEW</code>，应输出 <code>NO_REVIEW_CANDIDATE</code> 并安全退出。
+                这样即使编码作业超时或失败，评审作业也不会误审半成品。
+            </div>
+        </section>
+
+        <section class="panel">
+            <div class="panel-header">
+                <div>
+                    <h2 class="panel-title">分阶段落地顺序</h2>
+                    <p class="panel-subtitle">不要一次性开放所有自动权限；每一阶段都有明确的退出条件。</p>
+                </div>
+            </div>
+            <div class="grid-3">
+                <article class="phase-card">
+                    <div class="number">P0</div>
+                    <h3>先修复基线</h3>
+                    <p>确认并修复当前失败的 <code>ExampleUnitTest</code>，连续两次运行全绿。梳理现有未提交改动，不让自动任务处理它们。</p>
+                </article>
+                <article class="phase-card">
+                    <div class="number">P1</div>
+                    <h3>建立隔离和骨架</h3>
+                    <p>创建专用 worktree、Agent、命令、任务模板、状态目录、原子锁和门禁脚本；配置最小权限。</p>
+                </article>
+                <article class="phase-card">
+                    <div class="number">P2</div>
+                    <h3>手工端到端演练</h3>
+                    <p>选择一个低风险任务，先“立即运行”编码作业，再运行 Reviewer；检查 diff、退出码、日志和状态跳转。</p>
+                </article>
+                <article class="phase-card">
+                    <div class="number">P3</div>
+                    <h3>开启夜间 Cron</h3>
+                    <p>先运行一周，每晚最多一个任务；保留人工合入。统计失败原因、误改范围、测试漏报和评审召回率。</p>
+                </article>
+                <article class="phase-card">
+                    <div class="number">P4</div>
+                    <h3>增强设备与覆盖率</h3>
+                    <p>配置固定模拟器后，把关键 Espresso 流程升级为硬门禁；再考虑 JaCoCo/Kover 覆盖率阈值。</p>
+                </article>
+                <article class="phase-card">
+                    <div class="number">P5</div>
+                    <h3>有限自动提交</h3>
+                    <p>稳定后可允许提交到专用本地分支，但仍禁止 push、merge、发布；任何外部写操作继续保留人工授权。</p>
+                </article>
+            </div>
+        </section>
+
+        <section class="panel">
+            <div class="panel-header">
+                <div>
+                    <h2 class="panel-title">上线前检查清单</h2>
+                    <p class="panel-subtitle">全部满足后，才值得让 macOS 在无人值守时自动执行代码变更。</p>
+                </div>
+            </div>
+            <div class="grid-2">
+                <ul class="check-list">
+                    <li>当前 <code>testDebugUnitTest</code> 基线已经修复并连续全绿。</li>
+                    <li>Scheduler 使用独立、干净的 worktree，而不是当前有用户改动的目录。</li>
+                    <li>任务契约写明允许路径、禁止路径、验收条件和最大变更规模。</li>
+                    <li>编码 Agent 的 bash 权限采用白名单，显式禁止 push / merge / 删除。</li>
+                    <li>质量门禁脚本保存真实退出码和报告路径，失败立即停止。</li>
+                </ul>
+                <ul class="check-list">
+                    <li>Reviewer 是独立新会话，优先使用不同模型，业务源码没有写权限。</li>
+                    <li>Reviewer 检查测试是否被删除、跳过、弱化或绕过。</li>
+                    <li>两个作业使用共享原子锁和明确状态，不只依赖 Cron 时间错开。</li>
+                    <li>手工 <code>run_job</code> 演练成功，并检查 Scheduler 日志与运行产物。</li>
+                    <li>通过评审后仍停在 <code>AWAITING_HUMAN</code>，没有自动合并或发布。</li>
+                </ul>
+            </div>
+        </section>
+
+        <section class="panel">
+            <div class="panel-header">
+                <div>
+                    <h2 class="panel-title">资料与可验证位置</h2>
+                    <p class="panel-subtitle">OpenCode 行为以当前官方文档和本机插件 README 为准；工程命令以仓库文件为准。</p>
+                </div>
+            </div>
+            <div class="sources">
+                <div class="source-card">
+                    <a href="https://opencode.ai/docs/agents/">OpenCode Agents</a>
+                    <span>项目级 Agent、primary / subagent 模式与 Agent 权限配置。</span>
+                </div>
+                <div class="source-card">
+                    <a href="https://opencode.ai/docs/permissions">OpenCode Permissions</a>
+                    <span><code>allow</code> / <code>ask</code> / <code>deny</code>、命令模式匹配与默认权限。</span>
+                </div>
+                <div class="source-card">
+                    <a href="https://opencode.ai/docs/rules/">OpenCode Rules</a>
+                    <span>项目根目录 <code>AGENTS.md</code> 的加载规则和自定义 instructions。</span>
+                </div>
+                <div class="source-card">
+                    <a href="https://dev.opencode.ai/docs/cli/">OpenCode CLI</a>
+                    <span><code>opencode run</code> 的非交互运行方式、Agent 和模型参数。</span>
+                </div>
+                <div class="source-card">
+                    <strong>本机 Scheduler README</strong>
+                    <span><code>~/.cache/opencode/packages/opencode-scheduler@latest/node_modules/opencode-scheduler/README.md</code></span>
+                </div>
+                <div class="source-card">
+                    <strong>当前工程约束</strong>
+                    <span><code>AGENTS.md</code>、<code>app/build.gradle.kts</code>、<code>app/src/test/</code>、<code>app/src/androidTest/</code></span>
+                </div>
+            </div>
+        </section>
+    </main>
+</body>
+</html>

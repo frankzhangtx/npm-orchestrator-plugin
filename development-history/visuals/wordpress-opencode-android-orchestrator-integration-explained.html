@@ -1,0 +1,984 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WordPress 升级到 OpenCode Android Orchestrator 0.7.0</title>
+    <style>
+        :root {
+            color-scheme: light;
+            --bg: #f4eee6;
+            --surface: rgba(255, 251, 246, 0.95);
+            --ink: #211b16;
+            --muted: #6a5f55;
+            --line: rgba(86, 67, 50, 0.17);
+            --accent: #a6431d;
+            --accent-soft: rgba(166, 67, 29, 0.11);
+            --teal: #176c63;
+            --teal-soft: rgba(23, 108, 99, 0.11);
+            --gold: #956116;
+            --gold-soft: rgba(149, 97, 22, 0.12);
+            --shadow: 0 24px 64px rgba(49, 33, 22, 0.11);
+            --radius-xl: 28px;
+            --radius-lg: 19px;
+            --max: 1120px;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            color: var(--ink);
+            font-family: "Avenir Next", "PingFang SC", "Noto Sans SC", sans-serif;
+            background:
+                radial-gradient(circle at top left, rgba(166, 67, 29, 0.14), transparent 29%),
+                radial-gradient(circle at top right, rgba(23, 108, 99, 0.12), transparent 27%),
+                linear-gradient(180deg, #fcf8f2 0%, var(--bg) 48%, #ebdfd1 100%);
+        }
+
+        h1, h2, h3, p, ul {
+            margin-top: 0;
+        }
+
+        code {
+            padding: 0.12em 0.38em;
+            border-radius: 8px;
+            background: rgba(42, 33, 26, 0.065);
+            font-family: "SFMono-Regular", "Menlo", "Monaco", monospace;
+            font-size: 0.92em;
+        }
+
+        .page {
+            width: min(calc(100% - 32px), var(--max));
+            margin: 0 auto;
+            padding: 28px 0 70px;
+        }
+
+        .hero,
+        .panel {
+            border: 1px solid var(--line);
+            border-radius: var(--radius-xl);
+            background: var(--surface);
+            box-shadow: var(--shadow);
+            backdrop-filter: blur(10px);
+        }
+
+        .hero {
+            position: relative;
+            overflow: hidden;
+            padding: 36px;
+        }
+
+        .hero::before {
+            content: "";
+            position: absolute;
+            right: -90px;
+            bottom: -130px;
+            width: 310px;
+            height: 310px;
+            border-radius: 999px;
+            background: radial-gradient(circle, rgba(23, 108, 99, 0.18), transparent 68%);
+        }
+
+        .eyebrow-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .eyebrow,
+        .status {
+            display: inline-flex;
+            padding: 8px 14px;
+            border-radius: 999px;
+            font-size: 13px;
+            font-weight: 800;
+            letter-spacing: 0.04em;
+            text-transform: uppercase;
+        }
+
+        .eyebrow {
+            color: var(--accent);
+            background: var(--accent-soft);
+        }
+
+        .status {
+            color: var(--teal);
+            background: var(--teal-soft);
+            border: 1px solid rgba(23, 108, 99, 0.22);
+        }
+
+        .hero h1 {
+            margin: 20px 0 0;
+            max-width: 900px;
+            font-size: clamp(34px, 4.5vw, 56px);
+            line-height: 1.05;
+            letter-spacing: -0.035em;
+        }
+
+        .lead {
+            margin: 16px 0 0;
+            max-width: 850px;
+            color: var(--muted);
+            font-size: 18px;
+            line-height: 1.72;
+        }
+
+        .meta-grid {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 12px;
+            margin-top: 24px;
+        }
+
+        .meta {
+            min-width: 0;
+            padding: 14px;
+            border: 1px solid var(--line);
+            border-radius: 15px;
+            background: rgba(255, 255, 255, 0.48);
+            color: var(--muted);
+            font-size: 14px;
+            line-height: 1.62;
+            overflow-wrap: anywhere;
+        }
+
+        .meta strong {
+            display: block;
+            margin-bottom: 5px;
+            color: var(--ink);
+        }
+
+        .panel {
+            margin-top: 22px;
+            padding: 28px;
+        }
+
+        .panel-header {
+            margin-bottom: 19px;
+        }
+
+        .panel-title {
+            margin-bottom: 6px;
+            font-size: 28px;
+            letter-spacing: -0.025em;
+        }
+
+        .panel-subtitle {
+            margin-bottom: 0;
+            color: var(--muted);
+            line-height: 1.68;
+            font-size: 14px;
+        }
+
+        .quick-grid {
+            display: grid;
+            grid-template-columns: repeat(4, minmax(0, 1fr));
+            gap: 13px;
+        }
+
+        .quick-card,
+        .step,
+        .command-card {
+            border: 1px solid var(--line);
+            border-radius: 17px;
+            background: rgba(255, 255, 255, 0.5);
+        }
+
+        .quick-card {
+            padding: 18px;
+        }
+
+        .quick-card .number {
+            display: grid;
+            place-items: center;
+            width: 34px;
+            height: 34px;
+            margin-bottom: 13px;
+            border-radius: 11px;
+            color: var(--accent);
+            background: var(--accent-soft);
+            font-weight: 900;
+        }
+
+        .quick-card h3 {
+            margin-bottom: 8px;
+            font-size: 17px;
+        }
+
+        .quick-card p,
+        .step p,
+        .command-card p {
+            margin-bottom: 0;
+            color: var(--muted);
+            font-size: 14px;
+            line-height: 1.7;
+        }
+
+        .code-shell {
+            overflow: auto;
+            padding: 20px;
+            border: 1px solid rgba(33, 27, 22, 0.08);
+            border-radius: var(--radius-lg);
+            background: linear-gradient(180deg, rgba(255, 255, 255, 0.74), rgba(247, 239, 230, 0.94));
+        }
+
+        pre {
+            margin: 0;
+            color: #201b16;
+            font-family: "SFMono-Regular", "Menlo", "Monaco", monospace;
+            font-size: 13.3px;
+            line-height: 1.8;
+            white-space: pre;
+        }
+
+        .comment {
+            color: var(--teal);
+        }
+
+        .callout {
+            margin-top: 15px;
+            padding: 16px 18px;
+            border-left: 4px solid var(--teal);
+            border-radius: 14px;
+            background: var(--teal-soft);
+            color: #174c47;
+            font-size: 14px;
+            line-height: 1.72;
+        }
+
+        .callout.warn {
+            border-left-color: var(--gold);
+            background: var(--gold-soft);
+            color: #563b14;
+        }
+
+        .steps {
+            display: grid;
+            gap: 12px;
+            counter-reset: step;
+        }
+
+        .step {
+            position: relative;
+            padding: 17px 18px 17px 64px;
+        }
+
+        .step::before {
+            counter-increment: step;
+            content: counter(step);
+            position: absolute;
+            left: 18px;
+            top: 18px;
+            display: grid;
+            place-items: center;
+            width: 31px;
+            height: 31px;
+            border-radius: 10px;
+            color: var(--accent);
+            background: var(--accent-soft);
+            font-weight: 900;
+        }
+
+        .step h3 {
+            margin-bottom: 7px;
+            font-size: 16px;
+        }
+
+        .commands {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 12px;
+        }
+
+        .command-card {
+            padding: 17px;
+        }
+
+        .command-card h3 {
+            margin-bottom: 9px;
+            font-size: 16px;
+        }
+
+        .command-card code {
+            display: inline-block;
+            margin-bottom: 8px;
+            color: var(--accent);
+            background: var(--accent-soft);
+            font-weight: 700;
+        }
+
+        details {
+            border: 1px solid var(--line);
+            border-radius: 15px;
+            background: rgba(255, 255, 255, 0.46);
+        }
+
+        details + details {
+            margin-top: 11px;
+        }
+
+        summary {
+            padding: 16px 18px;
+            cursor: pointer;
+            font-weight: 800;
+        }
+
+        .details-body {
+            padding: 0 18px 18px;
+            color: var(--muted);
+            line-height: 1.7;
+            font-size: 14px;
+        }
+
+        .details-body .code-shell {
+            margin-top: 12px;
+        }
+
+        .check-list {
+            margin: 0;
+            padding-left: 22px;
+            color: var(--muted);
+        }
+
+        .check-list li {
+            margin: 9px 0;
+            line-height: 1.65;
+        }
+
+        .reading-grid {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 13px;
+        }
+
+        .reading-card {
+            padding: 18px;
+            border: 1px solid var(--line);
+            border-radius: 17px;
+            background: rgba(255, 255, 255, 0.5);
+        }
+
+        .reading-card h3 {
+            margin-bottom: 8px;
+            color: var(--ink);
+            font-size: 17px;
+        }
+
+        .reading-card p {
+            margin-bottom: 0;
+            color: var(--muted);
+            font-size: 14px;
+            line-height: 1.7;
+        }
+
+        .source-path {
+            display: inline-flex;
+            margin-bottom: 12px;
+            padding: 7px 11px;
+            border-radius: 999px;
+            color: var(--teal);
+            background: var(--teal-soft);
+            font-size: 12px;
+            font-weight: 800;
+            overflow-wrap: anywhere;
+        }
+
+        .diagram-wrap {
+            overflow: auto;
+            padding: 8px;
+            border: 1px solid var(--line);
+            border-radius: 22px;
+            background: linear-gradient(180deg, rgba(255, 253, 250, 0.72), rgba(244, 236, 227, 0.92));
+        }
+
+        svg {
+            display: block;
+            width: 100%;
+            min-width: 980px;
+            height: auto;
+        }
+
+        .caption {
+            margin: 14px 0 0;
+            color: var(--muted);
+            font-size: 14px;
+            line-height: 1.7;
+        }
+
+        @media (max-width: 860px) {
+            .meta-grid,
+            .quick-grid,
+            .reading-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .commands {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        @media (max-width: 620px) {
+            .page {
+                width: min(calc(100% - 20px), var(--max));
+                padding: 18px 0 50px;
+            }
+
+            .hero,
+            .panel {
+                padding: 21px;
+                border-radius: 22px;
+            }
+
+            .lead {
+                font-size: 16px;
+            }
+
+            pre {
+                font-size: 12px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <main class="page">
+        <section class="hero">
+            <div class="eyebrow-row">
+                <span class="eyebrow">WordPress Quick Start</span>
+                <span class="status">0.7.0 已公开发布 · npm latest</span>
+            </div>
+            <h1>从 0.6.1 安全升级到 0.7.0</h1>
+            <p class="lead">
+                WordPress 已有健康的 0.6.1 manifest-managed 安装。本次先用已安装版本确认基线，
+                再由固定的 0.7.0 执行升级和升级后诊断；现有全模块与 flavor 质量矩阵原样保留，
+                不再执行 <code>init .</code>，也不依赖 WordPress 专用 JSON。0.7.0 将单元测试和 lint
+                改为配置文件开关，同时保留受管长命令超时和 baseline 恢复能力。
+            </p>
+            <div class="meta-grid">
+                <div class="meta">
+                    <strong>WordPress 工程</strong>
+                    <code>/Users/zhanglong/files/program/wordpresslocal/WordPress</code>
+                </div>
+                <div class="meta">
+                    <strong>目标版本</strong>
+                    <code>@frankzhang2026/opencode-android-orchestrator@0.7.0</code>
+                </div>
+                <div class="meta">
+                    <strong>质量矩阵</strong>
+                    <code>保留 0.6.1 已发现矩阵，无外部文件</code>
+                </div>
+                <div class="meta">
+                    <strong>核心源码依据</strong>
+                    <code>src/installer/gradle-verification.ts</code>、<code>src/config/verification-policy.ts</code>、<code>src/config/long-command-timeout.ts</code>
+                </div>
+            </div>
+        </section>
+
+        <section class="panel">
+            <div class="panel-header">
+                <h2 class="panel-title">三步升级 + 一项可选核验</h2>
+                <p class="panel-subtitle">升级必做第 2–4 步；第 1 步只是提前确认固定版本存在。</p>
+            </div>
+            <div class="quick-grid">
+                <article class="quick-card">
+                    <div class="number">1</div>
+                    <h3>可选：确认 0.7.0 存在</h3>
+                    <p><code>npm view</code> 返回 <code>0.7.0</code> 即可；跳过不影响后续升级。</p>
+                </article>
+                <article class="quick-card">
+                    <div class="number">2</div>
+                    <h3>验证 0.6.1 并升级</h3>
+                    <p>先用 0.6.1 doctor 验证当前安装，再由 0.7.0 执行 <code>upgrade .</code>。</p>
+                </article>
+                <article class="quick-card">
+                    <div class="number">3</div>
+                    <h3>验证并提交</h3>
+                    <p>用 0.7.0 doctor 复核，审核配置开关和升级文件后再提交。</p>
+                </article>
+                <article class="quick-card">
+                    <div class="number">4</div>
+                    <h3>启动并提需求</h3>
+                    <p>启动 <code>scheduled-planner</code>，用 <code>/change</code> 描述需求。</p>
+                </article>
+            </div>
+        </section>
+
+        <section class="panel">
+            <div class="panel-header">
+                <h2 class="panel-title">先抓住零配置版本的五个重点</h2>
+                <p class="panel-subtitle">这是阅读抓手：先理解边界，再复制后面的命令。</p>
+            </div>
+            <div class="reading-grid">
+                <article class="reading-card">
+                    <h3>1. Gradle 质量矩阵自动生成</h3>
+                    <p>临时只读 init script 发现实际注册任务；0.6.0 起仅为这次调用禁用配置缓存。普通任务折叠为通用选择器，flavor 任务保留精确路径。</p>
+                </article>
+                <article class="reading-card">
+                    <h3>2. 白名单是精确文件列表</h3>
+                    <p><code>.automation-worktree-allowlist</code> 一行只写一个仓库相对文件路径，不接受目录、glob 或受保护路径。</p>
+                </article>
+                <article class="reading-card">
+                    <h3>3. 批准合同时固定快照</h3>
+                    <p>白名单在合同批准时写入任务 workspace。任务中途修改控制文件不会扩大当前任务权限，只影响下一次任务。</p>
+                </article>
+                <article class="reading-card">
+                    <h3>4. 本地改动不会混入提交</h3>
+                    <p>命中白名单的 tracked、untracked、staged 改动不进入范围、哈希、证据和提交；原有 staged 状态也会保留。</p>
+                </article>
+                <article class="reading-card">
+                    <h3>5. 超时与恢复都有硬边界</h3>
+                    <p>受管长命令默认至少运行 30 分钟；<code>/resume-task</code> 只允许一次经批准、零业务改动的 baseline 中断恢复。</p>
+                </article>
+            </div>
+            <div class="code-shell">
+<pre><code><span class="comment">// 阅读标注：以下参数来自 src/installer/gradle-verification.ts</span>
+const result = runner(
+  detection.gradleWrapper.script,
+  [
+    "help",
+    <span class="comment">// 只关闭本次配置阶段发现调用的 Configuration Cache</span>
+    "--no-configuration-cache",
+    "--init-script",
+    initScript,
+    "--console=plain",
+    "--quiet",
+  ],
+  {
+    cwd: detection.projectRoot,
+    timeoutMs: options.timeoutMs ?? DEFAULT_DISCOVERY_TIMEOUT_MS,
+  },
+);</code></pre>
+            </div>
+            <div class="callout">
+                2026-09-03 的只读核对结果：WordPress 分支
+                <code>feature-0602-cases-opencode-test</code> 工作区干净，当前提交为
+                <code>a3f98ba</code> 且与远端一致；manifest 是健康的 <code>0.6.1</code> installed 状态，47 个受管文件、
+                29 个可执行脚本和 1 个备份均通过固定 0.6.1 doctor，因此当前应执行升级，不能再次初始化。
+                0.7.0 已公开发布，npm <code>latest</code> 指向 <code>0.7.0</code>；发布提交为
+                <code>57d2589</code>；发布门禁为 Node
+                <code>143/143</code>、Shell <code>44/44</code>。0.5.0 已在真实 WordPress 工程自动识别
+                <code>:WordPress</code>、WordPress/Jetpack 两个 Debug flavor 和 7 个 Android 库模块；
+                0.7.0 保留同一矩阵推导、配置缓存边界、长命令超时及 baseline 恢复能力，并新增
+                <code>unitTestsEnabled</code> 与 <code>lintEnabled</code> 配置开关。正式接入固定使用
+                <code>@0.7.0</code>，不需要 WordPress 专用 Gradle JSON。
+            </div>
+        </section>
+
+        <section class="panel">
+            <div class="panel-header">
+                <h2 class="panel-title">第 1 步（可选）：确认 0.7.0 版本存在</h2>
+                <p class="panel-subtitle">这是只读检查，可以跳过，不会改动 WordPress 工程文件。</p>
+            </div>
+            <div class="code-shell">
+<pre><code>npm view @frankzhang2026/opencode-android-orchestrator@0.7.0 version</code></pre>
+            </div>
+            <div class="callout">
+                命令输出 <code>0.7.0</code> 就表示该固定版本存在。它只查询 Registry，
+                不会安装插件；即使跳过本步，也可以直接执行第 2 步。第 2 步的固定版本
+                <code>npx</code> 会取得并运行该包，不需要先做全局安装。
+            </div>
+        </section>
+
+        <section class="panel">
+            <div class="panel-header">
+                <h2 class="panel-title">第 2 步：验证 0.6.1 并升级到 0.7.0</h2>
+                <p class="panel-subtitle">不传项目专用参数。开始前必须保证 WordPress 工作区干净且当前 manifest 健康。</p>
+            </div>
+            <div class="code-shell">
+<pre><code><span class="comment"># 进入 WordPress 工程</span>
+cd /Users/zhanglong/files/program/wordpresslocal/WordPress
+
+<span class="comment"># 确认当前没有未提交修改；有输出时先不要继续</span>
+git status --short
+
+<span class="comment"># 已有忽略规则；只核对，不要重复追加</span>
+git check-ignore -v .automation-plugin/manifest.json
+
+<span class="comment"># 升级前诊断必须与当前 manifest 的 0.6.1 一致</span>
+npx --yes @frankzhang2026/opencode-android-orchestrator@0.6.1 \
+  doctor . --json
+
+<span class="comment"># 固定使用已发布的 0.7.0 执行事务升级</span>
+npx --yes @frankzhang2026/opencode-android-orchestrator@0.7.0 \
+  upgrade . \
+  --json</code></pre>
+            </div>
+            <div class="callout">
+                升级前必须使用当前安装的 0.6.1 doctor；目标版本 doctor 会按 0.7.0 清单认证，不能提前运行。
+                升级会保留现有 47 个受管文件、29 个可执行脚本、<code>moduleScope: all</code>、<code>:WordPress</code>
+                主模块与完整 Gradle 矩阵，并保留 <code>longCommandTimeoutMs: 1800000</code>、<code>/resume-task</code>
+                命令和脚本；缺少的新策略字段会按 0.7.0 默认值补齐。
+            </div>
+            <div class="callout warn">
+                已发布包内的 <code>docs/MIGRATION.md</code> 把目标版本 doctor 错放在升级之前；本页使用
+                已验证的正确顺序：已安装版本 doctor → 目标版本 upgrade → 目标版本 doctor。
+            </div>
+        </section>
+
+        <section class="panel">
+            <div class="panel-header">
+                <h2 class="panel-title">第 3 步：在配置文件中选择测试与 lint</h2>
+                <p class="panel-subtitle">开关属于工程配置，不通过 <code>init</code> 或 <code>upgrade</code> 参数传入。</p>
+            </div>
+            <div class="code-shell">
+<pre><code><span class="comment"># 查看当前策略与超时；0.7.0 默认：单元测试开启、lint 关闭</span>
+jq '{unitTestsEnabled, lintEnabled, longCommandTimeoutMs}' automation/config.json
+
+<span class="comment"># 按需编辑并提交 config.json；下面是默认值示例</span>
+nano automation/config.json
+<span class="comment"># "unitTestsEnabled": true, "lintEnabled": false</span></code></pre>
+            </div>
+            <div class="callout">
+                <code>unitTestsEnabled</code> 默认是 <code>true</code>；设为 <code>false</code> 时跳过 baseline、聚焦和完整单元测试阶段，
+                但 RED 证据仍是强制门禁。<code>lintEnabled</code> 默认是 <code>false</code>；只有设为 <code>true</code> 才会执行配置中的
+                <code>lintTasks</code>。assemble、任务发现、范围校验、设备测试和超时配置不受这两个开关影响。
+                直接编辑 <code>automation/config.json</code> 后提交，升级不会把已有显式值改回默认值。
+            </div>
+        </section>
+
+        <section class="panel">
+            <div class="panel-header">
+                <h2 class="panel-title">第 4 步：验证并提交升级结果</h2>
+                <p class="panel-subtitle">插件工作流要求源分支保持干净，因此升级生成的文件需要先审核并提交。</p>
+            </div>
+            <div class="code-shell">
+<pre><code><span class="comment"># 升级后改用目标版本验证</span>
+npx --yes @frankzhang2026/opencode-android-orchestrator@0.7.0 \
+  doctor . --json
+
+<span class="comment"># 核对保留项、策略开关、超时与固定插件引用</span>
+jq '.androidProject.primaryModule, .moduleScope, .unitTestsEnabled, .lintEnabled, .longCommandTimeoutMs, .gradleVerification' automation/config.json
+jq '.plugin' opencode.json
+
+<span class="comment"># 查看升级产生的 8 个修改文件与 2 个新增文件</span>
+git status --short
+git diff --stat
+
+<span class="comment"># 确认只有本次升级文件后提交</span>
+git add --all
+git commit -m "Upgrade OpenCode Android Orchestrator to 0.7.0"</code></pre>
+            </div>
+            <div class="callout warn">
+                doctor 的 JSON 中应看到 <code>"ok": true</code>、47 个受管文件和 29 个可执行脚本；
+                <code>opencode.json</code> 只把插件引用从 <code>@0.6.1</code> 更新为 <code>@0.7.0</code>，配置中应能看到
+                <code>unitTestsEnabled: true</code> 与 <code>lintEnabled: false</code>（除非你有意修改）。提交前先审核升级文件；
+                如果混入原有业务修改，不要执行 <code>git add --all</code>。
+            </div>
+        </section>
+
+        <section class="panel">
+            <div class="panel-header">
+                <h2 class="panel-title">可选：填写需要保留的本地文件</h2>
+                <p class="panel-subtitle">现有安装已经包含白名单；只有确实需要长期保留本地改动时才需要编辑。</p>
+            </div>
+            <div class="code-shell">
+<pre><code>cd /Users/zhanglong/files/program/wordpresslocal/WordPress
+
+<span class="comment"># 文件已由现有安装创建；仅在需要时由人编辑，Agent 不应修改</span>
+nano .automation-worktree-allowlist</code></pre>
+            </div>
+            <p style="margin: 15px 0 10px; color: var(--muted);">白名单文件内容示例，空行和以 <code>#</code> 开头的行会被忽略：</p>
+            <div class="code-shell">
+<pre><code># One exact repository-relative file path per line
+local/operator-note.txt
+docs/local-review-notes.md</code></pre>
+            </div>
+            <p style="margin: 15px 0 10px; color: var(--muted);">保存后，用受管 preflight 验证列表与当前工作树：</p>
+            <div class="code-shell">
+<pre><code>./scripts/automation/preflight.sh --source</code></pre>
+            </div>
+            <ul class="check-list" style="margin-top: 15px;">
+                <li>必须写精确的仓库相对文件路径；不能写目录、<code>*</code>、<code>?</code>、重复项、<code>../</code> 或符号链接控制文件。</li>
+                <li><code>automation/</code>、<code>scripts/automation/</code>、Gradle、Git、计划与其他受保护路径不能加入白名单。</li>
+                <li>某个任务需要修改该文件时，必须先结束当前任务、删除对应条目，再批准新任务。</li>
+                <li>重命名同时包含旧路径删除和新路径新增；若两边都要留在本地，旧、新两个精确路径都要列出。</li>
+                <li>普通 <code>git status</code> 仍可能显示控制文件和本地改动，但 Orchestrator 会使用审批快照过滤它们。</li>
+                <li>该文件不进入受管资源哈希，所以填写条目不会让 <code>doctor</code> 报资源篡改；升级和卸载也会保留它。</li>
+            </ul>
+            <div class="callout warn">
+                白名单不是“允许 Agent 编辑”的授权，而是“让该本地文件完全退出本次自动任务”的排除项。
+                被排除的内容不会接受 Reviewer 检查，也不会进入验收证据或任务提交。
+            </div>
+        </section>
+
+        <section class="panel">
+            <div class="panel-header">
+                <h2 class="panel-title">第 5 步：启动并使用</h2>
+                <p class="panel-subtitle">以后每次使用都从 WordPress 根目录启动 Planner。</p>
+            </div>
+            <div class="code-shell">
+<pre><code>cd /Users/zhanglong/files/program/wordpresslocal/WordPress
+opencode --agent scheduled-planner .</code></pre>
+            </div>
+            <p style="margin: 18px 0 10px; color: var(--muted);">进入 OpenCode 后，用一句话发起一个小需求：</p>
+            <div class="code-shell">
+<pre><code>/change 在 WordPress 文章列表页增加刷新时的加载提示</code></pre>
+            </div>
+            <div class="steps" style="margin-top: 16px;">
+                <article class="step">
+                    <h3>描述一个小改动</h3>
+                    <p>一次只说一个可观察的变化，Planner 会读取工程并给出方案。</p>
+                </article>
+                <article class="step">
+                    <h3>按界面完成确认</h3>
+                    <p>根据页面中的单选确认方案和任务合同，不需要手工创建任务文件。</p>
+                </article>
+                <article class="step">
+                    <h3>等待自动编码、测试和复核</h3>
+                    <p>到达人工验收时，Planner 会展示改动、测试和 Reviewer 结论。</p>
+                </article>
+                <article class="step">
+                    <h3>验收结果</h3>
+                    <p>选择验收通过后，结果会集成回本地原分支。插件不会替你推送远程。</p>
+                </article>
+            </div>
+        </section>
+
+        <section class="panel">
+            <div class="panel-header">
+                <h2 class="panel-title">日常只需要记住这些命令</h2>
+                <p class="panel-subtitle">TASK-ID 会在运行任务后显示，例如 TASK-ARTICLE-REFRESH-001。</p>
+            </div>
+            <div class="commands">
+                <article class="command-card">
+                    <h3>开始新需求</h3>
+                    <code>/change &lt;一句话需求&gt;</code>
+                    <p>最常用的入口。一次只提交一个小型行为变化。</p>
+                </article>
+                <article class="command-card">
+                    <h3>重新打开验收</h3>
+                    <code>/acceptance &lt;TASK-ID&gt;</code>
+                    <p>错过验收页面或准备稍后验收时使用。</p>
+                </article>
+                <article class="command-card">
+                    <h3>恢复 baseline 中断</h3>
+                    <code>/resume-task &lt;TASK-ID&gt;</code>
+                    <p>仅用于 baseline 写入前被外部中断且没有业务改动的单次批准恢复。</p>
+                </article>
+                <article class="command-card">
+                    <h3>恢复 Reviewer</h3>
+                    <code>/resume-review &lt;TASK-ID&gt;</code>
+                    <p>Reviewer 会话中断、任务明确停在复核阶段时使用。</p>
+                </article>
+                <article class="command-card">
+                    <h3>安全中止</h3>
+                    <code>/abort-task &lt;TASK-ID&gt;</code>
+                    <p>停止任务、封存已有修改并安全回到原分支。</p>
+                </article>
+            </div>
+        </section>
+
+        <section class="panel">
+            <div class="panel-header">
+                <h2 class="panel-title">核心源码摘录</h2>
+                <p class="panel-subtitle">注释仅用于帮助阅读，不会回写插件源码；摘录聚焦白名单的安全边界。</p>
+            </div>
+            <div class="source-path">templates/scripts/automation/lib.sh · status.sh · accept-and-integrate.sh</div>
+            <div class="code-shell">
+<pre><code><span class="comment"># lib.sh：控制文件名固定，大小和条目数都有上限</span>
+AUTOMATION_WORKTREE_ALLOWLIST_RELATIVE_PATH=".automation-worktree-allowlist"
+AUTOMATION_WORKTREE_ALLOWLIST_MAX_BYTES=65536
+AUTOMATION_WORKTREE_ALLOWLIST_MAX_ENTRIES=256
+
+<span class="comment"># 只做完整字符串匹配；控制文件自身也从自动任务视图中排除</span>
+[[ "$path" == "$AUTOMATION_WORKTREE_ALLOWLIST_RELATIVE_PATH" ]] &amp;&amp; return 0
+while IFS= read -r entry; do
+    [[ -n "$entry" ]] || continue
+    [[ "$path" == "$entry" ]] &amp;&amp; return 0
+done &lt;&lt;&lt; "$entries"
+
+<span class="comment"># 禁用 rename 折叠：新路径命中白名单时，旧路径删除仍然可见</span>
+paths="$(git -C "$root" diff --no-renames --name-only HEAD -- | LC_ALL=C sort -u)"
+
+<span class="comment"># status.sh：Coder / Reviewer 能看到任务真正生效的快照</span>
+effective_worktree_allowlist_json="$(
+    automation_effective_worktree_allowlist_json_at "$task_root"
+)"
+runtime: { effectiveWorktreeAllowlist: $effectiveWorktreeAllowlist }
+
+<span class="comment"># accept-and-integrate.sh：只提交过滤后得到的明确路径集合</span>
+git -C "$task_root" commit --only \
+  -m "Implement $title ($task_id)" -- "${commit_paths[@]}"</code></pre>
+            </div>
+            <div class="callout">
+                三个关键点是：精确匹配避免目录级放行，<code>--no-renames</code> 保留重命名的源路径，
+                <code>commit --only</code> 避免把此前已暂存的白名单文件顺带提交。任务中止时的恢复提交也使用相同的明确路径策略。
+            </div>
+        </section>
+
+        <section class="panel">
+            <div class="panel-header">
+                <h2 class="panel-title">白名单在一次任务中的执行流程</h2>
+                <p class="panel-subtitle">流程从人工维护控制文件开始，到任务提交后本地排除项继续保留为止。</p>
+            </div>
+            <div class="diagram-wrap">
+                <svg viewBox="0 0 1120 1080" role="img" aria-label="OpenCode Android Orchestrator 工作树白名单执行流程图">
+                    <defs>
+                        <marker id="allow-arrow" markerWidth="10" markerHeight="10" refX="8" refY="5" orient="auto" markerUnits="strokeWidth">
+                            <path d="M0,0 L10,5 L0,10 z" fill="#5d4c3a"></path>
+                        </marker>
+                        <style>
+                            .allow-line { stroke: #5d4c3a; stroke-width: 3; fill: none; marker-end: url(#allow-arrow); }
+                            .allow-box { fill: #fffaf4; stroke: #c9b49e; stroke-width: 2.4; rx: 20; }
+                            .allow-teal { fill: #eff9f7; stroke: #6fb3aa; stroke-width: 2.4; rx: 20; }
+                            .allow-accent { fill: #fff2ea; stroke: #d7926f; stroke-width: 2.4; rx: 20; }
+                            .allow-gold { fill: #fff7ea; stroke: #d0ab65; stroke-width: 2.4; rx: 20; }
+                            .allow-decision { fill: #fffdf8; stroke: #b08c58; stroke-width: 2.6; }
+                            .allow-end { fill: #efe6d8; stroke: #8c745a; stroke-width: 2.6; }
+                            .allow-text { fill: #201b16; font-family: 'Avenir Next', 'PingFang SC', 'Noto Sans SC', sans-serif; font-size: 20px; font-weight: 700; }
+                            .allow-sub { fill: #675d52; font-family: 'Avenir Next', 'PingFang SC', 'Noto Sans SC', sans-serif; font-size: 16px; }
+                        </style>
+                    </defs>
+
+                    <ellipse class="allow-end" cx="560" cy="52" rx="150" ry="35"></ellipse>
+                    <text class="allow-text" x="560" y="59" text-anchor="middle">人工准备合同与本地文件</text>
+
+                    <rect class="allow-box" x="360" y="118" width="400" height="92"></rect>
+                    <text class="allow-text" x="560" y="157" text-anchor="middle">读取根目录白名单</text>
+                    <text class="allow-sub" x="560" y="184" text-anchor="middle">空行 / # 注释跳过，每行一个精确路径</text>
+
+                    <polygon class="allow-decision" points="560,244 720,326 560,408 400,326"></polygon>
+                    <text class="allow-text" x="560" y="319" text-anchor="middle">路径与控制文件</text>
+                    <text class="allow-text" x="560" y="346" text-anchor="middle">全部有效？</text>
+
+                    <rect class="allow-accent" x="790" y="278" width="250" height="96"></rect>
+                    <text class="allow-text" x="915" y="317" text-anchor="middle">失败关闭</text>
+                    <text class="allow-sub" x="915" y="344" text-anchor="middle">拒绝启动 / 批准任务</text>
+
+                    <rect class="allow-teal" x="340" y="444" width="440" height="96"></rect>
+                    <text class="allow-text" x="560" y="483" text-anchor="middle">批准合同时写入 workspace 快照</text>
+                    <text class="allow-sub" x="560" y="510" text-anchor="middle">之后编辑控制文件不会扩大当前任务</text>
+
+                    <polygon class="allow-decision" points="560,574 720,656 560,738 400,656"></polygon>
+                    <text class="allow-text" x="560" y="649" text-anchor="middle">任务 workspace</text>
+                    <text class="allow-text" x="560" y="676" text-anchor="middle">是哪种策略？</text>
+
+                    <rect class="allow-teal" x="90" y="608" width="250" height="96"></rect>
+                    <text class="allow-text" x="215" y="647" text-anchor="middle">inPlaceExclusive</text>
+                    <text class="allow-sub" x="215" y="674" text-anchor="middle">应用批准时的快照</text>
+
+                    <rect class="allow-gold" x="780" y="608" width="250" height="96"></rect>
+                    <text class="allow-text" x="905" y="647" text-anchor="middle">isolatedWorktree</text>
+                    <text class="allow-sub" x="905" y="674" text-anchor="middle">任务根中的有效列表为 []</text>
+
+                    <rect class="allow-box" x="330" y="776" width="460" height="104"></rect>
+                    <text class="allow-text" x="560" y="817" text-anchor="middle">收集 tracked + untracked 路径</text>
+                    <text class="allow-sub" x="560" y="844" text-anchor="middle">--no-renames，再按有效列表做精确过滤</text>
+
+                    <rect class="allow-teal" x="70" y="918" width="390" height="100"></rect>
+                    <text class="allow-text" x="265" y="958" text-anchor="middle">可见任务改动</text>
+                    <text class="allow-sub" x="265" y="985" text-anchor="middle">进入 scope、哈希、证据、Reviewer 与提交</text>
+
+                    <rect class="allow-gold" x="660" y="918" width="390" height="100"></rect>
+                    <text class="allow-text" x="855" y="958" text-anchor="middle">命中白名单的本地改动</text>
+                    <text class="allow-sub" x="855" y="985" text-anchor="middle">不进入任务；原 staged / 工作树状态继续保留</text>
+
+                    <path class="allow-line" d="M560 87 L560 118"></path>
+                    <path class="allow-line" d="M560 210 L560 244"></path>
+                    <path class="allow-line" d="M720 326 L790 326"></path>
+                    <text class="allow-sub" x="744" y="309">否</text>
+                    <path class="allow-line" d="M560 408 L560 444"></path>
+                    <text class="allow-sub" x="575" y="430">是</text>
+                    <path class="allow-line" d="M560 540 L560 574"></path>
+                    <path class="allow-line" d="M400 656 L340 656"></path>
+                    <text class="allow-sub" x="357" y="640">原地</text>
+                    <path class="allow-line" d="M720 656 L780 656"></path>
+                    <text class="allow-sub" x="727" y="640">隔离</text>
+                    <path class="allow-line" d="M215 704 L215 744 L450 744 L450 776"></path>
+                    <path class="allow-line" d="M905 704 L905 744 L670 744 L670 776"></path>
+                    <path class="allow-line" d="M460 880 L265 918"></path>
+                    <path class="allow-line" d="M660 880 L855 918"></path>
+                </svg>
+            </div>
+            <p class="caption">
+                菱形是安全判断或 workspace 分支，圆角矩形是处理步骤。左下角的“可见任务改动”最终通过
+                <code>commit --only</code> 形成任务提交；右下角的本地排除项始终留在任务提交之外。
+            </p>
+        </section>
+
+        <section class="panel">
+            <div class="panel-header">
+                <h2 class="panel-title">只有需要时再看</h2>
+                <p class="panel-subtitle">日常使用不需要执行下面的维护命令。</p>
+            </div>
+            <details>
+                <summary>今后从已安装版本升级时，doctor 应该如何排序？</summary>
+                <div class="details-body">
+                    先用已安装版本 doctor 验证当前 manifest，再由目标版本升级，最后用目标版本 doctor。
+                    当前 WordPress 的固定命令如下；升级默认保留旧安装矩阵，不会因为切换到 0.7.0
+                    自动重新发现：
+                    <div class="code-shell">
+<pre><code>npx --yes @frankzhang2026/opencode-android-orchestrator@0.6.1 \
+  doctor . --json
+
+npx --yes @frankzhang2026/opencode-android-orchestrator@0.7.0 \
+  upgrade . \
+  --json
+
+npx --yes @frankzhang2026/opencode-android-orchestrator@0.7.0 \
+  doctor . --json</code></pre>
+                    </div>
+                    如果旧矩阵漏掉 flavor，应先在临时干净 checkout 中执行 0.7.0 首次
+                    <code>init</code> 核对自动发现结果，再使用经审核的工程内覆盖文件，或安全卸载后
+                    重新初始化。当前 WordPress 已有健康的 0.6.1 manifest，应直接升级，不能再次执行
+                    <code>init</code>。升级会保留超时值，并为缺少的策略字段写入
+                    <code>unitTestsEnabled: true</code>、<code>lintEnabled: false</code>。
+                    如果从缺少 <code>moduleScope</code> 的 <code>0.2.0</code> 直接升级，默认会保留为
+                    <code>primary</code>；只有明确要扩到全部模块时，才额外传入 <code>--module-scope all</code>。
+                    旧安装没有 <code>longCommandTimeoutMs</code> 时会得到默认 <code>1800000</code>；已有合法值则保留。
+                </div>
+            </details>
+            <details>
+                <summary>什么时候可以使用 /resume-task？</summary>
+                <div class="details-body">
+                    仅当 baseline 捕获在 <code>baseline.json</code> 写入前被外部中断、任务明确停在允许的
+                    <code>BLOCKED</code> 状态、源分支与任务分支引用仍可证明、没有业务改动，也没有 baseline
+                    或后续证据时使用。命令会再次询问批准，并且每个任务最多恢复一次。测试失败、Reviewer
+                    结论、已有业务改动或普通超时都不能用它绕过：
+                    <div class="code-shell">
+<pre><code>/resume-task TASK-ARTICLE-REFRESH-001</code></pre>
+                    </div>
+                </div>
+            </details>
+            <details>
+                <summary>如何确认某个任务实际使用了哪些白名单条目？</summary>
+                <div class="details-body">
+                    合同批准并生成 TASK-ID 后读取任务状态；查看的是审批快照，不是此刻控制文件的新内容：
+                    <div class="code-shell">
+<pre><code>./scripts/automation/status.sh TASK-ARTICLE-REFRESH-001 \
+  | jq '.runtime.effectiveWorktreeAllowlist'</code></pre>
+                    </div>
+                    原地任务返回已批准的精确路径数组；隔离工作树内返回 <code>[]</code>，避免源工作树白名单隐藏任务工作树中的同名改动。
+                </div>
+            </details>
+            <details>
+                <summary>如何卸载？</summary>
+                <div class="details-body">
+                    在 WordPress 根目录运行：
+                    <div class="code-shell">
+<pre><code>npx --yes @frankzhang2026/opencode-android-orchestrator@&lt;已安装版本&gt; \
+  uninstall . --json</code></pre>
+                    </div>
+                </div>
+            </details>
+            <details>
+                <summary>安装或运行失败怎么办？</summary>
+                <div class="details-body">
+                    <ul class="check-list">
+                        <li>先运行固定版本的 <code>doctor . --json</code>，按失败项处理。</li>
+                        <li>确认从 WordPress Git 根目录运行，且 <code>gradlew</code> 可执行。</li>
+                        <li>任务发现失败时运行 <code>./gradlew help --no-configuration-cache --console=plain</code>；不要关闭项目级 Configuration Cache 掩盖根因。</li>
+                        <li>确认 OpenCode 版本为认证过的 <code>1.14.22</code> 或 <code>1.15.13</code>。</li>
+                        <li>白名单校验失败时修正具体条目；不要把目录改成 glob，也不要放宽 <code>protectedPaths</code> 绕过错误。</li>
+                        <li>不要删除或手工修改 <code>.automation-plugin/</code>。</li>
+                        <li>只有 baseline 写入前的单次外部中断才能使用 <code>/resume-task</code>；其他失败按原状态处理。</li>
+                        <li>任务执行中需要停止时，使用 <code>/abort-task &lt;TASK-ID&gt;</code>。</li>
+                    </ul>
+                </div>
+            </details>
+        </section>
+    </main>
+</body>
+</html>

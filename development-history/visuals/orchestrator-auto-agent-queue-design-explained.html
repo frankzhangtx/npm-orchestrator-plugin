@@ -1,0 +1,795 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content="Orchestrator 自动执行与任务队列设计：默认复用固定目录，可选独立 worktree；固定目录支持人工确认提交和全自动本地提交，所有模式禁止 git push。" />
+    <title>Orchestrator 自动执行与任务队列解耦设计方案 · 工作区与提交双策略</title>
+    <style>
+        :root {
+            color-scheme: light;
+            --bg: #f4efe7;
+            --surface: #fffaf4;
+            --ink: #201b16;
+            --muted: #675d52;
+            --line: #dfd3c4;
+            --accent: #a84920;
+            --accent-soft: #fbece2;
+            --teal: #176b63;
+            --teal-soft: #eaf4ef;
+            --gold: #845b1b;
+            --gold-soft: #fbf0d9;
+            --blue: #315e79;
+            --blue-soft: #eaf1f6;
+            --shadow: 0 18px 54px rgba(47, 31, 20, 0.07);
+        }
+        * { box-sizing: border-box; }
+        html { scroll-behavior: smooth; scroll-padding-top: 24px; }
+        body {
+            margin: 0;
+            color: var(--ink);
+            background:
+                radial-gradient(circle at top left, #f5dfcd 0, transparent 28rem),
+                radial-gradient(circle at top right, #e0ece4 0, transparent 28rem),
+                linear-gradient(180deg, #fcf8f2, var(--bg) 45%, #eee3d5);
+            font-family: "Avenir Next", "PingFang SC", "Microsoft YaHei", "Noto Sans SC", sans-serif;
+            font-size: 16px;
+            line-height: 1.8;
+        }
+        h1, h2, h3, h4, p, figure { margin: 0; }
+        h1, h2, h3, h4 { line-height: 1.4; }
+        h2 { font-size: clamp(23px, 3vw, 30px); }
+        h3 { font-size: 19px; }
+        p + p { margin-top: 12px; }
+        a { color: var(--teal); text-underline-offset: 4px; }
+        a:focus-visible, [tabindex]:focus-visible {
+            outline: 3px solid var(--teal);
+            outline-offset: 4px;
+        }
+        code {
+            padding: 0.12em 0.35em;
+            border-radius: 6px;
+            background: rgba(42, 33, 26, 0.06);
+            font-family: "SFMono-Regular", Menlo, Consolas, monospace;
+            font-size: 0.88em;
+            overflow-wrap: anywhere;
+        }
+        pre {
+            margin: 0;
+            padding: 20px;
+            overflow: auto;
+            border: 1px solid var(--line);
+            border-radius: 16px;
+            background: linear-gradient(180deg, #fffdf9, #f6eee4);
+            font-size: 13px;
+            line-height: 1.85;
+            tab-size: 4;
+        }
+        pre code { padding: 0; background: none; font-size: inherit; overflow-wrap: normal; }
+        .comment { color: var(--teal); }
+        ul, ol { margin: 14px 0 0; padding-left: 24px; }
+        li + li { margin-top: 8px; }
+        strong { font-weight: 700; }
+        .page { width: min(1240px, calc(100% - 40px)); margin: auto; padding: 32px 0 54px; }
+        .hero, .panel, .toc {
+            border: 1px solid var(--line);
+            border-radius: 26px;
+            background: var(--surface);
+            box-shadow: var(--shadow);
+        }
+        .hero { position: relative; overflow: hidden; padding: 40px; }
+        .hero::after {
+            content: "";
+            position: absolute;
+            width: 290px;
+            height: 290px;
+            right: -115px;
+            top: -140px;
+            border: 48px solid rgba(23, 107, 99, 0.06);
+            border-radius: 50%;
+            pointer-events: none;
+        }
+        .eyebrow { color: var(--accent); font-size: 13px; font-weight: 800; letter-spacing: 0.1em; }
+        .hero h1 { margin-top: 16px; max-width: 960px; font-size: clamp(30px, 4.4vw, 50px); line-height: 1.26; }
+        .lead { max-width: 970px; margin-top: 20px; font-size: 18px; color: var(--muted); }
+        .meta { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 24px; }
+        .badge { display: inline-block; border-radius: 9px; padding: 6px 12px; font-size: 13px; font-weight: 700; background: #f0e9df; color: var(--muted); }
+        .badge.proposed { background: var(--teal-soft); color: var(--teal); }
+        .badge.current { background: var(--accent-soft); color: var(--accent); }
+        .badge.pending { background: var(--gold-soft); color: var(--gold); }
+        .source-root { margin-top: 20px; font-size: 13px; color: var(--muted); }
+        .toc { margin-top: 20px; padding: 20px 24px; }
+        .toc-label { color: var(--muted); font-size: 13px; margin-bottom: 10px; }
+        .toc-links { display: flex; flex-wrap: wrap; gap: 8px; }
+        .toc a { padding: 7px 12px; border-radius: 9px; background: #f2ede4; text-decoration: none; font-size: 14px; }
+        .toc a:hover { background: var(--teal-soft); }
+        .panel { margin-top: 22px; padding: 30px; }
+        .section-head { display: flex; gap: 15px; align-items: baseline; margin-bottom: 18px; }
+        .section-number { flex: 0 0 auto; font-size: 18px; font-weight: 800; color: var(--accent); }
+        .section-intro { color: var(--muted); margin-bottom: 20px; }
+        .grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+        .grid > * { min-width: 0; }
+        .grid.three { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+        .card { padding: 20px; border: 1px solid var(--line); border-radius: 18px; background: #fffdf9; min-width: 0; }
+        .card h3 + p { margin-top: 10px; color: var(--muted); }
+        .card-label { color: var(--teal); font-weight: 800; font-size: 12px; letter-spacing: 0.05em; margin-bottom: 9px; }
+        .callout { padding: 18px 21px; margin-top: 20px; border-radius: 14px; border-left: 4px solid var(--gold); background: var(--gold-soft); color: #59401e; }
+        .callout.good { background: var(--teal-soft); border-color: var(--teal); color: #26554e; }
+        .callout.blue { background: var(--blue-soft); border-color: var(--blue); color: #304f62; }
+        .subsection { margin-top: 24px; }
+        .small { color: var(--muted); font-size: 14px; }
+        .table-wrap { overflow-x: auto; border: 1px solid var(--line); border-radius: 16px; margin-top: 16px; }
+        table { border-collapse: collapse; width: 100%; min-width: 650px; font-size: 14px; }
+        th, td { padding: 14px 16px; text-align: left; vertical-align: top; border-bottom: 1px solid var(--line); }
+        th { color: #554433; background: #f1e9de; font-weight: 700; }
+        tr:last-child td { border-bottom: 0; }
+        tbody tr:nth-child(even) { background: #fdf6ee; }
+        td:first-child { font-weight: 650; }
+        .code-title { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin: 24px 0 10px; }
+        .code-title h3 { font-size: 16px; }
+        .code-note { margin-top: 9px; color: var(--muted); font-size: 14px; }
+        .diagram-wrap { overflow-x: auto; border: 1px solid var(--line); border-radius: 20px; background: #fcf7ef; }
+        .diagram-wrap svg { display: block; width: 100%; min-width: 690px; height: auto; }
+        .diagram-caption { margin-top: 12px; font-size: 14px; color: var(--muted); }
+        .diagram-hint { margin-bottom: 10px; font-size: 13px; color: var(--muted); }
+        .step-line { display: flex; flex-wrap: wrap; gap: 9px; align-items: center; margin: 16px 0; }
+        .step-line span { border: 1px solid var(--line); border-radius: 10px; padding: 9px 13px; background: #fffdf8; }
+        .step-line b { color: var(--teal); font-weight: 500; }
+        .state-chain { white-space: pre-wrap; overflow-wrap: anywhere; }
+        .phase { border-top: 4px solid var(--teal); }
+        .phase .card-label { margin-bottom: 10px; }
+        .checks { list-style: none; padding: 0; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+        .checks li { padding: 16px 18px; background: #f4f7f1; border: 1px solid #d4ded0; border-radius: 13px; margin: 0; }
+        .check-id { display: inline-block; margin-right: 6px; color: var(--teal); font-weight: 800; }
+        .refs { padding-left: 22px; font-size: 14px; }
+        .refs li { padding-left: 3px; }
+        footer { padding: 25px 8px 0; color: var(--muted); font-size: 13px; display: flex; gap: 16px; justify-content: space-between; flex-wrap: wrap; }
+        .skip-link { position: absolute; top: -80px; left: 20px; padding: 10px 16px; background: var(--surface); z-index: 2; }
+        .skip-link:focus { top: 8px; }
+        @media (max-width: 860px) {
+            .grid.three { grid-template-columns: 1fr; }
+            .hero { padding: 30px; }
+        }
+        @media (max-width: 620px) {
+            body { font-size: 15px; }
+            .page { width: calc(100% - 24px); padding-top: 16px; }
+            .hero, .panel { padding: 22px 18px; border-radius: 20px; }
+            .hero h1 { font-size: 28px; }
+            .lead { font-size: 16px; }
+            .grid, .checks { grid-template-columns: 1fr; }
+            .toc { padding: 18px; }
+            .section-head { gap: 10px; }
+            .callout { padding: 15px; }
+            pre { padding: 14px; font-size: 12px; }
+        }
+        @media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
+        @media print {
+            @page { size: A4; margin: 14mm; }
+            body { background: white; font-size: 10pt; color: #111; }
+            .page { width: 100%; padding: 0; }
+            .hero, .panel, .toc { box-shadow: none; background: white; border-radius: 10px; }
+            .hero { padding: 20px; }
+            .hero h1 { font-size: 25pt; }
+            .hero::after, .toc, .skip-link, .diagram-hint, footer a { display: none; }
+            .panel { padding: 18px; margin-top: 14px; }
+            .lead { font-size: 11pt; }
+            h2, h3, .section-head { break-after: avoid; }
+            table { min-width: 0; font-size: 9pt; }
+            th, td { padding: 8px; }
+            tr, .card, .callout, .checks li { break-inside: avoid; }
+            .table-wrap, .diagram-wrap { overflow: visible; }
+            .diagram-wrap svg { min-width: 0; }
+            figure { break-inside: avoid; }
+            pre { white-space: pre-wrap; overflow-wrap: anywhere; font-size: 8pt; }
+            a { color: #176b63; }
+            * { print-color-adjust: exact; -webkit-print-color-adjust: exact; }
+        }
+    </style>
+</head>
+<body>
+    <a class="skip-link" href="#reading-guide">跳到正文</a>
+    <div class="page" id="top">
+        <header class="hero">
+            <p class="eyebrow">ORCHESTRATOR · ARCHITECTURE PROPOSAL</p>
+            <h1>自动执行 Agent<br />与任务队列解耦设计方案</h1>
+            <p class="lead">用户持续规划、审批并插入合同，后台按队列串行执行。工作区默认复用固定工程目录，可选独立 Git worktree；固定目录下支持“人工确认后提交”（默认）与“全自动本地提交”。全自动只取消执行结束后的人工确认，不取消构建、全量单测和 Review。所有模式都禁止 git push。</p>
+            <div class="meta">
+                <span class="badge proposed">建议设计 · 尚未实现</span>
+                <span class="badge current">源码基线 0.10.0</span>
+                <span class="badge proposed">默认 inPlaceExclusive · 可选 isolatedWorktree</span>
+                <span class="badge pending">提交默认人工确认 · 可选全自动 · 永不推送</span>
+                <span class="badge">整理日期 2026-09-12</span>
+                <span class="badge">仅更新设计文档 · 未修改插件代码</span>
+            </div>
+            <p class="source-root">检查的本地插件源码：<code>/Users/zhanglong/files/npmprogram/opencode_android_orchestrator</code>。版本号来自本地 <code>package.json</code>，不代表当前工程已安装此版本或 npm 最新版本。</p>
+        </header>
+
+        <nav class="toc" aria-label="文档目录">
+            <p class="toc-label">阅读导航</p>
+            <div class="toc-links">
+                <a href="#reading-guide">01 核心决策</a>
+                <a href="#current">02 当前限制</a>
+                <a href="#architecture">03 架构全景</a>
+                <a href="#intake">04 合同入队</a>
+                <a href="#dispatch">05 自动调度</a>
+                <a href="#isolation">06 双模式、锁与构建</a>
+                <a href="#commit-policy">07 提交方式与禁推送</a>
+                <a href="#lifecycle">08 状态与队列</a>
+                <a href="#dependencies">09 依赖与集成</a>
+                <a href="#recovery">10 恢复与交互</a>
+                <a href="#rollout">11 实施与验收</a>
+                <a href="#sources">源码与参考</a>
+            </div>
+        </nav>
+
+        <main>
+            <section class="panel" id="reading-guide" aria-labelledby="reading-title">
+                <div class="section-head"><span class="section-number">01</span><h2 id="reading-title">先明确四个核心决策</h2></div>
+                <div class="grid">
+                    <article class="card"><p class="card-label">交互与执行分离</p><h3>确认入队后，前台立即返回</h3><p>Planner 负责需求、计划和合同确认。长时间的编码与审查交给后台，用户随时可以继续提出下一项需求。</p></article>
+                    <article class="card"><p class="card-label">统一消费入口</p><h3>定时与入队事件共用一个调度器</h3><p>两种模式均保持每仓库一个执行名额，不并行启动多个 Coder。只消费当前模式允许运行的合同，无可运行任务时等待，不调用模型轮询。</p></article>
+                    <article class="card"><p class="card-label">工作区策略 · 默认不新增 worktree</p><h3>复用目录为默认，独立工作区可选</h3><p>固定目录等当前合同本地提交、集成及交接完成后再运行下一份。独立模式保留专属工作区，待验收时可让其他独立合同继续执行。</p></article>
+                    <article class="card"><p class="card-label">提交策略 · 不扩大远程权限</p><h3>人工确认或全自动，只做本地提交</h3><p>固定目录默认保留提交前人工确认；显式选择全自动后，通过同一质量门禁即可自动提交并本地集成。两者都禁止 git push，不能以测试通过代替提交授权。</p></article>
+                </div>
+                <div class="callout good"><strong>预期使用体验：</strong>所有模式都允许在 A 执行期间继续确认 B、C 入队。固定目录的人工提交方式会等待 A 的最终确认；全自动提交方式不等待这次确认，但仍须等 A 本地集成完成才启动 B。独立 worktree 本轮保持人工提交，可在 A 待验收时执行独立 B。合同入队前的确认始终保留，远程推送始终禁止。</div>
+            </section>
+
+            <section class="panel" id="current" aria-labelledby="current-title">
+                <div class="section-head"><span class="section-number">02</span><h2 id="current-title">当前限制与源码依据</h2></div>
+                <p class="section-intro">以下为本地 0.10.0 实现中已确认的行为。当前约束同时涉及规划、工作区、任务选择和集成，增加触发器时需要一并解耦。</p>
+                <div class="table-wrap" tabindex="0" role="region" aria-label="当前实现限制对照表，可横向滚动">
+                    <table>
+                        <thead><tr><th scope="col">现有约束</th><th scope="col">影响</th><th scope="col">源码位置</th></tr></thead>
+                        <tbody>
+                            <tr><td>已有两种工作区策略</td><td>默认 <code>inPlaceExclusive</code> 复用原目录；<code>isolatedWorktree</code> 为可选项。已有双模式并不代表已有异步队列。</td><td><code>templates/automation/config.json</code><br /><code>config.schema.json</code><br /><code>approve-and-run.sh</code></td></tr>
+                            <tr><td>最终提交必须人工确认</td><td>当前先校验最终验收确认，再创建包含产品与规划工件的本地 commit。没有现成的 <code>commitPolicy</code> 或无人工确认提交分支。</td><td><code>templates/scripts/automation/accept-and-integrate.sh</code><br /><code>submit-review.sh</code></td></tr>
+                            <tr><td>推送配置固定为 false</td><td>现有 schema 将 <code>pushAfterAcceptance</code> 限定为 <code>false</code>，集成入口也检查禁止推送。新增全自动提交不得放宽它。</td><td><code>templates/automation/config.schema.json</code><br /><code>accept-and-integrate.sh</code></td></tr>
+                            <tr><td>规划前检查工作区及仓库租约</td><td>当前任务占用仓库时，新规划会在入口被阻断。</td><td><code>templates/scripts/automation/preflight.sh</code><br /><code>prepare-contract-review.sh</code></td></tr>
+                            <tr><td>规划工件必须是仅有的两个变更文件</td><td>多个合同与执行中的产品修改无法混放在同一工作区。</td><td><code>templates/scripts/automation/prepare-contract-review.sh</code></td></tr>
+                            <tr><td>审批后同步占用仓库并启动任务</td><td>合同确认、准备工作区与长时间执行绑定在同一调用里。</td><td><code>templates/scripts/automation/approve-and-run.sh</code></td></tr>
+                            <tr><td>任务选择器要求只有一个匹配任务</td><td>存在多个 <code>PENDING</code> 会报错，尚不支持真正的多任务排队。</td><td><code>templates/scripts/automation/select-task.sh</code></td></tr>
+                            <tr><td>等待验收仍保留仓库租约</td><td>当前两种模式都在完成集成后才释放仓库。新默认模式继续保护固定目录；可选独立模式才需要支持封存后让出执行名额。</td><td><code>orchestrate-task.sh</code><br /><code>accept-and-integrate.sh</code></td></tr>
+                            <tr><td>原分支必须保持在记录的基线</td><td>先完成的任务合入后，其他任务需要新的基线处理流程。</td><td><code>templates/scripts/automation/accept-and-integrate.sh</code></td></tr>
+                        </tbody>
+                    </table>
+                </div>
+                <p class="small subsection">下面摘录关键代码。绿色中文注释仅用于本页阅读；省略号表示中间逻辑未展示，未将这些注释或任何修改写回插件。</p>
+                <div class="code-title"><span class="badge current">现有实现</span><h3>规划工件与仓库租约绑定</h3></div>
+                <pre><code><span class="comment"># prepare-contract-review.sh：另一份任务持有租约时，无法进入合同准备。</span>
+automation_assert_repository_lease_available "$task_id"
+
+<span class="comment"># 省略：合同验证与路径收集。</span>
+<span class="comment"># 工作区必须恰好只有本任务的计划和合同两个变更路径。</span>
+if [[ "${#changed_paths[@]}" -ne 2 ]] || \
+   [[ " ${changed_paths[*]} " != *" $contract_rel "* ]] || \
+   [[ " ${changed_paths[*]} " != *" $plan_rel "* ]]; then
+    automation_die "before contract review, the only changed paths must be $plan_rel and $contract_rel"
+fi</code></pre>
+                <div class="grid">
+                    <div>
+                        <div class="code-title"><span class="badge current">现有实现</span><h3>审批直接进入执行</h3></div>
+                        <pre><code><span class="comment"># approve-and-run.sh：先获取仓库租约。</span>
+automation_acquire_repository_lease \
+    "$task_id" "$source_root" "$workspace_strategy"
+
+<span class="comment"># 省略：准备工作区及状态迁移。</span>
+<span class="comment"># 最后同步调用单任务编排脚本。</span>
+"$SCRIPT_DIR/orchestrate-task.sh" "$task_id"</code></pre>
+                    </div>
+                    <div>
+                        <div class="code-title"><span class="badge current">现有实现</span><h3>多个候选任务直接报错</h3></div>
+                        <pre><code><span class="comment"># select-task.sh：要求候选数量必须为 1。</span>
+if [[ "${#matches[@]}" -ne 1 ]]; then
+    automation_die \
+        "expected one $wanted task, found ${#matches[@]}: ${matches[*]}"
+    exit 4
+fi</code></pre>
+                    </div>
+                </div>
+                <p class="code-note">长命令在本页按阅读需要折行，语义与所摘录源码一致。新方案中的接口名和状态扩展均属于设计建议。</p>
+            </section>
+
+            <section class="panel" id="architecture" aria-labelledby="architecture-title">
+                <div class="section-head"><span class="section-number">03</span><h2 id="architecture-title">建议架构：前台生产，后台消费</h2></div>
+                <p class="section-intro">Planner、队列和调度器共用；先按工作区策略确定目录，再按合同已授权的提交策略收尾。固定目录的两种提交路径详见第 07 节。以下均为拟实现流程，不表示当前插件已有异步队列或全自动提交能力。</p>
+                <figure>
+                    <p class="diagram-hint">窄屏可在图内横向滚动；图下方有对应的文字说明。</p>
+                    <div class="diagram-wrap" tabindex="0" role="region" aria-label="建议架构流程图，可横向滚动">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 1150" role="img" aria-labelledby="arch-svg-title arch-svg-desc">
+                            <title id="arch-svg-title">双工作区模式：前台持续入队，后台按策略串行执行</title>
+                            <desc id="arch-svg-desc">用户和 Planner 基于稳定提交规划，确认合同及提交策略，持久化入队后返回。唯一调度器按模式领取。默认 inPlaceExclusive 复用固定目录，构建、全量单测和 Review 通过后，humanApproval 等待人工确认，autoCommit 校验已封存的自动提交授权；两者都在本地 commit、集成和目录交接完成后才开始下一份。可选 isolatedWorktree 本轮保留人工提交，通过 Review 后安全封存成果，可让独立下一份执行。所有模式均只有一个 Coder，均禁止 git push。</desc>
+                            <defs>
+                                <marker id="arch-arrow" markerWidth="9" markerHeight="9" refX="8" refY="4.5" orient="auto"><path d="M0 0 L9 4.5 L0 9 Z" fill="#806e5b" /></marker>
+                            </defs>
+                            <g font-family="PingFang SC, Microsoft YaHei, sans-serif">
+                                <rect x="28" y="20" width="404" height="290" rx="24" fill="#f7eee2" />
+                                <rect x="542" y="20" width="430" height="290" rx="24" fill="#edf4ee" />
+                                <rect x="30" y="472" width="448" height="615" rx="24" fill="#edf4ee" />
+                                <rect x="522" y="472" width="448" height="615" rx="24" fill="#eaf1f6" />
+                                <text x="50" y="55" fill="#845b1b" font-size="18" font-weight="700">前台 · 始终可以继续入队</text>
+                                <text x="565" y="55" fill="#176b63" font-size="18" font-weight="700">后台 · 唯一调度入口</text>
+                                <g fill="none" stroke="#806e5b" stroke-width="2.4" marker-end="url(#arch-arrow)">
+                                    <path d="M230 170 V215" />
+                                    <path d="M758 170 V215" />
+                                    <path d="M410 255 H565" />
+                                    <path d="M758 295 V327 H500 V350" />
+                                    <path d="M500 430 V454 H390 V505" />
+                                    <path d="M500 454 H930 V505" />
+                                    <path d="M245 605 V640" />
+                                    <path d="M755 605 V640" />
+                                    <path d="M245 725 V765" />
+                                    <path d="M755 725 V765" />
+                                    <path d="M245 865 V950" />
+                                    <path d="M755 865 V950" />
+                                    <path d="M55 1005 H15 V332 H270 V310 H585 V295" stroke="#176b63" stroke-dasharray="7 5" />
+                                    <path d="M945 815 H985 V255 H950" stroke="#315e79" stroke-dasharray="7 5" />
+                                </g>
+                                <g font-size="14" fill="#675d52">
+                                    <text x="249" y="199">原子持久化</text>
+                                    <text x="446" y="240">入队唤醒</text>
+                                    <text x="776" y="199">统一唤醒</text>
+                                    <text x="55" y="494" fill="#176b63" font-weight="700">默认：inPlaceExclusive</text>
+                                    <text x="565" y="494" fill="#315e79" font-weight="700">可选：isolatedWorktree · 人工提交</text>
+                                    <text x="265" y="749">通过 Review</text>
+                                    <text x="775" y="749">通过 Review</text>
+                                    <text x="265" y="912">授权与质量门禁通过</text>
+                                    <text x="775" y="912">用户稍后验收</text>
+                                </g>
+                                <g stroke-width="1.8">
+                                    <rect x="50" y="85" width="360" height="85" rx="16" fill="#fffaf4" stroke="#c6ad8d" />
+                                    <rect x="50" y="215" width="360" height="80" rx="16" fill="#eaf4ef" stroke="#72a69a" />
+                                    <rect x="565" y="85" width="385" height="85" rx="16" fill="#fffaf4" stroke="#9ab9a9" />
+                                    <rect x="565" y="215" width="385" height="80" rx="16" fill="#176b63" stroke="#176b63" />
+                                    <rect x="280" y="350" width="440" height="80" rx="16" fill="#fffaf4" stroke="#c6ad8d" />
+                                    <rect x="55" y="505" width="380" height="100" rx="16" fill="#fffaf4" stroke="#72a69a" />
+                                    <rect x="565" y="505" width="380" height="100" rx="16" fill="#fffaf4" stroke="#8faebf" />
+                                    <rect x="55" y="640" width="380" height="85" rx="16" fill="#fffaf4" stroke="#72a69a" />
+                                    <rect x="565" y="640" width="380" height="85" rx="16" fill="#fffaf4" stroke="#8faebf" />
+                                    <rect x="55" y="765" width="380" height="100" rx="16" fill="#fbf0d9" stroke="#c6ab74" />
+                                    <rect x="565" y="765" width="380" height="100" rx="16" fill="#fbf0d9" stroke="#c6ab74" />
+                                    <rect x="55" y="950" width="380" height="105" rx="16" fill="#eaf4ef" stroke="#72a69a" />
+                                    <rect x="565" y="950" width="380" height="105" rx="16" fill="#fffaf4" stroke="#8faebf" />
+                                </g>
+                                <g text-anchor="middle" fill="#201b16" font-size="20" font-weight="700">
+                                    <text x="230" y="120">用户 / Planner</text>
+                                    <text x="230" y="249">持久化合同队列</text>
+                                    <text x="758" y="120">定时 / 启动恢复 / 兜底扫描</text>
+                                    <text x="758" y="249" fill="#ffffff">唯一调度器 · 原子领取</text>
+                                    <text x="500" y="383">每仓库一个执行名额</text>
+                                    <text x="245" y="536">复用固定工程目录</text>
+                                    <text x="755" y="536">创建本合同的独立 worktree</text>
+                                    <text x="245" y="675" font-size="18">Coder → 构建 / 全量单测</text>
+                                    <text x="755" y="675" font-size="18">Coder → 构建 / 全量单测</text>
+                                    <text x="245" y="797">按提交策略收尾</text>
+                                    <text x="755" y="797">等待人工验收 · 封存成果</text>
+                                    <text x="245" y="984">git commit → 本地集成</text>
+                                    <text x="755" y="984">稍后验收 → 串行集成</text>
+                                </g>
+                                <g text-anchor="middle" fill="#675d52" font-size="15">
+                                    <text x="230" y="149">固定 planningHead 规划 · 确认合同</text>
+                                    <text x="230" y="279">封存合同与批准记录 · 立即返回</text>
+                                    <text x="758" y="149">触发器只负责通知调度器</text>
+                                    <text x="758" y="279" fill="#d7eee7">已批准、到期、依赖与模式条件满足</text>
+                                    <text x="500" y="412">读取并固化 workspaceStrategy</text>
+                                    <text x="245" y="564">创建任务分支 · 不新增 worktree</text>
+                                    <text x="245" y="589">保留本目录的构建产物与缓存</text>
+                                    <text x="755" y="564">独立任务分支 · 同合同全流程复用</text>
+                                    <text x="755" y="589">工作区在领取合同后才创建</text>
+                                    <text x="245" y="706">Reviewer 与有限返工 · 串行执行</text>
+                                    <text x="755" y="706">Reviewer 与有限返工 · 串行执行</text>
+                                    <text x="245" y="824">人工：等待确认 · 自动：核对授权</text>
+                                    <text x="245" y="850">两条路径都保留固定目录占用</text>
+                                    <text x="755" y="824">确认进程退出，保留 A 的工作区</text>
+                                    <text x="755" y="850">释放执行名额，独立 B 可以运行</text>
+                                    <text x="245" y="1013">成功交接后释放占用，调度下一份</text>
+                                    <text x="245" y="1040">仅本地提交 · 禁止 git push</text>
+                                    <text x="755" y="1013">基线变化时重新验证与确认</text>
+                                    <text x="755" y="1040">依赖 A 的 C 在 A 合入后才可执行</text>
+                                </g>
+                                <text x="50" y="1125" font-size="15" fill="#675d52">实线：正常成果流转　虚线：仅在当前模式允许时唤醒调度器；无可运行合同则等待</text>
+                            </g>
+                        </svg>
+                    </div>
+                    <figcaption class="diagram-caption">左侧固定目录支持人工确认和全自动提交，二者都在本地集成完成后才交接；右侧独立 worktree 本轮保持人工提交。所有路径均不推送远程。图中为正常路径，提交分流见<a href="#commit-policy">第 07 节</a>，失败保留现场见<a href="#recovery">第 10 节</a>。</figcaption>
+                </figure>
+            </section>
+
+            <section class="panel" id="intake" aria-labelledby="intake-title">
+                <div class="section-head"><span class="section-number">04</span><h2 id="intake-title">拆分批准合同与开始执行</h2></div>
+                <div class="step-line" aria-label="前台交互顺序"><span>需求讨论</span><b aria-hidden="true">→</b><span>方案确认</span><b aria-hidden="true">→</b><span>合同复核</span><b aria-hidden="true">→</b><span>持久化入队</span><b aria-hidden="true">→</b><span>返回用户</span></div>
+                <p>入队成功后立即显示任务编号、排队状态、提交策略和等待原因。合同复核卡默认显示“执行后等待人工确认提交”；用户显式选择全自动时，须明确显示“通过质量门禁后自动本地提交并集成，不推送远程”。该选择随批准记录封存，轮到任务时无需再次确认是否启动，但不能将旧的人工提交授权当作自动提交授权。</p>
+                <div class="grid subsection">
+                    <article class="card"><p class="card-label">拟拆出的职责</p><h3><code>approve-and-enqueue</code></h3><p>记录合同确认及明确选择的 <code>commitPolicy</code>，封存合同版本、工件哈希、目标本地分支和禁止推送约束，原子写入队列后返回。</p></article>
+                    <article class="card"><p class="card-label">拟拆出的职责</p><h3><code>prepare-and-run</code></h3><p>由调度器领取合同并固化工作区策略；默认占用固定目录，可选创建独立 worktree。复核基线与执行条件后，再运行单任务编排流程。</p></article>
+                </div>
+                <h3 class="subsection">合同存放与代码读取</h3>
+                <ul>
+                    <li>两种模式的草稿和排队合同都存入独立收件区，例如 <code>&lt;git-common-dir&gt;/automation-runtime/inbox/</code>，不放在当前产品 diff 中。通过 Git 公共目录定位运行数据，兼容固定目录和多个 worktree。</li>
+                    <li>通过受控接口写入收件区，Planner 不需要任意修改 <code>.git</code> 的权限。审批记录与合同版本关联，普通草稿文件出现不等于获准执行。</li>
+                    <li>规划时固定目标分支上一个已提交的 <code>planningHead</code>，通过受控只读接口读取对应 Git 对象；不直接读取 Coder 正在编辑的文件，也不跟随活动目录的当前分支。Planner 不切分支、不修改产品代码，默认模式无需为规划额外创建 worktree。</li>
+                    <li>任务开始时，才将本任务的封存工件放入执行工作区的 <code>docs/plans/</code> 与 <code>automation/tasks/</code>，不把其他排队合同带入任务 diff。</li>
+                </ul>
+                <div class="callout blue"><strong>需要解耦的是入队，不是取消执行保护：</strong>Planner 的受控入队只使用短队列事务，不要求获得 Coder 持有的执行租约。原来的“两份规划文件”检查移到当前合同工件校验及准备阶段；其他合同留在收件区。默认模式继续独占产品目录，仍能允许新合同入队。以上入口与路径调整均为设计建议。</div>
+            </section>
+
+            <section class="panel" id="dispatch" aria-labelledby="dispatch-title">
+                <div class="section-head"><span class="section-number">05</span><h2 id="dispatch-title">独立后台服务与统一触发规则</h2></div>
+                <p>在插件包内增加后台调度服务，插件负责启停、状态和交互入口。后台进程与 Planner 会话分离，每个 Git 仓库只运行一个调度实例；前台关闭后，已启动的后台服务仍可工作。</p>
+                <p>首版沿用当前的 <code>opencode run --agent …</code> 启动方式。每份合同拥有独立执行记录和会话上下文，Reviewer 按现有流程启动新会话。后台常驻的是调度器，队列为空时不会让模型持续思考。</p>
+                <div class="table-wrap" tabindex="0" role="region" aria-label="自动触发规则，可横向滚动">
+                    <table><thead><tr><th scope="col">触发条件</th><th scope="col">调度行为</th><th scope="col">关键约束</th></tr></thead><tbody>
+                        <tr><td>新合同确认入队</td><td>空闲时立即领取，忙碌时保留排队。</td><td>完整持久化后才成为可领取任务。</td></tr>
+                        <tr><td>定时到点</td><td>扫描并领取符合条件的合同。</td><td>与入队事件共用领取逻辑，不独立启动第二个 Coder。</td></tr>
+                        <tr><td>执行退出、验收或集成结束</td><td>按当前模式核对是否可以调度下一份。</td><td>默认模式须完整结束并恢复可复用目录；独立模式可在进程退出且成果封存后让出名额。进程退出本身不是统一放行条件。</td></tr>
+                        <tr><td>后台启动或恢复</td><td>核对未结束的执行，再扫描遗漏任务。</td><td>不能直接把所有运行中任务重置为待执行。</td></tr>
+                        <tr><td>定期兜底扫描</td><td>补偿遗漏的入队或完成通知。</td><td>仍需满足批准、到期、依赖、执行名额和所选工作区策略的条件。</td></tr>
+                    </tbody></table>
+                </div>
+                <div class="grid subsection">
+                    <article class="card"><h3>指定时间执行</h3><p>例如“今晚执行”使用 <code>notBefore</code>，入队事件不会让任务提前启动。周期调度显式配置时区，建议默认 <code>Asia/Shanghai</code>。</p></article>
+                    <article class="card"><h3>睡眠与周期任务</h3><p>机器睡眠期间无法执行。错过多个触发时间后默认合并为一次补偿检查。“每天生成新任务”使用单独确认的模板，每次生成新实例；模板授权须明确版本、范围及提交策略，定时触发本身不授予自动提交或推送权限。</p></article>
+                </div>
+                <p class="small subsection">OpenCode 官方提供适合脚本和自动化调用的非交互 <code>run</code>。新后台行为仍需在插件声明的目标 OpenCode 版本上验证。参考：<a href="https://opencode.ai/docs/cli/#run">OpenCode CLI · run</a>。</p>
+            </section>
+
+            <section class="panel" id="isolation" aria-labelledby="isolation-title">
+                <div class="section-head"><span class="section-number">06</span><h2 id="isolation-title">双工作区模式、占用规则与构建成本</h2></div>
+                <p><strong>工作区默认使用 <code>inPlaceExclusive</code>，保留可选 <code>isolatedWorktree</code>。</strong>工作区策略回答“在哪里执行”，第 07 节的提交策略回答“是否等待最终人工确认”。两种工作区都串行执行 Coder，独立模式不是并行编程开关；本轮只为固定目录增加全自动提交。</p>
+                <div class="table-wrap" tabindex="0" role="region" aria-label="两种工作区模式对照，可横向滚动">
+                    <table><thead><tr><th scope="col">比较项</th><th scope="col">默认 · inPlaceExclusive</th><th scope="col">可选 · isolatedWorktree</th></tr></thead><tbody>
+                        <tr><td>产品代码目录</td><td>复用同一个固定工程目录，不新增 worktree。</td><td>领取合同后，创建该合同的独立 Git worktree。</td></tr>
+                        <tr><td>任务分支与会话</td><td>仍创建独立任务分支，在固定目录切换；每份合同新建执行会话和记录。</td><td>独立任务分支对应独立目录；每份合同新建执行会话和记录。</td></tr>
+                        <tr><td>同合同内部复用</td><td>基线、Coder、构建、单测、Reviewer 和返工使用同一目录。</td><td>同一合同的这些阶段复用同一个 worktree，不按 Agent 或验证次数反复创建。</td></tr>
+                        <tr><td>通过 Review 后</td><td>人工提交方式保留占用、等待确认；全自动方式保留占用，直接进入受控本地提交与集成，不经过正常人工等待。</td><td>本轮保持人工提交。A 安全封存且进程退出后释放名额、保留目录；独立 B 可以启动。</td></tr>
+                        <tr><td>用户创建 B、C</td><td>始终可以规划并确认入队，不修改 A 的活动目录。</td><td>同样可以持续入队；入队本身不创建工作区。</td></tr>
+                        <tr><td>下一份正常启动点</td><td>A 满足所选提交策略，完成本地 commit、集成验证和目标分支更新，目录通过交接检查后；不是 Coder 退出或 commit 创建后立即交接。</td><td>A 安全封存且名额空闲后；依赖 A 的合同仍须等 A 成为 <code>COMPLETED</code>。</td></tr>
+                        <tr><td>构建与磁盘</td><td>可跨合同保留目录内增量状态及构建产物，避免按合同复制目录。</td><td>首次构建缺少本目录产物；可利用全局缓存，但每个工作区仍可能产生自己的构建输出。</td></tr>
+                        <tr><td>适用取舍</td><td>优先节省空间并复用构建状态；可选人工确认把关，或经预先授权全自动本地收尾。</td><td>需要在等待验收时继续处理独立合同，接受多份成果的空间及集成管理成本。</td></tr>
+                    </tbody></table>
+                </div>
+                <h3 class="subsection">配置与模式切换</h3>
+                <div class="code-title"><span class="badge current">已有配置字段</span><span class="small">以下仅为配置片段，不是完整配置文件</span></div>
+                <pre><code>{
+  "workspaceStrategy": "inPlaceExclusive"
+}</code></pre>
+                <p class="code-note">默认值与当前插件模板一致。用户显式选择独立模式时，将值设为 <code>isolatedWorktree</code>；这两个值已有 schema 支持，本文提出的是它们接入新队列后的行为。</p>
+                <ul>
+                    <li>首版工作区采用仓库级模式，不增加逐合同混用工作区策略。未领取合同按领取时生效的仓库配置执行，并固化 <code>workspaceStrategy</code>、<code>taskRoot</code>、<code>taskBranch</code> 与执行基线；提交策略则以批准时已封存的选择为准。</li>
+                    <li>切换模式前暂停领取，确认没有运行、待验收或仍待恢复且占用工作区的合同，并检查目标目录可安全交接。已有待验收成果不得因切换被覆盖、删除或重新解释。</li>
+                    <li>运行和恢复均使用该任务已固化的模式，不因配置文件后来变化而热切换目录。未开始的队列项及其批准记录保留。</li>
+                    <li>若切换后的工作区模式与排队合同已授权的提交策略不兼容，例如 <code>isolatedWorktree + autoCommit</code>，拒绝领取该合同并展示原因，等待用户调整并重新确认；不得静默改策略或扩大自动提交范围。</li>
+                </ul>
+                <h3 class="subsection">默认模式的目录交接</h3>
+                <ol>
+                    <li>领取前确认固定目录无其他任务占用，无非预期的已跟踪或未跟踪改动；用户文件和既有受控允许项不得自动清除。</li>
+                    <li>以复核后的目标分支提交创建任务分支，在原目录切换，再仅放入本合同的封存计划与合同。Planner 和其他合同不得切分支或写入产品文件。</li>
+                    <li>按提交策略取得最终人工确认或校验预先授予的自动提交授权，再由受控提交器执行本地 commit。集成验证和目标本地分支更新完成后，确认目录可交接，才释放占用；任何方式都不执行 git push。</li>
+                    <li>失败或人工中止不是自动清场信号。修复后完成，或经明确授权的中止流程封存成果并恢复可复用目录后，才允许下一份进入；禁止为消费队列自动丢弃修改。</li>
+                </ol>
+                <h3 class="subsection">锁与持久化占用分开管理</h3>
+                <div class="table-wrap" tabindex="0" role="region" aria-label="双模式锁与占用规则，可横向滚动">
+                    <table><thead><tr><th scope="col">锁或占用记录</th><th scope="col">规则</th><th scope="col">模式差异</th></tr></thead><tbody>
+                        <tr><td>队列短锁</td><td>入队、排序和原子领取只持有短事务，不等待模型或人工操作。</td><td>两种模式共用；新合同入队不要求获取当前任务的执行租约。</td></tr>
+                        <tr><td>执行名额</td><td>每仓库一个，覆盖 Coder、Reviewer、有限返工、提交和实际构建验证。后台统一仲裁恢复及集成验证。</td><td>固定目录的人工方式等待确认时保留名额；全自动方式持有名额直到本地集成完成。独立模式安全封存后可以释放。</td></tr>
+                        <tr><td>工作区归属</td><td>持久记录目录及所属合同，进程退出不自动抹去归属。</td><td>默认模式保护唯一固定目录，直到完成或安全中止；独立模式持续保护各自封存目录，不阻止创建另一份目录。</td></tr>
+                        <tr><td>Git 操作锁</td><td>短暂保护创建分支、创建或移除 worktree、最终更新目标分支等操作；不持有它等待人工或长时间测试。</td><td>两种模式都执行。默认模式还必须持有固定目录归属，防止其他操作切换活动分支。</td></tr>
+                    </tbody></table>
+                </div>
+                <div class="callout good"><strong>进程结束 ≠ commit 已创建 ≠ 合同完成：</strong>固定目录的人工方式在 <code>AWAITING_HUMAN</code> 保留占用，全自动方式在提交和本地集成期间保留占用，两者均不阻止新合同入队。独立模式安全封存后可让出名额，但恢复、重新验证或集成验证必须重新申请名额，与其他合同串行处理。</div>
+                <h3 class="subsection" id="build-policy">构建及全量单元测试：两种模式保持同一质量门槛</h3>
+                <p>每份合同仍须完成构建和全量单元测试，不因工作区或提交方式而省略质量验证。现有 <code>claim-task.sh</code> 在启用单测时先捕获全量基线，<code>verify-task.sh</code> 再执行配置的测试与构建，没有默认执行 <code>clean</code>；因此同合同最终验证可以利用前面阶段产生的构建状态。</p>
+                <div class="grid subsection">
+                    <article class="card"><h3>默认模式：保留增量状态</h3><p>合同交接时不默认删除 <code>build/</code> 或项目级 <code>.gradle/</code>。由构建工具判断哪些任务需要重做；代码、依赖或构建配置变化仍可能造成缓存失效，不承诺每份合同都同样快。</p></article>
+                    <article class="card"><h3>独立模式：控制首次成本</h3><p>新 worktree 的首次构建没有原目录的产物。使用相同 Gradle User Home 并启用构建缓存时，可复用匹配的任务输出；不同 worktree 不共享可写的 <code>build/</code> 或项目级 <code>.gradle/</code>。参见 <a href="https://docs.gradle.org/current/userguide/build_cache.html">Gradle 构建缓存</a>。</p></article>
+                </div>
+                <div class="callout blue"><strong>“全量”按实际执行测试验收：</strong>覆盖项目配置的所有单测模块与变体，并要求实际的 <code>Test</code> 任务在本次验收重新执行，不能只把 <code>UP-TO-DATE</code> 或 <code>FROM-CACHE</code> 当作本次全量实跑。针对这些测试任务禁用本次跳过和测试结果缓存，编译仍可复用缓存；不默认给整条命令加 <code>--rerun-tasks</code>，因为它连依赖任务也会重跑。此策略需在后续实现中落地并验证，不声称当前脚本已强制实跑。参见 <a href="https://docs.gradle.org/current/userguide/command_line_interface.html#sec:rerun_tasks">Gradle 重跑规则</a>。</div>
+                <p class="small subsection">独立模式需为保留的待验收及失败现场设置数量、磁盘上限，达到上限暂停领取但仍允许入队。两种模式都串行安排构建验证。此前约 2 秒的工作区测量仅指检出成本，不包含首次构建、全量单测或 Agent 启动，不能当作每份合同的完整运行开销。</p>
+            </section>
+
+            <section class="panel" id="commit-policy" aria-labelledby="commit-policy-title">
+                <div class="section-head"><span class="section-number">07</span><h2 id="commit-policy-title">固定目录的两种提交方式：都禁止推送</h2></div>
+                <p><strong>默认继续使用人工确认后提交，另提供显式启用的全自动本地提交。</strong>这里的“全自动”指合同已确认入队之后，从执行到本地提交、集成及调度下一份无需再次人工确认；不是取消需求 / 合同批准，也不是允许 Coder 自由执行 Git 写操作。</p>
+                <div class="table-wrap" tabindex="0" role="region" aria-label="工作区与提交策略支持矩阵，可横向滚动">
+                    <table><thead><tr><th scope="col">工作区策略</th><th scope="col">提交策略（建议字段）</th><th scope="col">最后是否等待人工</th><th scope="col">远程推送</th></tr></thead><tbody>
+                        <tr><td><code>inPlaceExclusive</code> · 默认</td><td><code>humanApproval</code> · 默认</td><td>是。用户确认当前封存成果后，才允许本地 git commit。</td><td>禁止 git push。</td></tr>
+                        <tr><td><code>inPlaceExclusive</code></td><td><code>autoCommit</code> · 显式选择</td><td>否。批准时已授权自动本地提交，质量门禁通过后由受控提交器执行。</td><td>同样禁止 git push。</td></tr>
+                        <tr><td><code>isolatedWorktree</code> · 可选</td><td><code>humanApproval</code></td><td>是。沿用此前独立工作区方案中的人工验收流程。</td><td>同样禁止 git push。</td></tr>
+                    </tbody></table>
+                </div>
+                <p class="small subsection">本轮不扩展 <code>isolatedWorktree + autoCommit</code> 组合；配置与领取校验应明确拒绝该组合，不能把“固定目录支持全自动”推断为所有工作区策略都自动提交。</p>
+                <h3 class="subsection">建议配置：工作区与提交方式分别表达</h3>
+                <div class="grid subsection">
+                    <div>
+                        <div class="code-title"><span class="badge proposed">默认行为</span><h3>人工确认后提交</h3></div>
+                        <pre><code>{
+  "workspaceStrategy": "inPlaceExclusive",
+  "commitPolicy": "humanApproval",
+  "pushAfterAcceptance": false
+}</code></pre>
+                    </div>
+                    <div>
+                        <div class="code-title"><span class="badge proposed">新增可选行为</span><h3>全自动本地提交</h3></div>
+                        <pre><code>{
+  "workspaceStrategy": "inPlaceExclusive",
+  "commitPolicy": "autoCommit",
+  "pushAfterAcceptance": false
+}</code></pre>
+                    </div>
+                </div>
+                <p class="code-note"><code>commitPolicy</code> 是建议新增字段，当前版本尚不支持；以上仅为未来配置片段，不可直接当作现成功能启用。现有 <code>workspaceStrategy</code> 和 <code>pushAfterAcceptance: false</code> 保持原含义。旧配置及缺少自动提交授权的历史合同保持人工确认行为，不自动升级权限。</p>
+                <h3 class="subsection">批准、提交与本地集成的边界</h3>
+                <ol>
+                    <li><strong>批准时封存提交策略：</strong>仓库级 <code>commitPolicy</code> 只是新合同复核卡的默认选项。用户确认的合同版本、工件哈希、目标本地分支、范围、提交策略及禁止推送约束一起封存。改变默认值不改变已入队或执行中的合同；把人工方式改成全自动，必须重新取得明确授权。</li>
+                    <li><strong>两条路径使用同一质量门禁：</strong>构建成功、全量单测实际执行并通过、Reviewer 为 <code>APPROVED</code>，且合同范围、保护路径、当前 diff 与最新封存证据一致。Coder 自述完成或某次旧测试通过都不够。</li>
+                    <li><strong>人工方式先确认，再 commit：</strong>进入 <code>AWAITING_HUMAN</code>，展示封存成果并等待用户确认。确认前不得创建任务成果 commit；确认必须匹配当前合同、diff 和基线，不能使用过期验收。</li>
+                    <li><strong>全自动方式验证授权，不伪造确认：</strong>新增自动提交策略校验入口，验证该合同已封存且未撤回的自动提交授权。通过后进入建议状态 <code>READY_TO_COMMIT</code>，无需生成一次虚构的人工验收，也不能把确认口令硬编码后调用现有人工入口来绕过检查。</li>
+                    <li><strong>受控提交器负责本地写入：</strong>两条授权路径共用经过验证的本地提交 / 集成核心，仅提交本合同允许的产品改动及规划工件，不混入用户文件。保持 Coder、Reviewer 无任意 commit / merge / push 权限，记录提交前基线、候选哈希、授权来源和 commit SHA。</li>
+                    <li><strong>本地集成完成才交接：</strong>延续现有收尾语义，在任务分支创建本地 commit，完成集成验证后更新记录的本地目标分支并恢复可复用目录。只有这一步成功才标记 <code>COMPLETED</code>；仅 commit 成功但集成失败不能启动下一份。</li>
+                </ol>
+                <figure class="subsection">
+                    <p class="diagram-hint">固定目录下的提交分流。窄屏可在图内横向滚动。</p>
+                    <div class="diagram-wrap" tabindex="0" role="region" aria-label="人工确认与全自动本地提交流程图，可横向滚动">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 860" role="img" aria-labelledby="commit-svg-title commit-svg-desc">
+                            <title id="commit-svg-title">人工确认提交与全自动本地提交共用质量门禁</title>
+                            <desc id="commit-svg-desc">固定工程目录中，Coder 完成后必须通过构建、全量单测和 Review。门禁失败保留现场，不提交。通过后，默认人工方式等待最终确认，显式授权的全自动方式验证已封存的自动提交授权。两条路径都交给受控提交器做本地 git commit，集成验证通过后更新本地目标分支并标记完成。所有路径都禁止 git push，提交后验证失败也不得推送或启动下一份。</desc>
+                            <defs><marker id="commit-arrow" markerWidth="9" markerHeight="9" refX="8" refY="4.5" orient="auto"><path d="M0 0 L9 4.5 L0 9 Z" fill="#806e5b" /></marker></defs>
+                            <g font-family="PingFang SC, Microsoft YaHei, sans-serif">
+                                <g fill="none" stroke="#806e5b" stroke-width="2.4" marker-end="url(#commit-arrow)">
+                                    <path d="M500 110 V160" />
+                                    <path d="M650 195 H720" />
+                                    <path d="M500 230 V270 H245 V320" />
+                                    <path d="M500 270 H755 V320" />
+                                    <path d="M245 420 V465 H500 V500" />
+                                    <path d="M755 420 V465 H500" marker-end="none" />
+                                    <path d="M500 590 V640" />
+                                </g>
+                                <g stroke-width="1.8">
+                                    <rect x="220" y="30" width="560" height="80" rx="16" fill="#eaf4ef" stroke="#72a69a" />
+                                    <rect x="350" y="160" width="300" height="70" rx="16" fill="#fffaf4" stroke="#c6ad8d" />
+                                    <rect x="720" y="160" width="240" height="80" rx="16" fill="#fbece2" stroke="#b9866c" />
+                                    <rect x="50" y="320" width="390" height="100" rx="16" fill="#fbf0d9" stroke="#c6ab74" />
+                                    <rect x="560" y="320" width="390" height="100" rx="16" fill="#eaf4ef" stroke="#72a69a" />
+                                    <rect x="250" y="500" width="500" height="90" rx="16" fill="#fffaf4" stroke="#c6ad8d" />
+                                    <rect x="220" y="640" width="560" height="100" rx="16" fill="#eaf4ef" stroke="#72a69a" />
+                                    <rect x="50" y="780" width="900" height="60" rx="16" fill="#fbece2" stroke="#b9866c" />
+                                </g>
+                                <g text-anchor="middle" fill="#201b16" font-size="20" font-weight="700">
+                                    <text x="500" y="63">Coder 完成 → 构建 / 全量单测 → Review</text>
+                                    <text x="500" y="201">质量门禁全部通过？</text>
+                                    <text x="840" y="190">BLOCKED / 返工</text>
+                                    <text x="245" y="352">等待最终人工确认</text>
+                                    <text x="755" y="352">核对自动提交授权</text>
+                                    <text x="500" y="536">受控提交器：git commit（仅本地）</text>
+                                    <text x="500" y="673">集成验证 → 更新本地目标分支</text>
+                                    <text x="500" y="818" fill="#a84920">所有路径：禁止 git push，包括强制推送、标签推送与远程同步</text>
+                                </g>
+                                <g text-anchor="middle" fill="#675d52" font-size="15">
+                                    <text x="500" y="93">固定目录 · 同一套验证要求 · 当前 diff 匹配封存证据</text>
+                                    <text x="840" y="220">保留现场，不提交、不交接</text>
+                                    <text x="245" y="379">AWAITING_HUMAN · 确认绑定当前成果</text>
+                                    <text x="245" y="405">未确认：禁止 git commit</text>
+                                    <text x="755" y="379">已批准且未撤回 · 不伪造人工验收</text>
+                                    <text x="755" y="405">READY_TO_COMMIT · 无需再次确认</text>
+                                    <text x="500" y="566">只提交合同范围内文件 · 记录 commit SHA 与授权来源</text>
+                                    <text x="500" y="702">验证失败：保留候选 commit，阻断目录交接</text>
+                                    <text x="500" y="728">成功：COMPLETED → 释放占用 → 调度下一份</text>
+                                </g>
+                                <g font-size="14" fill="#675d52">
+                                    <text x="672" y="181">否</text>
+                                    <text x="516" y="253">是</text>
+                                    <text x="55" y="301" fill="#845b1b" font-weight="700">humanApproval · 默认</text>
+                                    <text x="565" y="301" fill="#176b63" font-weight="700">autoCommit · 显式选择</text>
+                                </g>
+                            </g>
+                        </svg>
+                    </div>
+                    <figcaption class="diagram-caption">分流只改变“是否需要最终人工确认”，不改变测试、Review、提交范围和本地集成要求。自动授权缺失、失效或被撤回时同样阻断，不会静默降级为绕过检查的提交。</figcaption>
+                </figure>
+                <h3 class="subsection">现有人工入口不能直接冒充自动入口</h3>
+                <div class="code-title"><span class="badge current">现有实现摘录</span><h3><code>accept-and-integrate.sh</code></h3></div>
+                <pre><code><span class="comment"># 现有流程：必须先有最终人工确认，并保持禁止推送配置。</span>
+automation_require_approval acceptance "$approval"
+[[ "$(automation_read_state "$task_id")" == "AWAITING_HUMAN" ]] || \
+    automation_die "$task_id is not awaiting human acceptance"
+[[ "$(automation_config_value '.pushAfterAcceptance')" == "false" ]] || \
+    automation_die "automatic push is forbidden"
+
+<span class="comment"># 省略：证据与范围校验、验收记录、状态迁移及路径收集。</span>
+<span class="comment"># 确认之后，由受控脚本创建本地提交，不是 Coder 自行提交。</span>
+git -C "$task_root" commit --only -m "$commit_message" -- "${commit_paths[@]}"</code></pre>
+                <p class="code-note">后续实现需要拆出“人工验收授权”和“自动提交策略授权”两种入口，再复用本地提交 / 集成核心；不可直接删除 <code>automation_require_approval</code>，也不可为自动流程伪造 <code>acceptance.json</code>。自动审计应记录真实的策略授权来源。</p>
+                <h3 class="subsection" id="no-push-policy">禁止推送是硬约束，不是可选设置</h3>
+                <ul>
+                    <li><strong>配置与入口：</strong><code>pushAfterAcceptance</code> 在所有组合中固定为 <code>false</code>。发现启用推送的配置或请求立即拒绝；启动、提交、集成、恢复和重试入口都校验，不能因为开启全自动就增加 push 开关。</li>
+                    <li><strong>权限与受控执行：</strong>Planner、Coder、Reviewer、调度器和提交器都不得推送远程分支或标签，包括 <code>--force</code>、<code>--force-with-lease</code>、GUI 同步、别名或脚本间接推送。提交运行器须限制能绕过边界的 Git hooks、远程同步脚本或托管平台写入入口，不能仅依赖匹配一条字面的 <code>git push</code> 命令。</li>
+                    <li><strong>本地操作边界：</strong>允许受控的本地 commit、验证及本地目标分支更新；不修改远程引用，不为实现禁推送而删除用户的 remote 配置。本次方案不提供任何“提交并推送”或出错后自动推送的路径。</li>
+                    <li><strong>审计与验证：</strong>报告记录 <code>commitPolicy</code>、授权来源、候选 / commit SHA、本地集成结果和 <code>pushed: false</code>。该字段不能代替验证：后续测试使用隔离的本地仓库及命令替身，验证直接 / 间接推送被拒绝、模拟远程引用不变，不对真实远程发送写请求。成功、失败和恢复路径均需检查。</li>
+                </ul>
+                <div class="callout"><strong>全自动失败时停止，不自动扩大权限：</strong>测试失败、Review 未批准、diff 漂移、授权失效、分支漂移或 Git 异常均保留现场并阻断收尾。已创建 commit 但尚未完成本地集成时，保留候选和占用，恢复时核对事务状态以避免重复 commit；不能自动推送、强制覆盖或直接领取下一份。</div>
+            </section>
+
+            <section class="panel" id="lifecycle" aria-labelledby="lifecycle-title">
+                <div class="section-head"><span class="section-number">08</span><h2 id="lifecycle-title">任务状态、队列记录与领取规则</h2></div>
+                <p>两种工作区策略共用状态机；增加 <code>QUEUED</code> 表示已批准入队，并为全自动本地提交增加建议状态 <code>READY_TO_COMMIT</code>。Review 通过后，由受控编排器读取封存的 <code>commitPolicy</code> 决定分支，不由 Coder 自己宣布可以提交。</p>
+                <div class="code-title"><span class="badge proposed">建议状态主路径</span><span class="small">为便于阅读省略批准记录与已有的有限返工分支</span></div>
+                <pre class="state-chain"><code>CONTRACT_REVIEW
+    → QUEUED（拟新增：已批准入队，尚未占用执行目录）
+    → PREPARING（按策略准备目录）→ PENDING → CODING
+    → READY_FOR_REVIEW → REVIEWING
+
+人工提交 humanApproval：
+    REVIEWING（APPROVED）→ AWAITING_HUMAN
+    → 人工确认当前封存成果 → INTEGRATING → COMPLETED
+
+全自动提交 autoCommit（仅固定目录）：
+    REVIEWING（APPROVED）＋ 自动提交授权有效
+    → READY_TO_COMMIT（拟新增）→ INTEGRATING → COMPLETED
+
+INTEGRATING：本地 commit → 集成验证 → 更新本地目标分支
+任一路径失败：返工或阻断；不推送、不提前交接</code></pre>
+                <div class="grid three subsection">
+                    <article class="card"><h3><code>QUEUED</code></h3><p>合同已确认入队，提交策略已封存，但尚未占用执行目录。固定目录可因上一份待确认、提交、集成或待恢复而等待；独立模式还需考虑容量。两者都检查名额、时间和依赖。</p></article>
+                    <article class="card"><h3><code>PENDING</code></h3><p>沿用现有含义：执行工作区已准备好，等待 Coder 接手。不能直接把所有排队合同都当成这个状态。</p></article>
+                    <article class="card"><h3><code>READY_TO_COMMIT</code></h3><p>建议仅用于全自动方式：质量证据及策略授权已核验，等待受控本地提交。它不表示人工已验收，也不表示 commit 或本地集成已完成。</p></article>
+                </div>
+                <h3 class="subsection">建议的最小队列及关联运行记录</h3>
+                <div class="table-wrap" tabindex="0" role="region" aria-label="建议队列字段分组，可横向滚动">
+                    <table><thead><tr><th scope="col">字段分组</th><th scope="col">记录内容</th><th scope="col">作用</th></tr></thead><tbody>
+                        <tr><td>合同身份与封存</td><td>合同 ID、版本、合同与计划哈希、对应批准记录。</td><td>绑定用户确认的准确内容，防止排队期间被替换。</td></tr>
+                        <tr><td>提交策略与授权</td><td>批准时封存的 <code>commitPolicy</code>、策略版本、授权记录引用、目标本地分支及禁止推送约束。</td><td>区分执行后人工确认和预先授权全自动提交。策略变更需重新确认，不能只读取当前配置来扩大旧合同权限。</td></tr>
+                        <tr><td>排序与时间</td><td>入队顺序、优先级、最早执行时间 <code>notBefore</code>。</td><td>决定可领取的时间与顺序。</td></tr>
+                        <tr><td>分支与依赖</td><td>目标分支、<code>planningHead</code>、执行基线、<code>dependsOn</code>。</td><td>确定代码版本与前置任务是否满足。</td></tr>
+                        <tr><td>工作区身份</td><td>领取后固化 <code>workspaceStrategy</code>、<code>sourceRoot</code>、<code>taskRoot</code>、<code>taskBranch</code> 和占用者。</td><td>默认模式 <code>taskRoot = sourceRoot</code>；独立模式使用不同目录。恢复时禁止重新套用后来修改的模式配置。</td></tr>
+                        <tr><td>执行与恢复</td><td>当前状态、<code>runId</code>、尝试次数、等待原因及进程归属信息。</td><td>支持审计、状态显示和中断恢复。</td></tr>
+                        <tr><td>本地提交事务</td><td>提交事务 ID、提交前 HEAD、封存 diff、候选 / commit SHA、目标分支更新结果、真实授权来源及 <code>pushed: false</code>。</td><td>区分未提交、已提交未集成和已完成，支持幂等恢复；自动授权不伪装成人工验收记录。</td></tr>
+                    </tbody></table>
+                </div>
+                <h3 class="subsection">统一领取规则</h3>
+                <ol>
+                    <li>只考虑已确认入队、到达执行时间、依赖已完成的合同；检查提交授权有效，且工作区与提交策略组合受支持，禁止推送约束未被改变。</li>
+                    <li>确认执行名额允许领取，且没有公共故障、暂停或归属不明的运行进程。默认模式还要求上一份完整结束或安全中止、固定目录可复用；独立模式要求未达到工作区容量上限。</li>
+                    <li>默认按入队顺序消费，可支持优先级调整；不抢占正在执行的合同。</li>
+                    <li>在短事务中领取并记录本次 <code>runId</code> 与工作区策略。复核规划基线和合同适用性后，再按模式占用固定目录或创建独立 worktree，准备本合同工件并启动执行。</li>
+                </ol>
+                <p class="small subsection">等待原因与任务状态分开显示，例如“等待 A 人工确认”“等待 A 本地集成”“提交授权需重新确认”“等待固定目录恢复”“等待依赖 A 完成”或“隔离工作区容量已满”。全自动的正常路径不显示虚构的“人工已验收”。</p>
+                <div class="callout"><strong>合同版本不可被悄悄替换：</strong>同一合同版本重复提交返回已有队列项。已批准内容需要修改时，生成新版本并重新确认；正在执行的版本保持封存。失败任务、人工待办和队列等待原因应清晰区分。</div>
+            </section>
+
+            <section class="panel" id="dependencies" aria-labelledby="dependencies-title">
+                <div class="section-head"><span class="section-number">09</span><h2 id="dependencies-title">提交、任务依赖与基线变化</h2></div>
+                <p>所有受支持组合都以 <code>COMPLETED</code> 作为依赖完成标准，即成果已经验证并集成到本地目标分支，不以推送远程为条件。人工提交等待最终确认，全自动提交不等待；固定目录的两种方式都必须等当前合同本地收尾完成，独立 worktree 才能在待验收时先执行其他独立合同。通过 Reviewer 或仅创建 commit 都不等于依赖完成。</p>
+                <p class="small subsection">下面的 A / B / C 表展示 <code>humanApproval</code> 情况。固定目录采用 <code>autoCommit</code> 时，A 不进入正常人工等待，而是自动提交并本地集成；B、C 仍须等待 A 完成后再按各自条件领取。</p>
+                <div class="table-wrap" tabindex="0" role="region" aria-label="A B C 三任务关系示例，可横向滚动">
+                    <table><thead><tr><th scope="col">任务与前提</th><th scope="col">默认 · inPlaceExclusive</th><th scope="col">可选 · isolatedWorktree</th></tr></thead><tbody>
+                        <tr><td>A：已通过 Review，等待人工验收</td><td>继续占用固定目录与逻辑执行名额。进程可以退出，队列暂不领取下一份。</td><td>确认进程退出且安全封存后，让出名额；A 的独立目录继续保留。</td></tr>
+                        <tr><td>B：已入队，与 A 独立</td><td>等待 A 验收并集成，或完成获授权的安全中止。正常完成后，B 在同一目录的新任务分支执行。</td><td>名额空闲且容量允许时，可在自己的 worktree 执行，代码基线不包含 A 的未合入成果。</td></tr>
+                        <tr><td>C：已入队，dependsOn = [A]</td><td>等待 A 成为 <code>COMPLETED</code>，再按队列规则领取。</td><td>同样等待 A 成为 <code>COMPLETED</code>；不能仅因 A 通过 Review 就启动。</td></tr>
+                    </tbody></table>
+                </div>
+                <h3 class="subsection">规划基线与执行基线，不能混为一谈</h3>
+                <p>默认模式下，B 可能在 A 编码期间已经完成规划；即使等 A 合入后才执行 B，也必须先复核旧 <code>planningHead</code> 对应的合同是否仍适用。独立模式还会遇到 B 已经执行完、但 A 随后合入的情况，此时 B 的集成候选需要重新验证。</p>
+                <p>当前集成脚本要求目标分支停在记录的执行基线。默认路径可保留现有漂移阻断；独立模式的待验收持续消费能力需要补齐受控的新候选验证流程，不能直接删除检查或把原有 <code>block</code> 策略改成无条件合入。</p>
+                <div class="code-title"><span class="badge current">现有实现</span><h3><code>accept-and-integrate.sh</code></h3></div>
+                <pre><code><span class="comment"># 当前原分支前进时，阻断集成并要求人工处理。</span>
+[[ "$source_head" == "$baseline_head" ]] || \
+    automation_die "original branch drifted from $baseline_head to $source_head; policy requires manual resolution"</code></pre>
+                <div class="table-wrap" tabindex="0" role="region" aria-label="建议基线重新验证规则，可横向滚动">
+                    <table><thead><tr><th scope="col">检查时点</th><th scope="col">建议行为</th><th scope="col">无法继续时</th></tr></thead><tbody>
+                        <tr><td>开始执行前 · 两种模式</td><td>比较 <code>planningHead</code> 与当前目标分支，复核合同前置条件、相关代码及测试，记录本次执行基线。</td><td>需要修改合同或无法确认适用性时，暂停该合同并等待重新规划、重新确认，保留原版本与批准记录。</td></tr>
+                        <tr><td>准备集成时 · 按策略</td><td>默认模式保留漂移阻断并转受控处理；独立模式若目标分支已前进，按受控流程生成最新基线上的候选，重新构建、全量单测、Review 和封存。</td><td>冲突或超出合同范围时保留现场。不得复用旧测试结论，也不得静默修改合同内容。</td></tr>
+                        <tr><td>提交授权核验时</td><td>人工方式将确认绑定到合同、候选与目标基线，候选变化后重新确认；全自动方式核验封存的策略授权及当前质量证据，不生成最终人工确认。</td><td>旧证据不能用于新候选；授权撤回、合同变化或固定目录分支漂移时阻断，不因全自动而绕过。</td></tr>
+                        <tr><td>最终更新分支时</td><td>短暂持有集成锁，再次核对目标 HEAD。验证期间又发生变化，则重新处理。</td><td>不让未经验证的新组合进入目标分支。</td></tr>
+                    </tbody></table>
+                </div>
+                <div class="callout"><strong>独立模式的额外要求：</strong>工作区隔离解决多份待验收成果共存，基线重新验证解决它们先后合入。A 发起验收时若 B 仍在执行，A 的集成验证须等待同一个执行名额，不并发启动第二组构建；最终验收绑定最新封存候选，候选变化必须重新确认。默认模式在 A 完成前不会启动 B，因此没有这种内部交错，但仍需执行前基线复核和最终分支校验。</div>
+            </section>
+
+            <section class="panel" id="recovery" aria-labelledby="recovery-title">
+                <div class="section-head"><span class="section-number">10</span><h2 id="recovery-title">持久化、异常恢复与用户操作</h2></div>
+                <p>首版可沿用现有 JSON 状态文件和审计记录。触发事件负责唤醒，持久化状态负责决定任务能否执行；事件重复或丢失都不应改变这一原则。</p>
+                <div class="table-wrap" tabindex="0" role="region" aria-label="持久化与异常恢复规则，可横向滚动">
+                    <table><thead><tr><th scope="col">场景</th><th scope="col">处理规则</th></tr></thead><tbody>
+                        <tr><td>合同写入尚未完成</td><td>合同与计划完整持久化后，队列项才变为可领取。状态更新使用短锁和原子替换。</td></tr>
+                        <tr><td>定时与入队事件同时到达</td><td>通过统一的原子领取操作，只产生一个有效 <code>runId</code>；其他唤醒重新读取状态。</td></tr>
+                        <tr><td>入队成功，通知丢失</td><td>启动扫描与兜底扫描发现任务，按同样条件领取。</td></tr>
+                        <tr><td>调度器重启或心跳超时</td><td>先核实原执行进程是否仍存活。不能只因超时就启动第二个 Coder；无法确认归属时保留现场并等待恢复处理。</td></tr>
+                        <tr><td>单份合同失败 · 默认模式</td><td>保留固定目录占用和失败现场，停止领取下一份但继续接收入队。等待修复后完成，或经明确授权中止、封存并恢复可复用目录；不能只凭进程退出释放占用。</td></tr>
+                        <tr><td>单份合同失败 · 独立模式</td><td>只有确认进程退出、失败状态与成果安全封存、目录归属明确且非公共故障时，才可让出名额并检查其他独立合同。失败不等于待验收或依赖完成；重试须重新申请执行名额。</td></tr>
+                        <tr><td>重启后发现固定目录脏或模式被改</td><td>按原运行记录核对目录、分支、基线及所属合同；保留现场并阻断不安全交接。不得使用新的配置覆盖旧任务模式，也不得自动 reset、clean 或删除用户修改来启动下一份。</td></tr>
+                        <tr><td>全自动提交授权异常</td><td>授权缺失、被撤回、合同哈希或策略被篡改时，停止自动收尾并展示原因。不伪造人工确认、不自动改变策略，也不启动下一份占用该目录的合同。</td></tr>
+                        <tr><td>commit 已创建但本地集成失败</td><td>保留候选 commit、证据及固定目录占用，记录 <code>INTEGRATION_BLOCKED</code> 或对应阻断状态。不报告 <code>COMPLETED</code>，不推送远程，也不盲目再次 commit。</td></tr>
+                        <tr><td>提交或集成时崩溃</td><td>按提交前写入的事务意图、任务分支历史、候选树和本地目标引用核对。若已创建正确 commit 则复用；若已完成目标更新则核验后补记状态；无法证明一致时保留现场，不重复提交或强制覆盖。</td></tr>
+                        <tr><td>任何直接或间接推送请求</td><td>在人工、全自动、失败恢复和重试路径中都拒绝。错误信息及完成通知只报告本地状态，不提供“推送以完成任务”的操作。</td></tr>
+                        <tr><td>公共环境或认证故障</td><td>暂停队列消费，显示公共故障原因，避免让每个排队任务重复失败。</td></tr>
+                        <tr><td>用户暂停或取消</td><td>暂停停止领取新任务，当前任务继续到安全结束点。取消运行中任务走有记录的中止流程。</td></tr>
+                    </tbody></table>
+                </div>
+                <h3 class="subsection">建议的用户入口</h3>
+                <div class="grid">
+                    <article class="card"><h3>队列与任务详情</h3><p>分别展示工作区策略和提交策略、授权来源、目录、分支、占用者及依赖。区分“等待人工确认”“自动提交中”“本地集成中”和“已完成 · 未推送”，成功后显示本地 commit SHA，不混淆提交与推送。</p></article>
+                    <article class="card"><h3>暂停、恢复与策略调整</h3><p>允许暂停、恢复、排序、取消以及进入受控恢复流程。工作区切换遵守第 06 节；提交策略遵守第 07 节的重新授权规则，不能用全局配置改动把待人工确认的合同直接自动提交。</p></article>
+                </div>
+                <div class="callout good"><strong>按提交方式提供持久化通知：</strong>人工方式展示与最新封存成果绑定的验收待办；全自动方式展示“已自动本地提交并集成 · 未推送”及 commit SHA，失败时展示阻断原因而非假定人工已验收。通知不依赖原 Planner 会话持续等待，任何通知入口都不能触发远程推送。</div>
+            </section>
+
+            <section class="panel" id="rollout" aria-labelledby="rollout-title">
+                <div class="section-head"><span class="section-number">11</span><h2 id="rollout-title">实施顺序与验收清单</h2></div>
+                <p class="section-intro">按三个阶段推进：先完成入队及策略授权封存，再完成固定目录下人工 / 全自动本地提交的串行闭环，最后补齐独立 worktree 的待验收持续消费。工作区默认 <code>inPlaceExclusive</code>，提交默认 <code>humanApproval</code>；所有阶段禁止推送远程。</p>
+                <div class="grid three">
+                    <article class="card phase"><p class="card-label">阶段 1 · 持续入队与授权</p><h3>拆分生产与执行</h3><p>增加收件区及队列，拆分审批与执行入口，调整 Planner 读取路径；在合同复核时明确并封存提交策略和禁止推送约束。</p><p class="small"><strong>验收结果：</strong>A 执行时可确认 B、C，不污染 A 的 diff；旧合同不因默认配置变化获得自动提交权限。</p></article>
+                    <article class="card phase"><p class="card-label">阶段 2 · 固定目录两种提交</p><h3>人工确认 / 全自动本地收尾</h3><p>接入调度与目录交接，拆出两种授权入口及共用提交核心，落实全量单测实跑、提交事务恢复和各路径禁推送。</p><p class="small"><strong>验收结果：</strong>人工方式确认前不 commit；全自动方式门禁通过后自动 commit 并本地集成，随后启动 B。失败保留占用，两者都不 push。</p></article>
+                    <article class="card phase"><p class="card-label">阶段 3 · 可选独立模式闭环</p><h3>封存成果与串行集成</h3><p>接入独立 worktree，完成封存后的名额释放、容量限制、依赖与候选重新验证，以及模式切换保护和双模式回归。</p><p class="small"><strong>验收结果：</strong>显式选择独立模式后，A 待验收时独立 B 可执行，依赖 A 的 C 等 A 合入；默认行为不改变。</p></article>
+                </div>
+                <h3 class="subsection">建议改造范围</h3>
+                <div class="table-wrap" tabindex="0" role="region" aria-label="建议改造范围，可横向滚动">
+                    <table><thead><tr><th scope="col">模块或入口</th><th scope="col">对应改造</th></tr></thead><tbody>
+                        <tr><td>Planner、命令与工作流说明</td><td>确认入队后返回；复核卡展示并封存提交策略、目标本地分支及禁止推送约束，区分验收待办与自动本地提交完成通知。</td></tr>
+                        <tr><td><code>prepare-contract-review.sh</code>、合同验证</td><td>面向独立工件收件区校验；规划不再要求独占正在执行的产品工作区。</td></tr>
+                        <tr><td><code>approve-and-run.sh</code></td><td>拆分批准入队与准备执行，保存批准记录、封存哈希及队列身份。</td></tr>
+                        <tr><td>任务选择、状态与锁</td><td>增加 <code>QUEUED</code>、<code>READY_TO_COMMIT</code>，校验两类策略及授权，记录本地提交事务；区分执行名额、目录归属和短锁。</td></tr>
+                        <tr><td>新增后台服务与 CLI 管理入口</td><td>负责触发、启停、进程管理、恢复、通知和容量控制。</td></tr>
+                        <tr><td><code>submit-review.sh</code>、单任务编排</td><td>Review 结果仍需独立验证；通过后按已授权的提交策略分流到人工等待或自动提交就绪，不再无条件只进入 <code>AWAITING_HUMAN</code>。</td></tr>
+                        <tr><td><code>accept-and-integrate.sh</code> 与提交核心</td><td>保留人工确认入口，新增策略授权入口，共用受控本地 commit / 集成核心。禁止硬编码人工确认口令绕过检查，禁止任何路径推送。</td></tr>
+                        <tr><td>工作区与集成调度</td><td>固定目录的两种提交方式均在本地集成完成后交接；独立 worktree 仍走人工方式，安全封存后可让出名额，并补齐基线变化的新候选验证。</td></tr>
+                        <tr><td>构建与测试验证入口</td><td>两种模式使用同一质量门槛：构建及全量单测，测试实际重跑、编译可缓存，不默认 clean；日志区分实际执行与缓存命中。</td></tr>
+                        <tr><td>安装、配置、权限与兼容性验证</td><td>保留工作区枚举，新增 <code>commitPolicy</code> 及组合校验；默认人工提交，<code>pushAfterAcceptance</code> 始终为 false。限制直接 / 间接远程推送，验证旧配置、旧合同及恢复路径。</td></tr>
+                    </tbody></table>
+                </div>
+                <h3 class="subsection">未来实现的验收要求</h3>
+                <p class="small">以下是开发完成后应验证的场景，不表示本次已经实现或运行通过。</p>
+                <ul class="checks">
+                    <li><span class="check-id">01</span><strong>默认配置保持兼容：</strong>默认 <code>inPlaceExclusive + humanApproval</code>，任务根目录等于源目录；仍创建任务分支，完成后恢复本地目标分支，旧合同不自动获得提交权限。</li>
+                    <li><span class="check-id">02</span><strong>可选独立模式有效：</strong>显式选择 <code>isolatedWorktree</code> 后，仅在领取时创建独立目录；同合同的 Coder、Reviewer 和返工复用该目录。</li>
+                    <li><span class="check-id">03</span><strong>两种模式持续入队：</strong>A 执行或待验收时创建并确认 B、C，前台及时返回；Planner 读取固定提交，不污染 A 的文件和 diff。</li>
+                    <li><span class="check-id">04</span><strong>固定目录完整串行：</strong>A 等待人工确认、自动提交中、集成中或失败待修复时，B 不能启动；本地完成或安全中止并通过交接检查后才放行。</li>
+                    <li><span class="check-id">05</span><strong>独立模式验收分离：</strong>A 安全封存且进程退出后，独立 B 可执行；依赖 A 的 C 必须等 A 合入。</li>
+                    <li><span class="check-id">06</span><strong>始终只有一个执行名额：</strong>不并行运行两个 Coder；独立模式的恢复、重新验证和集成构建，也不得绕过正在被 B 使用的名额。</li>
+                    <li><span class="check-id">07</span><strong>多任务排序与去重：</strong>多份合同按规则领取；定时、入队和完成事件并发时，同一合同只产生一个有效执行实例。</li>
+                    <li><span class="check-id">08</span><strong>计划时间有效：</strong>尚未到 <code>notBefore</code> 的合同，不因入队通知或兜底扫描而提前运行。</li>
+                    <li><span class="check-id">09</span><strong>前后台与恢复可靠：</strong>关闭前台不停止已启动的后台；重启先核对进程、目录归属和状态，无法确认时不重复启动 Coder。</li>
+                    <li><span class="check-id">10</span><strong>基线与批准准确：</strong>领取前复核基线，候选变化重新验证；人工方式重新取得匹配确认，全自动方式核验策略授权且不绕过漂移阻断，合同变化重新确认。</li>
+                    <li><span class="check-id">11</span><strong>模式切换安全：</strong>活动、待验收或待恢复合同占用现场时拒绝切换；安全切换保留队列，恢复始终使用任务固化的模式。</li>
+                    <li><span class="check-id">12</span><strong>失败和用户修改不丢失：</strong>默认目录脏时阻止交接；独立模式仅在安全封存后继续消费，不为启动下一份而自动丢弃任何现场。</li>
+                    <li><span class="check-id">13</span><strong>全量单测实际执行：</strong>两种模式都执行构建和覆盖全部配置模块、变体的单测，报告可证明实际测试已重跑，而非仅恢复旧测试结果。</li>
+                    <li><span class="check-id">14</span><strong>构建状态按模式复用：</strong>默认目录交接不默认 clean；独立目录不共享可写构建输出。分别记录首次验证与后续验证耗时，不将创建目录耗时当作构建耗时。</li>
+                    <li><span class="check-id">15</span><strong>内容与通知持久：</strong>未写完或未经批准的合同不可执行；通知丢失由扫描补偿，待验收通知与最新封存结果绑定。</li>
+                    <li><span class="check-id">16</span><strong>控制与资源约束有效：</strong>暂停停止领取；公共故障、独立工作区容量超限可暂停消费，同时允许入队并保留失败现场。</li>
+                    <li><span class="check-id">17</span><strong>人工确认前不 commit：</strong>质量门禁通过后仍等待用户；未确认、确认过期或不匹配当前 diff 时不创建任务成果 commit。</li>
+                    <li><span class="check-id">18</span><strong>全自动无需最终确认：</strong>固定目录下已明确授权 <code>autoCommit</code> 的合同通过门禁后，无最终人工问题即可本地 commit、验证并集成，随后执行下一份。</li>
+                    <li><span class="check-id">19</span><strong>全自动不降低质量：</strong>构建、全量单测或 Review 任一失败，以及 diff 漂移、授权撤回、分支异常时，均停止自动提交，不伪造人工验收。</li>
+                    <li><span class="check-id">20</span><strong>授权不随默认值升级：</strong>把仓库默认改成全自动，不改变已入队或待人工确认合同；显式重新授权后才允许修改提交策略。</li>
+                    <li><span class="check-id">21</span><strong>禁止所有远程推送：</strong>人工、全自动、失败及恢复路径均不调用远程推送；直接 / 间接推送、force、标签与同步入口被拒绝，验证远程引用不变。</li>
+                    <li><span class="check-id">22</span><strong>提交事务可恢复：</strong>分别在 commit 前后、集成验证中、目标分支更新后中断；恢复不重复 commit、不强制覆盖，不在本地集成完成前交接。</li>
+                    <li><span class="check-id">23</span><strong>组合范围受控：</strong>拒绝本轮未支持的 <code>isolatedWorktree + autoCommit</code>；工作区切换与排队合同策略不兼容时明确阻断，不静默降级或扩大权限。</li>
+                    <li><span class="check-id">24</span><strong>完成报告真实：</strong>人工与全自动分别记录真实授权来源；展示本地 commit SHA、集成结果和“未推送”，不把自动决策标成人工已验收。</li>
+                </ul>
+                <div class="callout blue"><strong>交付边界：</strong>阶段 2 完成固定目录的人工 / 全自动本地提交闭环；阶段 3 完成独立 worktree 的人工验收持续消费。最终默认仍为固定目录、人工确认提交。全自动是已批准合同的本地收尾能力，不是远程推送能力，所有组合都保持禁止 git push。</div>
+            </section>
+
+            <section class="panel" id="sources" aria-labelledby="sources-title">
+                <div class="section-head"><h2 id="sources-title">源码与参考</h2></div>
+                <p class="small">本文整理自本轮讨论方案，并复核本地插件源码中的关键限制。相对路径均以 <code>/Users/zhanglong/files/npmprogram/opencode_android_orchestrator</code> 为根目录。</p>
+                <ol class="refs">
+                    <li><code>package.json</code>：本地源码版本 <code>0.10.0</code>。</li>
+                    <li><code>templates/automation/config.json</code>、<code>config.schema.json</code>：现有工作区两种取值、默认 <code>inPlaceExclusive</code> 及 <code>pushAfterAcceptance</code> 固定为 false；尚无本文建议的 <code>commitPolicy</code>。</li>
+                    <li><code>templates/scripts/automation/preflight.sh</code>：规划入口的工作区与仓库租约检查。</li>
+                    <li><code>templates/scripts/automation/prepare-contract-review.sh</code>：合同准备、工件范围检查和封存。</li>
+                    <li><code>templates/scripts/automation/approve-and-run.sh</code>：合同审批、仓库租约、原目录切任务分支 / 独立 worktree 两条准备路径，以及同步执行。</li>
+                    <li><code>templates/scripts/automation/select-task.sh</code>：只允许一个匹配任务的现有选择规则。</li>
+                    <li><code>templates/scripts/automation/orchestrate-task.sh</code>、<code>lib.sh</code>：单任务编排、状态和锁机制。</li>
+                    <li><code>templates/scripts/automation/accept-and-integrate.sh</code>：最终人工确认检查、本地 commit、候选验证、本地分支集成、禁止推送检查及租约释放。</li>
+                    <li><code>templates/scripts/automation/submit-review.sh</code>：当前 Review 通过后进入 <code>AWAITING_HUMAN</code>；新提交策略需要在受控编排中增加分流。</li>
+                    <li><code>templates/.opencode/agents/scheduled-coder.md</code>：Coder 受限命令权限及禁止 push 等 Git 操作的边界。</li>
+                    <li><code>templates/scripts/automation/claim-task.sh</code>、<code>verify-task.sh</code>：编码前基线单测及后续测试、构建验证入口；现有行为不等同于已强制全量测试实跑。</li>
+                    <li><code>templates/scripts/automation/tests/run-tests.sh</code>：现有两种工作区准备与集成行为的测试用例。本次只读核对，没有运行插件测试。</li>
+                    <li><code>templates/.opencode/skills/scheduled-quality-orchestrator/SKILL.md</code>：现有合同确认、执行和人工验收流程。</li>
+                    <li><a href="https://opencode.ai/docs/cli/#run">OpenCode 官方 CLI 文档 · run</a>：非交互 Agent 运行入口。外部链接仅用于延伸阅读，页面本身无需联网。</li>
+                    <li><a href="https://docs.gradle.org/current/userguide/build_cache.html">Gradle 官方文档 · Build Cache</a>、<a href="https://docs.gradle.org/current/userguide/command_line_interface.html#sec:rerun_tasks">任务重跑规则</a>：构建缓存复用及测试实际执行与依赖任务重跑的区别。</li>
+                </ol>
+                <p class="small subsection">本次修订：在默认固定目录下增加人工确认 / 全自动本地提交两条设计路径，保留独立 worktree，并将所有路径禁止推送明确到授权、流程图、配置、权限、恢复与验收清单。既有行为标为“现有实现”，<code>commitPolicy</code>、新状态及自动提交流程均为待实现设计。本次只更新 HTML，未修改插件或项目代码，未运行构建、调度、git commit 或 git push；样式沿用工程现有说明页，保存位置保留“流程说明文档”。</p>
+            </section>
+        </main>
+        <footer><span>Orchestrator · 工作区与提交双策略 · 默认人工确认 · 所有模式禁止推送 · 2026-09-12</span><a href="#top">返回顶部 ↑</a></footer>
+    </div>
+</body>
+</html>

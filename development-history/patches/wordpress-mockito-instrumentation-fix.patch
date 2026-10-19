@@ -1,0 +1,77 @@
+diff --git a/build.gradle b/build.gradle
+index f9c06bf..194f4fa 100644
+--- a/build.gradle
++++ b/build.gradle
+@@ -1,6 +1,12 @@
+ import com.automattic.android.measure.reporters.InternalA8cCiReporter
+ import com.automattic.android.measure.reporters.RemoteBuildCacheMetricsReporter
+ import com.automattic.android.measure.reporters.SlowSlowTasksMetricsReporter
++import org.gradle.api.file.FileCollection
++import org.gradle.api.tasks.InputFiles
++import org.gradle.api.tasks.PathSensitive
++import org.gradle.api.tasks.PathSensitivity
++import org.gradle.api.tasks.testing.Test
++import org.gradle.process.CommandLineArgumentProvider
+ import org.jetbrains.kotlin.gradle.dsl.JvmTarget
+ import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
+ 
+@@ -55,6 +61,28 @@ allprojects {
+     apply plugin: libs.plugins.checkstyle.get().pluginId
+     apply plugin: libs.plugins.detekt.get().pluginId
+ 
++    pluginManager.withPlugin("org.jetbrains.kotlinx.kover") {
++        if (project.path in [':WordPress', ':libs:fluxc', ':libs:image-editor']) {
++            def mockitoAgentConfiguration = configurations.create("mockitoAgent")
++            dependencies.add("mockitoAgent", libs.mockito.core) {
++                transitive = false
++            }
++
++            tasks.withType(Test).configureEach {
++                jvmArgumentProviders.add(new CommandLineArgumentProvider() {
++                    @InputFiles
++                    @PathSensitive(PathSensitivity.RELATIVE)
++                    FileCollection agentClasspath = mockitoAgentConfiguration
++
++                    @Override
++                    Iterable<String> asArguments() {
++                        ["-javaagent:${agentClasspath.singleFile.absolutePath}"]
++                    }
++                })
++            }
++        }
++    }
++
+     tasks.register("checkstyle", Checkstyle) {
+         source 'src'
+ 
+diff --git a/config/gradle/code_coverage.gradle b/config/gradle/code_coverage.gradle
+index bd1fc5d..ab0a3b7 100644
+--- a/config/gradle/code_coverage.gradle
++++ b/config/gradle/code_coverage.gradle
+@@ -9,6 +9,21 @@ static String resolveProjectVariantForCodeCoverage(Project project) {
+ allprojects {
+     pluginManager.withPlugin("org.jetbrains.kotlinx.kover") {
+         kover {
++            currentProject {
++                instrumentation {
++                    // Limit Kover to production classes owned by this module. Instrumenting
++                    // third-party types can conflict with Mockito/Robolectric retransformation.
++                    def projectPackage = [
++                            ':WordPress'         : 'org.wordpress.android.*',
++                            ':libs:fluxc'        : 'org.wordpress.android.fluxc.*',
++                            ':libs:image-editor' : 'org.wordpress.android.imageeditor.*',
++                    ][project.path]
++                    if (projectPackage != null) {
++                        includedClasses.add(projectPackage)
++                    }
++                }
++            }
++
+             if (project.plugins.hasPlugin("com.android.library") || project.plugins.hasPlugin("com.android.application")) {
+                 currentProject {
+                     createVariant("custom") {
+@@ -71,4 +86,3 @@ dependencies {
+             project(":libs:fluxc")
+     )
+ }
+-

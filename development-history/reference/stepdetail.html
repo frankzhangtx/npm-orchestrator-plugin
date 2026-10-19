@@ -1,0 +1,1937 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="在 OpenCode 中使用 cctest 自动编码编排方案的逐步操作指南">
+    <title>OpenCode 自动编码方案：逐步操作指南</title>
+    <style>
+        :root {
+            color-scheme: light;
+            --bg: #f3ede4;
+            --surface: rgba(255, 251, 246, 0.94);
+            --surface-strong: #fffaf3;
+            --ink: #211b16;
+            --muted: #685f55;
+            --line: rgba(80, 61, 43, 0.16);
+            --line-strong: rgba(80, 61, 43, 0.28);
+            --orange: #af4d22;
+            --orange-soft: rgba(175, 77, 34, 0.11);
+            --teal: #146d65;
+            --teal-soft: rgba(20, 109, 101, 0.11);
+            --violet: #6654a3;
+            --violet-soft: rgba(102, 84, 163, 0.11);
+            --blue: #326899;
+            --blue-soft: rgba(50, 104, 153, 0.11);
+            --gold: #986719;
+            --gold-soft: rgba(152, 103, 25, 0.12);
+            --green: #397348;
+            --green-soft: rgba(57, 115, 72, 0.11);
+            --red: #a23f3c;
+            --red-soft: rgba(162, 63, 60, 0.10);
+            --shadow: 0 24px 70px rgba(46, 31, 20, 0.11);
+            --radius-xl: 28px;
+            --radius-lg: 20px;
+            --radius-md: 14px;
+            --max: 1240px;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        html {
+            scroll-behavior: smooth;
+        }
+
+        body {
+            margin: 0;
+            color: var(--ink);
+            font-family: "Avenir Next", "PingFang SC", "Noto Sans SC", sans-serif;
+            background:
+                radial-gradient(circle at top left, rgba(175, 77, 34, 0.16), transparent 29%),
+                radial-gradient(circle at top right, rgba(20, 109, 101, 0.13), transparent 27%),
+                linear-gradient(180deg, #fcf8f2 0%, var(--bg) 46%, #eadfce 100%);
+        }
+
+        h1, h2, h3, h4, p {
+            margin: 0;
+        }
+
+        a {
+            color: var(--teal);
+            text-decoration-thickness: 1px;
+            text-underline-offset: 3px;
+        }
+
+        code {
+            padding: 0.12em 0.38em;
+            border-radius: 8px;
+            background: rgba(42, 33, 26, 0.07);
+            font-family: "SFMono-Regular", "Menlo", "Monaco", monospace;
+            font-size: 0.91em;
+            overflow-wrap: anywhere;
+        }
+
+        .page {
+            width: min(calc(100% - 32px), var(--max));
+            margin: 0 auto;
+            padding: 28px 0 72px;
+        }
+
+        .hero,
+        .panel,
+        .step-card {
+            border: 1px solid var(--line);
+            background: var(--surface);
+            box-shadow: var(--shadow);
+            backdrop-filter: blur(10px);
+        }
+
+        .hero {
+            position: relative;
+            overflow: hidden;
+            padding: 38px;
+            border-radius: var(--radius-xl);
+        }
+
+        .hero::before {
+            content: "";
+            position: absolute;
+            right: -70px;
+            bottom: -120px;
+            width: 310px;
+            height: 310px;
+            border-radius: 50%;
+            background: radial-gradient(circle, rgba(20, 109, 101, 0.19), transparent 68%);
+        }
+
+        .eyebrow,
+        .channel,
+        .state-pill,
+        .mini-pill {
+            display: inline-flex;
+            align-items: center;
+            width: fit-content;
+            border-radius: 999px;
+            font-weight: 750;
+            letter-spacing: 0.02em;
+        }
+
+        .eyebrow {
+            gap: 8px;
+            padding: 8px 14px;
+            color: var(--orange);
+            background: var(--orange-soft);
+            font-size: 13px;
+            text-transform: uppercase;
+        }
+
+        .hero h1 {
+            position: relative;
+            max-width: 850px;
+            margin-top: 18px;
+            font-size: clamp(34px, 4.5vw, 58px);
+            line-height: 1.04;
+            letter-spacing: -0.035em;
+        }
+
+        .hero .lead {
+            position: relative;
+            max-width: 850px;
+            margin-top: 16px;
+            color: var(--muted);
+            font-size: 18px;
+            line-height: 1.78;
+        }
+
+        .hero-note {
+            position: relative;
+            display: grid;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 12px;
+            margin-top: 24px;
+        }
+
+        .hero-note article {
+            padding: 15px;
+            border: 1px solid var(--line);
+            border-radius: 16px;
+            background: rgba(255, 255, 255, 0.48);
+        }
+
+        .hero-note strong {
+            display: block;
+            color: var(--orange);
+            font-size: 19px;
+        }
+
+        .hero-note span {
+            display: block;
+            margin-top: 4px;
+            color: var(--muted);
+            font-size: 13px;
+            line-height: 1.55;
+        }
+
+        .panel {
+            margin-top: 22px;
+            padding: 28px;
+            border-radius: var(--radius-xl);
+        }
+
+        .panel-header {
+            display: flex;
+            align-items: end;
+            justify-content: space-between;
+            gap: 18px;
+            margin-bottom: 20px;
+        }
+
+        .panel-title {
+            font-size: clamp(24px, 3vw, 32px);
+            line-height: 1.18;
+        }
+
+        .panel-subtitle {
+            max-width: 620px;
+            color: var(--muted);
+            font-size: 14px;
+            line-height: 1.7;
+        }
+
+        .toc {
+            display: grid;
+            grid-template-columns: repeat(4, minmax(0, 1fr));
+            gap: 10px;
+        }
+
+        .toc a {
+            padding: 13px 14px;
+            border: 1px solid var(--line);
+            border-radius: 14px;
+            color: var(--ink);
+            background: rgba(255, 255, 255, 0.44);
+            font-size: 13px;
+            line-height: 1.5;
+            text-decoration: none;
+        }
+
+        .toc a:hover {
+            border-color: var(--teal);
+            background: var(--teal-soft);
+        }
+
+        .legend {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-top: 18px;
+        }
+
+        .channel,
+        .state-pill,
+        .mini-pill {
+            gap: 7px;
+            padding: 7px 11px;
+            font-size: 12px;
+        }
+
+        .channel::before {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            content: "";
+            background: currentColor;
+        }
+
+        .terminal { color: var(--teal); background: var(--teal-soft); }
+        .opencode { color: var(--violet); background: var(--violet-soft); }
+        .automatic { color: var(--blue); background: var(--blue-soft); }
+        .human { color: var(--gold); background: var(--gold-soft); }
+        .expected { color: var(--green); background: var(--green-soft); }
+        .danger { color: var(--red); background: var(--red-soft); }
+
+        .diagram-wrap {
+            overflow-x: auto;
+            padding: 10px;
+            border: 1px solid var(--line);
+            border-radius: 22px;
+            background: linear-gradient(180deg, rgba(255, 253, 250, 0.78), rgba(244, 236, 227, 0.92));
+        }
+
+        svg {
+            display: block;
+            width: 100%;
+            min-width: 1120px;
+            height: auto;
+        }
+
+        .caption {
+            margin-top: 14px;
+            color: var(--muted);
+            font-size: 14px;
+            line-height: 1.72;
+        }
+
+        .quick-grid {
+            display: grid;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 14px;
+        }
+
+        .quick-card {
+            padding: 18px;
+            border: 1px solid var(--line);
+            border-radius: 17px;
+            background: rgba(255, 255, 255, 0.47);
+        }
+
+        .quick-card .number {
+            display: grid;
+            width: 32px;
+            height: 32px;
+            place-items: center;
+            border-radius: 10px;
+            color: #fff;
+            background: var(--orange);
+            font-weight: 800;
+        }
+
+        .quick-card h3 {
+            margin-top: 12px;
+            font-size: 17px;
+        }
+
+        .quick-card p {
+            margin-top: 8px;
+            color: var(--muted);
+            font-size: 13px;
+            line-height: 1.67;
+        }
+
+        .steps {
+            display: grid;
+            gap: 18px;
+            margin-top: 22px;
+        }
+
+        .step-card {
+            position: relative;
+            padding: 28px;
+            border-radius: var(--radius-xl);
+        }
+
+        .step-card::before {
+            position: absolute;
+            top: 25px;
+            bottom: 25px;
+            left: 0;
+            width: 4px;
+            border-radius: 0 4px 4px 0;
+            content: "";
+            background: var(--orange);
+        }
+
+        .step-card[data-kind="terminal"]::before { background: var(--teal); }
+        .step-card[data-kind="opencode"]::before { background: var(--violet); }
+        .step-card[data-kind="human"]::before { background: var(--gold); }
+        .step-card[data-kind="automatic"]::before { background: var(--blue); }
+        .step-card[data-kind="complete"]::before { background: var(--green); }
+
+        .step-head {
+            display: grid;
+            grid-template-columns: auto minmax(0, 1fr);
+            gap: 16px;
+            align-items: start;
+        }
+
+        .step-no {
+            display: grid;
+            width: 48px;
+            height: 48px;
+            place-items: center;
+            border-radius: 15px;
+            color: #fff;
+            background: var(--orange);
+            box-shadow: 0 10px 24px rgba(175, 77, 34, 0.22);
+            font-size: 18px;
+            font-weight: 850;
+        }
+
+        [data-kind="terminal"] .step-no { background: var(--teal); }
+        [data-kind="opencode"] .step-no { background: var(--violet); }
+        [data-kind="human"] .step-no { background: var(--gold); }
+        [data-kind="automatic"] .step-no { background: var(--blue); }
+        [data-kind="complete"] .step-no { background: var(--green); }
+
+        .step-title-row {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .step-title {
+            font-size: clamp(21px, 2.5vw, 28px);
+            line-height: 1.2;
+        }
+
+        .step-intro,
+        .body-copy {
+            margin-top: 10px;
+            color: var(--muted);
+            font-size: 15px;
+            line-height: 1.78;
+        }
+
+        .step-content {
+            margin-top: 20px;
+        }
+
+        .subsection + .subsection {
+            margin-top: 18px;
+        }
+
+        .subsection h3 {
+            font-size: 16px;
+            line-height: 1.45;
+        }
+
+        .subsection p,
+        .subsection li {
+            color: var(--muted);
+            font-size: 14px;
+            line-height: 1.72;
+        }
+
+        .subsection p {
+            margin-top: 7px;
+        }
+
+        ul, ol {
+            margin: 10px 0 0;
+            padding-left: 22px;
+        }
+
+        li + li {
+            margin-top: 6px;
+        }
+
+        .command-block {
+            margin-top: 10px;
+            overflow: hidden;
+            border: 1px solid rgba(29, 53, 48, 0.18);
+            border-radius: 17px;
+            background: #172521;
+            box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05);
+        }
+
+        .command-block.open {
+            border-color: rgba(102, 84, 163, 0.25);
+            background: #211d31;
+        }
+
+        .command-block.auto {
+            border-color: rgba(50, 104, 153, 0.25);
+            background: #192536;
+        }
+
+        .command-top {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            padding: 9px 13px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+            color: rgba(255, 255, 255, 0.72);
+            font-size: 11px;
+            letter-spacing: 0.06em;
+            text-transform: uppercase;
+        }
+
+        .command-top strong {
+            color: #fff;
+            font-size: 11px;
+        }
+
+        pre {
+            margin: 0;
+            padding: 17px;
+            overflow-x: auto;
+            color: #f6fbf8;
+            font-family: "SFMono-Regular", "Menlo", "Monaco", monospace;
+            font-size: 13.5px;
+            line-height: 1.75;
+            white-space: pre;
+        }
+
+        .command-note {
+            padding: 11px 14px;
+            border-top: 1px solid rgba(255, 255, 255, 0.08);
+            color: rgba(255, 255, 255, 0.68);
+            font-size: 12px;
+            line-height: 1.55;
+        }
+
+        .callout {
+            margin-top: 15px;
+            padding: 15px 17px;
+            border-left: 4px solid var(--gold);
+            border-radius: 14px;
+            color: #523b18;
+            background: var(--gold-soft);
+            font-size: 14px;
+            line-height: 1.72;
+        }
+
+        .callout.info {
+            border-left-color: var(--teal);
+            color: #174b46;
+            background: var(--teal-soft);
+        }
+
+        .callout.warning {
+            border-left-color: var(--red);
+            color: #672b29;
+            background: var(--red-soft);
+        }
+
+        .callout.success {
+            border-left-color: var(--green);
+            color: #294f32;
+            background: var(--green-soft);
+        }
+
+        .auto-grid,
+        .evidence-grid,
+        .check-grid {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 12px;
+            margin-top: 14px;
+        }
+
+        .auto-item,
+        .evidence-item,
+        .check-item {
+            padding: 15px;
+            border: 1px solid var(--line);
+            border-radius: 15px;
+            background: rgba(255, 255, 255, 0.47);
+        }
+
+        .auto-item strong,
+        .evidence-item strong,
+        .check-item strong {
+            display: block;
+            font-size: 14px;
+        }
+
+        .auto-item span,
+        .evidence-item span,
+        .check-item span {
+            display: block;
+            margin-top: 6px;
+            color: var(--muted);
+            font-size: 13px;
+            line-height: 1.62;
+        }
+
+        .acceptance-alert {
+            display: grid;
+            grid-template-columns: auto minmax(0, 1fr) auto;
+            gap: 14px;
+            align-items: center;
+            margin-top: 2px;
+            padding: 18px;
+            border: 1px solid rgba(152, 103, 25, 0.28);
+            border-radius: 18px;
+            background: linear-gradient(135deg, rgba(255, 250, 238, 0.96), rgba(246, 236, 215, 0.88));
+            box-shadow: 0 14px 34px rgba(100, 72, 31, 0.10);
+        }
+
+        .acceptance-alert-icon {
+            display: grid;
+            width: 44px;
+            height: 44px;
+            place-items: center;
+            border-radius: 14px;
+            color: #fff;
+            background: var(--gold);
+            font-size: 21px;
+        }
+
+        .acceptance-alert strong,
+        .review-package-head strong {
+            display: block;
+            font-size: 16px;
+        }
+
+        .acceptance-alert p,
+        .review-package-head p {
+            margin-top: 5px;
+            color: var(--muted);
+            font-size: 13px;
+            line-height: 1.62;
+        }
+
+        .review-package {
+            margin-top: 16px;
+            overflow: hidden;
+            border: 1px solid rgba(80, 61, 43, 0.22);
+            border-radius: 20px;
+            background: rgba(255, 253, 249, 0.82);
+        }
+
+        .review-package-head {
+            display: flex;
+            align-items: start;
+            justify-content: space-between;
+            gap: 16px;
+            padding: 18px;
+            border-bottom: 1px solid var(--line);
+            background: rgba(238, 228, 216, 0.42);
+        }
+
+        .review-bindings {
+            display: grid;
+            grid-template-columns: repeat(4, minmax(0, 1fr));
+            gap: 1px;
+            background: var(--line);
+        }
+
+        .review-binding {
+            min-width: 0;
+            padding: 13px 15px;
+            background: rgba(255, 253, 249, 0.96);
+        }
+
+        .review-binding span {
+            display: block;
+            color: var(--muted);
+            font-size: 11px;
+        }
+
+        .review-binding strong {
+            display: block;
+            margin-top: 5px;
+            overflow-wrap: anywhere;
+            font-size: 13px;
+        }
+
+        .review-focus-list {
+            display: grid;
+            gap: 10px;
+            padding: 16px;
+        }
+
+        .review-focus {
+            display: grid;
+            grid-template-columns: auto minmax(0, 1fr);
+            gap: 12px;
+            padding: 14px;
+            border: 1px solid var(--line);
+            border-radius: 15px;
+            background: rgba(255, 255, 255, 0.58);
+        }
+
+        .review-focus[data-priority="p0"] {
+            border-color: rgba(162, 63, 60, 0.22);
+            background: rgba(162, 63, 60, 0.045);
+        }
+
+        .priority-badge {
+            display: grid;
+            width: 42px;
+            height: 30px;
+            place-items: center;
+            border-radius: 9px;
+            color: var(--blue);
+            background: var(--blue-soft);
+            font-size: 11px;
+            font-weight: 850;
+        }
+
+        [data-priority="p0"] .priority-badge {
+            color: var(--red);
+            background: var(--red-soft);
+        }
+
+        .review-focus strong {
+            display: block;
+            font-size: 14px;
+        }
+
+        .review-focus p {
+            margin-top: 5px;
+            color: var(--muted);
+            font-size: 13px;
+            line-height: 1.65;
+        }
+
+        .decision-grid {
+            display: grid;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 10px;
+            margin-top: 14px;
+        }
+
+        .decision-option {
+            min-height: 88px;
+            padding: 14px;
+            border: 1px solid var(--line);
+            border-radius: 15px;
+            background: rgba(255, 255, 255, 0.52);
+        }
+
+        .decision-option.primary {
+            border-color: rgba(57, 115, 72, 0.30);
+            background: var(--green-soft);
+        }
+
+        .decision-option.reject {
+            border-color: rgba(162, 63, 60, 0.24);
+            background: var(--red-soft);
+        }
+
+        .decision-option strong {
+            display: block;
+            font-size: 13px;
+        }
+
+        .decision-option span {
+            display: block;
+            margin-top: 6px;
+            color: var(--muted);
+            font-size: 12px;
+            line-height: 1.55;
+        }
+
+        .state-line {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 7px;
+            margin-top: 14px;
+        }
+
+        .state-pill {
+            color: var(--blue);
+            background: var(--blue-soft);
+        }
+
+        .state-pill.stop {
+            color: var(--gold);
+            background: var(--gold-soft);
+        }
+
+        .state-pill.done {
+            color: var(--green);
+            background: var(--green-soft);
+        }
+
+        .arrow {
+            color: var(--muted);
+            font-size: 12px;
+        }
+
+        .table-wrap {
+            overflow-x: auto;
+            border: 1px solid var(--line);
+            border-radius: 18px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            min-width: 780px;
+            background: rgba(255, 255, 255, 0.38);
+        }
+
+        th,
+        td {
+            padding: 14px 15px;
+            border-bottom: 1px solid var(--line);
+            text-align: left;
+            vertical-align: top;
+            font-size: 13px;
+            line-height: 1.62;
+        }
+
+        th {
+            color: var(--ink);
+            background: rgba(238, 228, 216, 0.66);
+            font-size: 12px;
+            letter-spacing: 0.03em;
+        }
+
+        td {
+            color: var(--muted);
+        }
+
+        tr:last-child td {
+            border-bottom: 0;
+        }
+
+        .folder-tree {
+            margin-top: 12px;
+            padding: 18px;
+            overflow-x: auto;
+            border: 1px solid var(--line);
+            border-radius: 17px;
+            color: #2e2822;
+            background: rgba(246, 239, 230, 0.78);
+            font-family: "SFMono-Regular", "Menlo", "Monaco", monospace;
+            font-size: 13px;
+            line-height: 1.72;
+            white-space: pre;
+        }
+
+        .do-not {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 10px;
+            margin-top: 14px;
+        }
+
+        .do-not div {
+            padding: 13px 14px;
+            border: 1px solid rgba(162, 63, 60, 0.17);
+            border-radius: 14px;
+            color: #672b29;
+            background: var(--red-soft);
+            font-size: 13px;
+            line-height: 1.6;
+        }
+
+        .footer {
+            margin-top: 22px;
+            padding: 23px;
+            border: 1px solid var(--line);
+            border-radius: 22px;
+            color: var(--muted);
+            background: rgba(255, 250, 244, 0.72);
+            text-align: center;
+            font-size: 13px;
+            line-height: 1.7;
+        }
+
+        @media (max-width: 980px) {
+            .hero-note,
+            .quick-grid,
+            .toc {
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+            }
+        }
+
+        @media (max-width: 720px) {
+            .page {
+                width: min(calc(100% - 20px), var(--max));
+                padding: 16px 0 50px;
+            }
+
+            .hero,
+            .panel,
+            .step-card {
+                padding: 21px;
+                border-radius: 21px;
+            }
+
+            .hero-note,
+            .quick-grid,
+            .toc,
+            .auto-grid,
+            .evidence-grid,
+            .check-grid,
+            .review-bindings,
+            .decision-grid,
+            .do-not {
+                grid-template-columns: 1fr;
+            }
+
+            .acceptance-alert {
+                grid-template-columns: auto minmax(0, 1fr);
+            }
+
+            .acceptance-alert .state-pill {
+                grid-column: 1 / -1;
+            }
+
+            .review-package-head {
+                flex-direction: column;
+            }
+
+            .panel-header {
+                align-items: start;
+                flex-direction: column;
+            }
+
+            .step-head {
+                grid-template-columns: 42px minmax(0, 1fr);
+                gap: 12px;
+            }
+
+            .step-no {
+                width: 42px;
+                height: 42px;
+                border-radius: 13px;
+            }
+
+            pre {
+                font-size: 12px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <main class="page">
+        <header class="hero">
+            <span class="eyebrow">OpenCode · Orchestrated Workflow V2</span>
+            <h1>从一句需求，到人工验收后回到原分支</h1>
+            <p class="lead">
+                这是一份可以逐行照抄的操作手册。正常流程中，你只需在 Terminal 做环境准备并启动一次
+                OpenCode，之后始终留在同一个 <code>scheduled-planner</code> 会话里，用 <code>/change</code>
+                输入一句话需求，再通过三张 OpenCode 单选卡完成确认；方案、合同和成果三次确认都只需点击审批选项。
+                worktree、任务分支、Coder、Reviewer、质量门、提交、回原分支以及成功后的任务分支删除都由系统接管。
+            </p>
+            <div class="hero-note">
+                <article>
+                    <strong>1 个入口</strong>
+                    <span><code>opencode --agent scheduled-planner .</code></span>
+                </article>
+                <article>
+                    <strong>3 次人工确认</strong>
+                    <span>方案确认、合同确认、最终验收，各自有明确边界。</span>
+                </article>
+                <article>
+                    <strong>0 次手工编排</strong>
+                    <span>不用手动创建 worktree、排队、启动 Coder/Reviewer 或合并。</span>
+                </article>
+            </div>
+        </header>
+
+        <section class="panel" aria-labelledby="navigation-title">
+            <div class="panel-header">
+                <div>
+                    <h2 class="panel-title" id="navigation-title">先看懂页面标记</h2>
+                    <p class="panel-subtitle">紫色块复制到 OpenCode；绿色终端块复制到 Terminal；蓝色块只解释系统行为，不需要输入。</p>
+                </div>
+            </div>
+            <nav class="toc" aria-label="页面目录">
+                <a href="#flow">全流程图</a>
+                <a href="#step-0">0–2：准备并启动</a>
+                <a href="#step-3">3–5：需求与方案</a>
+                <a href="#step-6">6–8：合同与自动执行</a>
+                <a href="#step-9">9–10：人工验收</a>
+                <a href="#step-11">11：回原分支与 push</a>
+                <a href="#troubleshooting">故障处理</a>
+                <a href="#boundaries">哪些命令不要手工跑</a>
+            </nav>
+            <div class="legend" aria-label="输入位置图例">
+                <span class="channel terminal">在 Terminal 输入</span>
+                <span class="channel opencode">在 OpenCode 输入</span>
+                <span class="channel automatic">系统自动执行，不要输入</span>
+                <span class="channel human">人工检查或决定</span>
+                <span class="channel expected">预期结果</span>
+            </div>
+        </section>
+
+        <section class="panel" id="flow" aria-labelledby="flow-title">
+            <div class="panel-header">
+                <div>
+                    <h2 class="panel-title" id="flow-title">一张图看完整流程</h2>
+                    <p class="panel-subtitle">金色菱形是不可省略的人工闸门；其余中间步骤由 Planner 和确定性脚本连续推进。</p>
+                </div>
+            </div>
+            <div class="diagram-wrap">
+                <svg viewBox="0 0 1500 590" role="img" aria-labelledby="svg-title svg-desc">
+                    <title id="svg-title">OpenCode 自动编码编排全流程</title>
+                    <desc id="svg-desc">从 Terminal 环境准备，经 OpenCode 的 /change 一句话需求、三次人工确认、自动 worktree 编码评审，到本地原分支完成集成。</desc>
+                    <defs>
+                        <marker id="arrow-blue" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+                            <path d="M 0 0 L 10 5 L 0 10 z" fill="#526b76"/>
+                        </marker>
+                        <filter id="soft-shadow" x="-20%" y="-20%" width="140%" height="140%">
+                            <feDropShadow dx="0" dy="7" stdDeviation="7" flood-color="#3e3025" flood-opacity="0.12"/>
+                        </filter>
+                    </defs>
+
+                    <rect x="18" y="18" width="1464" height="554" rx="24" fill="#fbf7f1" stroke="#dacdbf"/>
+                    <text x="42" y="58" font-family="PingFang SC, sans-serif" font-size="15" font-weight="700" fill="#146d65">TERMINAL</text>
+                    <text x="42" y="190" font-family="PingFang SC, sans-serif" font-size="15" font-weight="700" fill="#6654a3">OPENCODE 会话</text>
+                    <text x="42" y="356" font-family="PingFang SC, sans-serif" font-size="15" font-weight="700" fill="#326899">自动执行</text>
+                    <text x="42" y="523" font-family="PingFang SC, sans-serif" font-size="15" font-weight="700" fill="#397348">完成</text>
+
+                    <line x1="145" y1="82" x2="1450" y2="82" stroke="#e6ddd2"/>
+                    <line x1="145" y1="214" x2="1450" y2="214" stroke="#e6ddd2"/>
+                    <line x1="145" y1="380" x2="1450" y2="380" stroke="#e6ddd2"/>
+                    <line x1="145" y1="547" x2="1450" y2="547" stroke="#e6ddd2"/>
+
+                    <g filter="url(#soft-shadow)">
+                        <rect x="178" y="37" width="190" height="82" rx="16" fill="#e9f4f1" stroke="#6fa39d"/>
+                        <text x="273" y="70" text-anchor="middle" font-family="PingFang SC, sans-serif" font-size="15" font-weight="700" fill="#174b46">环境与干净分支</text>
+                        <text x="273" y="94" text-anchor="middle" font-family="PingFang SC, sans-serif" font-size="12" fill="#486a66">ANDROID_HOME · preflight</text>
+
+                        <rect x="438" y="37" width="195" height="82" rx="16" fill="#e9f4f1" stroke="#6fa39d"/>
+                        <text x="535" y="70" text-anchor="middle" font-family="PingFang SC, sans-serif" font-size="15" font-weight="700" fill="#174b46">启动 Planner</text>
+                        <text x="535" y="94" text-anchor="middle" font-family="PingFang SC, sans-serif" font-size="12" fill="#486a66">只启动这一个 Agent</text>
+
+                        <rect x="178" y="169" width="190" height="82" rx="16" fill="#efebf8" stroke="#9c8fc4"/>
+                        <text x="273" y="202" text-anchor="middle" font-family="PingFang SC, sans-serif" font-size="15" font-weight="700" fill="#4b3e77">/change 一句需求</text>
+                        <text x="273" y="226" text-anchor="middle" font-family="PingFang SC, sans-serif" font-size="12" fill="#6a6086">Planner 读仓库补方案</text>
+
+                        <polygon points="500,160 577,210 500,260 423,210" fill="#f6ecd7" stroke="#b8904f"/>
+                        <text x="500" y="204" text-anchor="middle" font-family="PingFang SC, sans-serif" font-size="13" font-weight="700" fill="#644817">① 批准方案</text>
+                        <text x="500" y="222" text-anchor="middle" font-family="PingFang SC, sans-serif" font-size="11" fill="#7d6539">生成计划与合同</text>
+
+                        <rect x="634" y="169" width="205" height="82" rx="16" fill="#eaf0f7" stroke="#89a6c1"/>
+                        <text x="736" y="202" text-anchor="middle" font-family="PingFang SC, sans-serif" font-size="15" font-weight="700" fill="#2e587f">生成并封存合同</text>
+                        <text x="736" y="226" text-anchor="middle" font-family="PingFang SC, sans-serif" font-size="12" fill="#5c7184">CONTRACT_REVIEW</text>
+
+                        <polygon points="966,160 1049,210 966,260 883,210" fill="#f6ecd7" stroke="#b8904f"/>
+                        <text x="966" y="204" text-anchor="middle" font-family="PingFang SC, sans-serif" font-size="13" font-weight="700" fill="#644817">② 点击确认</text>
+                        <text x="966" y="222" text-anchor="middle" font-family="PingFang SC, sans-serif" font-size="11" fill="#7d6539">允许自动执行</text>
+
+                        <rect x="1114" y="169" width="214" height="82" rx="16" fill="#efebf8" stroke="#9c8fc4"/>
+                        <text x="1221" y="202" text-anchor="middle" font-family="PingFang SC, sans-serif" font-size="15" font-weight="700" fill="#4b3e77">弹出验收复核卡</text>
+                        <text x="1221" y="226" text-anchor="middle" font-family="PingFang SC, sans-serif" font-size="12" fill="#6a6086">AWAITING_HUMAN</text>
+
+                        <rect x="188" y="331" width="210" height="82" rx="16" fill="#eaf0f7" stroke="#89a6c1"/>
+                        <text x="293" y="364" text-anchor="middle" font-family="PingFang SC, sans-serif" font-size="15" font-weight="700" fill="#2e587f">提交合同并建 worktree</text>
+                        <text x="293" y="388" text-anchor="middle" font-family="PingFang SC, sans-serif" font-size="12" fill="#5c7184">外部隔离目录 + 任务分支</text>
+
+                        <rect x="461" y="331" width="190" height="82" rx="16" fill="#eaf0f7" stroke="#89a6c1"/>
+                        <text x="556" y="364" text-anchor="middle" font-family="PingFang SC, sans-serif" font-size="15" font-weight="700" fill="#2e587f">Coder：TDD 实现</text>
+                        <text x="556" y="388" text-anchor="middle" font-family="PingFang SC, sans-serif" font-size="12" fill="#5c7184">基线 · RED · G1–G6</text>
+
+                        <rect x="714" y="331" width="190" height="82" rx="16" fill="#eaf0f7" stroke="#89a6c1"/>
+                        <text x="809" y="364" text-anchor="middle" font-family="PingFang SC, sans-serif" font-size="15" font-weight="700" fill="#2e587f">Reviewer：独立复核</text>
+                        <text x="809" y="388" text-anchor="middle" font-family="PingFang SC, sans-serif" font-size="12" fill="#5c7184">最多一次受控修复循环</text>
+
+                        <polygon points="1063,322 1148,372 1063,422 978,372" fill="#f6ecd7" stroke="#b8904f"/>
+                        <text x="1063" y="366" text-anchor="middle" font-family="PingFang SC, sans-serif" font-size="13" font-weight="700" fill="#644817">③ 验收通过</text>
+                        <text x="1063" y="384" text-anchor="middle" font-family="PingFang SC, sans-serif" font-size="11" fill="#7d6539">提交到原分支</text>
+
+                        <rect x="1212" y="331" width="205" height="82" rx="16" fill="#eaf0f7" stroke="#89a6c1"/>
+                        <text x="1314" y="364" text-anchor="middle" font-family="PingFang SC, sans-serif" font-size="15" font-weight="700" fill="#2e587f">候选集成与复验</text>
+                        <text x="1314" y="388" text-anchor="middle" font-family="PingFang SC, sans-serif" font-size="12" fill="#5c7184">验证后快进原分支</text>
+
+                        <rect x="605" y="493" width="290" height="72" rx="18" fill="#e9f3e9" stroke="#84aa8a"/>
+                        <text x="750" y="522" text-anchor="middle" font-family="PingFang SC, sans-serif" font-size="16" font-weight="750" fill="#315f3b">COMPLETED · 原分支已更新，任务分支已删除</text>
+                        <text x="750" y="545" text-anchor="middle" font-family="PingFang SC, sans-serif" font-size="12" fill="#5a7560">pushed: false · 失败任务仍保留分支用于恢复</text>
+
+                        <rect x="180" y="463" width="250" height="70" rx="16" fill="#f7e8e6" stroke="#c88986" stroke-dasharray="6 5"/>
+                        <text x="305" y="491" text-anchor="middle" font-family="PingFang SC, sans-serif" font-size="14" font-weight="700" fill="#7d302e">硬停止：不自动绕过</text>
+                        <text x="305" y="514" text-anchor="middle" font-family="PingFang SC, sans-serif" font-size="11" fill="#925754">BLOCKED · TEST_FAILED · NEEDS_HUMAN</text>
+                    </g>
+
+                    <g fill="none" stroke="#526b76" stroke-width="2" marker-end="url(#arrow-blue)">
+                        <path d="M368 78 H438"/>
+                        <path d="M535 119 V143 H273 V169"/>
+                        <path d="M368 210 H423"/>
+                        <path d="M577 210 H634"/>
+                        <path d="M839 210 H883"/>
+                        <path d="M966 260 V292 H293 V331"/>
+                        <path d="M398 372 H461"/>
+                        <path d="M651 372 H714"/>
+                        <path d="M904 372 H978"/>
+                        <path d="M1063 322 V286 H1221 V251"/>
+                        <path d="M1148 372 H1212"/>
+                        <path d="M1314 413 V452 H895 V529"/>
+                    </g>
+                    <path d="M809 413 V446 H430" fill="none" stroke="#a23f3c" stroke-width="2" stroke-dasharray="6 5" marker-end="url(#arrow-blue)"/>
+                    <text x="593" y="439" font-family="PingFang SC, sans-serif" font-size="11" fill="#a23f3c">任一门禁失败</text>
+                </svg>
+            </div>
+            <p class="caption">
+                关键原则：系统只会把成果集成到启动任务时记录的“原分支”，并且最终只更新本地分支，不会自动 push。
+                如果执行期间原分支发生冲突或验证失败，流程停住并保留证据，不会偷偷改分支或跳过测试。
+            </p>
+        </section>
+
+        <section class="panel" aria-labelledby="quick-title">
+            <div class="panel-header">
+                <div>
+                    <h2 class="panel-title" id="quick-title">最短操作路径</h2>
+                    <p class="panel-subtitle">环境已经配置、Git 干净时，实际只需要下面三类动作。后文给出每一步的检查方法和故障处理。</p>
+                </div>
+            </div>
+            <div class="quick-grid">
+                <article class="quick-card">
+                    <span class="number">1</span>
+                    <h3>Terminal 启动</h3>
+                    <p>进入仓库，加载 Android SDK 环境，启动 <code>scheduled-planner</code>。</p>
+                </article>
+                <article class="quick-card">
+                    <span class="number">2</span>
+                    <h3>一句需求与三次确认</h3>
+                    <p>用 <code>/change</code> 输入一句话需求；必要时回答少量澄清问题。方案、合同与成果复核卡都会自动展示，三次确认均点击选项即可。</p>
+                </article>
+                <article class="quick-card">
+                    <span class="number">3</span>
+                    <h3>Terminal 检查结果</h3>
+                    <p>确认原分支已到 <code>COMPLETED</code>；如需远端协作，再单独 push。</p>
+                </article>
+            </div>
+        </section>
+
+        <div class="steps">
+            <section class="step-card" id="step-0" data-kind="terminal">
+                <div class="step-head">
+                    <span class="step-no">0</span>
+                    <div>
+                        <div class="step-title-row">
+                            <h2 class="step-title">第一次使用前：确保方案文件已经提交</h2>
+                            <span class="channel terminal">Terminal</span>
+                        </div>
+                        <p class="step-intro">自动化入口要求当前原分支“已附着且干净”。先确认你位于希望最终接收成果的分支。</p>
+                    </div>
+                </div>
+                <div class="step-content">
+                    <div class="command-block">
+                        <div class="command-top"><strong>在 Terminal 输入</strong><span>仓库与 Git 检查</span></div>
+                        <pre>cd /Users/zhanglong/files/program/cctest
+git branch --show-current
+git status --short
+git config user.name
+git config user.email</pre>
+                    </div>
+                    <div class="callout success">
+                        当前方案的目标原分支是 <code>feature-opencode-scheduler</code>。理想输出是第一条显示该分支、
+                        <code>git status --short</code> 没有任何内容、Git 用户名和邮箱均不为空。
+                    </div>
+                    <div class="subsection">
+                        <h3>如果只有本指南尚未提交</h3>
+                        <p>先审阅文件，再只提交这一个明确路径。不要用 <code>git add -A</code> 顺带提交不认识的文件。</p>
+                        <div class="command-block">
+                            <div class="command-top"><strong>按需在 Terminal 输入一次</strong><span>提交本指南</span></div>
+                            <pre>git add taskdescriptions/stepdetail.html
+git commit -m "Add OpenCode orchestration usage guide"</pre>
+                        </div>
+                    </div>
+                    <div class="callout warning">
+                        如果还有其他修改，先用 <code>git diff</code> 和 <code>git status --short</code> 看清归属，再决定提交或暂存。
+                        不要为了通过预检而盲目执行 <code>git reset --hard</code> 或 <code>git clean</code>。
+                    </div>
+                </div>
+            </section>
+
+            <section class="step-card" id="step-1" data-kind="terminal">
+                <div class="step-head">
+                    <span class="step-no">1</span>
+                    <div>
+                        <div class="step-title-row">
+                            <h2 class="step-title">在同一个 Terminal 会话加载 Android SDK</h2>
+                            <span class="channel terminal">Terminal</span>
+                        </div>
+                        <p class="step-intro">Coder 和 Gradle 会继承启动 OpenCode 时的环境。必须先设置 <code>ANDROID_HOME</code>，再从同一窗口启动 OpenCode。</p>
+                    </div>
+                </div>
+                <div class="step-content">
+                    <div class="subsection">
+                        <h3>先加载已写入 <code>~/.zshrc</code> 的配置</h3>
+                        <div class="command-block">
+                            <div class="command-top"><strong>在 Terminal 输入</strong><span>推荐方式</span></div>
+                            <pre>source ~/.zshrc
+echo "$ANDROID_HOME"
+test -d "$ANDROID_HOME" &amp;&amp; echo "Android SDK OK"</pre>
+                        </div>
+                        <p>期望看到 <code>/Users/zhanglong/Library/Android/sdk</code> 和 <code>Android SDK OK</code>。</p>
+                    </div>
+                    <div class="subsection">
+                        <h3>如果 <code>echo "$ANDROID_HOME"</code> 仍然是空的</h3>
+                        <div class="command-block">
+                            <div class="command-top"><strong>在当前 Terminal 输入</strong><span>立即生效</span></div>
+                            <pre>export ANDROID_HOME=/Users/zhanglong/Library/Android/sdk
+export PATH="$ANDROID_HOME/platform-tools:$ANDROID_HOME/cmdline-tools/latest/bin:$PATH"
+echo "$ANDROID_HOME"
+test -d "$ANDROID_HOME" &amp;&amp; echo "Android SDK OK"</pre>
+                            <div class="command-note">这两条 export 只保证当前窗口。不要关闭该窗口；下一步仍在这里执行。</div>
+                        </div>
+                    </div>
+                    <div class="callout info">
+                        本方案不会创建或修改 <code>local.properties</code>，也不会把环境变量写在
+                        <code>./gradlew testDebugUnitTest</code> 前面。环境必须由启动 OpenCode 的 Terminal 继承。
+                    </div>
+                </div>
+            </section>
+
+            <section class="step-card" id="step-2" data-kind="terminal">
+                <div class="step-head">
+                    <span class="step-no">2</span>
+                    <div>
+                        <div class="step-title-row">
+                            <h2 class="step-title">预检，然后只启动 Planner</h2>
+                            <span class="channel terminal">Terminal</span>
+                        </div>
+                        <p class="step-intro">预检会核对 SDK、Git、配置、Agent、Skill 与权限。通过后进入一个持续到最终集成的 OpenCode 会话。</p>
+                    </div>
+                </div>
+                <div class="step-content">
+                    <div class="command-block">
+                        <div class="command-top"><strong>在同一个 Terminal 依次输入</strong><span>唯一入口</span></div>
+                        <pre>cd /Users/zhanglong/files/program/cctest
+./scripts/automation/preflight.sh --source
+opencode --agent scheduled-planner .</pre>
+                    </div>
+                    <div class="callout success">
+                        预检成功时会出现 <code>preflight completed</code>，随后进入 OpenCode。
+                        Planner 也会在正式规划前再次运行来源预检，保证执行时条件仍成立。
+                    </div>
+                    <div class="callout warning">
+                        从这一刻起，不要另开命令手动启动 <code>scheduled-coder</code> 或 <code>scheduled-reviewer</code>。
+                        它们必须由编排脚本带着合同、状态和隔离 worktree 自动启动。
+                    </div>
+                </div>
+            </section>
+
+            <section class="step-card" id="step-3" data-kind="opencode">
+                <div class="step-head">
+                    <span class="step-no">3</span>
+                    <div>
+                        <div class="step-title-row">
+                            <h2 class="step-title">用 <code>/change</code> 输入一句话需求</h2>
+                            <span class="channel opencode">OpenCode</span>
+                        </div>
+                        <p class="step-intro">
+                            一次只描述一个希望看到的行为变化；输入输出示例可以补充，但不是必填。
+                            现状、验收条件、影响路径、测试和非目标由 Planner 检查仓库后补齐。
+                        </p>
+                    </div>
+                </div>
+                <div class="step-content">
+                    <div class="command-block open">
+                        <div class="command-top"><strong>在 OpenCode 输入：最短格式</strong><span>唯一必填内容是一句话目标</span></div>
+                        <pre>/change &lt;希望看到的一个行为变化&gt;</pre>
+                    </div>
+                    <div class="subsection">
+                        <h3>可直接测试流程的示例需求</h3>
+                        <div class="command-block open">
+                            <div class="command-top"><strong>在 OpenCode 输入：重庆示例</strong><span>一句话即可</span></div>
+                            <pre>/change 让“查看重庆的记录列表”能正确识别重庆。</pre>
+                        </div>
+                    </div>
+                    <div class="subsection">
+                        <h3>Planner 自动补齐，不需要你先填写</h3>
+                        <div class="auto-grid">
+                            <div class="auto-item">
+                                <strong>现状与内部结果</strong>
+                                <span>读取实现和已有测试，确认当前行为以及类似 <code>userGoal</code>、<code>slots</code> 的内部字段。</span>
+                            </div>
+                            <div class="auto-item">
+                                <strong>验收与回归边界</strong>
+                                <span>从目标行为推导输入输出、聚焦验收条件和必须保持不变的相邻行为。</span>
+                            </div>
+                            <div class="auto-item">
+                                <strong>路径与测试策略</strong>
+                                <span>提出 <code>allowedPaths</code>、文件上限、聚焦测试以及是否需要设备测试。</span>
+                            </div>
+                            <div class="auto-item">
+                                <strong>保护项与非目标</strong>
+                                <span>沿用仓库保护路径，并排除无关重构、依赖升级和未被需求触及的功能。</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="callout info">
+                        <code>/change</code> 后面的内容只代表需求意图，不代表任何审批。
+                        Planner 会先读代码和测试，再把需求收敛为唯一的 <code>TASK-[A-Z0-9-]+</code>；
+                        只有无法安全推断的产品选择才会追问。如果一句话包含多个行为，它会要求先选一个，而不是直接交给 Coder。
+                    </div>
+                    <div class="callout warning">
+                        不要在 <code>/change</code> 中附上任何审批语。即使误写，系统也必须先展示方案，
+                        再弹出当次“方案确认”单选；直接消息中的审批文本永远不构成批准。
+                    </div>
+                </div>
+            </section>
+
+            <section class="step-card" id="step-4" data-kind="opencode">
+                <div class="step-head">
+                    <span class="step-no">4</span>
+                    <div>
+                        <div class="step-title-row">
+                            <h2 class="step-title">必要时澄清并复核“方案”</h2>
+                            <span class="channel opencode">OpenCode</span>
+                            <span class="channel human">人工判断</span>
+                        </div>
+                        <p class="step-intro">这一阶段只是讨论，不写文件、不建 worktree、不改产品代码。你可以像普通对话一样修正范围。</p>
+                    </div>
+                </div>
+                <div class="step-content">
+                    <div class="auto-grid">
+                        <div class="auto-item">
+                            <strong>必须看：行为与验收条件</strong>
+                            <span>当前行为、目标行为、输入输出和边界条件是否与你的真实意图一致。</span>
+                        </div>
+                        <div class="auto-item">
+                            <strong>必须看：允许修改的路径</strong>
+                            <span><code>allowedPaths</code> 是否刚好覆盖实现和测试，是否过宽或漏掉必要文件。</span>
+                        </div>
+                        <div class="auto-item">
+                            <strong>必须看：测试策略</strong>
+                            <span>聚焦测试过滤器是否正确，是否需要设备测试，RED 能否由新行为真实触发。</span>
+                        </div>
+                        <div class="auto-item">
+                            <strong>必须看：文件上限与非目标</strong>
+                            <span><code>maxChangedFiles</code>、禁止路径、明确不做的事情是否能约束范围漂移。</span>
+                        </div>
+                    </div>
+                    <div class="command-block open">
+                        <div class="command-top"><strong>如果方案需要调整，在 OpenCode 输入</strong><span>示例</span></div>
+                        <pre>请把方案调整为：设备测试不要求，只运行本地 JVM 单测；
+allowedPaths 仅保留实现文件和对应测试文件；
+保持所有现有城市识别行为不变。调整后重新展示方案，不要创建文件。</pre>
+                    </div>
+                    <div class="callout">
+                        只有在方案完整、边界明确时才进入下一步。普通聊天消息不算审批；系统只接受下一步当次“方案确认”控件中的选项选择。
+                    </div>
+                </div>
+            </section>
+
+            <section class="step-card" id="step-5" data-kind="human">
+                <div class="step-head">
+                    <span class="step-no">5</span>
+                    <div>
+                        <div class="step-title-row">
+                            <h2 class="step-title">第一次确认：在选项中批准方案</h2>
+                            <span class="channel opencode">OpenCode</span>
+                            <span class="channel human">人工闸门 1/3</span>
+                        </div>
+                        <p class="step-intro">方案展示完成后，Planner 会自动弹出单选控件；点击一项即可，无需发送审批消息。</p>
+                    </div>
+                </div>
+                <div class="step-content">
+                    <div class="command-block auto">
+                        <div class="command-top"><strong>Planner 自动弹出“方案确认”</strong><span>点击一项，无需输入</span></div>
+                        <pre>● 批准方案，生成计划和任务合同。
+  确认当前方案并生成两份待复核的规划文件。
+
+○ 需要调整方案
+  不生成文件；随后说明需要调整的目标、范围或验证方式。</pre>
+                    </div>
+                    <div class="subsection">
+                        <h3>系统随后自动完成</h3>
+                        <div class="auto-grid">
+                            <div class="auto-item">
+                                <strong>生成计划</strong>
+                                <span><code>docs/plans/&lt;TASK-ID&gt;.md</code></span>
+                            </div>
+                            <div class="auto-item">
+                                <strong>生成任务合同</strong>
+                                <span><code>automation/tasks/&lt;TASK-ID&gt;.json</code></span>
+                            </div>
+                            <div class="auto-item">
+                                <strong>校验并封存 SHA</strong>
+                                <span>校验合同结构，记录计划与合同哈希、原分支和原始 HEAD。</span>
+                            </div>
+                            <div class="auto-item">
+                                <strong>展示复核卡并发起确认</strong>
+                                <span>进入 <code>CONTRACT_REVIEW</code> 后自动展示封存内容并弹出审批选项，此时仍未修改产品代码。</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="command-block auto">
+                        <div class="command-top"><strong>系统内部执行——不要手工输入</strong><span>用于理解，不是操作步骤</span></div>
+                        <pre>./scripts/automation/prepare-contract-review.sh &lt;TASK-ID&gt; \
+  "批准方案，生成计划和任务合同。"</pre>
+                    </div>
+                </div>
+            </section>
+
+            <section class="step-card" id="step-6" data-kind="human">
+                <div class="step-head">
+                    <span class="step-no">6</span>
+                    <div>
+                        <div class="step-title-row">
+                            <h2 class="step-title">自动展示复核卡；你只需阅读</h2>
+                            <span class="channel automatic">自动展示</span>
+                            <span class="channel human">人工检查</span>
+                        </div>
+                        <p class="step-intro">
+                            计划和合同封存成功后，Planner 会在同一轮自动读取封存文件、展示复核卡并发起确认。
+                            不需要输入 TASK-ID、字段名或“请完整展示”等补充请求。
+                        </p>
+                    </div>
+                </div>
+                <div class="step-content">
+                    <div class="command-block auto">
+                        <div class="command-top"><strong>Planner 自动展示：合同复核卡</strong><span>示意格式，无需输入</span></div>
+                        <pre>✓ 计划和任务合同已生成、校验并封存
+
+【任务与状态】TASK-ID、标题、CONTRACT_REVIEW、产品代码尚未修改
+【目标与验收】完整计划、当前行为、目标行为、验收条件与边界
+【改动范围】允许路径、禁止路径、最大改动文件数与非目标
+【验证方式】聚焦测试、质量门、设备测试要求及原因
+【绑定信息】原分支、原始 HEAD、计划/合同路径与封存 SHA
+
+请复核以上内容。Planner 随后自动弹出确认选项。</pre>
+                    </div>
+                    <div class="evidence-grid">
+                        <div class="evidence-item">
+                            <strong>目标与完成标准</strong>
+                            <span>目标行为是否正确；每项标准是否都能由测试或人工操作判断“通过/失败”。</span>
+                        </div>
+                        <div class="evidence-item">
+                            <strong>允许与禁止改动</strong>
+                            <span>实现和测试范围是否刚好够用；Gradle、编排配置和敏感文件是否继续受保护。</span>
+                        </div>
+                        <div class="evidence-item">
+                            <strong>验证方式</strong>
+                            <span>聚焦测试是否覆盖本次行为；设备测试要求是否符合任务实际需要。</span>
+                        </div>
+                        <div class="evidence-item">
+                            <strong>文件上限与原分支</strong>
+                            <span>文件数是否合理；原分支是否确实是最终要接收成果的分支。</span>
+                        </div>
+                    </div>
+                    <div class="callout success">
+                        正常路径到这里不需要输入任何内容。读完复核卡后，直接在下一步点击 Planner 弹出的确认选项。
+                    </div>
+                    <div class="callout warning">
+                        如果合同有错，点击“需要调整计划或任务合同”，再说明要修改的项目。
+                        合同哈希已封存后，修改原文件再沿用旧审批会被脚本拒绝，这是防止“你审的是 A，执行的却是 B”。
+                    </div>
+                </div>
+            </section>
+
+            <section class="step-card" id="step-7" data-kind="human">
+                <div class="step-head">
+                    <span class="step-no">7</span>
+                    <div>
+                        <div class="step-title-row">
+                            <h2 class="step-title">第二次确认：点击批准自动执行</h2>
+                            <span class="channel opencode">OpenCode</span>
+                            <span class="channel human">人工闸门 2/3</span>
+                        </div>
+                        <p class="step-intro">合同确认无误后点击批准选项，无需手工输入。直接发送相同审批文本也不会启动执行；之后保持 OpenCode 会话运行，系统会连续执行。</p>
+                    </div>
+                </div>
+                <div class="step-content">
+                    <div class="command-block auto">
+                        <div class="command-top"><strong>Planner 自动弹出确认框</strong><span>点击一项，无需输入</span></div>
+                        <pre>请选择：
+
+● 合同已复核，批准自动执行到人工验收阶段。
+  确认当前封存内容并自动执行到人工验收。
+
+○ 需要调整计划或任务合同
+  保持停止状态，并说明需要修改的内容。</pre>
+                    </div>
+                    <div class="subsection">
+                        <h3>点击批准会触发的完整自动链路</h3>
+                        <div class="auto-grid">
+                            <div class="auto-item">
+                                <strong>1. 封存计划和合同但暂不提交</strong>
+                                <span>记录原分支、原 HEAD 与文件哈希；规划文件留在任务 diff 中等待最终合并提交。</span>
+                            </div>
+                            <div class="auto-item">
+                                <strong>2. 原地切换事务任务分支</strong>
+                                <span>取得持久仓库租约后，在当前工程目录创建任务分支，不复制工程；仅显式配置隔离模式时创建一个 worktree。</span>
+                            </div>
+                            <div class="auto-item">
+                                <strong>3. 受限 Coder 通过 TDD 编码</strong>
+                                <span>只能改合同允许路径，记录基线、真实 RED 和后续质量门证据。</span>
+                            </div>
+                            <div class="auto-item">
+                                <strong>4. 新会话 Reviewer 独立复核</strong>
+                                <span>Reviewer 只读检查合同、diff、测试和证据；配置只允许一次受控修复循环。</span>
+                            </div>
+                            <div class="auto-item">
+                                <strong>5. 封存 diff 与验收包</strong>
+                                <span>通过后记录 diff SHA、文件列表、验收条件和 Reviewer 结论。</span>
+                            </div>
+                            <div class="auto-item">
+                                <strong>6. 主动停下等待你</strong>
+                                <span>进入 <code>AWAITING_HUMAN</code>，代码、测试、计划和合同此时都尚未提交。</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="state-line" aria-label="正常状态流转">
+                        <span class="state-pill">APPROVED_CONTRACT</span><span class="arrow">→</span>
+                        <span class="state-pill">PREPARING</span><span class="arrow">→</span>
+                        <span class="state-pill">PENDING</span><span class="arrow">→</span>
+                        <span class="state-pill">CODING</span><span class="arrow">→</span>
+                        <span class="state-pill">READY_FOR_REVIEW</span><span class="arrow">→</span>
+                        <span class="state-pill">REVIEWING</span><span class="arrow">→</span>
+                        <span class="state-pill stop">AWAITING_HUMAN</span>
+                    </div>
+                    <div class="command-block auto">
+                        <div class="command-top"><strong>系统内部执行——不要手工输入</strong><span>可能运行较长时间</span></div>
+                        <pre>./scripts/automation/approve-and-run.sh &lt;TASK-ID&gt; \
+  "合同已复核，批准自动执行到人工验收阶段。"</pre>
+                    </div>
+                    <div class="callout info">
+                        以前失败的 <code>opencode run --agent scheduled-coder ...</code> 不再需要你手动重跑。
+                        因为 OpenCode 是在已设置 <code>ANDROID_HOME</code> 的 Terminal 中启动，自动创建的 Coder 会继承该环境。
+                    </div>
+                </div>
+            </section>
+
+            <section class="step-card" id="step-8" data-kind="automatic">
+                <div class="step-head">
+                    <span class="step-no">8</span>
+                    <div>
+                        <div class="step-title-row">
+                            <h2 class="step-title">等待自动运行；到验收阶段会主动提醒</h2>
+                            <span class="channel automatic">自动执行</span>
+                            <span class="channel terminal">可选 Terminal</span>
+                        </div>
+                        <p class="step-intro">正常情况下只需留在 OpenCode：系统到达人工闸门后会自动展示复核卡并弹出选择。若想旁路查看，不要中断原会话，可另开一个 Terminal。</p>
+                    </div>
+                </div>
+                <div class="step-content">
+                    <div class="command-block">
+                        <div class="command-top"><strong>可选：在第二个 Terminal 输入</strong><span>替换 TASK-ID</span></div>
+                        <pre>cd /Users/zhanglong/files/program/cctest
+TASK_ID=TASK-CHONGQING-CITY
+./scripts/automation/status.sh "$TASK_ID"</pre>
+                    </div>
+                    <div class="subsection">
+                        <h3>查看共享运行目录和证据文件</h3>
+                        <div class="command-block">
+                            <div class="command-top"><strong>可选：在第二个 Terminal 输入</strong><span>变量只用于查看</span></div>
+                            <pre>cd /Users/zhanglong/files/program/cctest
+TASK_ID=TASK-CHONGQING-CITY
+GIT_COMMON_DIR="$(git rev-parse --path-format=absolute --git-common-dir)"
+echo "$GIT_COMMON_DIR/automation-runtime/evidence/$TASK_ID"
+find "$GIT_COMMON_DIR/automation-runtime/evidence/$TASK_ID" -maxdepth 1 -type f -print</pre>
+                        </div>
+                    </div>
+                    <div class="folder-tree" aria-label="共享运行目录结构">&lt;git-common-dir&gt;/automation-runtime/
+├── state/          # 当前状态和状态历史
+├── evidence/       # RED、质量门、Review、验收、集成证据
+├── locks/          # 防止同一任务重复运行
+└── workspaces/     # 原分支、任务分支和 worktree 的真实路径</div>
+                    <div class="callout">
+                        看到 <code>CODING</code>、<code>REVIEWING</code> 属于正常运行；到达
+                        <code>AWAITING_HUMAN</code> 时 OpenCode 会主动提醒并进入下一步，无需轮询。若进入硬停止状态，请先看本文“故障处理”，不要自己建新 worktree 接着跑。
+                    </div>
+                    <div class="subsection">
+                        <h3>仅当 Reviewer 用完步骤预算、尚未提交结论</h3>
+                        <p>此时实现、RED、G1–G6 和 sealed diff 都应保留，不需要重跑 Coder。在同一个 OpenCode 会话输入：</p>
+                        <div class="command-block open">
+                            <div class="command-top"><strong>Reviewer-only 恢复</strong><span>替换 TASK-ID</span></div>
+                            <pre>/resume-review TASK-PHONE-DETAIL-LOOKUP-001</pre>
+                            <div class="command-note">命令会先复验分支、HEAD、范围和 diff SHA，再从 BLOCKED 直接回 REVIEWING；任一封存条件变化都会拒绝恢复。</div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <section class="step-card" id="step-9" data-kind="human">
+                <div class="step-head">
+                    <span class="step-no">9</span>
+                    <div>
+                        <div class="step-title-row">
+                            <h2 class="step-title">收到提醒，按验收卡复核封存成果</h2>
+                            <span class="channel opencode">OpenCode</span>
+                            <span class="channel automatic">自动提醒</span>
+                            <span class="channel human">人工检查</span>
+                        </div>
+                        <p class="step-intro">系统到达 <code>AWAITING_HUMAN</code> 后会主动展示复核卡并弹出选择，不需要你输入 TASK-ID、字段清单或“请展示完整验收包”。</p>
+                    </div>
+                </div>
+                <div class="step-content">
+                    <div class="acceptance-alert" role="status" aria-live="polite">
+                        <span class="acceptance-alert-icon" aria-hidden="true">🔔</span>
+                        <div>
+                            <strong>自动执行完成，现在轮到你验收</strong>
+                            <p>Planner 已重新核对 sealed diff，并停在人工闸门；显示复核卡不会提交、集成或 push。</p>
+                        </div>
+                        <span class="state-pill stop">AWAITING_HUMAN</span>
+                    </div>
+
+                    <div class="review-package" aria-label="系统自动展示的成果验收复核卡示例">
+                        <div class="review-package-head">
+                            <div>
+                                <strong>成果验收复核卡</strong>
+                                <p>下列值与重点由 <code>show-acceptance-review.sh</code> 从封存合同和实时证据自动生成。</p>
+                            </div>
+                            <span class="channel expected">SHA 已复验</span>
+                        </div>
+                        <div class="review-bindings">
+                            <div class="review-binding">
+                                <span>任务</span>
+                                <strong>TASK-ID · 真实标题</strong>
+                            </div>
+                            <div class="review-binding">
+                                <span>目标分支</span>
+                                <strong>记录的 originalBranch</strong>
+                            </div>
+                            <div class="review-binding">
+                                <span>验收对象</span>
+                                <strong>sealed diff SHA</strong>
+                            </div>
+                            <div class="review-binding">
+                                <span>范围</span>
+                                <strong>实际文件数 / 合同上限</strong>
+                            </div>
+                        </div>
+                        <div class="review-focus-list">
+                            <div class="review-focus" data-priority="p0">
+                                <span class="priority-badge">P0</span>
+                                <div>
+                                    <strong>先验收真实行为</strong>
+                                    <p>完整显示合同中的每条 acceptanceCriteria。按输入示例实际操作并观察输出；测试通过不能替代这一项。</p>
+                                </div>
+                            </div>
+                            <div class="review-focus" data-priority="p0">
+                                <span class="priority-badge">P0</span>
+                                <div>
+                                    <strong>再看旧行为、变更范围和非目标</strong>
+                                    <p>显示 changedPaths、allowedPaths 与 nonGoals，重点确认相邻旧行为未回归，也没有混入合同外改动。</p>
+                                </div>
+                            </div>
+                            <div class="review-focus" data-priority="p1">
+                                <span class="priority-badge">P1</span>
+                                <div>
+                                    <strong>检查自动证据是否形成闭环</strong>
+                                    <p>显示 Baseline、真实 RED 退出码、G1–G6、聚焦测试、Reviewer 的 APPROVED 与独立复验退出码。</p>
+                                </div>
+                            </div>
+                            <div class="review-focus" data-priority="p1">
+                                <span class="priority-badge">P1</span>
+                                <div>
+                                    <strong>最后确认绑定与剩余风险</strong>
+                                    <p>确认质量门、Review、验收包的 SHA 三方一致，目标分支正确；若合同未要求设备测试，UI、权限或真机差异仍需人工体验。</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="subsection">
+                        <h3>复核卡后会立即弹出三个选择</h3>
+                        <div class="decision-grid" aria-label="成果验收选项">
+                            <div class="decision-option primary">
+                                <strong>验收通过，提交到原分支。</strong>
+                                <span>只有这项会授权经过复验的本地集成。</span>
+                            </div>
+                            <div class="decision-option reject">
+                                <strong>验收不通过，需要说明失败项</strong>
+                                <span>保持封存；接着只需指出失败条件或观察结果。</span>
+                            </div>
+                            <div class="decision-option">
+                                <strong>暂不决定，保持封存</strong>
+                                <span>不改变状态，检查完成后可重新打开同一张卡。</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="callout success">
+                        正常路径在这一步需要输入 <strong>0 段说明文字</strong>：阅读自动填好的卡片并点击一个选项即可。
+                    </div>
+
+                    <div class="subsection">
+                        <h3>如果错过自动提醒：只输入一个短命令</h3>
+                        <div class="command-block open">
+                            <div class="command-top"><strong>在同一个 OpenCode 会话输入</strong><span>替换 TASK-ID</span></div>
+                            <pre>/acceptance TASK-CHONGQING-CITY</pre>
+                            <div class="command-note">命令会再次校验当前 diff 并重现同一张复核卡和三个选择；它本身不代表验收通过。</div>
+                        </div>
+                    </div>
+
+                    <div class="subsection">
+                        <h3>可选：只想在 Terminal 查看同一张卡</h3>
+                        <div class="command-block">
+                            <div class="command-top"><strong>在第二个 Terminal 输入</strong><span>只读，不改变状态</span></div>
+                            <pre>./scripts/automation/show-acceptance-review.sh TASK-CHONGQING-CITY</pre>
+                        </div>
+                    </div>
+
+                    <div class="callout warning">
+                        任一 P0 项不通过时选择“不通过”，不要批准后再补充问题。
+                        已封存成果不能在背后修改后继续沿用同一次验收；需要显式恢复动作或新的合同。
+                    </div>
+                </div>
+            </section>
+
+            <section class="step-card" id="step-10" data-kind="human">
+                <div class="step-head">
+                    <span class="step-no">10</span>
+                    <div>
+                        <div class="step-title-row">
+                            <h2 class="step-title">第三次确认：点击验收通过并提交到原分支</h2>
+                            <span class="channel opencode">OpenCode</span>
+                            <span class="channel human">人工闸门 3/3</span>
+                        </div>
+                        <p class="step-intro">确认复核卡中的 P0、P1 项都满足后，直接点击绿色通过选项；直接聊天消息不会被当成授权。</p>
+                    </div>
+                </div>
+                <div class="step-content">
+                    <div class="command-block auto">
+                        <div class="command-top"><strong>使用 Planner 弹出的“成果验收”控件</strong><span>点击一项，无文本备用入口</span></div>
+                        <pre>● 验收通过，提交到原分支。
+○ 验收不通过，需要说明失败项
+○ 暂不决定，保持封存</pre>
+                    </div>
+                    <div class="subsection">
+                        <h3>系统随后自动完成</h3>
+                        <ol>
+                            <li>重新核对状态、原分支、合同 SHA、sealed diff SHA 和 Reviewer 的 APPROVED 结论。</li>
+                            <li>把合同允许的产品文件与封存的计划、任务合同合并成唯一任务提交。</li>
+                            <li>确认任务基线到候选 HEAD 恰好只有这一个提交，并在当前任务目录验证，不创建第二个候选 worktree。</li>
+                            <li>重新执行聚焦测试、完整单测、构建、lint，以及合同要求的设备测试。</li>
+                            <li>只有验证全部通过且原分支未漂移，才把记录的原分支快进到已验证候选提交。</li>
+                            <li>清理或分离可选任务 worktree，再安全删除已经合入原分支的本地任务分支。</li>
+                            <li>记录分支删除证据并把状态写为 <code>COMPLETED</code>；失败或阻塞时保留任务分支用于恢复。</li>
+                        </ol>
+                    </div>
+                    <div class="command-block auto">
+                        <div class="command-top"><strong>系统内部执行——不要手工输入</strong><span>确定性本地集成</span></div>
+                        <pre>./scripts/automation/accept-and-integrate.sh &lt;TASK-ID&gt; \
+  "验收通过，提交到原分支。"</pre>
+                    </div>
+                    <div class="state-line" aria-label="最终集成状态流转">
+                        <span class="state-pill stop">AWAITING_HUMAN</span><span class="arrow">→</span>
+                        <span class="state-pill">INTEGRATING</span><span class="arrow">→</span>
+                        <span class="state-pill done">COMPLETED</span>
+                    </div>
+                    <div class="callout success">
+                        “提交到原分支”指本地 Git 分支完成提交和快进集成，不等于推送到 GitHub。成功后本地任务分支会自动删除；
+                        最终证据固定记录 <code>taskBranchDeleted: true</code> 与 <code>pushed: false</code>。
+                    </div>
+                </div>
+            </section>
+
+            <section class="step-card" id="step-11" data-kind="complete">
+                <div class="step-head">
+                    <span class="step-no">11</span>
+                    <div>
+                        <div class="step-title-row">
+                            <h2 class="step-title">回 Terminal 检查原分支；按需手动 push</h2>
+                            <span class="channel terminal">Terminal</span>
+                            <span class="channel expected">完成</span>
+                        </div>
+                        <p class="step-intro">OpenCode 报告 COMPLETED 后，原工作目录仍应停留在任务开始时记录的原分支。</p>
+                    </div>
+                </div>
+                <div class="step-content">
+                    <div class="command-block">
+                        <div class="command-top"><strong>在 Terminal 输入</strong><span>替换 TASK-ID</span></div>
+                        <pre>cd /Users/zhanglong/files/program/cctest
+TASK_ID=TASK-CHONGQING-CITY
+git branch --show-current
+git status --short
+git log -3 --oneline
+./scripts/automation/status.sh "$TASK_ID"</pre>
+                    </div>
+                    <div class="callout success">
+                        期望分支为 <code>feature-opencode-scheduler</code>（如果任务就是从该分支启动），工作区干净，日志只有一个组合任务提交，
+                        状态为 <code>COMPLETED</code>，本次任务对应的 <code>automation/task-*</code> 本地分支已经不存在。
+                    </div>
+                    <div class="subsection">
+                        <h3>可选：你明确希望同步到远端时再 push</h3>
+                        <p>当前原分支就是 <code>feature-opencode-scheduler</code> 时，输入：</p>
+                        <div class="command-block">
+                            <div class="command-top"><strong>可选，在 Terminal 输入</strong><span>远端操作不属于自动化</span></div>
+                            <pre>git push -u origin feature-opencode-scheduler</pre>
+                        </div>
+                        <p>如果任务从别的分支启动，先看 <code>git branch --show-current</code>，把命令中的分支名替换成实际原分支。</p>
+                    </div>
+                    <div class="subsection">
+                        <h3>若出现 <code>Permission denied (publickey)</code>，改用 GitHub HTTPS 登录</h3>
+                        <div class="command-block">
+                            <div class="command-top"><strong>可选，在 Terminal 依次输入</strong><span>需要已安装 gh</span></div>
+                            <pre>gh auth login
+gh auth setup-git
+git remote set-url origin https://github.com/frankzhangtx/AIRouter.git
+git push -u origin feature-opencode-scheduler</pre>
+                            <div class="command-note">在 gh auth login 中选择 GitHub.com、HTTPS，并按提示在浏览器授权。</div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </div>
+
+        <section class="panel" id="troubleshooting" aria-labelledby="troubleshooting-title">
+            <div class="panel-header">
+                <div>
+                    <h2 class="panel-title" id="troubleshooting-title">故障处理：先看状态和证据，不要绕过门禁</h2>
+                    <p class="panel-subtitle">硬停止是保护机制。它的目标是让失败可解释、原分支不受污染，而不是逼你手工补跑整套流程。</p>
+                </div>
+            </div>
+            <div class="table-wrap">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>现象或状态</th>
+                            <th>含义</th>
+                            <th>你应该输入什么</th>
+                            <th>不要做什么</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><code>ANDROID_HOME is not set</code></td>
+                            <td>启动 OpenCode 的 Terminal 没继承 Android SDK 环境。</td>
+                            <td><code>source ~/.zshrc</code>；若仍为空，执行第 1 步两条 <code>export</code>，再从同一窗口重启 OpenCode。</td>
+                            <td>不要创建 <code>local.properties</code>；不要给 Gradle 命令临时加环境前缀。</td>
+                        </tr>
+                        <tr>
+                            <td><code>Git worktree is dirty</code></td>
+                            <td>原工作区存在未提交或未跟踪修改，无法可靠封存基线。</td>
+                            <td>输入 <code>git status --short</code> 和 <code>git diff</code>，只提交确认属于当前分支的文件，或有意识地暂存它们。</td>
+                            <td>不要盲目 <code>reset --hard</code>、<code>clean</code> 或提交所有文件。</td>
+                        </tr>
+                        <tr>
+                            <td>找不到 <code>/change</code> / Planner / Skill</td>
+                            <td>OpenCode 没正确发现仓库配置、项目命令、固定插件、Agent 或 Skill。</td>
+                            <td>确认 <code>.opencode/commands/change.md</code> 存在，再运行 <code>opencode debug config</code>、<code>opencode debug agent scheduled-planner</code>、<code>opencode debug skill</code> 和 <code>./scripts/automation/preflight.sh --source</code>。</td>
+                            <td>不要跳过预检后直接调用 Coder。</td>
+                        </tr>
+                        <tr>
+                            <td><code>BLOCKED</code>，原因为 <code>reviewer exited without submitting a decision</code></td>
+                            <td>Reviewer 会话在写入结论前耗尽步骤预算；已完成代码和封存证据仍可直接复用。</td>
+                            <td>在 OpenCode 输入 <code>/resume-review TASK-ID</code>；脚本验证 sealed diff 后只重启 Reviewer。</td>
+                            <td>不要改成 <code>PENDING</code>，不要重跑 Coder，也不要 reset 已封存的 worktree。</td>
+                        </tr>
+                        <tr>
+                            <td><code>BLOCKED</code></td>
+                            <td>前置条件、范围、权限或工作区准备失败。</td>
+                            <td>运行 <code>./scripts/automation/status.sh TASK-CHONGQING-CITY</code>，按 evidenceDirectory 查看具体日志，并在 OpenCode 说明阻塞原因。</td>
+                            <td>不要手工建 worktree、改状态 JSON 或重复排队。</td>
+                        </tr>
+                        <tr>
+                            <td><code>TEST_FAILED</code></td>
+                            <td>真实 RED 之后的实现或某个质量门仍未通过。</td>
+                            <td>让 Planner 展示失败测试与日志；若需扩大路径或目标，生成新合同或新任务。</td>
+                            <td>不要伪造 RED、删测试或跳过质量门。</td>
+                        </tr>
+                        <tr>
+                            <td><code>NEEDS_HUMAN</code></td>
+                            <td>Reviewer 不批准，且允许的自动修复循环已经用完或不适用。</td>
+                            <td>查看 <code>review.json</code> 和修复建议，决定是否用新的任务合同继续。</td>
+                            <td>不要把它当作 <code>AWAITING_HUMAN</code> 输入验收通过。</td>
+                        </tr>
+                        <tr>
+                            <td><code>INTEGRATION_BLOCKED</code></td>
+                            <td>候选集成冲突、复验失败或原分支在验证期间发生漂移；原分支不会被错误推进。</td>
+                            <td>查看 <code>integration-verification.log</code> 和 <code>integration-failure.json</code>，在 OpenCode 明确选择恢复或新任务。</td>
+                            <td>不要自动解冲突、强推或手工改 sealed diff。</td>
+                        </tr>
+                        <tr>
+                            <td>sealed diff changed</td>
+                            <td>人工验收对象与当前任务工作区不再一致。</td>
+                            <td>停止验收，让系统重新审查并产生新的封存证据。</td>
+                            <td>不要继续输入第三条确认语。</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+            <div class="command-block">
+                <div class="command-top"><strong>通用诊断命令：在 Terminal 输入</strong><span>替换 TASK-ID</span></div>
+                <pre>cd /Users/zhanglong/files/program/cctest
+TASK_ID=TASK-CHONGQING-CITY
+./scripts/automation/status.sh "$TASK_ID"
+GIT_COMMON_DIR="$(git rev-parse --path-format=absolute --git-common-dir)"
+find "$GIT_COMMON_DIR/automation-runtime/evidence/$TASK_ID" -maxdepth 1 -type f -print</pre>
+            </div>
+        </section>
+
+        <section class="panel" id="boundaries" aria-labelledby="boundaries-title">
+            <div class="panel-header">
+                <div>
+                    <h2 class="panel-title" id="boundaries-title">正常流程中，这些命令不要手工执行</h2>
+                    <p class="panel-subtitle">它们不是“少一步也能跑”的快捷方式，而是会绕开合同哈希、状态机、权限隔离或最终验证。</p>
+                </div>
+            </div>
+            <div class="do-not">
+                <div><code>git worktree add ...</code><br>worktree 路径、分支、基线与共享状态必须由脚本共同记录。</div>
+                <div><code>./scripts/automation/queue-task.sh ...</code><br>V2 编排路径由 Planner 直接推进，不需要人工排队。</div>
+                <div><code>opencode run --agent scheduled-coder ...</code><br>Coder 必须在合同绑定的专用 worktree 中由编排器启动。</div>
+                <div><code>opencode run --agent scheduled-reviewer ...</code><br>Reviewer 必须在新会话中读取封存 diff 和完整证据。</div>
+                <div><code>git add / commit / merge / cherry-pick</code><br>合同提交、产品提交和候选集成都由确定性脚本负责。</div>
+                <div><code>git push</code>（自动链路内部）<br>验收只授权本地集成；远端 push 是完成后单独做出的决定。</div>
+            </div>
+            <div class="callout info">
+                也不需要创建 OpenCode Scheduler 定时任务。<code>automation/scheduler/</code> 下的提示词只保留作兼容诊断；
+                当前 V3 的启动入口始终是 <code>scheduled-planner</code> 会话，会话内的需求入口是 <code>/change</code>。
+            </div>
+        </section>
+
+        <section class="panel" aria-labelledby="input-map-title">
+            <div class="panel-header">
+                <div>
+                    <h2 class="panel-title" id="input-map-title">最终速查：到底在哪儿输入</h2>
+                    <p class="panel-subtitle">如果只记一张表，就记这张。带“自动”的行只是系统行为，不需要复制。</p>
+                </div>
+            </div>
+            <div class="table-wrap">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>顺序</th>
+                            <th>位置</th>
+                            <th>你的核心操作</th>
+                            <th>完成标志</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>1</td>
+                            <td><span class="mini-pill terminal">Terminal</span></td>
+                            <td>加载 <code>ANDROID_HOME</code>，运行 preflight，启动 <code>scheduled-planner</code>。</td>
+                            <td>进入 OpenCode 会话。</td>
+                        </tr>
+                        <tr>
+                            <td>2</td>
+                            <td><span class="mini-pill opencode">OpenCode</span></td>
+                            <td><code>/change &lt;一句话行为需求&gt;</code>；如有必要，回答 Planner 的少量澄清问题。</td>
+                            <td>看到完整、可接受的方案。</td>
+                        </tr>
+                        <tr>
+                            <td>3</td>
+                            <td><span class="mini-pill opencode">OpenCode</span></td>
+                            <td>在“方案确认”中点击 <code>批准方案，生成计划和任务合同。</code></td>
+                            <td><code>CONTRACT_REVIEW</code>。</td>
+                        </tr>
+                        <tr>
+                            <td>4</td>
+                            <td><span class="mini-pill automatic">自动</span> <span class="mini-pill human">人工检查</span></td>
+                            <td>无需输入；阅读 Planner 自动展示的复核卡。</td>
+                            <td>确认合同可执行且未越界，并看到确认选项。</td>
+                        </tr>
+                        <tr>
+                            <td>5</td>
+                            <td><span class="mini-pill human">点击确认</span></td>
+                            <td>点击 <code>合同已复核，批准自动执行到人工验收阶段。</code></td>
+                            <td>进入 <code>APPROVED_CONTRACT</code> 并启动自动链路。</td>
+                        </tr>
+                        <tr>
+                            <td>6</td>
+                            <td><span class="mini-pill automatic">自动</span></td>
+                            <td>系统取得租约并原地切换任务分支，运行 Coder、质量门、Reviewer，生成验收包并主动弹出复核卡。</td>
+                            <td>sealed diff 与 Review 均已封存，卡片停在 <code>AWAITING_HUMAN</code>。</td>
+                        </tr>
+                        <tr>
+                            <td>7</td>
+                            <td><span class="mini-pill automatic">自动展示</span> <span class="mini-pill human">人工检查</span></td>
+                            <td>无需输入；按复核卡依次检查 P0 行为、回归/范围，再看 P1 证据、绑定与剩余风险。</td>
+                            <td>你能明确判断通过或不通过。</td>
+                        </tr>
+                        <tr>
+                            <td>8</td>
+                            <td><span class="mini-pill human">点击确认</span></td>
+                            <td>点击 <code>验收通过，提交到原分支。</code>；不通过或未完成检查则选择对应选项。</td>
+                            <td><code>COMPLETED</code>，本地原分支已更新，已集成的任务分支已删除。</td>
+                        </tr>
+                        <tr>
+                            <td>9</td>
+                            <td><span class="mini-pill terminal">Terminal</span></td>
+                            <td>查看分支、状态和提交；如需远端同步，再显式执行 <code>git push</code>。</td>
+                            <td>本地完成；可选远端完成。</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+        <footer class="footer">
+            本指南对应仓库中的 OpenCode coding orchestration V2。配置来源：<code>automation/config.json</code> 与
+            <code>.opencode/commands/change.md</code>；
+            人机边界来源：<code>scheduled-planner</code> 与 <code>scheduled-quality-orchestrator</code>；
+            Git 与质量门由 <code>scripts/automation/</code> 下的确定性脚本执行。
+        </footer>
+    </main>
+</body>
+</html>

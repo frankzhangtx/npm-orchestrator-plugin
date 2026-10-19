@@ -1,0 +1,1518 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Superpowers × OpenCode Scheduler 定时编程质量门禁融合方案 V1</title>
+    <style>
+        :root {
+            --bg: #f6f1e8;
+            --paper: #fffdf8;
+            --paper-strong: #ffffff;
+            --ink: #2f2a24;
+            --muted: #746b60;
+            --line: #ded4c6;
+            --accent: #b34f2b;
+            --accent-soft: #f7dfd3;
+            --amber: #a96f16;
+            --amber-soft: #fff1cb;
+            --green: #39785c;
+            --green-soft: #dff1e7;
+            --blue: #446f8f;
+            --blue-soft: #e2eef6;
+            --red: #a7463d;
+            --red-soft: #f9dfdc;
+            --purple: #6e5b8d;
+            --purple-soft: #ece5f7;
+            --shadow: 0 18px 50px rgba(79, 57, 37, 0.10);
+            --radius: 20px;
+            --mono: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        html {
+            scroll-behavior: smooth;
+        }
+
+        body {
+            margin: 0;
+            color: var(--ink);
+            background:
+                radial-gradient(circle at 10% 0%, rgba(179, 79, 43, 0.10), transparent 28%),
+                radial-gradient(circle at 95% 18%, rgba(68, 111, 143, 0.10), transparent 25%),
+                var(--bg);
+            font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont,
+                "Segoe UI", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+            line-height: 1.72;
+        }
+
+        a {
+            color: var(--blue);
+            text-decoration-thickness: 1px;
+            text-underline-offset: 3px;
+        }
+
+        code {
+            font-family: var(--mono);
+        }
+
+        .page {
+            width: min(1180px, calc(100% - 32px));
+            margin: 0 auto;
+            padding: 40px 0 72px;
+        }
+
+        .hero {
+            position: relative;
+            overflow: hidden;
+            padding: 56px;
+            border: 1px solid rgba(179, 79, 43, 0.22);
+            border-radius: 28px;
+            background: linear-gradient(135deg, rgba(255, 253, 248, 0.98), rgba(250, 236, 223, 0.94));
+            box-shadow: var(--shadow);
+        }
+
+        .hero::after {
+            content: "V1";
+            position: absolute;
+            right: 28px;
+            bottom: -50px;
+            color: rgba(179, 79, 43, 0.08);
+            font-size: 190px;
+            font-weight: 900;
+            line-height: 1;
+            letter-spacing: -0.08em;
+        }
+
+        .eyebrow {
+            margin: 0 0 12px;
+            color: var(--accent);
+            font-size: 13px;
+            font-weight: 800;
+            letter-spacing: 0.16em;
+            text-transform: uppercase;
+        }
+
+        h1,
+        h2,
+        h3,
+        h4 {
+            line-height: 1.25;
+            letter-spacing: -0.02em;
+        }
+
+        h1 {
+            position: relative;
+            z-index: 1;
+            max-width: 880px;
+            margin: 0;
+            font-size: clamp(34px, 5.5vw, 62px);
+        }
+
+        h2 {
+            margin: 0 0 12px;
+            font-size: clamp(25px, 3vw, 36px);
+        }
+
+        h3 {
+            margin: 0 0 8px;
+            font-size: 19px;
+        }
+
+        h4 {
+            margin: 0 0 6px;
+            font-size: 16px;
+        }
+
+        .lede {
+            position: relative;
+            z-index: 1;
+            max-width: 900px;
+            margin: 22px 0 0;
+            color: #5f554b;
+            font-size: 18px;
+        }
+
+        .hero-meta,
+        .tag-row {
+            position: relative;
+            z-index: 1;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-top: 24px;
+        }
+
+        .tag {
+            display: inline-flex;
+            align-items: center;
+            min-height: 30px;
+            padding: 4px 11px;
+            border: 1px solid var(--line);
+            border-radius: 999px;
+            background: rgba(255, 255, 255, 0.74);
+            color: #645a50;
+            font-size: 12px;
+            font-weight: 750;
+            white-space: nowrap;
+        }
+
+        .tag.green { border-color: #afd4c0; background: var(--green-soft); color: #286149; }
+        .tag.amber { border-color: #e3c47b; background: var(--amber-soft); color: #835711; }
+        .tag.red { border-color: #e1aaa4; background: var(--red-soft); color: #883932; }
+        .tag.blue { border-color: #aecadd; background: var(--blue-soft); color: #365e7a; }
+        .tag.purple { border-color: #c9bce0; background: var(--purple-soft); color: #5d4b79; }
+
+        .path-card {
+            position: relative;
+            z-index: 1;
+            display: grid;
+            grid-template-columns: 120px minmax(0, 1fr);
+            gap: 8px 16px;
+            margin-top: 28px;
+            padding: 16px 18px;
+            border: 1px solid rgba(179, 79, 43, 0.20);
+            border-radius: 14px;
+            background: rgba(255, 255, 255, 0.66);
+            font-size: 13px;
+        }
+
+        .path-card dt {
+            color: var(--muted);
+            font-weight: 800;
+        }
+
+        .path-card dd {
+            min-width: 0;
+            margin: 0;
+            font-family: var(--mono);
+            overflow-wrap: anywhere;
+        }
+
+        .status-banner {
+            display: grid;
+            grid-template-columns: auto minmax(0, 1fr);
+            gap: 16px;
+            margin-top: 24px;
+            padding: 20px 22px;
+            border: 1px solid #ddbe72;
+            border-radius: 18px;
+            background: linear-gradient(135deg, #fff5d7, #fffaf0);
+            box-shadow: 0 10px 30px rgba(109, 77, 26, 0.08);
+        }
+
+        .status-icon {
+            display: grid;
+            width: 42px;
+            height: 42px;
+            place-items: center;
+            border-radius: 50%;
+            background: var(--amber);
+            color: white;
+            font-weight: 900;
+        }
+
+        .status-banner strong {
+            display: block;
+            margin-bottom: 3px;
+            color: #6f4c14;
+            font-size: 17px;
+        }
+
+        .status-banner p {
+            margin: 0;
+            color: #715e3f;
+        }
+
+        .panel {
+            margin-top: 26px;
+            padding: 32px;
+            border: 1px solid var(--line);
+            border-radius: var(--radius);
+            background: rgba(255, 253, 248, 0.95);
+            box-shadow: 0 12px 34px rgba(74, 54, 38, 0.06);
+        }
+
+        .section-head {
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            gap: 24px;
+            margin-bottom: 22px;
+        }
+
+        .section-head p {
+            max-width: 710px;
+            margin: 6px 0 0;
+            color: var(--muted);
+        }
+
+        .section-no {
+            flex: 0 0 auto;
+            color: rgba(179, 79, 43, 0.30);
+            font-size: 42px;
+            font-weight: 900;
+            line-height: 1;
+        }
+
+        .grid-2,
+        .grid-3,
+        .grid-4 {
+            display: grid;
+            gap: 16px;
+        }
+
+        .grid-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+        .grid-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+        .grid-4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+
+        .card {
+            padding: 20px;
+            border: 1px solid var(--line);
+            border-radius: 16px;
+            background: var(--paper-strong);
+        }
+
+        .card p {
+            margin: 8px 0 0;
+            color: var(--muted);
+        }
+
+        .card .kicker {
+            display: block;
+            margin-bottom: 8px;
+            color: var(--accent);
+            font-size: 11px;
+            font-weight: 900;
+            letter-spacing: 0.12em;
+            text-transform: uppercase;
+        }
+
+        .verdict {
+            padding: 24px;
+            border-left: 5px solid var(--green);
+            border-radius: 14px;
+            background: linear-gradient(90deg, var(--green-soft), rgba(255, 255, 255, 0.72));
+        }
+
+        .verdict strong {
+            display: block;
+            margin-bottom: 7px;
+            color: #245d45;
+            font-size: 19px;
+        }
+
+        .verdict p {
+            margin: 0;
+            color: #476657;
+        }
+
+        .callout {
+            margin-top: 16px;
+            padding: 16px 18px;
+            border: 1px solid #c6d9e7;
+            border-radius: 14px;
+            background: var(--blue-soft);
+            color: #3d5e75;
+        }
+
+        .callout.warn {
+            border-color: #e2c681;
+            background: var(--amber-soft);
+            color: #73551f;
+        }
+
+        .callout.danger {
+            border-color: #e2b1ac;
+            background: var(--red-soft);
+            color: #783f39;
+        }
+
+        .callout strong {
+            color: inherit;
+        }
+
+        .diagram-wrap {
+            overflow-x: auto;
+            margin-top: 16px;
+            padding: 16px;
+            border: 1px solid var(--line);
+            border-radius: 18px;
+            background: #fffcf7;
+        }
+
+        svg {
+            display: block;
+            width: 100%;
+            min-width: 880px;
+            height: auto;
+        }
+
+        .caption {
+            margin: 11px 4px 0;
+            color: var(--muted);
+            font-size: 13px;
+            text-align: center;
+        }
+
+        .table-wrap {
+            overflow-x: auto;
+            border: 1px solid var(--line);
+            border-radius: 15px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            background: white;
+            font-size: 14px;
+        }
+
+        th,
+        td {
+            padding: 13px 15px;
+            border-bottom: 1px solid #ece5db;
+            text-align: left;
+            vertical-align: top;
+        }
+
+        th {
+            background: #f7f0e6;
+            color: #574c42;
+            font-size: 12px;
+            letter-spacing: 0.04em;
+            white-space: nowrap;
+        }
+
+        tr:last-child td {
+            border-bottom: 0;
+        }
+
+        td code,
+        p code,
+        li code {
+            padding: 2px 5px;
+            border-radius: 5px;
+            background: #f2ece3;
+            color: #704329;
+            font-size: 0.92em;
+            overflow-wrap: anywhere;
+        }
+
+        .tree,
+        .code-block {
+            overflow-x: auto;
+            margin: 0;
+            padding: 20px;
+            border: 1px solid #3e3a36;
+            border-radius: 14px;
+            background: #272521;
+            color: #f5eee4;
+            font-family: var(--mono);
+            font-size: 13px;
+            line-height: 1.72;
+            white-space: pre;
+        }
+
+        .code-block .comment { color: #a9bd9d; }
+        .code-block .key { color: #f1b979; }
+        .code-block .value { color: #9fcbe4; }
+        .code-block .danger-text { color: #f2a29a; }
+        .code-block .good-text { color: #9cd2ae; }
+
+        .snippet {
+            margin-top: 18px;
+            border: 1px solid var(--line);
+            border-radius: 16px;
+            overflow: hidden;
+            background: white;
+        }
+
+        .snippet-head {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            padding: 13px 16px;
+            border-bottom: 1px solid var(--line);
+            background: #f7f0e6;
+        }
+
+        .snippet-head strong {
+            font-family: var(--mono);
+            font-size: 13px;
+            overflow-wrap: anywhere;
+        }
+
+        .snippet .code-block {
+            border: 0;
+            border-radius: 0;
+        }
+
+        .annotation-grid {
+            display: grid;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 1px;
+            background: var(--line);
+        }
+
+        .annotation {
+            padding: 15px;
+            background: white;
+            color: var(--muted);
+            font-size: 13px;
+        }
+
+        .annotation b {
+            display: block;
+            margin-bottom: 4px;
+            color: var(--ink);
+        }
+
+        .steps,
+        .check-list,
+        .plain-list {
+            margin: 0;
+            padding: 0;
+            list-style: none;
+        }
+
+        .steps {
+            counter-reset: step;
+        }
+
+        .steps li {
+            position: relative;
+            min-height: 46px;
+            margin: 0 0 14px;
+            padding: 0 0 14px 54px;
+            border-bottom: 1px dashed var(--line);
+        }
+
+        .steps li:last-child {
+            margin-bottom: 0;
+            padding-bottom: 0;
+            border-bottom: 0;
+        }
+
+        .steps li::before {
+            counter-increment: step;
+            content: counter(step);
+            position: absolute;
+            top: 0;
+            left: 0;
+            display: grid;
+            width: 34px;
+            height: 34px;
+            place-items: center;
+            border-radius: 50%;
+            background: var(--accent-soft);
+            color: var(--accent);
+            font-weight: 900;
+        }
+
+        .check-list li,
+        .plain-list li {
+            position: relative;
+            margin: 10px 0;
+            padding-left: 26px;
+        }
+
+        .check-list li::before {
+            content: "✓";
+            position: absolute;
+            left: 0;
+            color: var(--green);
+            font-weight: 900;
+        }
+
+        .plain-list li::before {
+            content: "→";
+            position: absolute;
+            left: 0;
+            color: var(--accent);
+            font-weight: 900;
+        }
+
+        .metric {
+            padding: 18px;
+            border: 1px solid var(--line);
+            border-radius: 15px;
+            background: white;
+        }
+
+        .metric strong {
+            display: block;
+            color: var(--accent);
+            font-size: 23px;
+        }
+
+        .metric span {
+            color: var(--muted);
+            font-size: 13px;
+        }
+
+        .sources {
+            margin: 0;
+            padding-left: 20px;
+        }
+
+        .sources li {
+            margin: 10px 0;
+        }
+
+        .footer {
+            margin-top: 26px;
+            padding: 22px;
+            color: var(--muted);
+            font-size: 13px;
+            text-align: center;
+        }
+
+        @media (max-width: 900px) {
+            .hero { padding: 36px 28px; }
+            .panel { padding: 24px; }
+            .grid-3,
+            .grid-4,
+            .annotation-grid { grid-template-columns: 1fr 1fr; }
+        }
+
+        @media (max-width: 640px) {
+            .page { width: min(100% - 20px, 1180px); padding-top: 18px; }
+            .hero { padding: 30px 20px; border-radius: 20px; }
+            .hero::after { font-size: 110px; }
+            .panel { padding: 21px 17px; }
+            .grid-2,
+            .grid-3,
+            .grid-4,
+            .annotation-grid { grid-template-columns: 1fr; }
+            .path-card { grid-template-columns: 1fr; }
+            .status-banner { grid-template-columns: 1fr; }
+            .section-no { display: none; }
+        }
+    </style>
+</head>
+<body>
+    <main class="page">
+        <header class="hero">
+            <p class="eyebrow">Scheduled Coding Quality Gate · Fusion Design</p>
+            <h1>Superpowers × OpenCode Scheduler<br>定时编程质量门禁融合方案 V1</h1>
+            <p class="lede">
+                将 Superpowers 的 TDD、系统化调试与“完成前验证”转化为模型内部的工程纪律，
+                再由调度器、状态机、确定性脚本、独立审查和人工合并构成外部硬约束。
+                目标不是让自动编码代理更自由，而是让每一次自动修改都留下可复查、可阻断、不可自证的证据链。
+            </p>
+            <div class="hero-meta">
+                <span class="tag green">基线单元测试已恢复通过</span>
+                <span class="tag amber">当前不可直接无人值守</span>
+                <span class="tag purple">Superpowers 尚未接入 OpenCode</span>
+                <span class="tag blue">文档方案，不写入自动化实现</span>
+            </div>
+            <dl class="path-card">
+                <dt>原方案</dt>
+                <dd>代码结构文档/scheduled-coding-quality-gate-explained.html</dd>
+                <dt>事实来源</dt>
+                <dd>当前 Android 仓库、OpenCode 全局配置、Superpowers 上游技能说明</dd>
+                <dt>本页输出</dt>
+                <dd>代码结构文档/scheduled-coding-quality-gate-explained-v1.html</dd>
+                <dt>适用项目</dt>
+                <dd>/Users/zhanglong/files/program/cctest</dd>
+            </dl>
+        </header>
+
+        <aside class="status-banner" aria-label="当前准备状态">
+            <div class="status-icon">!</div>
+            <div>
+                <strong>当前结论：方案可行，但尚未达到定时无人值守的启动条件。</strong>
+                <p>
+                    <code>./gradlew testDebugUnitTest</code> 已显示 <code>BUILD SUCCESSFUL</code>；与此同时，主工作区仍有修改和未跟踪文件，
+                    OpenCode 配置尚未安装 Superpowers，项目中也没有 <code>.opencode/</code> 与 <code>scripts/automation/</code> 骨架。
+                    必须先在独立工作树中完成接入、手动演练和权限验证。
+                </p>
+            </div>
+        </aside>
+
+        <section class="panel" id="reading-guide">
+            <div class="section-head">
+                <div>
+                    <p class="eyebrow">Reading Guide</p>
+                    <h2>先用三分钟读懂这版变化</h2>
+                    <p>如果只做决策，依次阅读“融合结论 → 总流程 → 技能边界 → 门禁 → 上线清单”。</p>
+                </div>
+                <span class="section-no">00</span>
+            </div>
+            <div class="grid-3">
+                <article class="card">
+                    <span class="kicker">What stays</span>
+                    <h3>保留原方案的外部控制</h3>
+                    <p>双 Job、显式状态机、Gradle 硬门禁、只读审查者、人工合并仍是安全主干。</p>
+                </article>
+                <article class="card">
+                    <span class="kicker">What changes</span>
+                    <h3>补上模型内部工程纪律</h3>
+                    <p>编码 Job 只允许使用 TDD、有限调试和完成前验证；审查 Job 使用独立包装技能。</p>
+                </article>
+                <article class="card">
+                    <span class="kicker">What is forbidden</span>
+                    <h3>无人值守时不开放交互型能力</h3>
+                    <p>头脑风暴、创建工作树、结束分支和并行子代理在 V1 中禁止自动触发。</p>
+                </article>
+            </div>
+        </section>
+
+        <section class="panel" id="verdict">
+            <div class="section-head">
+                <div>
+                    <p class="eyebrow">Core Verdict</p>
+                    <h2>融合原则：内层纪律，外层裁决</h2>
+                    <p>Superpowers 能提高代理执行过程的严谨性，但不能成为通过门禁的唯一依据。</p>
+                </div>
+                <span class="section-no">01</span>
+            </div>
+            <div class="verdict">
+                <strong>可以结合，而且适合结合；关键是不能把“代理说自己用了技能”当作质量证明。</strong>
+                <p>
+                    Superpowers 负责“怎样思考与实现”；Scheduler 负责“何时运行”；脚本负责“客观证据”；
+                    独立 Reviewer 负责“第二视角”；Human 负责“最终风险接受”。只有确定性门禁脚本有权将任务推进到
+                    <code>READY_FOR_REVIEW</code>，编码代理无权自我认证。
+                </p>
+            </div>
+            <div class="grid-4" style="margin-top: 18px;">
+                <article class="card">
+                    <span class="kicker">Layer 1</span>
+                    <h3>人类批准</h3>
+                    <p>冻结需求、范围、非目标和验收条件。</p>
+                </article>
+                <article class="card">
+                    <span class="kicker">Layer 2</span>
+                    <h3>技能纪律</h3>
+                    <p>TDD、系统化调试、完成前验证。</p>
+                </article>
+                <article class="card">
+                    <span class="kicker">Layer 3</span>
+                    <h3>确定性门禁</h3>
+                    <p>测试、构建、Lint、范围与测试完整性。</p>
+                </article>
+                <article class="card">
+                    <span class="kicker">Layer 4</span>
+                    <h3>独立裁决</h3>
+                    <p>只读 Reviewer 加人工合并，拒绝自审闭环。</p>
+                </article>
+            </div>
+        </section>
+
+        <section class="panel" id="architecture">
+            <div class="section-head">
+                <div>
+                    <p class="eyebrow">Architecture</p>
+                    <h2>端到端融合流程</h2>
+                    <p>交互式规划只发生在人类在线阶段；定时阶段只执行已经批准、边界明确的原子任务。</p>
+                </div>
+                <span class="section-no">02</span>
+            </div>
+
+            <div class="diagram-wrap">
+                <svg viewBox="0 0 1160 680" role="img" aria-labelledby="flow-title flow-desc">
+                    <title id="flow-title">Superpowers 与 OpenCode Scheduler 的定时编程融合流程</title>
+                    <desc id="flow-desc">从人类参与的设计批准开始，经定时编码、TDD、确定性质量门禁、独立审查，最后由人类合并。</desc>
+                    <defs>
+                        <marker id="arrow" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto" markerUnits="strokeWidth">
+                            <path d="M0,0 L0,6 L9,3 z" fill="#806f60"></path>
+                        </marker>
+                        <filter id="soft-shadow" x="-20%" y="-20%" width="140%" height="140%">
+                            <feDropShadow dx="0" dy="5" stdDeviation="5" flood-color="#6d5138" flood-opacity="0.12"></feDropShadow>
+                        </filter>
+                    </defs>
+
+                    <rect x="20" y="20" width="1120" height="116" rx="20" fill="#fff1cb" stroke="#d9b665"></rect>
+                    <text x="48" y="50" fill="#835711" font-size="14" font-weight="800">人类在线区 · C0</text>
+                    <rect x="55" y="67" width="240" height="48" rx="12" fill="#ffffff" stroke="#d9b665" filter="url(#soft-shadow)"></rect>
+                    <text x="175" y="88" text-anchor="middle" fill="#3f372f" font-size="14" font-weight="700">brainstorming + writing-plans</text>
+                    <text x="175" y="106" text-anchor="middle" fill="#746b60" font-size="11">澄清、设计、拆成原子任务</text>
+                    <line x1="295" y1="91" x2="380" y2="91" stroke="#806f60" stroke-width="2" marker-end="url(#arrow)"></line>
+                    <rect x="390" y="67" width="280" height="48" rx="12" fill="#ffffff" stroke="#d9b665" filter="url(#soft-shadow)"></rect>
+                    <text x="530" y="88" text-anchor="middle" fill="#3f372f" font-size="14" font-weight="700">批准 Task Contract</text>
+                    <text x="530" y="106" text-anchor="middle" fill="#746b60" font-size="11">design_approved: true</text>
+                    <line x1="670" y1="91" x2="755" y2="91" stroke="#806f60" stroke-width="2" marker-end="url(#arrow)"></line>
+                    <rect x="765" y="67" width="320" height="48" rx="12" fill="#ffffff" stroke="#d9b665" filter="url(#soft-shadow)"></rect>
+                    <text x="925" y="88" text-anchor="middle" fill="#3f372f" font-size="14" font-weight="700">放入专用 Worktree / PENDING</text>
+                    <text x="925" y="106" text-anchor="middle" fill="#746b60" font-size="11">主工作区不作为定时执行目录</text>
+
+                    <line x1="925" y1="115" x2="925" y2="170" stroke="#806f60" stroke-width="2" marker-end="url(#arrow)"></line>
+
+                    <rect x="20" y="166" width="1120" height="298" rx="20" fill="#eaf4f8" stroke="#9fc0d4"></rect>
+                    <text x="48" y="196" fill="#365e7a" font-size="14" font-weight="800">无人值守执行区 · scheduled-coder</text>
+
+                    <rect x="52" y="218" width="200" height="76" rx="14" fill="#ffffff" stroke="#9fc0d4" filter="url(#soft-shadow)"></rect>
+                    <text x="152" y="244" text-anchor="middle" fill="#3f372f" font-size="14" font-weight="700">S0 技能预检</text>
+                    <text x="152" y="264" text-anchor="middle" fill="#746b60" font-size="11">插件、包装技能、权限</text>
+                    <text x="152" y="281" text-anchor="middle" fill="#746b60" font-size="11">缺失即 BLOCKED</text>
+
+                    <line x1="252" y1="256" x2="298" y2="256" stroke="#806f60" stroke-width="2" marker-end="url(#arrow)"></line>
+                    <rect x="308" y="218" width="220" height="76" rx="14" fill="#ffffff" stroke="#9fc0d4" filter="url(#soft-shadow)"></rect>
+                    <text x="418" y="244" text-anchor="middle" fill="#3f372f" font-size="14" font-weight="700">G0 基线验证</text>
+                    <text x="418" y="264" text-anchor="middle" fill="#746b60" font-size="11">任务前测试必须为绿</text>
+                    <text x="418" y="281" text-anchor="middle" fill="#746b60" font-size="11">否则不接管历史故障</text>
+
+                    <line x1="528" y1="256" x2="574" y2="256" stroke="#806f60" stroke-width="2" marker-end="url(#arrow)"></line>
+                    <rect x="584" y="208" width="252" height="96" rx="14" fill="#fffaf0" stroke="#c9a458" filter="url(#soft-shadow)"></rect>
+                    <text x="710" y="235" text-anchor="middle" fill="#3f372f" font-size="14" font-weight="700">Superpowers 内层纪律</text>
+                    <text x="710" y="255" text-anchor="middle" fill="#746b60" font-size="11">TDD：RED → GREEN → REFACTOR</text>
+                    <text x="710" y="273" text-anchor="middle" fill="#746b60" font-size="11">失败时：systematic-debugging</text>
+                    <text x="710" y="291" text-anchor="middle" fill="#746b60" font-size="11">最多 1 个修复循环</text>
+
+                    <line x1="836" y1="256" x2="882" y2="256" stroke="#806f60" stroke-width="2" marker-end="url(#arrow)"></line>
+                    <rect x="892" y="208" width="216" height="96" rx="14" fill="#ffffff" stroke="#65a281" filter="url(#soft-shadow)"></rect>
+                    <text x="1000" y="235" text-anchor="middle" fill="#285f48" font-size="14" font-weight="700">完成前验证</text>
+                    <text x="1000" y="255" text-anchor="middle" fill="#746b60" font-size="11">fresh evidence only</text>
+                    <text x="1000" y="273" text-anchor="middle" fill="#746b60" font-size="11">记录命令、退出码、摘要</text>
+                    <text x="1000" y="291" text-anchor="middle" fill="#746b60" font-size="11">代理仍无权自证通过</text>
+
+                    <line x1="1000" y1="304" x2="1000" y2="342" stroke="#806f60" stroke-width="2" marker-end="url(#arrow)"></line>
+                    <rect x="540" y="350" width="568" height="82" rx="14" fill="#dff1e7" stroke="#65a281" filter="url(#soft-shadow)"></rect>
+                    <text x="824" y="376" text-anchor="middle" fill="#285f48" font-size="14" font-weight="800">确定性 quality-gate.sh · G1–G6</text>
+                    <text x="824" y="397" text-anchor="middle" fill="#476657" font-size="11">RED 证据 → 目标/全量测试 → 构建 → Lint → 条件设备测试</text>
+                    <text x="824" y="415" text-anchor="middle" fill="#476657" font-size="11">范围检查 + 测试完整性；仅脚本可写 READY_FOR_REVIEW</text>
+
+                    <path d="M540 391 H390 V350" fill="none" stroke="#a7463d" stroke-width="2" marker-end="url(#arrow)"></path>
+                    <rect x="52" y="338" width="338" height="94" rx="14" fill="#f9dfdc" stroke="#d28c84"></rect>
+                    <text x="221" y="365" text-anchor="middle" fill="#883932" font-size="14" font-weight="800">失败出口</text>
+                    <text x="221" y="386" text-anchor="middle" fill="#783f39" font-size="11">基线失败 → TEST_FAILED / 人工处理</text>
+                    <text x="221" y="404" text-anchor="middle" fill="#783f39" font-size="11">歧义、越界、技能缺失 → BLOCKED</text>
+                    <text x="221" y="422" text-anchor="middle" fill="#783f39" font-size="11">禁止猜测、禁止扩大范围</text>
+
+                    <line x1="824" y1="432" x2="824" y2="496" stroke="#806f60" stroke-width="2" marker-end="url(#arrow)"></line>
+
+                    <rect x="20" y="492" width="1120" height="112" rx="20" fill="#ece5f7" stroke="#b9a8d2"></rect>
+                    <text x="48" y="522" fill="#5d4b79" font-size="14" font-weight="800">独立审查区 · scheduled-reviewer · G7</text>
+                    <rect x="70" y="542" width="300" height="42" rx="12" fill="#ffffff" stroke="#b9a8d2"></rect>
+                    <text x="220" y="568" text-anchor="middle" fill="#3f372f" font-size="13" font-weight="700">只读加载 diff、合同与证据</text>
+                    <line x1="370" y1="563" x2="435" y2="563" stroke="#806f60" stroke-width="2" marker-end="url(#arrow)"></line>
+                    <rect x="445" y="542" width="270" height="42" rx="12" fill="#ffffff" stroke="#b9a8d2"></rect>
+                    <text x="580" y="568" text-anchor="middle" fill="#3f372f" font-size="13" font-weight="700">独立重跑关键门禁</text>
+                    <line x1="715" y1="563" x2="780" y2="563" stroke="#806f60" stroke-width="2" marker-end="url(#arrow)"></line>
+                    <rect x="790" y="542" width="300" height="42" rx="12" fill="#ffffff" stroke="#b9a8d2"></rect>
+                    <text x="940" y="568" text-anchor="middle" fill="#3f372f" font-size="13" font-weight="700">APPROVED / CHANGES_REQUESTED</text>
+
+                    <line x1="940" y1="584" x2="940" y2="628" stroke="#806f60" stroke-width="2" marker-end="url(#arrow)"></line>
+                    <rect x="695" y="630" width="395" height="36" rx="12" fill="#fff1cb" stroke="#d9b665"></rect>
+                    <text x="892" y="653" text-anchor="middle" fill="#6f4c14" font-size="13" font-weight="800">H1 AWAITING_HUMAN → 人工检查与合并</text>
+                </svg>
+            </div>
+            <p class="caption">图 1：Superpowers 只增强编码过程；状态推进仍由脚本、独立 Reviewer 和人类掌握。</p>
+
+            <div class="callout warn">
+                <strong>边界说明：</strong>Superpowers 的 <code>requesting-code-review</code> 会倾向于在同一代理流程中派发审查子代理。
+                V1 只借用其审查思想，不把它当作独立审查的替代品；真正的 G7 必须来自另一个定时会话、只读权限和重新执行的证据。
+            </div>
+        </section>
+
+        <section class="panel" id="skills">
+            <div class="section-head">
+                <div>
+                    <p class="eyebrow">Skill Policy</p>
+                    <h2>技能白名单与禁用边界</h2>
+                    <p>V1 使用最小技能集。任何未在合同中明确允许的技能，都按拒绝处理。</p>
+                </div>
+                <span class="section-no">03</span>
+            </div>
+
+            <div class="table-wrap">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>技能 / 能力</th>
+                            <th>使用阶段</th>
+                            <th>V1 策略</th>
+                            <th>原因与约束</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><code>brainstorming</code></td>
+                            <td>人类在线规划</td>
+                            <td><span class="tag amber">仅交互阶段</span></td>
+                            <td>需要提问、确认设计与用户批准；无人值守时遇到歧义必须转 <code>BLOCKED</code>。</td>
+                        </tr>
+                        <tr>
+                            <td><code>writing-plans</code></td>
+                            <td>人类在线规划</td>
+                            <td><span class="tag amber">仅交互阶段</span></td>
+                            <td>把批准设计拆成小步任务，输出 <code>plan_path</code> 与原子合同。</td>
+                        </tr>
+                        <tr>
+                            <td><code>test-driven-development</code></td>
+                            <td>scheduled-coder</td>
+                            <td><span class="tag green">允许</span></td>
+                            <td>要求先看到新测试失败，再写最小实现；RED 证据交给 G1 检查。</td>
+                        </tr>
+                        <tr>
+                            <td><code>systematic-debugging</code></td>
+                            <td>scheduled-coder</td>
+                            <td><span class="tag green">有限允许</span></td>
+                            <td>仅在验证失败时使用，最多一个修复循环；超过上限转人工。</td>
+                        </tr>
+                        <tr>
+                            <td><code>verification-before-completion</code></td>
+                            <td>coder / reviewer</td>
+                            <td><span class="tag green">允许</span></td>
+                            <td>强制新鲜命令证据，但最终状态仍由外部脚本写入。</td>
+                        </tr>
+                        <tr>
+                            <td><code>requesting-code-review</code></td>
+                            <td>审查规则设计</td>
+                            <td><span class="tag blue">只借鉴清单</span></td>
+                            <td>不允许同一 Job 派发的子代理取代独立只读 Reviewer。</td>
+                        </tr>
+                        <tr>
+                            <td><code>using-git-worktrees</code></td>
+                            <td>无人值守阶段</td>
+                            <td><span class="tag red">禁用</span></td>
+                            <td>Scheduler 已提供专用工作树；代理自行创建会扩大文件系统与清理风险。</td>
+                        </tr>
+                        <tr>
+                            <td><code>finishing-a-development-branch</code></td>
+                            <td>无人值守阶段</td>
+                            <td><span class="tag red">禁用</span></td>
+                            <td>不得自动合并、推送、删除分支或清理工作树。</td>
+                        </tr>
+                        <tr>
+                            <td>并行 / 子代理驱动开发</td>
+                            <td>无人值守阶段</td>
+                            <td><span class="tag red">V1 禁用</span></td>
+                            <td>先建立单任务、单写入者的稳定证据链，再评估并发。</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+        <section class="panel" id="roles">
+            <div class="section-head">
+                <div>
+                    <p class="eyebrow">Responsibility Split</p>
+                    <h2>四个角色，四种不可替代的责任</h2>
+                    <p>准确性来自权力分离：提出修改的人，不能同时决定修改已安全完成。</p>
+                </div>
+                <span class="section-no">04</span>
+            </div>
+            <div class="table-wrap">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>角色</th>
+                            <th>可做</th>
+                            <th>不可做</th>
+                            <th>输出</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><strong>Human Planner</strong></td>
+                            <td>澄清需求、批准设计、定义范围和验收条件。</td>
+                            <td>不把模糊需求直接放入队列。</td>
+                            <td><code>APPROVED_CONTRACT</code></td>
+                        </tr>
+                        <tr>
+                            <td><strong>scheduled-coder</strong></td>
+                            <td>在白名单路径内按 TDD 修改，生成证据。</td>
+                            <td>不得改规则、扩大范围、自写通过状态、推送或合并。</td>
+                            <td>diff、测试记录、实现摘要</td>
+                        </tr>
+                        <tr>
+                            <td><strong>quality-gate.sh</strong></td>
+                            <td>运行确定性检查并按退出码写状态。</td>
+                            <td>不做语义判断，不修改产品代码。</td>
+                            <td><code>READY_FOR_REVIEW</code> 或失败状态</td>
+                        </tr>
+                        <tr>
+                            <td><strong>scheduled-reviewer</strong></td>
+                            <td>只读审 diff、合同、测试质量，独立重跑门禁。</td>
+                            <td>不得修代码、不得复用 coder 的主观结论。</td>
+                            <td><code>APPROVED</code> / <code>CHANGES_REQUESTED</code></td>
+                        </tr>
+                        <tr>
+                            <td><strong>Human Merger</strong></td>
+                            <td>审最终差异、风险和证据后决定合并。</td>
+                            <td>V1 不授权任何自动合并。</td>
+                            <td>合并、退回或放弃</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+        <section class="panel" id="state-machine">
+            <div class="section-head">
+                <div>
+                    <p class="eyebrow">State Machine</p>
+                    <h2>状态机升级：把批准与阻塞显式化</h2>
+                    <p>状态只能由指定角色按规则转换；禁止用自然语言“看起来完成了”替代状态文件。</p>
+                </div>
+                <span class="section-no">05</span>
+            </div>
+            <div class="table-wrap">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>状态</th>
+                            <th>写入者</th>
+                            <th>进入条件</th>
+                            <th>允许的下一状态</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr><td><code>APPROVED_CONTRACT</code></td><td>Human</td><td>设计已批准，合同字段完整。</td><td><code>PENDING</code></td></tr>
+                        <tr><td><code>PENDING</code></td><td>Queue script</td><td>专用工作树干净，任务可调度。</td><td><code>CODING</code> / <code>BLOCKED</code></td></tr>
+                        <tr><td><code>CODING</code></td><td>Coder launcher</td><td>S0 与 G0 通过，锁已获取。</td><td><code>TEST_FAILED</code> / <code>BLOCKED</code> / <code>READY_FOR_REVIEW</code></td></tr>
+                        <tr><td><code>TEST_FAILED</code></td><td>Gate script</td><td>确定性检查失败，保留日志。</td><td><code>PENDING</code>（人工修订合同后）</td></tr>
+                        <tr><td><code>BLOCKED</code></td><td>Coder / scripts</td><td>歧义、越界、依赖/技能缺失、环境不可用。</td><td><code>PENDING</code>（人工解除后）</td></tr>
+                        <tr><td><code>READY_FOR_REVIEW</code></td><td>Gate script only</td><td>G1–G6 全部通过。</td><td><code>CHANGES_REQUESTED</code> / <code>AWAITING_HUMAN</code></td></tr>
+                        <tr><td><code>CHANGES_REQUESTED</code></td><td>Reviewer</td><td>发现缺陷、弱测试、越界或证据不充分。</td><td><code>PENDING</code>（人工批准重试）</td></tr>
+                        <tr><td><code>AWAITING_HUMAN</code></td><td>Reviewer</td><td>G7 通过并给出审查摘要。</td><td>合并 / 退回 / 放弃</td></tr>
+                    </tbody>
+                </table>
+            </div>
+            <div class="callout danger">
+                <strong>禁止隐式重试：</strong><code>TEST_FAILED</code>、<code>BLOCKED</code> 和 <code>CHANGES_REQUESTED</code>
+                都不能由下一个 Cron 周期自动继续。必须由人类确认原因、修订合同或环境，再显式重新排队，避免代理在错误方向上持续消耗并扩大 diff。
+            </div>
+        </section>
+
+        <section class="panel" id="gates">
+            <div class="section-head">
+                <div>
+                    <p class="eyebrow">Quality Gates</p>
+                    <h2>从 C0 到 H1 的证据链</h2>
+                    <p>门禁既检查结果，也检查过程与范围；每一步都应保存命令、时间、退出码和摘要。</p>
+                </div>
+                <span class="section-no">06</span>
+            </div>
+            <div class="table-wrap">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>门禁</th>
+                            <th>最小证据</th>
+                            <th>失败动作</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr><td><strong>C0</strong></td><td>人类批准合同</td><td><code>design_approved: true</code>、<code>plan_path</code>、验收条件、路径白名单。</td><td><code>BLOCKED</code></td></tr>
+                        <tr><td><strong>S0</strong></td><td>Superpowers 预检</td><td>插件已加载、两个项目包装技能可发现、版本/来源已记录。</td><td><code>BLOCKED</code></td></tr>
+                        <tr><td><strong>G0</strong></td><td>任务前基线</td><td><code>./gradlew testDebugUnitTest</code> 在未修改状态通过。</td><td><code>TEST_FAILED</code></td></tr>
+                        <tr><td><strong>G1</strong></td><td>TDD RED 证据</td><td>新增或修改的目标测试在实现前失败，失败原因与需求一致。</td><td><code>TEST_FAILED</code></td></tr>
+                        <tr><td><strong>G2</strong></td><td>目标与全量单测</td><td>目标测试和 <code>testDebugUnitTest</code> 均通过。</td><td>允许一次系统化修复，仍失败则停止</td></tr>
+                        <tr><td><strong>G3</strong></td><td>Debug 构建</td><td><code>./gradlew assembleDebug</code> 退出码为 0。</td><td><code>TEST_FAILED</code></td></tr>
+                        <tr><td><strong>G4</strong></td><td>Android Lint</td><td><code>./gradlew lint</code> 退出码为 0，报告归档。</td><td><code>TEST_FAILED</code></td></tr>
+                        <tr><td><strong>G5</strong></td><td>条件设备测试</td><td>合同要求且设备可用时，<code>connectedDebugAndroidTest</code> 通过。</td><td>无设备则 <code>BLOCKED</code>，不伪装跳过</td></tr>
+                        <tr><td><strong>G6</strong></td><td>范围与测试完整性</td><td>变更路径、文件数、测试删除/弱化、规则文件哈希全部合规。</td><td><code>BLOCKED</code></td></tr>
+                        <tr><td><strong>G7</strong></td><td>独立只读审查</td><td>Reviewer 重新执行关键命令，检查语义、边界、回归与测试质量。</td><td><code>CHANGES_REQUESTED</code></td></tr>
+                        <tr><td><strong>H1</strong></td><td>人工合并</td><td>人类确认最终 diff、日志、审查意见和剩余风险。</td><td>退回或放弃</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+        <section class="panel" id="files">
+            <div class="section-head">
+                <div>
+                    <p class="eyebrow">Proposed Structure</p>
+                    <h2>建议新增的项目文件</h2>
+                    <p>项目级包装技能优先于上游通用技能，负责把通用方法收窄为本仓库的确定性规则。</p>
+                </div>
+                <span class="section-no">07</span>
+            </div>
+            <pre class="tree" aria-label="建议目录结构">cctest/
+├── .opencode/
+│   ├── agents/
+│   │   ├── scheduled-coder.md
+│   │   └── scheduled-reviewer.md
+│   └── skills/
+│       ├── scheduled-quality-coder/
+│       │   └── SKILL.md
+│       └── scheduled-quality-reviewer/
+│           └── SKILL.md
+├── automation/
+│   ├── tasks/
+│   │   └── TASK-0001.yaml
+│   ├── state/
+│   │   └── TASK-0001.state
+│   └── evidence/
+│       └── TASK-0001/
+│           ├── baseline.log
+│           ├── red.log
+│           ├── gates.log
+│           └── review.md
+├── scripts/
+│   └── automation/
+│       ├── preflight.sh
+│       ├── quality-gate.sh
+│       ├── scope-gate.sh
+│       └── transition-state.sh
+└── 代码结构文档/
+    └── scheduled-coding-quality-gate-explained-v1.html</pre>
+            <div class="callout">
+                <strong>此处是目标结构，不是当前仓库事实。</strong>本次文档任务不会创建上述自动化目录、脚本、Agent 或 Skill；它们应在单独的实现任务中逐项生成、审查和演练。
+            </div>
+        </section>
+
+        <section class="panel" id="templates">
+            <div class="section-head">
+                <div>
+                    <p class="eyebrow">Annotated Templates</p>
+                    <h2>关键配置与包装技能模板</h2>
+                    <p>以下片段用于说明实现边界。正式落地时应锁定可复现版本，并按实际 OpenCode 配置格式验证。</p>
+                </div>
+                <span class="section-no">08</span>
+            </div>
+
+            <div class="snippet">
+                <div class="snippet-head">
+                    <strong>~/.config/opencode/opencode.jsonc（提议修改）</strong>
+                    <span class="tag purple">全局插件接入</span>
+                </div>
+                <pre class="code-block"><span class="comment">// 保留现有 scheduler，再加入 Superpowers 上游插件</span>
+{
+  <span class="key">"plugin"</span>: [
+    <span class="value">"opencode-scheduler"</span>,
+    <span class="value">"superpowers@git+https://github.com/obra/superpowers.git"</span>
+  ]
+}</pre>
+                <div class="annotation-grid">
+                    <div class="annotation"><b>① 不覆盖现有调度器</b>插件数组保留 <code>opencode-scheduler</code>，融合发生在同一 OpenCode 运行环境中。</div>
+                    <div class="annotation"><b>② 先手动验证发现能力</b>正式定时前确认 Superpowers 技能可被加载，缺失时 S0 必须阻断。</div>
+                    <div class="annotation"><b>③ 锁版本后再生产使用</b>Git 主分支可能变化；试点通过后应使用可审计的提交或版本，而不是长期漂移。</div>
+                </div>
+            </div>
+
+            <div class="snippet">
+                <div class="snippet-head">
+                    <strong>.opencode/skills/scheduled-quality-coder/SKILL.md（提议新增）</strong>
+                    <span class="tag green">编码包装技能</span>
+                </div>
+                <pre class="code-block">---
+name: scheduled-quality-coder
+description: Execute one approved Android task under scheduled quality gates.
+---
+
+1. Read exactly one task contract. Require <span class="good-text">design_approved: true</span>.
+2. Refuse ambiguity, dirty worktree, missing skills, or out-of-scope paths.
+3. Use these Superpowers disciplines only:
+   - test-driven-development
+   - systematic-debugging <span class="comment"># only after a failed verification; max one loop</span>
+   - verification-before-completion
+4. Capture a genuine RED result before product implementation.
+5. Make the smallest change inside allowed_paths.
+6. Run the deterministic gate script; never write READY_FOR_REVIEW directly.
+7. Never push, merge, create worktrees, edit automation rules, or weaken tests.</pre>
+                <div class="annotation-grid">
+                    <div class="annotation"><b>① 包装而非复制</b>项目 Skill 调用 Superpowers 的方法，但增加 Android、路径、状态与调度约束。</div>
+                    <div class="annotation"><b>② 歧义即停止</b>无人值守模式不能替用户补需求；使用 <code>BLOCKED</code> 形成显式反馈。</div>
+                    <div class="annotation"><b>③ 状态权力分离</b>即使代理已验证，也只能调用门禁脚本，不能直接宣称进入审查。</div>
+                </div>
+            </div>
+
+            <div class="snippet">
+                <div class="snippet-head">
+                    <strong>.opencode/skills/scheduled-quality-reviewer/SKILL.md（提议新增）</strong>
+                    <span class="tag purple">只读审查包装技能</span>
+                </div>
+                <pre class="code-block">---
+name: scheduled-quality-reviewer
+description: Independently review one gated task without editing repository files.
+---
+
+1. Require state READY_FOR_REVIEW and load the approved contract.
+2. Treat coder summaries as untrusted claims; inspect the actual diff and logs.
+3. Re-run the required verification commands with fresh output.
+4. Check acceptance criteria, regression risk, scope, test quality, and test weakening.
+5. Do not edit code, tests, task contracts, state scripts, or evidence produced by coder.
+6. Emit exactly one decision:
+   - APPROVED with evidence and residual risks
+   - CHANGES_REQUESTED with actionable findings</pre>
+                <div class="annotation-grid">
+                    <div class="annotation"><b>① 不信任摘要</b>Reviewer 从 Git diff 和原始日志开始，而不是延续 Coder 的叙事。</div>
+                    <div class="annotation"><b>② 新鲜证据</b>借用完成前验证原则，关键命令在独立会话中重新运行。</div>
+                    <div class="annotation"><b>③ 只读角色</b>发现问题只给出结论，不顺手修复，避免审查与实现重新合并为同一权力。</div>
+                </div>
+            </div>
+
+            <div class="snippet">
+                <div class="snippet-head">
+                    <strong>automation/tasks/TASK-0001.yaml（提议新增）</strong>
+                    <span class="tag amber">增强任务合同</span>
+                </div>
+                <pre class="code-block">id: TASK-0001
+title: "单一、可验证的变更目标"
+state: APPROVED_CONTRACT
+design_approved: true
+plan_path: "docs/plans/TASK-0001.md"
+ambiguity_policy: BLOCKED
+max_fix_loops: 1
+max_changed_files: 4
+
+allowed_paths:
+  - "app/src/main/java/com/example/cctest/**"
+  - "app/src/test/java/com/example/cctest/**"
+forbidden_paths:
+  - ".opencode/**"
+  - "automation/**"
+  - "scripts/automation/**"
+  - "gradle/**"
+
+allowed_superpowers:
+  - test-driven-development
+  - systematic-debugging
+  - verification-before-completion
+forbidden_superpowers:
+  - brainstorming
+  - using-git-worktrees
+  - finishing-a-development-branch
+  - subagent-driven-development
+
+acceptance:
+  - "可观察行为 A 满足给定输入与输出"
+  - "新增目标测试先红后绿"
+  - "./gradlew testDebugUnitTest assembleDebug lint 全部通过"
+non_goals:
+  - "不重构无关页面"
+  - "不升级依赖或 Gradle 配置"</pre>
+                <div class="annotation-grid">
+                    <div class="annotation"><b>① 合同必须已批准</b><code>design_approved</code> 与 <code>plan_path</code> 把交互设计和定时执行连接起来。</div>
+                    <div class="annotation"><b>② 双重边界</b>同时定义允许路径和禁止路径；禁止规则的优先级更高。</div>
+                    <div class="annotation"><b>③ 限制失败成本</b><code>max_fix_loops: 1</code> 和最大文件数防止修复发散。</div>
+                </div>
+            </div>
+
+            <div class="snippet">
+                <div class="snippet-head">
+                    <strong>.opencode/agents/scheduled-coder.md（权限片段，提议新增）</strong>
+                    <span class="tag red">规则自保护</span>
+                </div>
+                <pre class="code-block">permission:
+  edit:
+    "*": allow
+    <span class="danger-text">".opencode/agents/**": deny</span>
+    <span class="danger-text">".opencode/skills/**": deny</span>
+    <span class="danger-text">"automation/**": deny</span>
+    <span class="danger-text">"scripts/automation/**": deny</span>
+    <span class="danger-text">"gradle/**": deny</span>
+  bash:
+    "git push*": deny
+    "git merge*": deny
+    "git worktree*": deny
+    "./gradlew testDebugUnitTest*": allow
+    "./gradlew assembleDebug*": allow
+    "./gradlew lint*": allow
+    "*": ask</pre>
+                <div class="annotation-grid">
+                    <div class="annotation"><b>① 修复原方案缺口</b>必须明确拒绝 <code>.opencode/skills/**</code>，否则 Coder 可能修改约束自己的包装技能。</div>
+                    <div class="annotation"><b>② 合同仍需二次校验</b>Agent 权限是粗边界，G6 再按每个任务的 <code>allowed_paths</code> 检查实际 diff。</div>
+                    <div class="annotation"><b>③ 命令白名单从小开始</b>生产格式需按当前 OpenCode 权限语法实测；未匹配命令默认询问或阻断。</div>
+                </div>
+            </div>
+
+            <div class="snippet">
+                <div class="snippet-head">
+                    <strong>scripts/automation/quality-gate.sh（伪代码，提议新增）</strong>
+                    <span class="tag blue">唯一审查入口写入者</span>
+                </div>
+                <pre class="code-block">set -euo pipefail
+
+require_state "CODING"
+verify_contract_approved
+verify_superpowers_preflight
+verify_red_evidence
+
+./gradlew testDebugUnitTest
+./gradlew assembleDebug
+./gradlew lint
+run_connected_tests_if_required
+
+verify_changed_paths
+verify_changed_file_limit
+verify_no_test_deletion_or_weakening
+verify_automation_rules_unchanged
+
+<span class="good-text">transition_state "CODING" "READY_FOR_REVIEW"</span></pre>
+                <div class="annotation-grid">
+                    <div class="annotation"><b>① 退出即失败</b>任一命令非零立即停止，不执行成功状态转换。</div>
+                    <div class="annotation"><b>② 结果与完整性并查</b>绿测试不代表安全；还需检查测试是否被删除、跳过或弱化。</div>
+                    <div class="annotation"><b>③ 原子状态转换</b><code>transition_state</code> 应校验旧状态、持锁并原子写入，防止并发 Cron 重复消费。</div>
+                </div>
+            </div>
+        </section>
+
+        <section class="panel" id="scheduler-jobs">
+            <div class="section-head">
+                <div>
+                    <p class="eyebrow">Scheduled Jobs</p>
+                    <h2>两个 Job 的最小职责</h2>
+                    <p>调度器只负责触发与隔离，不在 Prompt 内实现状态机逻辑。</p>
+                </div>
+                <span class="section-no">09</span>
+            </div>
+            <div class="grid-2">
+                <article class="card">
+                    <span class="kicker">Job A</span>
+                    <h3>scheduled-coder</h3>
+                    <ul class="plain-list">
+                        <li>只领取一个 <code>PENDING</code> 合同，并持有任务锁。</li>
+                        <li>显式调用 <code>$scheduled-quality-coder</code>。</li>
+                        <li>使用专用工作树，运行前必须干净。</li>
+                        <li>最长运行时间、文件数和修复循环均有限制。</li>
+                        <li>不 Push、不 Merge、不创建额外工作树。</li>
+                    </ul>
+                </article>
+                <article class="card">
+                    <span class="kicker">Job B</span>
+                    <h3>scheduled-reviewer</h3>
+                    <ul class="plain-list">
+                        <li>只领取一个 <code>READY_FOR_REVIEW</code> 合同。</li>
+                        <li>显式调用 <code>$scheduled-quality-reviewer</code>。</li>
+                        <li>只读仓库，证据目录另写审查报告。</li>
+                        <li>独立重跑关键命令，不接受 Coder 自述。</li>
+                        <li>通过后只推进到 <code>AWAITING_HUMAN</code>。</li>
+                    </ul>
+                </article>
+            </div>
+            <div class="callout">
+                <strong>Prompt 建议：</strong>使用短 Prompt 指向项目包装技能和任务 ID，例如
+                <code>Use $scheduled-quality-coder to execute exactly TASK-0001. Stop on any ambiguity.</code>
+                详细规则应位于版本化 Skill、合同和脚本中，而不是散落在 Scheduler 的一大段自然语言里。
+            </div>
+        </section>
+
+        <section class="panel" id="integrity">
+            <div class="section-head">
+                <div>
+                    <p class="eyebrow">Integrity Controls</p>
+                    <h2>防止“测试绿了，但质量反而下降”</h2>
+                    <p>自动化最危险的失败不是命令报错，而是代理通过修改检查本身来获得绿色结果。</p>
+                </div>
+                <span class="section-no">10</span>
+            </div>
+            <div class="grid-3">
+                <article class="card">
+                    <span class="kicker">Test integrity</span>
+                    <h3>测试不可弱化</h3>
+                    <p>检查删除测试、加入忽略标记、放宽断言、吞异常、硬编码通过或只测实现细节。</p>
+                </article>
+                <article class="card">
+                    <span class="kicker">Rule integrity</span>
+                    <h3>规则不可自改</h3>
+                    <p>对 Agent、Skill、任务合同、状态脚本和门禁脚本设置拒绝权限，并验证哈希或 diff。</p>
+                </article>
+                <article class="card">
+                    <span class="kicker">Evidence integrity</span>
+                    <h3>证据不可替换</h3>
+                    <p>日志追加写、记录命令与退出码；Reviewer 重新运行关键命令以减少伪造价值。</p>
+                </article>
+            </div>
+            <div class="callout danger">
+                <strong>测试修改策略：</strong>允许修改测试并不等于允许修改任何测试。合同应明确哪些测试文件可变；
+                Reviewer 必须逐项解释测试变更为何增强行为约束。若任务本应只改实现，却出现已有测试被放宽，直接 <code>CHANGES_REQUESTED</code>。
+            </div>
+        </section>
+
+        <section class="panel" id="current-state">
+            <div class="section-head">
+                <div>
+                    <p class="eyebrow">Repository Reality</p>
+                    <h2>当前仓库与目标方案的差距</h2>
+                    <p>以下是生成本页时核对到的本地事实，用于决定从哪里开始，而非声称自动化已经完成。</p>
+                </div>
+                <span class="section-no">11</span>
+            </div>
+            <div class="table-wrap">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>检查项</th>
+                            <th>当前事实</th>
+                            <th>判定</th>
+                            <th>下一动作</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>单元测试基线</td>
+                            <td><code>ExampleUnitTest.kt</code> 的错误期望值已从 3 修复为 4；<code>testDebugUnitTest</code> 返回 <code>BUILD SUCCESSFUL</code>。</td>
+                            <td><span class="tag green">已恢复</span></td>
+                            <td>在专用工作树再次执行 G0 并保存日志。</td>
+                        </tr>
+                        <tr>
+                            <td>工作区洁净度</td>
+                            <td>存在上述测试修改，以及 <code>.idea/deviceManager.xml</code>、<code>.idea/markdown.xml</code>、<code>app/src.zip</code> 未跟踪文件。</td>
+                            <td><span class="tag amber">不适合直接调度</span></td>
+                            <td>保留用户文件不动，另建明确基线的专用工作树。</td>
+                        </tr>
+                        <tr>
+                            <td>Superpowers</td>
+                            <td>全局 OpenCode 插件数组当前只有 <code>opencode-scheduler</code>。</td>
+                            <td><span class="tag red">未接入</span></td>
+                            <td>安装后手动验证技能发现、优先级和版本。</td>
+                        </tr>
+                        <tr>
+                            <td>项目包装技能</td>
+                            <td>项目中尚无 <code>.opencode/skills/</code>。</td>
+                            <td><span class="tag red">缺失</span></td>
+                            <td>新增 Coder/Reviewer 两个最小包装 Skill 并做权限测试。</td>
+                        </tr>
+                        <tr>
+                            <td>状态与门禁脚本</td>
+                            <td>尚无 <code>automation/</code> 与 <code>scripts/automation/</code> 骨架。</td>
+                            <td><span class="tag red">缺失</span></td>
+                            <td>先实现状态转换、锁与 dry-run，再接 Scheduler。</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+        <section class="panel" id="rollout">
+            <div class="section-head">
+                <div>
+                    <p class="eyebrow">Rollout Plan</p>
+                    <h2>分阶段落地，不一步跳到全自动</h2>
+                    <p>每一阶段只有在证据满足退出条件后才进入下一阶段。</p>
+                </div>
+                <span class="section-no">12</span>
+            </div>
+            <div class="grid-2">
+                <ol class="steps">
+                    <li>
+                        <strong>阶段 A：手动接入</strong><br>
+                        安装并锁定 Superpowers；建立两个项目包装技能；在人工会话中验证技能选择、禁止项与权限拒绝。
+                    </li>
+                    <li>
+                        <strong>阶段 B：脚本化门禁</strong><br>
+                        实现任务合同校验、状态原子转换、G0–G6、日志归档；先不接任何定时触发。
+                    </li>
+                    <li>
+                        <strong>阶段 C：影子模式</strong><br>
+                        Scheduler 定时读取真实任务但不写产品代码，只演练领取、锁、预检和报告。
+                    </li>
+                    <li>
+                        <strong>阶段 D：低风险试点</strong><br>
+                        选择 5–10 个小型、可回滚、无依赖升级任务；允许写代码，但仍不 Push、不 Merge。
+                    </li>
+                    <li>
+                        <strong>阶段 E：评估扩展</strong><br>
+                        一周或一个试点批次后看指标，再决定是否扩大任务类型；V1 仍保留人工合并。
+                    </li>
+                </ol>
+                <div>
+                    <h3>每阶段退出条件</h3>
+                    <ul class="check-list">
+                        <li>同一个任务不会被重复领取或并发写入。</li>
+                        <li>Coder 无法修改 Agent、Skill、合同和门禁脚本。</li>
+                        <li>缺技能、脏工作树、需求歧义都会可靠进入 <code>BLOCKED</code>。</li>
+                        <li>测试失败不会被描述成成功，日志包含真实退出码。</li>
+                        <li>Reviewer 在只读权限下可以独立重跑关键检查。</li>
+                        <li>任何状态都没有通往自动 Push 或自动 Merge 的路径。</li>
+                    </ul>
+                    <div class="callout warn">
+                        首批任务优先选纯逻辑、本地单测覆盖、修改文件少且无设备依赖的工作；UI 大改、数据库迁移、权限、安全、支付和依赖升级不进入首批试点。
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section class="panel" id="metrics">
+            <div class="section-head">
+                <div>
+                    <p class="eyebrow">Evaluation</p>
+                    <h2>如何判断融合真的提高了准确性</h2>
+                    <p>不能只比较“测试是否通过”，还要衡量人类返工、越界、弱测试和漏出缺陷。</p>
+                </div>
+                <span class="section-no">13</span>
+            </div>
+            <div class="grid-4">
+                <div class="metric"><strong>↑</strong><span>人工首轮验收通过率</span></div>
+                <div class="metric"><strong>↓</strong><span>Reviewer 阻断率（稳定后）</span></div>
+                <div class="metric"><strong>0</strong><span>越界修改与规则自改次数</span></div>
+                <div class="metric"><strong>0</strong><span>测试删除或弱化次数</span></div>
+                <div class="metric"><strong>↓</strong><span>合并后逃逸缺陷率</span></div>
+                <div class="metric"><strong>可解释</strong><span>歧义阻断率与原因</span></div>
+                <div class="metric"><strong>小而稳</strong><span>每任务平均修改文件数</span></div>
+                <div class="metric"><strong>100%</strong><span>成功结论附新鲜证据率</span></div>
+            </div>
+            <div class="callout">
+                <strong>建议对照：</strong>用相似难度的小任务比较“原 Scheduler 方案”和“融合 V1”两个批次。
+                若融合后只是运行时间增加，却没有降低审查返工、范围违规或逃逸缺陷，就应缩减技能流程，而不是继续叠加更多代理仪式。
+            </div>
+        </section>
+
+        <section class="panel" id="go-live">
+            <div class="section-head">
+                <div>
+                    <p class="eyebrow">Go-live Checklist</p>
+                    <h2>允许第一次真实定时写入前</h2>
+                    <p>以下项目应全部满足；任一未完成都继续停留在手动或影子模式。</p>
+                </div>
+                <span class="section-no">14</span>
+            </div>
+            <div class="grid-2">
+                <div class="card">
+                    <h3>配置与隔离</h3>
+                    <ul class="check-list">
+                        <li>Superpowers 已安装并锁定可审计版本。</li>
+                        <li>Coder/Reviewer 包装技能均能被显式发现。</li>
+                        <li>专用工作树已创建，运行前洁净检查有效。</li>
+                        <li>Coder 写权限和 Reviewer 只读权限已用负向测试验证。</li>
+                        <li>Cron 重叠时任务锁可以防止重复执行。</li>
+                    </ul>
+                </div>
+                <div class="card">
+                    <h3>合同、门禁与恢复</h3>
+                    <ul class="check-list">
+                        <li>C0、S0、G0–G7、H1 都有机器或人工责任人。</li>
+                        <li>RED 证据、范围检查和测试完整性检查已实测。</li>
+                        <li>失败日志能定位到具体门禁和退出码。</li>
+                        <li><code>BLOCKED</code> 不会在下一周期自动重试。</li>
+                        <li>已完成至少一次成功演练和一次故意失败演练。</li>
+                    </ul>
+                </div>
+            </div>
+            <div class="verdict" style="margin-top: 18px;">
+                <strong>V1 的上线标准不是“代理能完成任务”，而是“代理犯错时系统能及时、确定地停下来”。</strong>
+                <p>只要自动 Push、自动 Merge、规则自改或无限重试仍存在，就不应开启无人值守写入。</p>
+            </div>
+        </section>
+
+        <section class="panel" id="sources">
+            <div class="section-head">
+                <div>
+                    <p class="eyebrow">Sources</p>
+                    <h2>依据与延伸阅读</h2>
+                    <p>外部链接仅作为来源引用；本页没有加载外部脚本、字体、样式或图片。</p>
+                </div>
+                <span class="section-no">15</span>
+            </div>
+            <ul class="sources">
+                <li><a href="https://github.com/obra/superpowers">obra/superpowers：项目主页与技能集合</a></li>
+                <li><a href="https://github.com/obra/superpowers/blob/main/docs/README.opencode.md">Superpowers 的 OpenCode 安装与技能优先级说明</a></li>
+                <li><a href="https://github.com/obra/superpowers/blob/main/skills/brainstorming/SKILL.md">brainstorming：交互式设计与批准流程</a></li>
+                <li><a href="https://github.com/obra/superpowers/blob/main/skills/test-driven-development/SKILL.md">test-driven-development：RED / GREEN / REFACTOR 纪律</a></li>
+                <li><a href="https://github.com/obra/superpowers/blob/main/skills/verification-before-completion/SKILL.md">verification-before-completion：完成声明前的新鲜证据要求</a></li>
+                <li><a href="https://github.com/obra/superpowers/blob/main/skills/requesting-code-review/SKILL.md">requesting-code-review：审查请求与问题处理思路</a></li>
+                <li><a href="https://learn.chatgpt.com/docs/automations">OpenAI Scheduled tasks：定时任务、技能、工作树与安全实践</a></li>
+            </ul>
+        </section>
+
+        <footer class="footer">
+            <p>
+                生成日期：2026-08-09 · 方案版本：V1 · 文档性质：架构与落地设计<br>
+                本页不会替代实际配置验证、安全审查或 Android 构建结果；所有模板均需在专用工作树中实施并通过门禁后使用。
+            </p>
+        </footer>
+    </main>
+</body>
+</html>

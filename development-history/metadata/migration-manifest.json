@@ -1,0 +1,237 @@
+{
+  "date": "2026-10-19",
+  "source_repository": "/Users/zhanglong/files/program/cctest",
+  "destination_repository": "/Users/zhanglong/files/npmprogram/opencode_android_orchestrator",
+  "files": [
+    {
+      "source": "taskdescriptions/orchestrator/relocation-manifest.json",
+      "destination": "development-history/metadata/previous-relocation-manifest.json",
+      "bytes": 7637,
+      "sha256_before": "469327de4a48b9fbe54753582fd604f64b505465ab46a5b6484abd516134044d",
+      "sha256_after": "469327de4a48b9fbe54753582fd604f64b505465ab46a5b6484abd516134044d",
+      "mode": 420
+    },
+    {
+      "source": "taskdescriptions/orchestrator/README.md",
+      "destination": "development-history/metadata/previous-index.md",
+      "bytes": 11540,
+      "sha256_before": "b1e823ab645c94b7416b6168343c9607b7c358f01ab8c0fada67f6ff8fd431ca",
+      "sha256_after": "b0612c76ebb3b209a2b3b7fb280d44cd61bc7d8e02784d4cb0119fc3f0ad76e4",
+      "mode": 420
+    },
+    {
+      "source": "taskdescriptions/orchestrator/design/orchestrator-contract-test-validation-design.md",
+      "destination": "development-history/design/orchestrator-contract-test-validation-design.md",
+      "bytes": 21047,
+      "sha256_before": "7a97d45428652261712eafdcafc282abab751372b4a544b49ed45fe9e8bdec06",
+      "sha256_after": "7a97d45428652261712eafdcafc282abab751372b4a544b49ed45fe9e8bdec06",
+      "mode": 420
+    },
+    {
+      "source": "taskdescriptions/orchestrator/design/orchestrator-task-start-preconditions-design.md",
+      "destination": "development-history/design/orchestrator-task-start-preconditions-design.md",
+      "bytes": 25631,
+      "sha256_before": "0f915d388f8378bb1f708ca0c0999d23b790e2378583ad00d8f4327c37286273",
+      "sha256_after": "b0b8e7427287257ddb5f94e197dfc828fceb09c4563a12d5977bd357cf3aa497",
+      "mode": 420
+    },
+    {
+      "source": "taskdescriptions/orchestrator/design/opencode-android-orchestrator-plugin-todo.md",
+      "destination": "development-history/design/opencode-android-orchestrator-plugin-todo.md",
+      "bytes": 27797,
+      "sha256_before": "e375140085f0f9377c01d4ca8c08bbccc77876e048fad29109762c2bcc7a624f",
+      "sha256_after": "e375140085f0f9377c01d4ca8c08bbccc77876e048fad29109762c2bcc7a624f",
+      "mode": 420
+    },
+    {
+      "source": "taskdescriptions/orchestrator/design/orchestrator-portability-and-continuity-review.md",
+      "destination": "development-history/design/orchestrator-portability-and-continuity-review.md",
+      "bytes": 26451,
+      "sha256_before": "02f2e3ba05d0f4349997ae8a100fd2f406b9f7c08b29a24df662de433e74466f",
+      "sha256_after": "cdb349c90deffc69c0ec44ed5254f37c074b8c6e17ab201928a39137f5813df2",
+      "mode": 420
+    },
+    {
+      "source": "taskdescriptions/orchestrator/progress/orchestrator-v1-implementation-progress.md",
+      "destination": "development-history/progress/orchestrator-v1-implementation-progress.md",
+      "bytes": 3671,
+      "sha256_before": "607e0c116741661ae3931d63db0384b4f432898e50a65ce64e5a80a5f10066ff",
+      "sha256_after": "86edf171c12edd1b765bf50bb904d1424314d7a4889f86c190a27efbde3a3d84",
+      "mode": 420
+    },
+    {
+      "source": "taskdescriptions/orchestrator/progress/orchestrator-android-continuity-progress.md",
+      "destination": "development-history/progress/orchestrator-android-continuity-progress.md",
+      "bytes": 40732,
+      "sha256_before": "9d68a3a7d0557a7a319dc6825c85740c68eb9776947a0c59b72ff8366d0c8176",
+      "sha256_after": "a8ce2c7c5d950f202182351cb734f8015970cef2c12fb5a317ff2e2408219093",
+      "mode": 420
+    },
+    {
+      "source": "taskdescriptions/orchestrator/progress/wordpress-mockito-instrumentation-fix-progress.md",
+      "destination": "development-history/progress/wordpress-mockito-instrumentation-fix-progress.md",
+      "bytes": 7397,
+      "sha256_before": "923a801b49d4752f71d936ade523db8a3a28446c3ac39be83d864d7142cfc5f2",
+      "sha256_after": "923a801b49d4752f71d936ade523db8a3a28446c3ac39be83d864d7142cfc5f2",
+      "mode": 420
+    },
+    {
+      "source": "taskdescriptions/orchestrator/progress/wordpress-baseline-test-failures-fix-progress.md",
+      "destination": "development-history/progress/wordpress-baseline-test-failures-fix-progress.md",
+      "bytes": 2819,
+      "sha256_before": "b5c19692ab9c43c9300163af99e2e532664aaa18d63dcc45a5fa1c1503b1b554",
+      "sha256_after": "b5c19692ab9c43c9300163af99e2e532664aaa18d63dcc45a5fa1c1503b1b554",
+      "mode": 420
+    },
+    {
+      "source": "taskdescriptions/orchestrator/progress/orchestrator-test-inventory-progress.md",
+      "destination": "development-history/progress/orchestrator-test-inventory-progress.md",
+      "bytes": 35335,
+      "sha256_before": "03f570ee4e2c3b5a387468f7dff1c9ac09fdf9f35a3207528f997696c0c27c24",
+      "sha256_after": "9d524313174f11d1aadd48da61b41a832d6a24b69d5d9a2c1640735e64a6f52e",
+      "mode": 420
+    },
+    {
+      "source": "taskdescriptions/orchestrator/progress/orchestrator-gradle671-fix-progress.md",
+      "destination": "development-history/progress/orchestrator-gradle671-fix-progress.md",
+      "bytes": 6498,
+      "sha256_before": "2449758ebabc7d482802a5fbd790958b8535d39a5076c71c489e9845d25a600e",
+      "sha256_after": "f1e1e06fbd1fbbb51b1b099688090c09fe58fc07114b972274f40ff96b64c670",
+      "mode": 420
+    },
+    {
+      "source": "taskdescriptions/orchestrator/progress/orchestrator-bundled-skills-progress.md",
+      "destination": "development-history/progress/orchestrator-bundled-skills-progress.md",
+      "bytes": 5294,
+      "sha256_before": "f36dbf2d5b8c6ebd2b40b1bb292d1b499d043477735ef704da26f7f3e5e3021e",
+      "sha256_after": "f36dbf2d5b8c6ebd2b40b1bb292d1b499d043477735ef704da26f7f3e5e3021e",
+      "mode": 420
+    },
+    {
+      "source": "taskdescriptions/orchestrator/patches/orchestrator-v1-work-in-progress.patch",
+      "destination": "development-history/patches/orchestrator-v1-work-in-progress.patch",
+      "bytes": 315831,
+      "sha256_before": "17cc1aa92b897707f8810b9dfee21bad46da8192c09fbbf314dcfd55cfc077dd",
+      "sha256_after": "17cc1aa92b897707f8810b9dfee21bad46da8192c09fbbf314dcfd55cfc077dd",
+      "mode": 420
+    },
+    {
+      "source": "taskdescriptions/orchestrator/patches/wordpress-mockito-instrumentation-fix.patch",
+      "destination": "development-history/patches/wordpress-mockito-instrumentation-fix.patch",
+      "bytes": 3280,
+      "sha256_before": "7391de8e7eb70e0901d4d7e3e1b0f2e85a2c0f58f854decde048c23008ed9eb0",
+      "sha256_after": "7391de8e7eb70e0901d4d7e3e1b0f2e85a2c0f58f854decde048c23008ed9eb0",
+      "mode": 420
+    },
+    {
+      "source": "taskdescriptions/orchestrator/release/npm发布.txt",
+      "destination": "development-history/release/npm发布.txt",
+      "bytes": 2476,
+      "sha256_before": "44e1e942aee1162c5630e34a93a615936f09bbed04596022389e72325075f462",
+      "sha256_after": "44e1e942aee1162c5630e34a93a615936f09bbed04596022389e72325075f462",
+      "mode": 420
+    },
+    {
+      "source": "taskdescriptions/orchestrator/reference/task2.html",
+      "destination": "development-history/reference/task2.html",
+      "bytes": 64954,
+      "sha256_before": "0d66c10cdc58099d2a5817f51ae1c2d5c12083cdfe0f54f3ea88d83aebfddfea",
+      "sha256_after": "0d66c10cdc58099d2a5817f51ae1c2d5c12083cdfe0f54f3ea88d83aebfddfea",
+      "mode": 420
+    },
+    {
+      "source": "taskdescriptions/orchestrator/reference/task2detail.html",
+      "destination": "development-history/reference/task2detail.html",
+      "bytes": 62121,
+      "sha256_before": "07125fca58c70d17ba654053e0dfcda1c0484b6fa7393aa9a795907c7499b3a9",
+      "sha256_after": "07125fca58c70d17ba654053e0dfcda1c0484b6fa7393aa9a795907c7499b3a9",
+      "mode": 420
+    },
+    {
+      "source": "taskdescriptions/orchestrator/reference/stepdetail.html",
+      "destination": "development-history/reference/stepdetail.html",
+      "bytes": 94872,
+      "sha256_before": "fc02471d0ac779bc09ec03301ca96e3971010969aeaf4603b862856305b5ec1f",
+      "sha256_after": "fc02471d0ac779bc09ec03301ca96e3971010969aeaf4603b862856305b5ec1f",
+      "mode": 420
+    },
+    {
+      "source": "taskdescriptions/orchestrator/validation/wordpress-opencode-android-orchestrator-integration.md",
+      "destination": "development-history/validation/wordpress-opencode-android-orchestrator-integration.md",
+      "bytes": 21714,
+      "sha256_before": "2217b67a71f6f569b779548203ad6b14ef2f45f51d1eac3449da9e2a1cfc4530",
+      "sha256_after": "2217b67a71f6f569b779548203ad6b14ef2f45f51d1eac3449da9e2a1cfc4530",
+      "mode": 420
+    },
+    {
+      "source": "taskdescriptions/orchestrator/validation/opencode-android-orchestrator-plugin-validation-2026-08-26.md",
+      "destination": "development-history/validation/opencode-android-orchestrator-plugin-validation-2026-08-26.md",
+      "bytes": 8891,
+      "sha256_before": "2b7f7976837af766276f949587122467d61a0481c7e927b58c9ec480d663c862",
+      "sha256_after": "2b7f7976837af766276f949587122467d61a0481c7e927b58c9ec480d663c862",
+      "mode": 420
+    },
+    {
+      "source": "taskdescriptions/orchestrator/validation/orchestrator-local-package-wordpress-validation-plan.md",
+      "destination": "development-history/validation/orchestrator-local-package-wordpress-validation-plan.md",
+      "bytes": 36590,
+      "sha256_before": "e93ad6caf5e5911ad3e647855f03927d983c9bd492a5ff972553623d56cbad7a",
+      "sha256_after": "3d47b0735fddd0c70ace6f6aa42e658b41a685e4b95ee4cf086b53184738df63",
+      "mode": 420
+    },
+    {
+      "source": "taskdescriptions/orchestrator/validation/orchestrator-gradle-6.7.1-review.md",
+      "destination": "development-history/validation/orchestrator-gradle-6.7.1-review.md",
+      "bytes": 20798,
+      "sha256_before": "4c00e9a08c5fe907436f653830b3f420bc89896c7b362208f580b04a71aaa9f5",
+      "sha256_after": "46235e857f12a1f3ef6bfd154bb53972c70d9df9cd750c1d8c9ad3accefb77e6",
+      "mode": 420
+    },
+    {
+      "source": "代码结构文档/scheduled-coding-quality-gate-explained.html",
+      "destination": "development-history/visuals/scheduled-coding-quality-gate-explained.html",
+      "bytes": 60445,
+      "sha256_before": "5ff391e09b01a6ed0f99e0ecd4f1fd17acc21825b8880188f50c8ac9436cbb85",
+      "sha256_after": "5ff391e09b01a6ed0f99e0ecd4f1fd17acc21825b8880188f50c8ac9436cbb85",
+      "mode": 420
+    },
+    {
+      "source": "代码结构文档/scheduled-coding-quality-gate-explained-v1.html",
+      "destination": "development-history/visuals/scheduled-coding-quality-gate-explained-v1.html",
+      "bytes": 72541,
+      "sha256_before": "4a617b172ad894680403c9dcf28f698d68dc872b0ae3d39b69904b2a68423f20",
+      "sha256_after": "4a617b172ad894680403c9dcf28f698d68dc872b0ae3d39b69904b2a68423f20",
+      "mode": 420
+    },
+    {
+      "source": "代码结构文档/wordpress-opencode-android-orchestrator-integration-explained.html",
+      "destination": "development-history/visuals/wordpress-opencode-android-orchestrator-integration-explained.html",
+      "bytes": 44521,
+      "sha256_before": "278627295d07b534fe0692813d1a57e5b1843cd11447f9bc4a1b5aebcc7c1f0f",
+      "sha256_after": "278627295d07b534fe0692813d1a57e5b1843cd11447f9bc4a1b5aebcc7c1f0f",
+      "mode": 420
+    },
+    {
+      "source": "流程说明文档/orchestrator-auto-agent-queue-design-explained.html",
+      "destination": "development-history/visuals/orchestrator-auto-agent-queue-design-explained.html",
+      "bytes": 96431,
+      "sha256_before": "2359b2ee38ded7b1ed5e1ce517b3e279225e467be851a995c634f834c9dbeda1",
+      "sha256_after": "2359b2ee38ded7b1ed5e1ce517b3e279225e467be851a995c634f834c9dbeda1",
+      "mode": 420
+    },
+    {
+      "source": "流程说明文档/orchestrator问题.txt",
+      "destination": "development-history/issues/orchestrator问题.txt",
+      "bytes": 27378,
+      "sha256_before": "979e2ba11b98403ebe568d03737aef8ed9a9861c15edd87ce9ab1179256122d6",
+      "sha256_after": "979e2ba11b98403ebe568d03737aef8ed9a9861c15edd87ce9ab1179256122d6",
+      "mode": 420
+    }
+  ],
+  "excluded": [
+    {
+      "source": "方案备份/",
+      "reason": "按用户要求保留在 cctest；已恢复原内容和权限并通过完整性校验。"
+    }
+  ]
+}

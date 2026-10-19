@@ -1,0 +1,131 @@
+{
+  "date": "2026-10-19",
+  "files": [
+    {
+      "old": "taskdescriptions/opencode-android-orchestrator-plugin-todo.md",
+      "new": "taskdescriptions/orchestrator/design/opencode-android-orchestrator-plugin-todo.md",
+      "sha256_before": "54f0d3311595c218e4cb3180bf49da7dbd4906a209e3b00a17efdf21f4f29925",
+      "sha256_after": "e375140085f0f9377c01d4ca8c08bbccc77876e048fad29109762c2bcc7a624f"
+    },
+    {
+      "old": "taskdescriptions/orchestrator-contract-test-validation-design.md",
+      "new": "taskdescriptions/orchestrator/design/orchestrator-contract-test-validation-design.md",
+      "sha256_before": "7a97d45428652261712eafdcafc282abab751372b4a544b49ed45fe9e8bdec06",
+      "sha256_after": "7a97d45428652261712eafdcafc282abab751372b4a544b49ed45fe9e8bdec06"
+    },
+    {
+      "old": "taskdescriptions/orchestrator-task-start-preconditions-design.md",
+      "new": "taskdescriptions/orchestrator/design/orchestrator-task-start-preconditions-design.md",
+      "sha256_before": "39ee698a1d75eb99353894842db7c739aae902de6617bc5f272cd24e71cd4f4d",
+      "sha256_after": "0f915d388f8378bb1f708ca0c0999d23b790e2378583ad00d8f4327c37286273"
+    },
+    {
+      "old": "taskdescriptions/orchestrator-portability-and-continuity-review.md",
+      "new": "taskdescriptions/orchestrator/design/orchestrator-portability-and-continuity-review.md",
+      "sha256_before": "b39c263278604b7263f20fff4dbf521c04c10016bedb0ca07143d8eb022d1a7f",
+      "sha256_after": "02f2e3ba05d0f4349997ae8a100fd2f406b9f7c08b29a24df662de433e74466f"
+    },
+    {
+      "old": "taskdescriptions/orchestrator-android-continuity-progress.md",
+      "new": "taskdescriptions/orchestrator/progress/orchestrator-android-continuity-progress.md",
+      "sha256_before": "4b636defca157c7a9176d087b6dde641e4b780f3c054b40e5f43dda45761d417",
+      "sha256_after": "9d68a3a7d0557a7a319dc6825c85740c68eb9776947a0c59b72ff8366d0c8176"
+    },
+    {
+      "old": "taskdescriptions/orchestrator-bundled-skills-progress.md",
+      "new": "taskdescriptions/orchestrator/progress/orchestrator-bundled-skills-progress.md",
+      "sha256_before": "f36dbf2d5b8c6ebd2b40b1bb292d1b499d043477735ef704da26f7f3e5e3021e",
+      "sha256_after": "f36dbf2d5b8c6ebd2b40b1bb292d1b499d043477735ef704da26f7f3e5e3021e"
+    },
+    {
+      "old": "taskdescriptions/orchestrator-gradle671-fix-progress.md",
+      "new": "taskdescriptions/orchestrator/progress/orchestrator-gradle671-fix-progress.md",
+      "sha256_before": "81b6daa0038b5a5d64d5758b07ebf8eaf371069d250157a141358a3ab1f8b858",
+      "sha256_after": "2449758ebabc7d482802a5fbd790958b8535d39a5076c71c489e9845d25a600e"
+    },
+    {
+      "old": "taskdescriptions/orchestrator-test-inventory-progress.md",
+      "new": "taskdescriptions/orchestrator/progress/orchestrator-test-inventory-progress.md",
+      "sha256_before": "cee30ac99c23d63c5e7f7935ea95b12bf0fad4a668d6fbf42b3c167bc3c8477c",
+      "sha256_after": "03f570ee4e2c3b5a387468f7dff1c9ac09fdf9f35a3207528f997696c0c27c24"
+    },
+    {
+      "old": "taskdescriptions/orchestrator-v1-implementation-progress.md",
+      "new": "taskdescriptions/orchestrator/progress/orchestrator-v1-implementation-progress.md",
+      "sha256_before": "555fcd10a092997893e9c8acc031bd813351cf04f5c04084a864be04df259ea8",
+      "sha256_after": "607e0c116741661ae3931d63db0384b4f432898e50a65ce64e5a80a5f10066ff"
+    },
+    {
+      "old": "taskdescriptions/wordpress-baseline-test-failures-fix-progress.md",
+      "new": "taskdescriptions/orchestrator/progress/wordpress-baseline-test-failures-fix-progress.md",
+      "sha256_before": "b5c19692ab9c43c9300163af99e2e532664aaa18d63dcc45a5fa1c1503b1b554",
+      "sha256_after": "b5c19692ab9c43c9300163af99e2e532664aaa18d63dcc45a5fa1c1503b1b554"
+    },
+    {
+      "old": "taskdescriptions/wordpress-mockito-instrumentation-fix-progress.md",
+      "new": "taskdescriptions/orchestrator/progress/wordpress-mockito-instrumentation-fix-progress.md",
+      "sha256_before": "e02facec09bae832c6cff989f0749bbc0f5cf48a901e65acde4e3e30ce87cebc",
+      "sha256_after": "923a801b49d4752f71d936ade523db8a3a28446c3ac39be83d864d7142cfc5f2"
+    },
+    {
+      "old": "taskdescriptions/opencode-android-orchestrator-plugin-validation-2026-08-26.md",
+      "new": "taskdescriptions/orchestrator/validation/opencode-android-orchestrator-plugin-validation-2026-08-26.md",
+      "sha256_before": "2b7f7976837af766276f949587122467d61a0481c7e927b58c9ec480d663c862",
+      "sha256_after": "2b7f7976837af766276f949587122467d61a0481c7e927b58c9ec480d663c862"
+    },
+    {
+      "old": "taskdescriptions/orchestrator-gradle-6.7.1-review.md",
+      "new": "taskdescriptions/orchestrator/validation/orchestrator-gradle-6.7.1-review.md",
+      "sha256_before": "42872a4825d5c95673b2e1d1ed83c7c82a2d3a81ccdab039b387a88c1603782d",
+      "sha256_after": "4c00e9a08c5fe907436f653830b3f420bc89896c7b362208f580b04a71aaa9f5"
+    },
+    {
+      "old": "taskdescriptions/orchestrator-local-package-wordpress-validation-plan.md",
+      "new": "taskdescriptions/orchestrator/validation/orchestrator-local-package-wordpress-validation-plan.md",
+      "sha256_before": "e8e86c992ca569be6f48920c49066ddd1b6ee1fd47abe7d1893d5545b3ac6080",
+      "sha256_after": "e93ad6caf5e5911ad3e647855f03927d983c9bd492a5ff972553623d56cbad7a"
+    },
+    {
+      "old": "taskdescriptions/wordpress-opencode-android-orchestrator-integration.md",
+      "new": "taskdescriptions/orchestrator/validation/wordpress-opencode-android-orchestrator-integration.md",
+      "sha256_before": "2217b67a71f6f569b779548203ad6b14ef2f45f51d1eac3449da9e2a1cfc4530",
+      "sha256_after": "2217b67a71f6f569b779548203ad6b14ef2f45f51d1eac3449da9e2a1cfc4530"
+    },
+    {
+      "old": "taskdescriptions/orchestrator-v1-work-in-progress.patch",
+      "new": "taskdescriptions/orchestrator/patches/orchestrator-v1-work-in-progress.patch",
+      "sha256_before": "17cc1aa92b897707f8810b9dfee21bad46da8192c09fbbf314dcfd55cfc077dd",
+      "sha256_after": "17cc1aa92b897707f8810b9dfee21bad46da8192c09fbbf314dcfd55cfc077dd"
+    },
+    {
+      "old": "taskdescriptions/wordpress-mockito-instrumentation-fix.patch",
+      "new": "taskdescriptions/orchestrator/patches/wordpress-mockito-instrumentation-fix.patch",
+      "sha256_before": "7391de8e7eb70e0901d4d7e3e1b0f2e85a2c0f58f854decde048c23008ed9eb0",
+      "sha256_after": "7391de8e7eb70e0901d4d7e3e1b0f2e85a2c0f58f854decde048c23008ed9eb0"
+    },
+    {
+      "old": "taskdescriptions/stepdetail.html",
+      "new": "taskdescriptions/orchestrator/reference/stepdetail.html",
+      "sha256_before": "fc02471d0ac779bc09ec03301ca96e3971010969aeaf4603b862856305b5ec1f",
+      "sha256_after": "fc02471d0ac779bc09ec03301ca96e3971010969aeaf4603b862856305b5ec1f"
+    },
+    {
+      "old": "taskdescriptions/task2.html",
+      "new": "taskdescriptions/orchestrator/reference/task2.html",
+      "sha256_before": "0d66c10cdc58099d2a5817f51ae1c2d5c12083cdfe0f54f3ea88d83aebfddfea",
+      "sha256_after": "0d66c10cdc58099d2a5817f51ae1c2d5c12083cdfe0f54f3ea88d83aebfddfea"
+    },
+    {
+      "old": "taskdescriptions/task2detail.html",
+      "new": "taskdescriptions/orchestrator/reference/task2detail.html",
+      "sha256_before": "07125fca58c70d17ba654053e0dfcda1c0484b6fa7393aa9a795907c7499b3a9",
+      "sha256_after": "07125fca58c70d17ba654053e0dfcda1c0484b6fa7393aa9a795907c7499b3a9"
+    },
+    {
+      "old": "taskdescriptions/npm发布.txt",
+      "new": "taskdescriptions/orchestrator/release/npm发布.txt",
+      "sha256_before": "44e1e942aee1162c5630e34a93a615936f09bbed04596022389e72325075f462",
+      "sha256_after": "44e1e942aee1162c5630e34a93a615936f09bbed04596022389e72325075f462"
+    }
+  ]
+}

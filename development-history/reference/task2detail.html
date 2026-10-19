@@ -1,0 +1,1219 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Task 2 自动编排方案：从需求确认到原分支提交</title>
+    <style>
+        :root {
+            color-scheme: light;
+            --bg: #f4efe7;
+            --surface: rgba(255, 250, 244, 0.94);
+            --surface-strong: #fffaf4;
+            --ink: #211b16;
+            --muted: #6c6055;
+            --line: rgba(84, 66, 47, 0.16);
+            --line-strong: rgba(84, 66, 47, 0.3);
+            --accent: #ad4b23;
+            --accent-soft: rgba(173, 75, 35, 0.12);
+            --teal: #176c63;
+            --teal-soft: rgba(23, 108, 99, 0.12);
+            --blue: #35657f;
+            --blue-soft: rgba(53, 101, 127, 0.12);
+            --purple: #655181;
+            --purple-soft: rgba(101, 81, 129, 0.12);
+            --gold: #9b691b;
+            --gold-soft: rgba(155, 105, 27, 0.13);
+            --danger: #9b4038;
+            --danger-soft: rgba(155, 64, 56, 0.11);
+            --shadow: 0 25px 70px rgba(50, 34, 22, 0.11);
+            --radius-xl: 28px;
+            --radius-lg: 20px;
+            --radius-md: 14px;
+            --max: 1240px;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        html {
+            scroll-behavior: smooth;
+        }
+
+        body {
+            margin: 0;
+            color: var(--ink);
+            font-family: "Avenir Next", "PingFang SC", "Noto Sans SC", sans-serif;
+            background:
+                radial-gradient(circle at top left, rgba(173, 75, 35, 0.16), transparent 29%),
+                radial-gradient(circle at top right, rgba(23, 108, 99, 0.12), transparent 28%),
+                linear-gradient(180deg, #fcf8f2 0%, var(--bg) 44%, #eee3d5 100%);
+        }
+
+        h1, h2, h3, h4, p {
+            margin: 0;
+        }
+
+        a {
+            color: var(--teal);
+            text-decoration: none;
+        }
+
+        code {
+            padding: 0.12em 0.38em;
+            border-radius: 8px;
+            background: rgba(42, 33, 26, 0.065);
+            font-family: "SFMono-Regular", "Menlo", "Monaco", monospace;
+            font-size: 0.92em;
+        }
+
+        .page {
+            width: min(calc(100% - 32px), var(--max));
+            margin: 0 auto;
+            padding: 28px 0 72px;
+        }
+
+        .hero,
+        .panel,
+        .toc {
+            border: 1px solid var(--line);
+            border-radius: var(--radius-xl);
+            background: var(--surface);
+            box-shadow: var(--shadow);
+            backdrop-filter: blur(10px);
+        }
+
+        .hero {
+            position: relative;
+            overflow: hidden;
+            padding: 36px;
+        }
+
+        .hero::before {
+            content: "";
+            position: absolute;
+            right: -90px;
+            bottom: -130px;
+            width: 330px;
+            height: 330px;
+            border-radius: 999px;
+            background: radial-gradient(circle, rgba(23, 108, 99, 0.2), transparent 68%);
+        }
+
+        .eyebrow {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 14px;
+            border-radius: 999px;
+            background: var(--accent-soft);
+            color: var(--accent);
+            font-size: 13px;
+            font-weight: 800;
+            letter-spacing: 0.05em;
+            text-transform: uppercase;
+        }
+
+        .hero h1 {
+            position: relative;
+            margin-top: 18px;
+            max-width: 960px;
+            font-size: clamp(34px, 4.6vw, 58px);
+            line-height: 1.06;
+        }
+
+        .hero .lead {
+            position: relative;
+            margin-top: 16px;
+            max-width: 920px;
+            color: var(--muted);
+            font-size: 18px;
+            line-height: 1.75;
+        }
+
+        .meta-list {
+            position: relative;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+            margin-top: 24px;
+        }
+
+        .meta-item {
+            padding: 11px 14px;
+            border: 1px solid var(--line);
+            border-radius: 14px;
+            background: rgba(255, 255, 255, 0.52);
+            color: var(--muted);
+            font-size: 14px;
+        }
+
+        .toc {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-top: 18px;
+            padding: 15px 18px;
+        }
+
+        .toc a {
+            padding: 8px 11px;
+            border-radius: 999px;
+            background: rgba(255, 255, 255, 0.5);
+            color: var(--muted);
+            font-size: 13px;
+            font-weight: 700;
+        }
+
+        .panel {
+            margin-top: 20px;
+            padding: 28px;
+        }
+
+        .section-head {
+            display: flex;
+            align-items: end;
+            justify-content: space-between;
+            gap: 18px;
+            margin-bottom: 20px;
+        }
+
+        .section-head h2 {
+            margin-top: 7px;
+            font-size: 29px;
+        }
+
+        .section-head p {
+            margin-top: 8px;
+            max-width: 840px;
+            color: var(--muted);
+            line-height: 1.7;
+        }
+
+        .section-no {
+            color: rgba(173, 75, 35, 0.38);
+            font-size: 36px;
+            font-weight: 900;
+        }
+
+        .kicker {
+            display: inline-block;
+            margin-bottom: 9px;
+            color: var(--accent);
+            font-size: 12px;
+            font-weight: 800;
+            letter-spacing: 0.06em;
+            text-transform: uppercase;
+        }
+
+        .grid-2,
+        .grid-3,
+        .grid-4 {
+            display: grid;
+            gap: 16px;
+        }
+
+        .grid-2 {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+
+        .grid-3 {
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+        }
+
+        .grid-4 {
+            grid-template-columns: repeat(4, minmax(0, 1fr));
+        }
+
+        .card {
+            padding: 18px;
+            border: 1px solid var(--line);
+            border-radius: 18px;
+            background: rgba(255, 255, 255, 0.49);
+        }
+
+        .card h3,
+        .card h4 {
+            font-size: 17px;
+        }
+
+        .card p,
+        .card li {
+            color: var(--muted);
+            font-size: 14px;
+            line-height: 1.72;
+        }
+
+        .card p {
+            margin-top: 9px;
+        }
+
+        .card ul {
+            margin: 10px 0 0;
+            padding-left: 20px;
+        }
+
+        .task-quote {
+            padding: 23px 24px;
+            border: 1px solid rgba(173, 75, 35, 0.24);
+            border-radius: 20px;
+            background: linear-gradient(135deg, rgba(173, 75, 35, 0.1), rgba(255, 255, 255, 0.58));
+            font-size: 18px;
+            font-weight: 700;
+            line-height: 1.78;
+        }
+
+        .code-shell {
+            overflow: auto;
+            margin-top: 14px;
+            padding: 18px;
+            border: 1px solid rgba(33, 27, 22, 0.09);
+            border-radius: var(--radius-lg);
+            background: linear-gradient(180deg, rgba(255, 255, 255, 0.73), rgba(248, 241, 232, 0.91));
+        }
+
+        pre {
+            margin: 0;
+            font-family: "SFMono-Regular", "Menlo", "Monaco", monospace;
+            font-size: 13.2px;
+            line-height: 1.75;
+            color: #211c17;
+            white-space: pre;
+        }
+
+        .comment {
+            color: var(--teal);
+        }
+
+        .string {
+            color: #a34b22;
+        }
+
+        .keyword {
+            color: var(--purple);
+            font-weight: 700;
+        }
+
+        .callout {
+            margin-top: 16px;
+            padding: 16px 18px;
+            border-left: 4px solid var(--gold);
+            border-radius: 14px;
+            background: var(--gold-soft);
+            color: #503a18;
+            font-size: 14px;
+            line-height: 1.75;
+        }
+
+        .callout.good {
+            border-left-color: var(--teal);
+            background: var(--teal-soft);
+            color: #214c47;
+        }
+
+        .callout.danger {
+            border-left-color: var(--danger);
+            background: var(--danger-soft);
+            color: #63312d;
+        }
+
+        .badge {
+            display: inline-flex;
+            padding: 5px 9px;
+            border-radius: 999px;
+            font-size: 12px;
+            font-weight: 800;
+        }
+
+        .badge.green {
+            color: var(--teal);
+            background: var(--teal-soft);
+        }
+
+        .badge.red {
+            color: var(--danger);
+            background: var(--danger-soft);
+        }
+
+        .badge.gold {
+            color: var(--gold);
+            background: var(--gold-soft);
+        }
+
+        .steps {
+            display: grid;
+            gap: 16px;
+        }
+
+        .step {
+            position: relative;
+            padding: 22px 22px 22px 82px;
+            border: 1px solid var(--line);
+            border-radius: 20px;
+            background: rgba(255, 255, 255, 0.52);
+        }
+
+        .step::before {
+            content: attr(data-step);
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            display: grid;
+            width: 42px;
+            height: 42px;
+            place-items: center;
+            border-radius: 50%;
+            background: var(--accent);
+            color: #fff;
+            font-weight: 900;
+        }
+
+        .step h3 {
+            font-size: 20px;
+        }
+
+        .step > p,
+        .step li {
+            color: var(--muted);
+            font-size: 14px;
+            line-height: 1.75;
+        }
+
+        .step > p {
+            margin-top: 8px;
+        }
+
+        .step ul {
+            margin: 10px 0 0;
+            padding-left: 20px;
+        }
+
+        .expect {
+            margin-top: 12px;
+            padding: 13px 15px;
+            border-radius: 13px;
+            background: var(--teal-soft);
+            color: #214c47;
+            font-size: 14px;
+            line-height: 1.7;
+        }
+
+        .diagram-wrap {
+            overflow-x: auto;
+            padding: 10px;
+            border: 1px solid var(--line);
+            border-radius: 22px;
+            background: linear-gradient(180deg, rgba(255, 253, 250, 0.72), rgba(244, 236, 227, 0.92));
+        }
+
+        svg {
+            display: block;
+            width: 100%;
+            min-width: 1040px;
+            height: auto;
+        }
+
+        .caption {
+            margin-top: 14px;
+            color: var(--muted);
+            font-size: 14px;
+            line-height: 1.7;
+        }
+
+        .state-strip {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 8px;
+            margin-top: 18px;
+        }
+
+        .state {
+            padding: 8px 11px;
+            border: 1px solid var(--line);
+            border-radius: 999px;
+            background: rgba(255, 255, 255, 0.62);
+            color: var(--teal);
+            font-family: "SFMono-Regular", "Menlo", monospace;
+            font-size: 12px;
+            font-weight: 800;
+        }
+
+        .state-arrow {
+            color: var(--accent);
+            font-weight: 900;
+        }
+
+        .check-list {
+            margin: 12px 0 0;
+            padding: 0;
+            list-style: none;
+        }
+
+        .check-list li {
+            position: relative;
+            padding: 6px 0 6px 28px;
+        }
+
+        .check-list li::before {
+            content: "✓";
+            position: absolute;
+            top: 6px;
+            left: 0;
+            display: grid;
+            width: 19px;
+            height: 19px;
+            place-items: center;
+            border-radius: 50%;
+            background: var(--teal-soft);
+            color: var(--teal);
+            font-size: 12px;
+            font-weight: 900;
+        }
+
+        .table-wrap {
+            overflow-x: auto;
+            border: 1px solid var(--line);
+            border-radius: 18px;
+        }
+
+        table {
+            width: 100%;
+            min-width: 820px;
+            border-collapse: collapse;
+            background: rgba(255, 255, 255, 0.46);
+        }
+
+        th,
+        td {
+            padding: 14px 16px;
+            border-bottom: 1px solid var(--line);
+            text-align: left;
+            vertical-align: top;
+            font-size: 14px;
+            line-height: 1.65;
+        }
+
+        th {
+            color: var(--ink);
+            background: rgba(173, 75, 35, 0.08);
+            font-size: 13px;
+        }
+
+        td {
+            color: var(--muted);
+        }
+
+        tr:last-child td {
+            border-bottom: 0;
+        }
+
+        footer {
+            padding: 30px 12px 0;
+            color: var(--muted);
+            text-align: center;
+            font-size: 13px;
+            line-height: 1.75;
+        }
+
+        @media (max-width: 900px) {
+            .grid-2,
+            .grid-3,
+            .grid-4 {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        @media (max-width: 720px) {
+            .page {
+                width: min(calc(100% - 20px), var(--max));
+                padding: 18px 0 52px;
+            }
+
+            .hero,
+            .panel {
+                padding: 20px;
+                border-radius: 22px;
+            }
+
+            .hero .lead {
+                font-size: 16px;
+            }
+
+            .section-head {
+                align-items: start;
+            }
+
+            .section-no {
+                font-size: 28px;
+            }
+
+            .step {
+                padding: 74px 18px 18px;
+            }
+
+            .step::before {
+                top: 16px;
+                left: 18px;
+            }
+
+            pre {
+                font-size: 12.2px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="page">
+        <header class="hero">
+            <div class="eyebrow">Task 2 · Automated OpenCode Delivery</div>
+            <h1>从需求确认自动执行到<br>人工验收与原分支提交</h1>
+            <p class="lead">
+                用户只需在 OpenCode 中完成三次单选确认：批准方案、批准任务合同、批准最终验收；无需输入审批语。
+                合同批准后，由受控编排器在当前工程目录切换到事务任务分支、运行 Coder 和独立 Reviewer；最终验收通过后，
+                再由确定性集成器创建并验证一个同时包含代码、测试、计划和合同的提交，安全快进任务开始时记录的原分支，
+                随后删除已集成的本地任务分支，全程不复制工程目录。
+            </p>
+            <div class="meta-list">
+                <div class="meta-item">工程：<code>/Users/zhanglong/files/program/cctest</code></div>
+                <div class="meta-item">任务：为城市精确识别增加“重庆”</div>
+                <div class="meta-item">人工关口：方案 · 合同 · 最终验收</div>
+                <div class="meta-item">自动阶段：准备 · 编码 · 门禁 · 审查 · 集成</div>
+                <div class="meta-item">业务参考：<code>taskdescriptions/task2.html</code> · 自动流程以本页为准</div>
+            </div>
+        </header>
+
+        <nav class="toc" aria-label="文档目录">
+            <a href="#overview">阅读指南</a>
+            <a href="#flow">完整流程</a>
+            <a href="#steps">交互步骤</a>
+            <a href="#implementation">落地要求</a>
+            <a href="#acceptance">人工验收</a>
+            <a href="#evidence">证据目录</a>
+            <a href="#failures">失败处理</a>
+        </nav>
+
+        <main>
+            <section class="panel" id="overview">
+                <div class="section-head">
+                    <div>
+                        <span class="kicker">Operating Model</span>
+                        <h2>正常路径只保留三个必要人工关口</h2>
+                        <p>人工负责需求含义、合同授权和最终风险接受；机械操作与重复验证全部交给可审计的自动化。</p>
+                    </div>
+                    <span class="section-no">01</span>
+                </div>
+
+                <div class="grid-3">
+                    <article class="card">
+                        <span class="badge gold">人工关口 1</span>
+                        <h3 style="margin-top: 10px;">批准方案</h3>
+                        <p>Planner 先展示范围、验收条件、测试与非目标，再弹出“方案确认”单选；用户点击批准后才生成计划和任务合同。</p>
+                    </article>
+                    <article class="card">
+                        <span class="badge gold">人工关口 2</span>
+                        <h3 style="margin-top: 10px;">批准合同并执行</h3>
+                        <p>人工复核生成的 Markdown 计划和 JSON 合同，在“合同复核”单选中点击批准后，自动编排持续运行到人工验收。</p>
+                    </article>
+                    <article class="card">
+                        <span class="badge green">人工关口 3</span>
+                        <h3 style="margin-top: 10px;">验收并提交原分支</h3>
+                        <p>Reviewer 通过后停在 <code>AWAITING_HUMAN</code>。用户在“成果验收”单选中点击通过，集成器才更新原分支并删除已集成的本地任务分支。</p>
+                    </article>
+                </div>
+
+                <div class="grid-4" style="margin-top: 16px;">
+                    <article class="card">
+                        <span class="badge green">原分支锚定</span>
+                        <h3 style="margin-top: 10px;">不硬编码 main</h3>
+                        <p>合同批准时记录当前原分支和 HEAD；最终只能集成回这条分支。</p>
+                    </article>
+                    <article class="card">
+                        <span class="badge green">中段全自动</span>
+                        <h3 style="margin-top: 10px;">不再手敲十一组命令</h3>
+                        <p>任务分支、仓库租约、Coder、Reviewer、状态检查和证据汇总由编排器连续完成。</p>
+                    </article>
+                    <article class="card">
+                        <span class="badge red">职责隔离</span>
+                        <h3 style="margin-top: 10px;">模型不直接操作 Git 集成</h3>
+                        <p>Coder 只改合同允许文件；Reviewer 只读；提交与集成仅由确定性脚本执行。</p>
+                    </article>
+                    <article class="card">
+                        <span class="badge gold">交付边界</span>
+                        <h3 style="margin-top: 10px;">默认只提交，不自动 push</h3>
+                        <p>完成状态表示本地原分支已有单一任务提交。远端 push 仍需单独、明确授权。</p>
+                    </article>
+                </div>
+
+                <div class="task-quote" style="margin-top: 18px;">
+                    任务输入：当前代码的城市列表没有“重庆”，因此“查看重庆的记录列表”虽然会命中列表意图，
+                    但 <code>slots.city</code> 是 <code>null</code>。任务要求通过 TDD 增加该支持。
+                </div>
+
+                <div class="callout good">
+                    <strong>最终目标：</strong><code>查看重庆的记录列表</code> 解析成功，
+                    <code>userGoal == BrowsePersonalInfoList</code>，并且 <code>slots.city == "重庆"</code>。
+                </div>
+
+                <div class="callout">
+                    <strong>自动化不等于放宽门禁：</strong>原工作目录不干净、合同含糊、环境缺失、测试失败、审查不通过或原分支漂移时，
+                    编排器必须停止并保留证据；正常路径不需要人工接力，异常路径不能静默猜测。
+                </div>
+            </section>
+
+            <section class="panel" id="flow">
+                <div class="section-head">
+                    <div>
+                        <span class="kicker">End-to-end Flow</span>
+                        <h2>从自然语言输入到原分支完成提交</h2>
+                        <p>绿色主线为自动推进；金色菱形是人工确认；红色支路只在硬门禁失败时出现。</p>
+                    </div>
+                    <span class="section-no">02</span>
+                </div>
+
+                <div class="diagram-wrap">
+                    <svg viewBox="0 0 1120 1830" role="img" aria-labelledby="flow-title flow-desc">
+                        <title id="flow-title">重庆城市识别任务的 OpenCode 自动编排流程</title>
+                        <desc id="flow-desc">用户输入需求并通过方案确认单选批准方案，Planner 生成并封存但不提交计划和合同；合同复核单选批准后编排器自动准备任务分支、编码、验证和评审；成果验收单选通过后，集成器用一个提交将代码、测试、计划和合同带回原分支。</desc>
+                        <defs>
+                            <marker id="arrow" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto" markerUnits="strokeWidth">
+                                <path d="M0,0 L0,6 L9,3 z" fill="#ad4b23"></path>
+                            </marker>
+                            <marker id="arrow-danger" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto" markerUnits="strokeWidth">
+                                <path d="M0,0 L0,6 L9,3 z" fill="#9b4038"></path>
+                            </marker>
+                            <filter id="soft-shadow" x="-20%" y="-20%" width="140%" height="140%">
+                                <feDropShadow dx="0" dy="8" stdDeviation="10" flood-color="#4b3424" flood-opacity="0.12"></feDropShadow>
+                            </filter>
+                        </defs>
+
+                        <rect x="320" y="35" width="480" height="80" rx="22" fill="#fffaf4" stroke="#ad4b23" stroke-width="2" filter="url(#soft-shadow)"></rect>
+                        <text x="560" y="68" text-anchor="middle" fill="#211b16" font-size="18" font-weight="800">用户在 OpenCode 输入自然语言需求</text>
+                        <text x="560" y="94" text-anchor="middle" fill="#6c6055" font-size="14">只输入“重庆城市识别”的自然语言需求</text>
+
+                        <line x1="560" y1="115" x2="560" y2="155" stroke="#ad4b23" stroke-width="3" marker-end="url(#arrow)"></line>
+
+                        <rect x="320" y="160" width="480" height="90" rx="22" fill="#f1eaf7" stroke="#655181" stroke-width="2" filter="url(#soft-shadow)"></rect>
+                        <text x="560" y="194" text-anchor="middle" fill="#211b16" font-size="18" font-weight="800">Planner 读取代码和测试，展示方案提案</text>
+                        <text x="560" y="221" text-anchor="middle" fill="#6c6055" font-size="14">ID、验收条件、允许路径、测试、非目标</text>
+
+                        <line x1="560" y1="250" x2="560" y2="291" stroke="#ad4b23" stroke-width="3" marker-end="url(#arrow)"></line>
+
+                        <polygon points="560,296 720,365 560,434 400,365" fill="#fff6e7" stroke="#9b691b" stroke-width="2" filter="url(#soft-shadow)"></polygon>
+                        <text x="560" y="359" text-anchor="middle" fill="#211b16" font-size="18" font-weight="800">人工批准方案？</text>
+                        <text x="560" y="384" text-anchor="middle" fill="#6c6055" font-size="14">OpenCode 单选；未批准前不生成任务文件</text>
+
+                        <line x1="400" y1="365" x2="220" y2="365" stroke="#9b4038" stroke-width="3" marker-end="url(#arrow-danger)"></line>
+                        <text x="315" y="348" text-anchor="middle" fill="#9b4038" font-size="14" font-weight="800">否</text>
+                        <rect x="30" y="320" width="185" height="90" rx="18" fill="#faecea" stroke="#9b4038" stroke-width="2"></rect>
+                        <text x="122" y="356" text-anchor="middle" fill="#63312d" font-size="16" font-weight="800">继续澄清方案</text>
+                        <text x="122" y="381" text-anchor="middle" fill="#7e4b47" font-size="13">保持 DRAFT</text>
+
+                        <line x1="560" y1="434" x2="560" y2="477" stroke="#ad4b23" stroke-width="3" marker-end="url(#arrow)"></line>
+                        <text x="580" y="461" fill="#176c63" font-size="14" font-weight="800">是</text>
+
+                        <rect x="300" y="482" width="520" height="92" rx="22" fill="#eaf5f2" stroke="#176c63" stroke-width="2" filter="url(#soft-shadow)"></rect>
+                        <text x="560" y="517" text-anchor="middle" fill="#211b16" font-size="18" font-weight="800">生成计划与任务合同并校验</text>
+                        <text x="560" y="544" text-anchor="middle" fill="#6c6055" font-size="14">进入 CONTRACT_REVIEW，等待人工复核</text>
+
+                        <line x1="560" y1="574" x2="560" y2="617" stroke="#ad4b23" stroke-width="3" marker-end="url(#arrow)"></line>
+
+                        <polygon points="560,622 730,691 560,760 390,691" fill="#fff6e7" stroke="#9b691b" stroke-width="2" filter="url(#soft-shadow)"></polygon>
+                        <text x="560" y="685" text-anchor="middle" fill="#211b16" font-size="18" font-weight="800">人工批准合同并执行？</text>
+                        <text x="560" y="710" text-anchor="middle" fill="#6c6055" font-size="14">OpenCode 单选；这是自动执行授权边界</text>
+
+                        <line x1="390" y1="691" x2="220" y2="691" stroke="#9b4038" stroke-width="3" marker-end="url(#arrow-danger)"></line>
+                        <text x="305" y="674" text-anchor="middle" fill="#9b4038" font-size="14" font-weight="800">否</text>
+                        <rect x="30" y="646" width="185" height="90" rx="18" fill="#faecea" stroke="#9b4038" stroke-width="2"></rect>
+                        <text x="122" y="682" text-anchor="middle" fill="#63312d" font-size="16" font-weight="800">修改合同</text>
+                        <text x="122" y="707" text-anchor="middle" fill="#7e4b47" font-size="13">不启动自动化</text>
+
+                        <line x1="560" y1="760" x2="560" y2="807" stroke="#ad4b23" stroke-width="3" marker-end="url(#arrow)"></line>
+                        <text x="580" y="791" fill="#176c63" font-size="14" font-weight="800">是</text>
+
+                        <rect x="290" y="812" width="540" height="100" rx="22" fill="#edf3f6" stroke="#35657f" stroke-width="2" filter="url(#soft-shadow)"></rect>
+                        <text x="560" y="846" text-anchor="middle" fill="#211b16" font-size="18" font-weight="800">Orchestrator 自动准备执行环境</text>
+                        <text x="560" y="873" text-anchor="middle" fill="#6c6055" font-size="14">记录原 HEAD、保留未提交规划文件、取得租约、切换任务分支</text>
+                        <text x="560" y="896" text-anchor="middle" fill="#6c6055" font-size="13">默认复用当前工程目录；运行状态写入 Git 公共状态区</text>
+
+                        <line x1="560" y1="912" x2="560" y2="952" stroke="#ad4b23" stroke-width="3" marker-end="url(#arrow)"></line>
+
+                        <rect x="300" y="957" width="520" height="105" rx="22" fill="#fffaf4" stroke="#ad4b23" stroke-width="2" filter="url(#soft-shadow)"></rect>
+                        <text x="560" y="992" text-anchor="middle" fill="#211b16" font-size="18" font-weight="800">Coder：G0 → RED → 最小实现 → G2–G6</text>
+                        <text x="560" y="1019" text-anchor="middle" fill="#6c6055" font-size="14">自动执行一次受限修复循环并封存完整任务 diff</text>
+                        <text x="560" y="1042" text-anchor="middle" fill="#6c6055" font-size="13">Coder 不能创建 worktree、提交、合并或 push</text>
+
+                        <line x1="820" y1="1009" x2="920" y2="1009" stroke="#9b4038" stroke-width="3" marker-end="url(#arrow-danger)"></line>
+                        <rect x="925" y="964" width="165" height="90" rx="18" fill="#faecea" stroke="#9b4038" stroke-width="2"></rect>
+                        <text x="1007" y="1000" text-anchor="middle" fill="#63312d" font-size="15" font-weight="800">硬门禁失败</text>
+                        <text x="1007" y="1025" text-anchor="middle" fill="#7e4b47" font-size="12">停止并保留证据</text>
+
+                        <line x1="560" y1="1062" x2="560" y2="1107" stroke="#ad4b23" stroke-width="3" marker-end="url(#arrow)"></line>
+
+                        <rect x="300" y="1112" width="520" height="98" rx="22" fill="#f1eaf7" stroke="#655181" stroke-width="2" filter="url(#soft-shadow)"></rect>
+                        <text x="560" y="1147" text-anchor="middle" fill="#211b16" font-size="18" font-weight="800">自动启动全新只读 Reviewer：G7</text>
+                        <text x="560" y="1174" text-anchor="middle" fill="#6c6055" font-size="14">复跑验证、核对 diff SHA、行为和测试质量</text>
+                        <text x="560" y="1197" text-anchor="middle" fill="#6c6055" font-size="13">一次合同内修复可自动回到 Coder，再以新 Reviewer 复审</text>
+
+                        <line x1="820" y1="1161" x2="920" y2="1161" stroke="#9b4038" stroke-width="3" marker-end="url(#arrow-danger)"></line>
+                        <rect x="925" y="1116" width="165" height="90" rx="18" fill="#faecea" stroke="#9b4038" stroke-width="2"></rect>
+                        <text x="1007" y="1152" text-anchor="middle" fill="#63312d" font-size="14" font-weight="800">修复次数耗尽</text>
+                        <text x="1007" y="1177" text-anchor="middle" fill="#7e4b47" font-size="12">转 NEEDS_HUMAN</text>
+
+                        <line x1="560" y1="1210" x2="560" y2="1255" stroke="#ad4b23" stroke-width="3" marker-end="url(#arrow)"></line>
+
+                        <rect x="290" y="1260" width="540" height="100" rx="22" fill="#eaf5f2" stroke="#176c63" stroke-width="2" filter="url(#soft-shadow)"></rect>
+                        <text x="560" y="1295" text-anchor="middle" fill="#211b16" font-size="18" font-weight="800">AWAITING_HUMAN：集中展示 H1 验收包</text>
+                        <text x="560" y="1322" text-anchor="middle" fill="#6c6055" font-size="14">行为、RED、构建、Lint、范围、Review、原分支和风险</text>
+                        <text x="560" y="1345" text-anchor="middle" fill="#6c6055" font-size="13">此前不需要人工查看状态、排队或启动 Reviewer</text>
+
+                        <line x1="560" y1="1360" x2="560" y2="1400" stroke="#ad4b23" stroke-width="3" marker-end="url(#arrow)"></line>
+
+                        <polygon points="560,1405 730,1470 560,1535 390,1470" fill="#fff6e7" stroke="#9b691b" stroke-width="2" filter="url(#soft-shadow)"></polygon>
+                        <text x="560" y="1464" text-anchor="middle" fill="#211b16" font-size="18" font-weight="800">人工最终验收通过？</text>
+                        <text x="560" y="1489" text-anchor="middle" fill="#6c6055" font-size="14">OpenCode 单选；授权提交到已记录的原分支</text>
+
+                        <line x1="390" y1="1470" x2="220" y2="1470" stroke="#9b4038" stroke-width="3" marker-end="url(#arrow-danger)"></line>
+                        <text x="305" y="1453" text-anchor="middle" fill="#9b4038" font-size="14" font-weight="800">否</text>
+                        <rect x="30" y="1425" width="185" height="90" rx="18" fill="#faecea" stroke="#9b4038" stroke-width="2"></rect>
+                        <text x="122" y="1461" text-anchor="middle" fill="#63312d" font-size="16" font-weight="800">保持待验收</text>
+                        <text x="122" y="1486" text-anchor="middle" fill="#7e4b47" font-size="13">或提出修改意见</text>
+
+                        <line x1="560" y1="1535" x2="560" y2="1577" stroke="#ad4b23" stroke-width="3" marker-end="url(#arrow)"></line>
+                        <text x="580" y="1562" fill="#176c63" font-size="14" font-weight="800">是</text>
+
+                        <rect x="280" y="1582" width="560" height="110" rx="22" fill="#edf3f6" stroke="#35657f" stroke-width="2" filter="url(#soft-shadow)"></rect>
+                        <text x="560" y="1617" text-anchor="middle" fill="#211b16" font-size="18" font-weight="800">Integrator 自动提交并更新原分支</text>
+                        <text x="560" y="1644" text-anchor="middle" fill="#6c6055" font-size="14">重验封存 SHA，将代码、测试、计划和合同合为一个提交</text>
+                        <text x="560" y="1667" text-anchor="middle" fill="#6c6055" font-size="13">快进成功后删除任务分支；发生漂移立即停止并保留任务分支</text>
+
+                        <line x1="840" y1="1637" x2="920" y2="1637" stroke="#9b4038" stroke-width="3" marker-end="url(#arrow-danger)"></line>
+                        <rect x="925" y="1592" width="165" height="90" rx="18" fill="#faecea" stroke="#9b4038" stroke-width="2"></rect>
+                        <text x="1007" y="1628" text-anchor="middle" fill="#63312d" font-size="14" font-weight="800">INTEGRATION_BLOCKED</text>
+                        <text x="1007" y="1653" text-anchor="middle" fill="#7e4b47" font-size="12">原分支保持不变</text>
+
+                        <line x1="560" y1="1692" x2="560" y2="1732" stroke="#ad4b23" stroke-width="3" marker-end="url(#arrow)"></line>
+
+                        <rect x="350" y="1737" width="420" height="65" rx="32" fill="#176c63" filter="url(#soft-shadow)"></rect>
+                        <text x="560" y="1777" text-anchor="middle" fill="#ffffff" font-size="18" font-weight="800">COMPLETED：一个任务提交，任务分支已删除</text>
+                    </svg>
+                </div>
+
+                <p class="caption">
+                    正常路径中，合同批准之后到 <code>AWAITING_HUMAN</code> 之间没有人工命令；失败时停止，不做无限重试或未经授权的 Git 操作。
+                </p>
+
+                <div class="state-strip">
+                    <span class="state">DRAFT</span><span class="state-arrow">→</span>
+                    <span class="state">CONTRACT_REVIEW</span><span class="state-arrow">→</span>
+                    <span class="state">APPROVED_CONTRACT</span><span class="state-arrow">→</span>
+                    <span class="state">PREPARING</span><span class="state-arrow">→</span>
+                    <span class="state">PENDING</span><span class="state-arrow">→</span>
+                    <span class="state">CODING</span><span class="state-arrow">→</span>
+                    <span class="state">READY_FOR_REVIEW</span><span class="state-arrow">→</span>
+                    <span class="state">REVIEWING</span><span class="state-arrow">→</span>
+                    <span class="state">AWAITING_HUMAN</span><span class="state-arrow">→</span>
+                    <span class="state">INTEGRATING</span><span class="state-arrow">→</span>
+                    <span class="state">COMPLETED</span>
+                </div>
+            </section>
+
+            <section class="panel" id="steps">
+                <div class="section-head">
+                    <div>
+                        <span class="kicker">OpenCode Interaction</span>
+                        <h2>一条六阶段闭环，用户只参与三个关口</h2>
+                        <p>除首次启动 OpenCode 外，正常路径不要求用户在 Terminal 中切换分支、排队、启动 Coder 或 Reviewer。</p>
+                    </div>
+                    <span class="section-no">03</span>
+                </div>
+
+                <div class="steps">
+                    <article class="step" data-step="1">
+                        <h3>启动 Planner 并输入自然语言需求</h3>
+                        <p>环境发现和 Android SDK 检查由 Planner 的启动预检自动执行；预检失败时只报告原因，不生成合同。</p>
+                        <div class="code-shell">
+<pre><code>cd /Users/zhanglong/files/program/cctest
+opencode --agent scheduled-planner .</code></pre>
+                        </div>
+                        <p>进入 OpenCode 后输入：</p>
+                        <div class="code-shell">
+<pre><code>当前代码的城市列表没有“重庆”，因此“查看重庆的记录列表”虽然会命中列表意图，
+但 slots.city 是 null。任务要求通过 TDD 增加该支持。</code></pre>
+                        </div>
+                        <div class="expect">
+                            <strong>自动预检：</strong>确认 OpenCode 配置、Agent、技能、Git 仓库、原分支、工作区洁净度、
+                            <code>ANDROID_HOME</code> 和基础脚本可用。发现硬阻塞时停在 <code>DRAFT</code>。
+                        </div>
+                    </article>
+
+                    <article class="step" data-step="2">
+                        <h3>确认方案，自动生成计划和任务合同</h3>
+                        <p>Planner 应先展示任务 ID、验收条件、允许路径、目标测试、非目标和设备测试策略，但此时不写文件。</p>
+                        <p>确认无误后，在 Planner 自动弹出的“方案确认”单选框中点击一项：</p>
+                        <div class="code-shell">
+<pre><code>● 批准方案，生成计划和任务合同。
+  确认当前方案并生成两份待复核的规划文件。
+
+○ 需要调整方案
+  不生成文件；随后说明要调整的目标、范围或验证方式。</code></pre>
+                        </div>
+                        <div class="expect">
+                            Planner 生成 <code>docs/plans/&lt;TASK-ID&gt;.md</code> 与
+                            <code>automation/tasks/&lt;TASK-ID&gt;.json</code>，运行合同校验，并进入
+                            <code>CONTRACT_REVIEW</code>。只有点击第一项才会生成文件；直接发送同名文本不构成批准。
+                            生成文件只做哈希封存，暂不提交；生成文件不等于授权执行。
+                        </div>
+                    </article>
+
+                    <article class="step" data-step="3">
+                        <h3>人工复核合同，并用一次确认启动自动执行</h3>
+                        <p>OpenCode 必须展示计划全文、合同关键字段、校验结论和将要记录的原分支。人工至少确认：</p>
+                        <ul>
+                            <li>输入为 <code>查看重庆的记录列表</code>。</li>
+                            <li><code>userGoal == BrowsePersonalInfoList</code>。</li>
+                            <li><code>slots.city == "重庆"</code>。</li>
+                            <li><code>allowedPaths</code> 只有实现文件和对应测试文件。</li>
+                            <li>先 RED 后最小实现，已有城市行为不变。</li>
+                            <li>不改 UI、导航、依赖、Gradle、远端解析或意图优先级。</li>
+                            <li>原分支是当前实际分支，例如 <code>feature-opencode-scheduler</code>，而不是硬编码的 <code>main</code>。</li>
+                        </ul>
+                        <p>复核完成后，在 Planner 自动弹出的“合同复核”单选框中点击一项：</p>
+                        <div class="code-shell">
+<pre><code>● 合同已复核，批准自动执行到人工验收阶段。
+  确认当前封存内容并自动执行到人工验收。
+
+○ 需要调整计划或任务合同
+  保持停止状态，并说明需要修改的内容。</code></pre>
+                        </div>
+                        <div class="expect">
+                            只有点击第一项才生成一次性执行授权，直接发送审批文本无效。此后编排器自动推进，直到成功进入
+                            <code>AWAITING_HUMAN</code>，或因硬门禁进入失败状态。批准合同本身不会产生 Git 提交。
+                        </div>
+                    </article>
+
+                    <article class="step" data-step="4">
+                        <h3>编排器原地准备事务分支、编码并审查</h3>
+                        <p>从这一阶段开始，用户不再执行 Terminal 命令。编排器依次完成：</p>
+                        <ul>
+                            <li><strong>建立基线：</strong>记录原分支、未改变的原 HEAD 与合同 SHA；计划和合同继续保持未提交。</li>
+                            <li><strong>准备环境：</strong>取得持久仓库租约，在当前工程目录创建并切换唯一任务分支，不复制源码。</li>
+                            <li><strong>可选隔离：</strong>只有将 <code>workspaceStrategy</code> 显式设为 <code>isolatedWorktree</code> 时才创建一个任务 worktree。</li>
+                            <li><strong>运行时配置：</strong>把任务根路径、分支和租约写入 Git 公共状态区，而不是提交单次激活配置。</li>
+                            <li><strong>G0：</strong>新增测试前，全量 <code>testDebugUnitTest</code> 必须通过。</li>
+                            <li><strong>G1：</strong>先添加重庆聚焦测试，获得真实 RED 并记录证据。</li>
+                            <li><strong>G2–G6：</strong>完成最小实现、单测、构建、Lint、设备测试策略和范围门禁。</li>
+                            <li><strong>范围计数：</strong>计划和合同必须保持封存哈希不变，但不占用 <code>maxChangedFiles</code>；该上限只统计产品代码、测试及其他合同授权文件。</li>
+                            <li><strong>G7：</strong>自动启动全新的只读 Reviewer，复跑验证并核对封存 diff。</li>
+                        </ul>
+                        <div class="code-shell">
+<pre><code><span class="comment"># 编排器内部流水线；不是人工命令</span>
+PREPARING → PENDING → CODING → READY_FOR_REVIEW
+→ REVIEWING → AWAITING_HUMAN</code></pre>
+                        </div>
+                        <div class="callout danger">
+                            Coder 仍然不能创建 worktree、提交、merge、rebase 或 push；这些能力只授予带状态校验的确定性编排脚本。
+                        </div>
+                    </article>
+
+                    <article class="step" data-step="5">
+                        <h3>在 OpenCode 中完成集中式人工验收</h3>
+                        <p>自动阶段成功后，OpenCode 一次性展示验收包，而不是要求人工逐个查状态文件。验收包必须包含：</p>
+                        <ul>
+                            <li>业务行为、最终产品 diff 和允许路径对照。</li>
+                            <li>将随产品变更一并进入同一提交的计划与任务合同路径。</li>
+                            <li>G0 基线、真实 RED、聚焦测试、全量单测、构建与 Lint 结论。</li>
+                            <li>Reviewer 决策、验证退出码、封存 diff SHA 与剩余风险。</li>
+                            <li>即将更新的原分支、当前 HEAD、预计单一任务提交信息，以及是否发生分支漂移。</li>
+                        </ul>
+                        <p>检查完成后，在 Planner 自动弹出的“成果验收”单选框中点击一项：</p>
+                        <div class="code-shell">
+<pre><code>● 验收通过，提交到原分支。
+  确认当前 sealed diff，并开始经过复验的本地集成。
+
+○ 验收不通过，需要说明失败项
+  保持封存，不集成；随后说明失败条件。
+
+○ 暂不决定，保持封存
+  不改变状态，稍后可重新打开同一张验收卡。</code></pre>
+                        </div>
+                        <div class="expect">
+                            只有点击第一项才构成验收；直接发送同名文本无效。该选择只对当前任务 ID、当前封存 diff SHA
+                            和已展示的原分支有效；任一值变化都必须重新展示并选择。
+                        </div>
+                    </article>
+
+                    <article class="step" data-step="6">
+                        <h3>集成器自动提交到原分支并回报结果</h3>
+                        <p>最终确认后，确定性集成器自动完成以下操作：</p>
+                        <ul>
+                            <li>再次验证 <code>AWAITING_HUMAN</code>、Review 批准、diff SHA、合同范围与原分支身份。</li>
+                            <li>将合同允许的代码/测试与已封存的计划/合同一起暂存，在任务分支生成一个提交。</li>
+                            <li>确认从任务开始基线到候选 HEAD 恰好只有这一个提交，并在当前任务目录复跑确定性验证，不建立第二个候选目录。</li>
+                            <li>原分支仍等于批准基线时执行快进；只要发生漂移就进入 <code>INTEGRATION_BLOCKED</code>，不自动 cherry-pick。</li>
+                            <li>原分支安全到达已验证提交后，清理或分离可选任务 worktree，并用安全删除移除本地任务分支。</li>
+                            <li>保存集成与分支删除证据、释放持久租约，最后进入 <code>COMPLETED</code>；失败或阻塞时保留任务分支。</li>
+                        </ul>
+                        <div class="code-shell">
+<pre><code>state=COMPLETED
+originalBranch=feature-opencode-scheduler
+productCommit=&lt;COMMIT&gt;
+verificationExitCode=0
+taskBranchDeleted=true
+pushed=false</code></pre>
+                        </div>
+                        <div class="callout">
+                            “提交到原分支”是本地 Git 提交，不等于 push。只有用户另外明确说“推送到远端”时，才允许执行网络写入。
+                        </div>
+                    </article>
+                </div>
+            </section>
+
+            <section class="panel" id="implementation">
+                <div class="section-head">
+                    <div>
+                        <span class="kicker">Implementation Contract</span>
+                        <h2>这套自动流程已经落地的能力</h2>
+                        <p>以下能力已由仓库内 Agent、Skill、配置和可测试的确定性脚本实现，不依赖提示词临时模拟关键 Git 或状态操作。</p>
+                    </div>
+                    <span class="section-no">04</span>
+                </div>
+
+                <div class="grid-2">
+                    <article class="card">
+                        <h3>受控 Orchestrator</h3>
+                        <p><code>scheduled-planner</code> 加载专用 Orchestrator Skill。它不能编辑产品代码，只能调用白名单事务脚本、启动隔离的 Coder/Reviewer，并向用户展示审批内容。</p>
+                    </article>
+                    <article class="card">
+                        <h3>两条主事务与一条安全中止接口</h3>
+                        <div class="code-shell" style="margin-top: 12px;">
+<pre><code>./scripts/automation/approve-and-run.sh &lt;TASK-ID&gt; &lt;APPROVAL-TOKEN&gt;
+./scripts/automation/accept-and-integrate.sh &lt;TASK-ID&gt; &lt;ACCEPTANCE-TOKEN&gt;
+./scripts/automation/abort-task.sh &lt;TASK-ID&gt; &lt;ABORT-TOKEN&gt;</code></pre>
+                        </div>
+                        <p>第一条负责基线、事务分支、租约和自动流水线；第二条负责封存校验、同目录复验和原分支快进；第三条归档现场并恢复原分支。</p>
+                    </article>
+                    <article class="card">
+                        <h3>非跟踪运行时配置</h3>
+                        <p>任务根路径、持久仓库租约和运行状态存放在 Git common dir。不得通过修改并提交本机绝对路径激活单次任务。</p>
+                    </article>
+                    <article class="card">
+                        <h3>幂等、锁和可恢复状态</h3>
+                        <p>同一仓库只允许一个编排任务持有租约；重复确认不得重复建分支、重复提交或重复集成。租约跨人工等待保留，进程中断后从证据状态恢复。</p>
+                    </article>
+                </div>
+
+                <div class="table-wrap" style="margin-top: 18px;">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>角色</th>
+                                <th>允许能力</th>
+                                <th>明确禁止</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>Planner</td>
+                                <td>读取仓库；在首次批准后生成计划与合同；按后续确认调用白名单事务脚本</td>
+                                <td>直接编辑产品、直接执行 Git 变更或 push</td>
+                            </tr>
+                            <tr>
+                                <td>Orchestrator</td>
+                                <td>校验批准令牌、管理状态/持久租约/事务任务根、启动隔离 Agent</td>
+                                <td>自行解释需求或编辑产品代码</td>
+                            </tr>
+                            <tr>
+                                <td>Coder</td>
+                                <td>只编辑合同 <code>allowedPaths</code>，执行 TDD 和 G0–G6</td>
+                                <td>任何 worktree、commit、merge、rebase、push 和合同修改</td>
+                            </tr>
+                            <tr>
+                                <td>Reviewer</td>
+                                <td>全新只读上下文，复验并提交结构化决定</td>
+                                <td>编辑任何仓库文件或继续复用 Coder 会话</td>
+                            </tr>
+                            <tr>
+                                <td>Integrator</td>
+                                <td>最终批准后将允许文件与封存计划/合同合为一个提交、验证候选并更新原分支</td>
+                                <td>跳过 SHA/范围校验、自动解冲突、force push 或修改未授权分支</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+
+            <section class="panel" id="acceptance">
+                <div class="section-head">
+                    <div>
+                        <span class="kicker">H1 Acceptance</span>
+                        <h2>OpenCode 必须集中展示的最终验收清单</h2>
+                        <p>人工不需要运行取证命令，但必须能够展开原始证据；缺少任意一项都不能生成最终接受令牌。</p>
+                    </div>
+                    <span class="section-no">05</span>
+                </div>
+
+                <div class="grid-2">
+                    <article class="card">
+                        <h3>业务行为</h3>
+                        <ul class="check-list">
+                            <li><code>查看重庆的记录列表</code> 返回成功解析结果。</li>
+                            <li><code>userGoal == BrowsePersonalInfoList</code>。</li>
+                            <li><code>slots.city == "重庆"</code>。</li>
+                            <li>上海等已有城市行为保持不变。</li>
+                            <li>没有增加区县、别名或模糊匹配。</li>
+                        </ul>
+                    </article>
+
+                    <article class="card">
+                        <h3>测试与构建</h3>
+                        <ul class="check-list">
+                            <li>存在实现前的真实 RED 证据。</li>
+                            <li>聚焦测试与全量 JVM 单测通过。</li>
+                            <li>Debug APK 构建通过。</li>
+                            <li>Android Lint 通过。</li>
+                            <li>合同明确设备测试不需要执行。</li>
+                        </ul>
+                    </article>
+
+                    <article class="card">
+                        <h3>范围与权限</h3>
+                        <ul class="check-list">
+                            <li>产品 diff 只落在合同允许路径。</li>
+                            <li>没有修改 Agent、Skill、合同、门禁脚本、Gradle 或依赖。</li>
+                            <li>没有删除、忽略或弱化测试。</li>
+                            <li>事务任务分支与可选 worktree 只由 Orchestrator 管理，Coder 没有 Git 管理权限。</li>
+                            <li>Reviewer 是独立只读会话，未编辑仓库文件。</li>
+                            <li>任务历史中不存在含本机绝对路径的激活配置提交。</li>
+                        </ul>
+                    </article>
+
+                    <article class="card">
+                        <h3>集成就绪度</h3>
+                        <ul class="check-list">
+                            <li><code>ready.json</code> 记录 HEAD 与 diff SHA。</li>
+                            <li><code>review.json.decision == "APPROVED"</code>。</li>
+                            <li><code>verificationExitCode == 0</code>。</li>
+                            <li>当前状态为 <code>AWAITING_HUMAN</code>，产品 diff 未改变。</li>
+                            <li>已展示原分支、基线 HEAD、分支漂移和集成策略。</li>
+                            <li>确认后预期进入 <code>COMPLETED</code>，且已集成的本地任务分支被删除，而不是自动 push。</li>
+                        </ul>
+                    </article>
+                </div>
+            </section>
+
+            <section class="panel" id="evidence">
+                <div class="section-head">
+                    <div>
+                        <span class="kicker">Evidence</span>
+                        <h2>跨分支与进程保存的完整证据目录</h2>
+                        <p>证据写入 Git common dir，不进入产品 diff；即使进程退出、切回原分支或清理可选 worktree 仍然存在。</p>
+                    </div>
+                    <span class="section-no">06</span>
+                </div>
+
+                <div class="code-shell">
+<pre><code>&lt;GIT-COMMON-DIR&gt;/automation-runtime/
+├── state/&lt;TASK-ID&gt;.json       <span class="comment"># 当前状态与修订号</span>
+├── workspaces/&lt;TASK-ID&gt;.json  <span class="comment"># 工作区策略、任务根与分支身份</span>
+├── locks/                      <span class="comment"># 状态锁、运行锁与持久仓库租约</span>
+└── evidence/&lt;TASK-ID&gt;/
+├── transitions.jsonl          <span class="comment"># 只追加的状态迁移审计</span>
+├── approvals.jsonl            <span class="comment"># 三次正常批准及可选中止授权</span>
+├── origin.json                <span class="comment"># 原分支、基线 HEAD 与工作区身份</span>
+├── preflight.log              <span class="comment"># 环境、权限、合同与洁净度预检</span>
+├── baseline.log
+├── baseline.json              <span class="comment"># G0 绿色基线</span>
+├── protected.sha256
+├── red.log
+├── red.json                   <span class="comment"># 实现前的真实失败证据</span>
+├── gate-cycle-0-attempt-1.log
+├── gate-attempts-cycle-0.json
+├── ready.json                 <span class="comment"># READY_FOR_REVIEW、HEAD 与 diff SHA</span>
+├── review-verification.log
+├── review.json                <span class="comment"># G7 独立审核结论</span>
+├── acceptance-report.json     <span class="comment"># 集中式人工验收包</span>
+├── sealed.diff                <span class="comment"># 含产品与规划文件的封存任务差异</span>
+├── acceptance.json            <span class="comment"># 最终人工接受及其绑定对象</span>
+├── integration-verification.log <span class="comment"># 单一任务提交的同目录确定性复验</span>
+├── integration.json           <span class="comment"># 单一任务提交、原分支新 HEAD、结果</span>
+├── aborted.diff               <span class="comment"># 显式中止时归档的未提交差异</span>
+├── abort.json                 <span class="comment"># 恢复提交、原分支与 ABORTED 结果</span>
+└── cleanup.log                <span class="comment"># 任务 worktree 与本地任务分支清理记录</span></code></pre>
+                </div>
+            </section>
+
+            <section class="panel" id="failures">
+                <div class="section-head">
+                    <div>
+                        <span class="kicker">Failure Handling</span>
+                        <h2>异常才需要人工介入，旧批准不会被复用</h2>
+                        <p>编排器允许合同内的有界自动修复；环境、歧义、超限失败和 Git 冲突仍必须停止。</p>
+                    </div>
+                    <span class="section-no">07</span>
+                </div>
+
+                <div class="table-wrap">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>状态</th>
+                                <th>常见原因</th>
+                                <th>正确处理</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td><code>CONTRACT_INVALID</code></td>
+                                <td>合同缺字段、范围含糊、原分支无法确定或审批对象已改变。</td>
+                                <td>保持在合同复核阶段，由 Planner 修订；绝不取得执行租约或切换任务分支。</td>
+                            </tr>
+                            <tr>
+                                <td><code>BLOCKED</code></td>
+                                <td>SDK、依赖、基线、权限、仓库租约或任务根身份不满足硬门禁。</td>
+                                <td>保留日志并报告一条可执行的修复建议；修复后从最近安全状态恢复。</td>
+                            </tr>
+                            <tr>
+                                <td><code>TEST_FAILED</code></td>
+                                <td>聚焦测试、全量单测、构建或 Lint 在允许修复次数后仍失败。</td>
+                                <td>自动修复次数耗尽后转 <code>NEEDS_HUMAN</code>，不得无限消耗模型时间。</td>
+                            </tr>
+                            <tr>
+                                <td><code>CHANGES_REQUESTED</code></td>
+                                <td>Reviewer 发现语义、测试质量或 diff SHA 不一致。</td>
+                                <td>合同内且未超限时自动返回 Coder，并启动新的 Reviewer；否则交还人工。</td>
+                            </tr>
+                            <tr>
+                                <td><code>INTEGRATION_BLOCKED</code></td>
+                                <td>原分支偏离任务开始基线、任务根身份改变或单一任务提交复验失败。</td>
+                                <td>原分支保持不变，不自动 cherry-pick；保留任务分支、租约与证据，等待人工决定。</td>
+                            </tr>
+                            <tr>
+                                <td><code>ABORTED</code></td>
+                                <td>人工明确决定终止一个已停止的任务。</td>
+                                <td>有产品修改时与计划/合同合为一个 recovery commit；仅有规划文件时只归档 diff、不提交；随后恢复原分支并释放租约。</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <p style="margin-top: 18px; color: var(--muted); line-height: 1.75;">
+                    问题解决后，Planner 必须根据保留的证据重新校验最近安全状态；如果合同、diff、原分支或 HEAD 已变化，必须回到相应人工批准关口，不能沿用旧批准继续执行。
+                </p>
+
+                <div class="callout danger">
+                    自动化不得使用 <code>--dangerously-skip-permissions</code>、force push、自动解决 Git 冲突、修改未授权分支，
+                    也不得把失败当作继续猜测的理由。最终接受令牌只能使用一次，并且必须绑定任务 ID、diff SHA 与原分支 HEAD。
+                </div>
+            </section>
+        </main>
+
+        <footer>
+            本文在 <code>taskdescriptions/task2.html</code> 的业务与质量要求基础上，重构了低人工干预的自动编排目标方案。
+            页面自包含，不加载外部脚本、字体或图片；自动流程与手工 Runbook 冲突时，以本页的目标状态机和权限边界为准。<br>
+            工程：cctest · 文档：task2detail.html
+        </footer>
+    </div>
+</body>
+</html>
