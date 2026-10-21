@@ -1,5 +1,17 @@
 # Changelog
 
+## 1.4.0 - 2026-10-21 (local, unpublished)
+
+- Select contract, changed-test and caller regression tests for supported small
+  Java/Kotlin method changes; conservatively fall back to module verification.
+- Capture selected baselines and reject missing, skipped or failing old cases,
+  including after the final scope widens to module tests.
+- Reuse sealed GREEN checks during independent Review only at the exact same
+  candidate and HEAD; integration after a commit executes verification again.
+- Permit compiler build-cache reuse while forcing real Test execution.
+- Keep prior approvals and build/lint/device requirements unchanged; expose
+  selection and fallback reasons before approval and in acceptance evidence.
+
 ## 1.3.6 - 2026-10-18
 
 - Restore interrupted local trials on SIGINT/SIGTERM; provide cleanup-only
