@@ -56,3 +56,12 @@ Do not offer alternate execution modes, dispatch subagents, commit, or start
 implementation. Return control to `scheduled-quality-orchestrator`, which
 validates and seals the plan and contract before the separate Coder and
 Reviewer sessions can run.
+
+For new small changes, propose explicit `verification.scope` version 2 with mode
+`affected-tests`. Use concrete file paths. Include intake's selected test filters
+and selection reasons in the contract review, including any conservative module
+fallback. Contract targets and caller regressions remain mandatory. Unknown
+dynamic dependencies, unsupported sources and API changes widen verification;
+never interpret an empty selection as a pass. Existing approved contracts retain
+their original policy. Sealed unchanged-candidate results may be reused, while
+independent AI Review and human acceptance remain required by commit policy.

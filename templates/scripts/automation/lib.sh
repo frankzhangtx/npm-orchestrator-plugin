@@ -532,8 +532,15 @@ automation_baseline_tasks_json() {
 }
 
 automation_run_baseline_unit_tests() {
-    local contract="$1" root="$2" json task
+    local contract="$1" root="$2" json task plan
     local -a tasks=()
+    if [[ "$(jq -r '.verification.scope.version // 0' "$contract")" == 2 ]]; then
+        plan="$(node "$root/automation/verification/project.cjs" "$AUTOMATION_CONFIG" "$root" --select-baseline "$contract")" || return 41
+        if [[ "$(jq -r '.testSelection.mode' <<< "$plan")" == selected ]]; then
+            node "$root/automation/verification/selected-tests.cjs" "$contract" "$AUTOMATION_CONFIG" "$root" "$(automation_evidence_path "$(jq -er '.id' "$contract")")" "$plan" baseline
+            return $?
+        fi
+    fi
     json="$(automation_baseline_tasks_json "$contract" "$root")" || return 41
     while IFS= read -r task; do tasks[${#tasks[@]}]="$task"; done < <(printf '%s' "$json" | jq -r '.[]')
     [[ "${#tasks[@]}" -gt 0 ]] || return 41
@@ -549,6 +556,8 @@ automation_run_impact_phase() {
     local -a tasks=()
     automation_require_queue_execution "$(jq -er '.id' "$contract")"
     case "$phase" in
+        selected) node "$root/automation/verification/selected-tests.cjs" "$contract" "$AUTOMATION_CONFIG" "$root" "$(automation_evidence_path "$(jq -er '.id' "$contract")")" "$json"; return $? ;;
+        baseline-regression) node "$root/automation/verification/selected-tests.cjs" --baseline-regression "$contract" "$AUTOMATION_CONFIG" "$root" "$(automation_evidence_path "$(jq -er '.id' "$contract")")"; return $? ;;
         focused) automation_run_inventory green "$(jq -er '.id' "$contract")" "$root"; return $? ;;
         inventory-check) automation_run_inventory check "$(jq -er '.id' "$contract")" "$root"; return $? ;;
         unit|assemble|lint|device) ;;

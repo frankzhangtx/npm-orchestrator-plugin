@@ -38,7 +38,7 @@ function preview(value: unknown, depth = 2): unknown {
 }
 
 const SUMMARY_KEYS = ["valid", "state", "reasonCode", "decision", "verificationExitCode", "fullTestsExecuted", "affectedTestsExecuted", "mode", "variants", "affectedModules", "selectedVariants", "tasks", "phase",
-  "summary", "originalBranchDrifted", "evidence", "bindingChecks", "reviewSummary", "elapsedSeconds",
+  "testSelection", "selectedTestsExecuted", "reusedFrom", "summary", "originalBranchDrifted", "evidence", "bindingChecks", "reviewSummary", "elapsedSeconds",
   "schemaVersion", "title", "acceptanceCriteria", "allowedPaths", "lastFailure", "waitingReason"];
 function resourceSummary(value: unknown): unknown {
   if (!value || typeof value !== "object" || Array.isArray(value)) return undefined;

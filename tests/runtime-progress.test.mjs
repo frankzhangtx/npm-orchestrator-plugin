@@ -154,6 +154,6 @@ test('capability defaults accept affected Debug V7 and do not rewrite older stor
 test('Planner reads generated capabilities/template and presents scoped policies before approval', () => {
   const planner = readFileSync(new URL('../templates/.opencode/agents/scheduled-planner.md', import.meta.url), 'utf8');
   assert.match(planner, /TASK-TEMPLATE\.json\.example/); assert.match(planner, /generated V7 template/);
-  assert.match(planner, /mode: affected, variants: debug/); assert.match(planner, /verificationFallbackReason/);
+  assert.match(planner, /mode: affected-tests, variants: debug/); assert.match(planner, /verificationFallbackReason/);
   assert.doesNotMatch(planner, /Use schema V4 with verification version 2 unless/);
 });

@@ -158,6 +158,15 @@ test("installed doctor validates dependencies, inventory, files, modes, backups,
     assert.equal(report.ok, true);
     assert.equal(report.checks.length, 17);
     assert.equal(report.checks.every((candidate) => candidate.status === "pass"), true);
+    const manifest = readInstallationManifest(root);
+    for (const name of ["selected-tests", "test-selection", "verification-reuse"]) {
+      const path = `automation/verification/${name}.cjs`;
+      const entry = manifest.files.find((file) => file.path === path);
+      assert.ok(entry, `missing managed verification module: ${path}`);
+      assert.equal(entry.source, `templates/${path}`);
+      assert.equal(entry.strategy, "copy");
+      assert.equal(entry.mode, 0o644);
+    }
     assert.match(
       check(report, "installation-manifest").summary,
       new RegExp(`tracks ${EXPECTED_MANAGED_FILE_COUNT} installed files`),

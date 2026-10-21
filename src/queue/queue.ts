@@ -497,7 +497,7 @@ export class TaskQueue {
       verificationFallbackReason.trim().length >= 10 && Buffer.byteLength(verificationFallbackReason) <= 512,
       "Full verification requires a meaningful verificationFallbackReason of at most 512 UTF-8 bytes; scoped contracts must omit it");
     invariant(!config.androidProject?.capabilities || scoped || verificationFallbackReason !== undefined,
-      "New drafts with project capabilities require V7/V8 verification.scope (affected Debug by default), or an explicit verificationFallbackReason for full verification; existing approvals remain unchanged");
+      "New drafts with project capabilities require V7/V8 verification.scope (affected-tests Debug by default), or an explicit verificationFallbackReason for full verification; existing approvals remain unchanged");
     invariant(input.plan.trim().length >= 20 && Buffer.byteLength(input.plan) <= 1024 * 1024, "A complete plan of at most 1 MiB is required");
     invariant(/^[a-f0-9]{40,64}$/.test(input.planningHead), "A fixed planning commit is required");
     git(this.storage.root, ["check-ref-format", `refs/heads/${input.targetBranch}`]);
@@ -562,10 +562,12 @@ export class TaskQueue {
     }
   }
   approvalText(draft: Draft): string {
-    const verification = (draft.contract.verification as {scope?: unknown} | undefined)?.scope ? "影响范围内的编译、单测" : "构建、全量单测";
+    const selected = (draft.contract.verification as {scope?: {mode?: string}} | undefined)?.scope?.mode === "affected-tests";
+    const verification = selected ? "选定回归测试（无法确定影响时扩大至模块）及所需构建" : (draft.contract.verification as {scope?: unknown} | undefined)?.scope ? "影响范围内的编译、单测" : "构建、全量单测";
     let text = draft.commitPolicy === "autoCommit"
       ? `批准入队 ${draft.key}：通过${verification}和独立 Review 后自动本地提交并集成，不推送远程。`
       : `批准入队 ${draft.key}：执行后等待人工确认提交，不推送远程。`;
+    if (selected) text += "按实际改动选择目标及调用方测试；允许复用同一冻结候选的通过证据，变化后重新验证。";
     if (draft.verificationFallbackReason) text += `使用全量验证（包含配置中的全部构建变体）；原因：${draft.verificationFallbackReason}`;
     const policy = continuityPolicy(draft.contract);
     return policy ? text + (policy.isolatedAutoIntegration ? "隔离工作区自动集成已授权。" : "") +

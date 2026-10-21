@@ -585,7 +585,7 @@ export function planAdaptiveProjectTemplates(
     ],
     verification: {
       ...(taskTemplate.verification as Record<string, unknown>),
-      ...(detection.capabilities ? { scope: { version: 1, mode: "affected", variants: scopeVariants, maxManualRetries: 1 } } : {}),
+      ...(detection.capabilities ? { scope: { version: 2, mode: "affected-tests", variants: scopeVariants, maxManualRetries: 1 } } : {}),
       cases: [{
         ...((taskTemplate.verification as { cases: Record<string, unknown>[] }).cases[0] ?? {}),
         expectedFailure: {

@@ -297,7 +297,7 @@ test("plans an older-version upgrade without writing recovery or managed files",
     assert.equal(plan.primaryModule, ":mobile");
     assert.equal(plan.fromVersion, "0.2.0");
     assert.equal(plan.toVersion, "1.3.6");
-    assert.equal(plan.desiredFiles.length, 55);
+    assert.equal(plan.desiredFiles.length, 58);
     assert.equal(plan.removedFiles.length, 0);
     assert.equal(existsSync(plan.recoveryDirectory), false);
     assert.equal(existsSync(plan.backupDirectory), false);
@@ -413,9 +413,9 @@ test("upgrades unchanged managed files, preserves original merges, and restores 
     assert.equal(result.fromVersion, "0.2.0");
     assert.equal(result.toVersion, "1.3.6");
     assert.equal(result.commitMessagePrefixStatus, "existing-configured");
-    assert.equal(result.managedFileCount, 55);
+    assert.equal(result.managedFileCount, 58);
     assert.equal(result.writtenFileCount, 6);
-    assert.equal(result.reusedFileCount, 49);
+    assert.equal(result.reusedFileCount, 52);
     assert.equal(result.restoredOrRemovedFileCount, 1);
     assert.deepEqual(result.cleanupWarnings, []);
     assert.equal(result.verification.ok, true);
@@ -686,7 +686,7 @@ test("repeated upgrade is byte-idempotent for the current version", () => {
     assert.equal(result.commitMessagePrefixStatus, "existing-unconfigured");
     assert.equal(result.moduleScope, "all");
     assert.equal(result.writtenFileCount, 0);
-    assert.equal(result.reusedFileCount, 55);
+    assert.equal(result.reusedFileCount, 58);
     assert.equal(result.recoveryDirectory, null);
     assert.equal(result.historyPath, null);
     assert.equal(

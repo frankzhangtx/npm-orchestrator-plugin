@@ -195,7 +195,7 @@ function captureBaseline(contractFile, configFile, root, evidence, mode, expecte
     if (mode === "auto") assert(record.nextRunAt !== null && Date.now() >= record.nextRunAt, "Persisted retry backoff has not elapsed");
   } else {
     assert(mode === "initial" && !expectedHash, "Recovery ledger is missing; budgets cannot be reset");
-    for (const file of ["baseline.json", "baseline-full.json", "baseline-discovery.json", "baseline-inventory.json", "red.json"])
+    for (const file of ["baseline.json", "baseline-full.json", "baseline-selected.json", "baseline-discovery.json", "baseline-inventory.json", "red.json"])
       assert(!fs.existsSync(path.join(evidence, file)), `Unexpected existing baseline evidence: ${file}`);
     record = { version: 1, binding, startedAt: Date.now(), state: "RUNNING", attempts: [], checkpoints: {}, nextRunAt: null, modelInvocations: 0 };
   }
@@ -239,7 +239,10 @@ function captureBaseline(contractFile, configFile, root, evidence, mode, expecte
       attempt.state = "FAILED"; reasonCode = "INPUT_CHANGED_DURING_RUN";
     }
     atomic(path.join(attemptDir, "process.json"), { exitCode: result.status, signal: result.signal, error: result.error?.message ?? null });
-    attempt.files = [...artifactHashes(evidence, attemptDir), ...(attempt.inventoryFiles ?? [])]; delete attempt.inventoryFiles;
+    attempt.files = [...artifactHashes(evidence, attemptDir), ...(attempt.inventoryFiles ?? []),
+      ...(contract.verification.scope?.version === 2 && fs.existsSync(path.join(evidence,"selected-test-attempts")) ? artifactHashes(evidence,path.join(evidence,"selected-test-attempts")) : [])]; delete attempt.inventoryFiles;
+    if (contract.verification.scope?.version === 2 && fs.existsSync(path.join(evidence,"baseline-selected.json")))
+      attempt.files.push(["baseline-selected.json",fileHash(path.join(evidence,"baseline-selected.json"))]);
     if (attempt.state === "FAILED") {
       attempt.failure = classifyFailure({ phase: stage, reasonCode, log, exitCode: result.status });
       record.state = "FAILED";
@@ -250,14 +253,17 @@ function captureBaseline(contractFile, configFile, root, evidence, mode, expecte
       return { ok: false, record };
     }
     if (stage === "baseline-full") {
+      const baselinePlan = contract.verification.scope ? require("./project.cjs").selectVerification(config,contract,root,[],true) : null;
       atomic(path.join(evidence, "baseline-full.json"), { taskId: contract.id, startedAt: new Date(attempt.startedAt).toISOString(),
         finishedAt: new Date(attempt.finishedAt).toISOString(), head: binding.head, worktree: root,
+        ...(baselinePlan?.testSelection?.mode === "selected" ? {baselineSelectedSha256:fileHash(path.join(evidence,"baseline-selected.json"))} : {}),
         cwd: require("./project.cjs").gradleBuildRoot(config, root),
-        command: ["./gradlew", ...(contract.verification.scope ? require("./project.cjs").selectVerification(config, contract, root, [], true).tasks.fullUnitTestTasks : config.gradleVerification.fullUnitTestTasks), ...(process.env.AUTOMATION_WORKER_TOKEN ? ["--no-daemon"] : [])], unitTestsEnabled: true, exitCode: 0 }, true);
+        command: baselinePlan?.testSelection?.mode === "selected" ? [process.execPath,path.join(root,"automation/verification/selected-tests.cjs"),contractFile,configFile,root,evidence,JSON.stringify(baselinePlan),"baseline"] : ["./gradlew", ...(baselinePlan ? baselinePlan.tasks.fullUnitTestTasks : config.gradleVerification.fullUnitTestTasks), ...(process.env.AUTOMATION_WORKER_TOKEN ? ["--no-daemon"] : [])], unitTestsEnabled: true, exitCode: 0, ...(contract.verification.scope?.version === 2 ? {testSelection:require("./project.cjs").selectVerification(config,contract,root,[],true).testSelection} : {}) }, true);
       const { matchesPath } = require("./contract.cjs");
       const protectedFiles = git(root, ["ls-files", "-z"]).split("\0").filter(file => file && config.protectedPaths.some(pattern => matchesPath(pattern, file)));
       fs.writeFileSync(path.join(evidence, "protected.sha256"), protectedFiles.map(file => `${fileHash(path.join(root, file))}  ${path.join(root, file)}\n`).join(""), { flag: "wx" });
       checkpoint("protected.sha256");
+      if (baselinePlan?.testSelection?.mode === "selected") checkpoint("baseline-selected.json");
     }
     checkpoint(`${stage}.json`); persist();
   }
@@ -426,7 +432,18 @@ function verificationBinding(root, contractFile, configFile, contract, evidence)
   const project = require("./project.cjs"), config = read(configFile);
   const buildRoot = project.gradleBuildRoot(config, root);
   const runtime = project.inspectBuildRuntime(buildRoot);
+  const selectedEvidence = {};
+  if (contract.verification.scope?.version === 2) {
+    const baseline = read(path.join(evidence,"baseline.json"));
+    const selectedFile = path.join(evidence,"baseline-selected.json");
+    if (baseline.testSelection?.mode === "selected") {
+      assert(baseline.baselineSelectedSha256 && fileHash(selectedFile) === baseline.baselineSelectedSha256,
+        "Selected baseline evidence changed");
+      selectedEvidence["baseline-selected.json"] = baseline.baselineSelectedSha256;
+    } else assert(!fs.existsSync(selectedFile), "Unexpected selected baseline evidence");
+  }
   return { ...inputBinding(root, contractFile, configFile, contract, true),
+    selectedEvidence,
     diffSha256: helper(root, "automation_worktree_diff_sha", [root]),
     runtimeSha256: digest(runtime), actualEnvironmentSha256: project.buildEnvironmentBinding(buildRoot, runtime),
     evidence: Object.fromEntries(["baseline.json", "baseline-inventory.json", "red.json", "test-manifest.json", "test-preflight.json"]
@@ -439,6 +456,15 @@ function impactCheckpoint(root, phase, previous, next) {
   assert(result.status === 0, result.stderr || "Cannot seal impact verification evidence");
 }
 function checkImpactFiles(evidence, record) {
+  if (record.reusedFrom) {
+    const reference=record.reusedFrom;
+    assert(reference.phase === "green", "Invalid verification reuse source");
+    const file=path.join(evidence,"stage-recovery/verification-green.json");
+    assert(fileHash(file) === reference.sha256, "Reused verification ledger changed");
+    const original=read(file);
+    assert(original.state === "PASSED" && !original.reusedFrom, "Reused verification did not complete");
+    checkImpactFiles(evidence,original);
+  }
   checkArtifacts(evidence, {attempts:record.attempts,checkpoints:{}});
   for (const attempt of record.attempts) {
     assert(attempt.state !== "RUNNING", "Interrupted verification requires process ownership recovery");
@@ -477,7 +503,7 @@ function runImpactVerification(phase, contractFile, configFile, root, evidence, 
     assert(git(root,["rev-parse","HEAD"]).trim() === head && git(root,["rev-parse",`${head}^`]).trim() === base, "Integration candidate changed");
     paths = git(root,["diff","--name-only","--no-renames","-z",base,head,"--"]).split("\0").filter(Boolean);
   } else paths = helper(root,"automation_changed_paths_at",[root]).split("\n").filter(Boolean);
-  const plan = project.selectVerification(config, contract, root, paths);
+  const plan = project.selectVerification(config, contract, root, paths, false, phase === "integration" ? base : "HEAD");
   const binding = verificationBinding(root, contractFile, configFile, contract, evidence);
   const directory = path.join(evidence,"stage-recovery"); fs.mkdirSync(directory,{recursive:true});
   assert(fs.realpathSync(directory) === directory, "Verification evidence directory changed");
@@ -502,12 +528,30 @@ function runImpactVerification(phase, contractFile, configFile, root, evidence, 
       record.manualRetriesUsed++; record.startedAt=Date.now();
     } else {
       assert(!["RUNNING","BLOCKED"].includes(record.state), "Interrupted or invalid verification cannot resume automatically");
-      record.checkpoints={};
+      record.checkpoints={}; delete record.reusedFrom;
     }
     record.binding=binding; record.plan=plan; record.state="IDLE"; record.queueRunId=process.env.AUTOMATION_QUEUE_RUN_ID;
     atomic(path.join(evidence,"verification-plan.json"),plan); save();
     process.stdout.write(`Impact verification: ${JSON.stringify(plan)}\n`);
-    const phases = ["focused","unit","assemble","lint","device","inventory-check"];
+    if (contract.verification.scope.version === 2 && phase === "review") {
+      const sourceFile=path.join(directory,"verification-green.json");
+      if (fs.existsSync(sourceFile)) {
+        const source=read(sourceFile),sourceSha=fileHash(sourceFile);
+        impactCheckpoint(root,"green",sourceSha,sourceSha);
+        checkImpactFiles(evidence,source);
+        const reuse=require("./verification-reuse.cjs");
+        if (source.state === "PASSED" && digest(source.plan) === digest(plan) &&
+            reuse.sameCandidate(source.binding,binding)) {
+          for(const [name,sha] of Object.entries(source.checkpoints.focused?.liveFiles??{}))
+            assert(fileHash(path.join(evidence,name))===sha,"Focused verification changed before reuse");
+          record.checkpoints=structuredClone(source.checkpoints);
+          record.reusedFrom={phase:"green",sha256:sourceSha};
+          process.stdout.write(`Reusing sealed GREEN verification for unchanged ${phase} candidate\n`);
+          save();
+        }
+      }
+    }
+    const phases = ["focused",...(plan.testSelection?.mode === "selected" ? ["selected"] : ["unit",...(contract.verification.scope.version === 2 && fs.existsSync(path.join(evidence,"baseline-selected.json")) ? ["baseline-regression"] : [])]),"assemble","lint","device","inventory-check"];
     for (const part of phases) {
       const group = {unit:"fullUnitTestTasks",assemble:"assembleTasks",lint:"lintTasks",device:"deviceTestTasks"}[part];
       if (group && !plan.tasks[group].length) continue;
@@ -533,12 +577,13 @@ function runImpactVerification(phase, contractFile, configFile, root, evidence, 
         const inventoryStatus=path.join(evidence,"inventory-status.json");
         const inventoryBefore=fs.existsSync(inventoryStatus)?fileHash(inventoryStatus):null;
         const args=["-euc",'source "$1"; shift; automation_run_impact_phase "$@"',"impact-verification",
-          path.join(root,"scripts/automation/lib.sh"),part,contractFile,root,JSON.stringify(group?plan.tasks[group]:[])];
+          path.join(root,"scripts/automation/lib.sh"),part,contractFile,root,JSON.stringify(part === "selected" ? plan : group?plan.tasks[group]:[])];
         let result;
         try { result=cp.spawnSync("bash",args,{cwd:root,stdio:["ignore",output,output],env:{...process.env,AUTOMATION_STAGE_RECOVERY_PHASE:phase}}); }
         finally {fs.closeSync(output);}
         attempt.finishedAt=Date.now();attempt.exitCode=result.status;attempt.logSha256=fileHash(logPath);
         attempt.state=result.status===0?"PASSED":"FAILED";
+        if(["selected","baseline-regression"].includes(part) && fs.existsSync(path.join(evidence,"selected-test-attempts"))) attempt.files=artifactHashes(evidence,path.join(evidence,"selected-test-attempts"));
         const log=fs.readFileSync(logPath,"utf8");process.stdout.write(log);
         assert(digest(binding)===digest(verificationBinding(root,contractFile,configFile,contract,evidence)),"Verification changed inputs or runtime");
         let inventoryFailure;
@@ -572,9 +617,9 @@ function runImpactVerification(phase, contractFile, configFile, root, evidence, 
       }
     }
     record.state="PASSED";record.lastFailure=null;record.waitingReason=null;save();
-    atomic(path.join(evidence,"verification-result.json"),{phase,state:record.state,plan,ledgerSha256:sealed,binding,attempts:record.attempts});
+    atomic(path.join(evidence,"verification-result.json"),{phase,state:record.state,plan,testSelection:plan.testSelection,reusedFrom:record.reusedFrom,ledgerSha256:sealed,binding,attempts:record.attempts});
     atomic(path.join(evidence,"full-test-verification.json"),{taskId:contract.id,runId:process.env.AUTOMATION_QUEUE_RUN_ID,
-      diffSha256:binding.diffSha256,fullTestsExecuted:false,affectedTestsExecuted:true,phase,tasks:plan.tasks.fullUnitTestTasks,ledgerSha256:sealed});
+      diffSha256:binding.diffSha256,fullTestsExecuted:false,affectedTestsExecuted:plan.testSelection?.mode !== "selected",selectedTestsExecuted:plan.testSelection?.mode === "selected",testSelection:plan.testSelection,phase,tasks:plan.tasks.fullUnitTestTasks,ledgerSha256:sealed});
     return 0;
   } catch(error){
     if(record && (!sealed || fileHash(file)===sealed)){record.state="BLOCKED";record.waitingReason=error.message;save();}

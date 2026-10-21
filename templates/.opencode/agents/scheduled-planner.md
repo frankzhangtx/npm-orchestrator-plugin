@@ -83,9 +83,16 @@ product checkout. Preserve the snapshot's target branch and planningHead.
 Read `automation/config.json` and `automation/tasks/TASK-TEMPLATE.json.example`
 through snapshot `readChunk` at the fixed planningHead before proposing verification.
 When `androidProject.capabilities` exists, start from the generated V7 template:
-propose `verification.scope: { version: 1, mode: affected, variants: debug,
+propose `verification.scope: { version: 2, mode: affected-tests, variants: debug,
 maxManualRetries: 1 }` for Android Debug-capable projects, narrowing allowedPaths
-and targetTests to this task. Use the generated variants policy for projects
+and targetTests to this task. For small edits use exact file paths, not broad globs.
+The intake verificationPreview shows selected test classes and reasons, or an explicit
+module fallback when static analysis cannot prove a narrow scope. Present these
+results before approval. This policy retains required build/lint/device tasks and
+allows sealed unchanged-candidate verification reuse during Review at the same
+HEAD. Integration at a new commit reruns verification.
+Never rewrite an existing V1 approval or promise a five-minute duration.
+Use the generated variants policy for projects
 without Debug variants. Present scope, selected variants, recovery and execution
 limits in the proposal; obtain explicit approval before sealing those policies.
 Do not infer recovery or Worker termination authority from the template alone.

@@ -8,13 +8,16 @@ import { fileURLToPath } from "node:url";
 const templatesRoot = fileURLToPath(new URL("../templates/", import.meta.url));
 
 const expectedBaselineHashes = new Map([
+  ["automation/verification/verification-reuse.cjs", "07d3bfd24b80ac69c942930d827f3068a1711bfa11a78d4d0860272c433efe4b"],
+  ["automation/verification/selected-tests.cjs", "6a28a66582f00d6687d342c55dbbe3594bbd9e5259a882615fef213f0a6c1b1c"],
+  ["automation/verification/test-selection.cjs", "a44d49770d4f4d9249b39a6ac19aa3b00857e0bd3361549803eee85ab082b305"],
   ["automation/verification/status.cjs", "996cd42c47b94e1ab8d1ac0de855649904ab4348b8ca16cca94f7ee1bf8e65fb"],
   ["automation/verification/worktree.cjs", "2ad71c57580ca2fd97f0abdcc87e80f3081fefbd293f3379fabc699587b3ed8c"],
   ["automation/verification/runtime.init.gradle", "3d3645fdc4197ba5f1c7d04f0d475cca8242a258759f01a24dfd6c0757b1e4f8"],
-  ["automation/verification/project.cjs", "897d7e8950a1a7312d8bb764a3dc4235db3efeb05829f92ecb3e608d5d9c8464"],
-  ["automation/verification/recovery.cjs", "cba937833554fa524e3b7d063205cf5262cd85f646760e25484577d4466d5cb9"],
+  ["automation/verification/project.cjs", "bf364ec6509171ca70b0e0f0df26a8c3667545ddac6e5be5e86dd43cb5c10ab6"],
+  ["automation/verification/recovery.cjs", "8ebafe36a911a9f0f89be9e1698a6d73249e3e5e385dc6c87de02646b0c2ed3a"],
   ["automation/verification/contract.cjs", "ba364cf49dc2dad76c08449bb9a108f27b365637d3c3840a0f6d8687e1fa88c6"],
-  ["automation/verification/inventory.cjs", "d36ff2ed28f7edc3cf2e7b6ebb8234558de1ff7368f103014963c66ede4dddd5"],
+  ["automation/verification/inventory.cjs", "b4993ea9e92e6e63fbeb15458948e5638c933e76bd7d10f55a19e7090507cdbb"],
   ["automation/verification/collect.init.gradle", "9c3d9095876c26f65537fdae4a6cf52d9226f28b9a4c61cb2b91ada65e70a743"],
   [
     "automation/config.json",
@@ -26,7 +29,7 @@ const expectedBaselineHashes = new Map([
   ],
   [
     "automation/task-contract.schema.json",
-    "ca51da02550809b95ba39705d4a04586a7f76e45b49c2b415d018c1a09f82d03",
+    "bf9a63936173e18cc58d9867cbaa28f1661005efd42a923fb66729d140815ecc",
   ],
   [
     "automation/tasks/TASK-TEMPLATE.json.example",

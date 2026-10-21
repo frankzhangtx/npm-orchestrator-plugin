@@ -15,7 +15,7 @@ const expectedHashes = new Map([
   ],
   [
     ".opencode/agents/scheduled-planner.md",
-    "120045428517062f31ffd64827dc256b498dae290929efe7e47deaf0560afc40",
+    "ea3bc6d2e37c6393b0e9bc026974391255104cd372778be69dc37d0a9bd14f7f",
   ],
   [
     ".opencode/agents/scheduled-reviewer.md",

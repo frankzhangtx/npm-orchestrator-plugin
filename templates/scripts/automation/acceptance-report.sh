@@ -27,6 +27,10 @@ review_verification_exit_code="$(jq -er '.verificationExitCode' "$review_file")"
 [[ "$red_exit_code" -ne 0 ]] || automation_die "RED evidence does not contain a failing test result"
 [[ "$review_verification_exit_code" -eq 0 ]] || automation_die "independent review verification did not pass"
 structured_red=null
+verification_selection=null
+if [[ -f "$evidence_dir/verification-result.json" ]]; then
+    verification_selection="$(jq '{testSelection, reusedFrom, phase, state}' "$evidence_dir/verification-result.json")"
+fi
 inventory_verification=null
 if [[ "$(jq -er '.schemaVersion' "$contract")" -ge "4" ]]; then
     automation_run_inventory check "$task_id" >/dev/null
@@ -117,6 +121,7 @@ jq -n \
     --argjson targetTests "$(jq -c '.targetTests' "$contract")" \
     --argjson structuredRed "$structured_red" \
     --argjson inventoryVerification "$inventory_verification" \
+    --argjson verificationSelection "$verification_selection" \
     '{taskId: $taskId, title: $title, state: $state,
       generatedAt: $generatedAt, originalBranch: $originalBranch,
       originalHeadBeforeContract: $originalHeadBeforeContract,
@@ -139,6 +144,7 @@ jq -n \
         redExitCode: $redExitCode,
         structuredRed: $structuredRed,
         inventoryVerification: $inventoryVerification,
+        verificationSelection: $verificationSelection,
         qualityGate: "PASSED",
         gateAttempts: $gateAttempts,
         codingCycle: $codingCycle,

@@ -49,9 +49,38 @@ active Worker. The script may share the Worker's process group or be a proven
 descendant in a separate OpenCode tool process group; an unrelated process is
 rejected even if it copies the visible run ID.
 
+## Selected regression tests (explicit scope V2)
+
+New generated examples propose `verification.scope` as
+`{ "version": 2, "mode": "affected-tests", "variants": "debug", "maxManualRetries": 1 }`.
+An existing V1 `affected` contract retains module-wide verification.
+
+For at most eight concrete Java/Kotlin source/test paths in one application
+module, the selector follows source-symbol references and their transitive callers,
+includes changed test classes and all contract target filters, and retains every
+selected build variant. It accepts existing block-method-body changes; API,
+field/import changes, new/deleted production sources, libraries, broad globs,
+reflection/class loading, unsupported syntax or an unprovable mapping fall back
+to module tests. This is conservative lexical analysis, not compiler-level or
+coverage-based proof. No five-minute guarantee is implied. Intake previews
+`testSelection.targets`, reasons and fallback before approval; final selection
+uses actual changes. Build/lint/device requirements are not weakened.
+
+The baseline and final regression step run the selected set when eligible.
+Selected filters must produce actual passing, non-skipped cases. Every case in
+the sealed selected baseline must remain present and passing, including when
+the final selection falls back to module tests. Compiler outputs
+may use Gradle's build cache; test outputs still cannot. Exact target filters
+already covered by the sealed focused GREEN are not rerun. Independent AI Review
+still runs; unchanged GREEN verification can be reused after ledger, file and
+runtime checks at the same HEAD. Integration at a new commit reruns verification,
+since build plugins can depend on commit metadata.
+Changed inputs or failed/interrupted evidence cannot authorize reuse. Historical
+baseline results from different tasks are not reused by this version.
+
 ## Affected verification and recovery
 
-New contracts generated from discovered capabilities use V7 with:
+Older V1 contracts generated from discovered capabilities use V7 with:
 
 ```json
 "scope": { "version": 1, "mode": "affected", "variants": "debug", "maxManualRetries": 1 }

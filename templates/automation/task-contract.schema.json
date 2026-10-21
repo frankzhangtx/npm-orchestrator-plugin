@@ -449,6 +449,68 @@
               "const": 1
             }
           }
+        },
+        "scope": {
+          "oneOf": [
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "version",
+                "mode",
+                "variants",
+                "maxManualRetries"
+              ],
+              "properties": {
+                "version": {
+                  "const": 1
+                },
+                "mode": {
+                  "const": "affected"
+                },
+                "variants": {
+                  "enum": [
+                    "debug",
+                    "all"
+                  ]
+                },
+                "maxManualRetries": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 3
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "version",
+                "mode",
+                "variants",
+                "maxManualRetries"
+              ],
+              "properties": {
+                "version": {
+                  "const": 2
+                },
+                "mode": {
+                  "const": "affected-tests"
+                },
+                "variants": {
+                  "enum": [
+                    "debug",
+                    "all"
+                  ]
+                },
+                "maxManualRetries": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 3
+                }
+              }
+            }
+          ]
         }
       }
     },

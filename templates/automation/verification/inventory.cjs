@@ -262,7 +262,7 @@ function runGradle(root, config, contract, phase, directory, discovery) {
   const request = { runId: randomUUID(), phase, targets: contract.targetTests, output: path.join(directory, "events.jsonl") };
   const requestFile = path.join(directory, "request.json"); atomic(requestFile, request, true);
   fs.writeFileSync(request.output, "", { flag: "wx" });
-  const args = [...groupedTargets(contract).map(item => item.taskPath), "--no-configuration-cache", "--console=plain", "--no-build-cache",
+  const args = [...groupedTargets(contract).map(item => item.taskPath), "--no-configuration-cache", "--console=plain", ...(contract.verification.scope?.version === 2 ? [] : ["--no-build-cache"]),
     "--init-script", path.join(__dirname, "runtime.init.gradle"), "--init-script", path.join(__dirname, "collect.init.gradle"), `-Dorchestrator.inventoryRequest=${requestFile}`, ...(discovery ? ["--dry-run"] : [])];
   const fd = fs.openSync(path.join(directory, "gradle.log"), "wx");
   let result;
@@ -510,7 +510,7 @@ function supplementalEvidence(phase, root, config, contract, evidence, binding, 
     if (created) git(root, ["worktree", "remove", "--force", probe]);
   }
 }
-module.exports = { identity, validateCollection, evaluateBaseline, evaluateCoverage, matchesFailureOrigin, snapshot, testPatterns, isTest, runPhase };
+module.exports = { identity, validateCollection, evaluateBaseline, evaluateCoverage, matchesFailureOrigin, snapshot, testPatterns, isTest, runPhase, runGradle };
 if (require.main === module) {
   const [phase, contractFile, configFile, root, evidence] = process.argv.slice(2);
   try {

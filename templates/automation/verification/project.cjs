@@ -167,7 +167,7 @@ exports.validateConfigurationModel = validateConfigurationModel;
 // A sealed scope policy selects commands from it for this candidate only.
 function validateVerificationScope(scope) {
     keys(scope, ["version", "mode", "variants", "maxManualRetries"]);
-    if (scope.version !== 1 || scope.mode !== "affected" || !["debug", "all"].includes(scope.variants) ||
+    if (!(scope.version === 1 && scope.mode === "affected" || scope.version === 2 && scope.mode === "affected-tests") || !["debug", "all"].includes(scope.variants) ||
         !Number.isInteger(scope.maxManualRetries) || scope.maxManualRetries < 0 || scope.maxManualRetries > 3)
         fail("invalid verification scope policy");
 }
@@ -185,7 +185,7 @@ function sourceMatchesVariant(source, variant) {
     const wanted = words(name), actual = words(variant);
     return wanted.length > 0 && actual.some((_, i) => wanted.every((word, j) => actual[i + j] === word));
 }
-function selectVerification(config, contract, root, changedPaths, baseline = false) {
+function selectVerification(config, contract, root, changedPaths, baseline = false, comparisonHead = "HEAD") {
     const scope = contract.verification?.scope;
     validateVerificationScope(scope);
     validateConfigurationModel(config, root);
@@ -261,8 +261,13 @@ function selectVerification(config, contract, root, changedPaths, baseline = fal
         if (tasks[group].some(t => !config.gradleVerification[group].includes(t))) fail(`selected task outside configured capabilities: ${group}`);
     }
     if (!tasks.fullUnitTestTasks.length) fail("no unit tests cover this candidate");
-    return { version: 1, mode: "affected", variants: scope.variants, baseline, changedPaths: paths,
+    const plan = { version: scope.version, mode: scope.mode, variants: scope.variants, baseline, changedPaths: paths,
         affectedModules: [...selected.keys()].sort(), selectedVariants, reasons, tasks };
+    if (scope.version === 2) {
+        plan.testSelection = require('./test-selection.cjs').selectTests(config, contract, root, paths, plan, baseline, sourceMatchesVariant, comparisonHead);
+        if (plan.testSelection.mode === 'selected') plan.tasks.fullUnitTestTasks = [];
+    }
+    return plan;
 }
 exports.validateVerificationScope = validateVerificationScope;
 exports.selectVerification = selectVerification;
