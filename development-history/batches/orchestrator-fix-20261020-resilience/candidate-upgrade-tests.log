@@ -1,0 +1,440 @@
+✔ packages and links the complete user-documentation inventory (7.742757ms)
+✔ keeps every repository-local documentation link resolvable (4.376076ms)
+✖ documents fixed-version migration, recovery, and security boundaries portably (4.876694ms)
+✖ plans an older-version upgrade without writing recovery or managed files (661.716275ms)
+✖ upgrades legacy configurations without moduleScope in primary mode (583.627446ms)
+✖ upgrades unchanged managed files, preserves original merges, and restores obsolete user files (691.779839ms)
+✖ upgrade refresh rebuilds modules, paths, and task allowlists from Gradle (731.36801ms)
+✖ upgrade preserves a Superpowers reference that predates Orchestrator installation (507.213339ms)
+✖ upgrade tolerates permission drift and preserves user AGENTS content (549.252964ms)
+✔ repeated upgrade is byte-idempotent for the current version (555.892513ms)
+✔ same-version upgrade refuses a self-consistent managed-resource rewrite (575.774221ms)
+✔ upgrade refuses an unfinished transaction marker before planning writes (443.254978ms)
+✔ upgrade refuses an unfinished uninstall marker before planning writes (443.807257ms)
+✔ upgrade refuses a user-modified managed file before creating recovery state (483.957329ms)
+✔ upgrade refuses a corrupted original backup before writing (474.252294ms)
+✖ post-upgrade verification failure restores the complete older installation (717.317119ms)
+✖ failed upgrade restores permission drift and changed AGENTS content exactly (542.758615ms)
+✖ apply refuses a tampered upgrade plan before creating control state (743.658237ms)
+✔ upgrade refuses to downgrade a newer installed package (717.74688ms)
+✖ custom queue policies stay editable after repeated upgrade without accepting managed drift (818.260159ms)
+✔ extracts OpenCode semantic versions from command output (4.96137ms)
+✔ classifies certified, warned, and unsupported OpenCode versions (0.87325ms)
+✔ doctor passes a certified OpenCode executable (1.310403ms)
+✔ doctor warns for an in-range uncertified OpenCode version (0.396368ms)
+✔ doctor fails when OpenCode cannot be executed (0.394583ms)
+ℹ tests 25
+ℹ suites 0
+ℹ pass 14
+ℹ fail 11
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 10940.414217
+
+✖ failing tests:
+
+test at tests/documentation.test.mjs:70:1
+✖ documents fixed-version migration, recovery, and security boundaries portably (4.876694ms)
+  AssertionError [ERR_ASSERTION]: The input did not match the regular expression /@frankzhang2026\/opencode-android-orchestrator@1\.3\.6/. Input:
+  
+  '# OpenCode Android Orchestrator\n' +
+    '\n' +
+    'Reusable OpenCode orchestration for macOS Android projects.\n' +
+    '\n' +
+    'Version 1.3.7-rc.2 protects RED capture with the configured long-command timeout\n' +
+    'and reports all assertion mismatches together. Planner/Coder guidance aligns\n' +
+    'assertions with approved contracts and stops repeated attempts after interruption.\n' +
+    '\n' +
+    'Version 1.3.6 adds interrupted\n' +
+    'trial cleanup and fresh restoration acceptance, and retains the fix for the\n' +
+    'status helper. Version 1.3.4 added bounded local\n' +
+    'candidate trials, exact native request binding,\n' +
+    'and durable model process ownership and continuation. It retains the Planner\n' +
+    'and live queue status behavior from 1.3.1.\n' +
+    'Full verification requires a reviewed fallback reason when project capabilities\n' +
+    'exist; existing approvals are preserved.\n' +
+    '\n' +
+    'Version 1.3.0 checks task startup conditions before approval and execution.\n' +
+    'Unstarted tasks wait durably when their workspace becomes unavailable; resolving\n' +
+    'the condition resumes scheduling only within the original approval. Uncommitted\n' +
+    'installation changes require a fresh snapshot. Changes to the exact\n' +
+    '`automation/automation-commit-prefix` path are exempt from dirty-workspace checks.\n' +
+    '\n' +
+    'Version 1.2.3 selects verification tasks from changed source sets and their\n' +
+    'transitive consumers under explicitly approved contracts. Environment recovery\n' +
+    'retries only failed verification steps while preserving candidate-bound evidence.\n' +
+    'The commands below pin version 1.3.7-rc.2. For local candidate validation,\n' +
+    'use the frozen local-package workflow in docs/LOCAL-TRIAL.md.\n' +
+    'See the [changelog](CHANGELOG.md) for release details.\n' +
+    '\n' +
+    'Version `0.2.0` is the first published lifecycle release. Version `0.3.0` adds\n' +
+    'default all-module orchestration and stronger verification contracts. Version\n' +
+    '`0.4.0` adds a validated, exact-path worktree allowlist for intentional local\n' +
+    'changes while retaining the same certified OpenCode compatibility range.\n' +
+    'Version `0.5.0` makes `init` discover real Android debug verification tasks,\n' +
+    'including product flavors, without a separate JSON file and bootstraps the\n' +
+    'human-owned worktree allowlist when it is missing. Version `0.6.0` makes that\n' +
+    'discovery reliable in repositories that enable Gradle Configuration Cache by\n' +
+    'disabling the cache only for the temporary discovery invocation.\n' +
+    'Version `0.7.0` adds repository-configured unit-test and lint verification\n' +
+    'policies, while retaining the configurable 30-minute timeout and bounded\n' +
+    'baseline-capture recovery path. Version `0.8.0` bundles the five workflow\n' +
+    'skills used by the scheduled agents, registers them from the installed npm\n' +
+    'package, and removes the runtime GitHub/Superpowers plugin dependency. Version\n' +
+    '`0.8.1` makes upgrades tolerant of permission-mode drift and preserves\n' +
+    'project-specific `AGENTS.md` content outside the managed marker block. Version\n' +
+    "`0.9.0` discovers Android modules from Gradle's evaluated runtime model, so\n" +
+    'dynamic settings logic and company convention plugins no longer leave modules\n' +
+    'or their focused-test tasks out of generated configuration. Version `0.10.0`\n' +
+    'adds a user-maintained commit-message prefix that is read automatically for\n' +
+    'each task commit and blocks task startup until the required value is filled.\n' +
+    '\n' +
+    'Version `1.0.0` separates interactive planning from a durable background task\n' +
+    'queue. New installations configure `inPlaceExclusive` + `humanApproval`;\n' +
+    "task drafts inherit the repository's configured workspace and commit policies\n" +
+    'unless they explicitly override them. Fixed-directory tasks may use\n' +
+    '`autoCommit`. Optional isolated worktrees allow independent tasks to proceed.\n' +
+    'V8 contracts in 1.1.0 may explicitly approve isolated automatic local integration\n' +
+    'and bounded planning refresh; see [V8 continuity](docs/QUEUE.md#v8-isolated-integration-and-planning-refresh-110). Every queued\n' +
+    'execution requires build, fresh contract-scoped unit tests and independent Review. All\n' +
+    'completion and recovery paths remain local and never push.\n' +
+    'Version `1.0.2` also allows queue-owned OpenCode shell commands to use a\n' +
+    'separate process group while preserving Worker ancestry checks. Version `1.0.1`\n' +
+    'bounds Planner snapshot output for large repositories. The\n' +
+    'initial snapshot returns only the target branch and fixed commit; path discovery\n' +
+    'and file content use bounded cursor pages tied to that commit. Version `1.0.5`\n' +
+    'adds structured test-case contracts and rejects RED evidence contaminated by\n' +
+    'preserved-behavior, fixture, build, missing, skipped or undeclared failures.\n' +
+    '\n' +
+    '## Documentation\n' +
+    '\n' +
+    '- [Queue and background execution](docs/QUEUE.md) — intake, scheduling,\n' +
+    '  workspace/commit policies, acceptance, pause, capacity and recovery.\n' +
+    '- [Migration guide](docs/MIGRATION.md) — choose the correct path for the\n' +
+    '  `0.1.0` scaffold, a manually copied V3 setup, or a manifest-managed install.\n' +
+    '- [Troubleshooting](docs/TROUBLESHOOTING.md) — diagnose CLI failures, resource\n' +
+    '  drift, OpenCode discovery, blocked tasks, and recovery evidence.\n' +
+    '- [Security model](docs/SECURITY.md) — trust boundaries, approval guarantees,\n' +
+    '  file/Git protections, retained evidence, and residual risks.\n' +
+    '- [Third-party notices](THIRD_PARTY_NOTICES.md) — runtime, peer, bundled\n' +
+    '  derivative, and development-only dependency relationships and licenses.\n' +
+    '\n' +
+    '## Requirements\n' +
+    '\n' +
+    '- macOS with Node.js/npm for `npx` or the packaged CLI;\n' +
+    '- OpenCode `1.14.22` or `1.15.13` for a certified configuration (the declared\n' +
+    '  compatibility range is `>=1.14.22 <1.16.0`);\n' +
+    '- a Git-backed Android Gradle project with `settings.gradle[.kts]` and an\n' +
+    '  executable `gradlew`;\n' +
+    '- `git`, `jq`, `rg`, `shasum`, and Java on `PATH`;\n' +
+    '- an Android SDK resolved from `ANDROID_HOME`, `ANDROID_SDK_ROOT`, or\n' +
+    '  `local.properties` `sdk.dir`.\n' +
+    '\n' +
+    'Run lifecycle commands from the project root or a directory below it. Use a\n' +
+    'clean branch and preserve an independent backup before the first installation,\n' +
+    'even though the installer maintains its own verified recovery data.\n' +
+    '`init` configures Gradle once with a temporary read-only init script and\n' +
+    "explicitly disables Configuration Cache for that invocation, so the project's\n" +
+    'normal Gradle configuration and dependency resolution must succeed. Normal\n' +
+    'project builds retain their configured cache behavior.\n' +
+    '\n' +
+    '## Quick start\n' +
+    '\n' +
+    '```sh\n' +
+    'npx @frankzhang2026/opencode-android-orchestrator@1.3.7-rc.2 init .\n' +
+    '$EDITOR automation/automation-commit-prefix\n' +
+    'npx @frankzhang2026/opencode-android-orchestrator@1.3.7-rc.2 doctor .\n' +
+    'opencode --agent scheduled-planner .\n' +
+    '```\n' +
+    '\n' +
+    'New installations use all-module scope by default. Every detected Android\n' +
+    "module's `src/main`, `src/test`, and `src/androidTest` trees can be included in\n" +
+    'a task contract without selecting a primary module. To intentionally restrict\n' +
+    'generated contracts to one module, opt into primary-module scope:\n' +
+    '\n' +
+    '```sh\n' +
+    'npx @frankzhang2026/opencode-android-orchestrator@1.3.7-rc.2 init . \\\n' +
+    '  --module-scope primary \\\n' +
+    '  --primary-module :mobile\n' +
+    '```\n' +
+    '\n' +
+    'In all-module scope, `--primary-module` is optional and only chooses the\n' +
+    'default module used by the focused-test placeholder; it does not narrow which\n' +
+    'detected modules may be modified.\n' +
+    '\n' +
+    'Since `0.5.0`, the same plain `init .` command automatically builds\n' +
+    '`gradleVerification` from tasks that Gradle actually registers. Standard\n' +
+    'unflavored tasks are collapsed to portable selectors such as\n' +
+    '`testDebugUnitTest`, while flavor-specific application tasks remain exact\n' +
+    "module paths. The preferred application's matching flavor is placed first for\n" +
+    'the generated focused-test example; all discovered debug flavors remain in the\n' +
+    'full verification matrix. Version `0.6.0` runs this configuration-phase query\n' +
+    'with `--no-configuration-cache`, avoiding false empty results after a previous\n' +
+    'cacheable `help` invocation. Version `0.9.0` also queries every evaluated\n' +
+    'project through `pluginManager` and reads registered task names without\n' +
+    'realizing the full `tasks --all` report. This makes Gradle authoritative for\n' +
+    'dynamic includes, custom `projectDir` logic, and convention plugins.\n' +
+    '`--gradle-verification-config` remains available only for an intentional\n' +
+    'nonstandard policy override and is not part of the normal quick start.\n' +
+    '\n' +
+    'For an existing manifest-managed installation whose generated module/task\n' +
+    'lists are incomplete, refresh all derived Gradle data in one upgrade:\n' +
+    '\n' +
+    '```sh\n' +
+    'npx @frankzhang2026/opencode-android-orchestrator@1.3.7-rc.2 upgrade . \\\n' +
+    '  --refresh-gradle-discovery\n' +
+    '```\n' +
+    '\n' +
+    'The refresh updates `androidProject.modules`, production/test paths, protected\n' +
+    'build files, and all five Gradle task groups together. Without the flag,\n' +
+    'upgrade preserves an intentionally customized task matrix. The explicit\n' +
+    'refresh is also allowed on an already installed `0.10.0` when the evaluated\n' +
+    'Gradle model has changed; an unchanged refresh remains byte-idempotent.\n' +
+    '\n' +
+    '### Bundled workflow skills\n' +
+    '\n' +
+    'Version `0.8.0` ships namespaced derivatives of the five Superpowers v6.2.0\n' +
+    'workflows that Orchestrator actually uses:\n' +
+    '\n' +
+    '- `android-orchestrator-brainstorming`\n' +
+    '- `android-orchestrator-writing-plans`\n' +
+    '- `android-orchestrator-test-driven-development`\n' +
+    '- `android-orchestrator-systematic-debugging`\n' +
+    '- `android-orchestrator-verification-before-completion`\n' +
+    '\n' +
+    "The plugin's compatible `config` hook registers their package-local directory\n" +
+    'with OpenCode. Project configuration therefore pins only the exact\n' +
+    'Orchestrator package. There is no `using-superpowers` bootstrap, runtime GitHub\n' +
+    'fetch, localhost brainstorming server, browser launcher, remote image, or\n' +
+    'telemetry path. Once npm has installed the Orchestrator package, skill\n' +
+    'discovery itself is offline.\n' +
+    '\n' +
+    'An upgrade reconstructs `opencode.json`/`opencode.jsonc` from the verified\n' +
+    'pre-install backup. The old exact Superpowers v6.2.0 reference disappears only\n' +
+    'when an earlier Orchestrator installation added it; a reference that already\n' +
+    'existed before Orchestrator was installed remains user-owned and is preserved.\n' +
+    'See the [migration guide](docs/MIGRATION.md) for the exact boundary.\n' +
+    '\n' +
+    '### Configurable unit-test and lint verification\n' +
+    '\n' +
+    'Verification policy lives in `automation/config.json`:\n' +
+    '\n' +
+    '```json\n' +
+    '{\n' +
+    '  "unitTestsEnabled": true,\n' +
+    '  "lintEnabled": fal'... 104212 more characters
+  
+      at TestContext.<anonymous> (file:///Users/zhanglong/files/program/cctest/taskdescriptions/orchestrator-fix-20261020-resilience/candidate-source/tests/documentation.test.mjs:84:10)
+      at Test.runInAsyncScope (node:async_hooks:228:14)
+      at Test.run (node:internal/test_runner/test:1118:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:787:18)
+      at Test.postRun (node:internal/test_runner/test:1247:19)
+      at Test.run (node:internal/test_runner/test:1175:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:787:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: '# OpenCode Android Orchestrator\n\nReusable OpenCode orchestration for macOS Android projects.\n\nVersion 1.3.7-rc.2 protects RED capture with the configured long-command timeout\nand reports all assertion mismatches together. Planner/Coder guidance aligns\nassertions with approved contracts and stops repeated attempts after interruption.\n\nVersion 1.3.6 adds interrupted\ntrial cleanup and fresh restoration acceptance, and retains the fix for the\nstatus helper. Version 1.3.4 added bounded local\ncandidate trials, exact native request binding,\nand durable model process ownership and continuation. It retains the Planner\nand live queue status behavior from 1.3.1.\nFull verification requires a reviewed fallback reason when project capabilities\nexist; existing approvals are preserved.\n\nVersion 1.3.0 checks task startup conditions before approval and execution.\nUnstarted tasks wait durably when their workspace becomes unavailable; resolving\nthe condition resumes scheduling only within the original approval. Uncommitted\ninstallation changes require a fresh snapshot. Changes to the exact\n`automation/automation-commit-prefix` path are exempt from dirty-workspace checks.\n\nVersion 1.2.3 selects verification tasks from changed source sets and their\ntransitive consumers under explicitly approved contracts. Environment recovery\nretries only failed verification steps while preserving candidate-bound evidence.\nThe commands below pin version 1.3.7-rc.2. For local candidate validation,\nuse the frozen local-package workflow in docs/LOCAL-TRIAL.md.\nSee the [changelog](CHANGELOG.md) for release details.\n\nVersion `0.2.0` is the first published lifecycle release. Version `0.3.0` adds\ndefault all-module orchestration and stronger verification contracts. Version\n`0.4.0` adds a validated, exact-path worktree allowlist for intentional local\nchanges while retaining the same certified OpenCode compatibility range.\nVersion `0.5.0` makes `init` discover real Android debug verification tasks,\nincluding product flavors, without a separate JSON file and bootstraps the\nhuman-owned worktree allowlist when it is missing. Version `0.6.0` makes that\ndiscovery reliable in repositories that enable Gradle Configuration Cache by\ndisabling the cache only for the temporary discovery invocation.\nVersion `0.7.0` adds repository-configured unit-test and lint verification\npolicies, while retaining the configurable 30-minute timeout and bounded\nbaseline-capture recovery path. Version `0.8.0` bundles the five workflow\nskills used by the scheduled agents, registers them from the installed npm\npackage, and removes the runtime GitHub/Superpowers plugin dependency. Version\n`0.8.1` makes upgrades tolerant of permission-mode drift and preserves\nproject-specific `AGENTS.md` content outside the managed marker block. Version\n`0.9.0` discovers Android modules from Gradle\'s evaluated runtime model, so\ndynamic settings logic and company convention plugins no longer leave modules\nor their focused-test tasks out of generated configuration. Version `0.10.0`\nadds a user-maintained commit-message prefix that is read automatically for\neach task commit and blocks task startup until the required value is filled.\n\nVersion `1.0.0` separates interactive planning from a durable background task\nqueue. New installations configure `inPlaceExclusive` + `humanApproval`;\ntask drafts inherit the repository\'s configured workspace and commit policies\nunless they explicitly override them. Fixed-directory tasks may use\n`autoCommit`. Optional isolated worktrees allow independent tasks to proceed.\nV8 contracts in 1.1.0 may explicitly approve isolated automatic local integration\nand bounded planning refresh; see [V8 continuity](docs/QUEUE.md#v8-isolated-integration-and-planning-refresh-110). Every queued\nexecution requires build, fresh contract-scoped unit tests and independent Review. All\ncompletion and recovery paths remain local and never push.\nVersion `1.0.2` also allows queue-owned OpenCode shell commands to use a\nseparate process group while preserving Worker ancestry checks. Version `1.0.1`\nbounds Planner snapshot output for large repositories. The\ninitial snapshot returns only the target branch and fixed commit; path discovery\nand file content use bounded cursor pages tied to that commit. Version `1.0.5`\nadds structured test-case contracts and rejects RED evidence contaminated by\npreserved-behavior, fixture, build, missing, skipped or undeclared failures.\n\n## Documentation\n\n- [Queue and background execution](docs/QUEUE.md) — intake, scheduling,\n  workspace/commit policies, acceptance, pause, capacity and recovery.\n- [Migration guide](docs/MIGRATION.md) — choose the correct path for the\n  `0.1.0` scaffold, a manually copied V3 setup, or a manifest-managed install.\n- [Troubleshooting](docs/TROUBLESHOOTING.md) — diagnose CLI failures, resource\n  drift, OpenCode discovery, blocked tasks, and recovery evidence.\n- [Security model](docs/SECURITY.md) — trust boundaries, approval guarantees,\n  file/Git protections, retained evidence, and residual risks.\n- [Third-party notices](THIRD_PARTY_NOTICES.md) — runtime, peer, bundled\n  derivative, and development-only dependency relationships and licenses.\n\n## Requirements\n\n- macOS with Node.js/npm for `npx` or the packaged CLI;\n- OpenCode `1.14.22` or `1.15.13` for a certified configuration (the declared\n  compatibility range is `>=1.14.22 <1.16.0`);\n- a Git-backed Android Gradle project with `settings.gradle[.kts]` and an\n  executable `gradlew`;\n- `git`, `jq`, `rg`, `shasum`, and Java on `PATH`;\n- an Android SDK resolved from `ANDROID_HOME`, `ANDROID_SDK_ROOT`, or\n  `local.properties` `sdk.dir`.\n\nRun lifecycle commands from the project root or a directory below it. Use a\nclean branch and preserve an independent backup before the first installation,\neven though the installer maintains its own verified recovery data.\n`init` configures Gradle once with a temporary read-only init script and\nexplicitly disables Configuration Cache for that invocation, so the project\'s\nnormal Gradle configuration and dependency resolution must succeed. Normal\nproject builds retain their configured cache behavior.\n\n## Quick start\n\n```sh\nnpx @frankzhang2026/opencode-android-orchestrator@1.3.7-rc.2 init .\n$EDITOR automation/automation-commit-prefix\nnpx @frankzhang2026/opencode-android-orchestrator@1.3.7-rc.2 doctor .\nopencode --agent scheduled-planner .\n```\n\nNew installations use all-module scope by default. Every detected Android\nmodule\'s `src/main`, `src/test`, and `src/androidTest` trees can be included in\na task contract without selecting a primary module. To intentionally restrict\ngenerated contracts to one module, opt into primary-module scope:\n\n```sh\nnpx @frankzhang2026/opencode-android-orchestrator@1.3.7-rc.2 init . \\\n  --module-scope primary \\\n  --primary-module :mobile\n```\n\nIn all-module scope, `--primary-module` is optional and only chooses the\ndefault module used by the focused-test placeholder; it does not narrow which\ndetected modules may be modified.\n\nSince `0.5.0`, the same plain `init .` command automatically builds\n`gradleVerification` from tasks that Gradle actually registers. Standard\nunflavored tasks are collapsed to portable selectors such as\n`testDebugUnitTest`, while flavor-specific application tasks remain exact\nmodule paths. The preferred application\'s matching flavor is placed first for\nthe generated focused-test example; all discovered debug flavors remain in the\nfull verification matrix. Version `0.6.0` runs this configuration-phase query\nwith `--no-configuration-cache`, avoiding false empty results after a previous\ncacheable `help` invocation. Version `0.9.0` also queries every evaluated\nproject through `pluginManager` and reads registered task names without\nrealizing the full `tasks --all` report. This makes Gradle authoritative for\ndynamic includes, custom `projectDir` logic, and convention plugins.\n`--gradle-verification-config` remains available only for an intentional\nnonstandard policy override and is not part of the normal quick start.\n\nFor an existing manifest-managed installation whose generated module/task\nlists are incomplete, refresh all derived Gradle data in one upgrade:\n\n```sh\nnpx @frankzhang2026/opencode-android-orchestrator@1.3.7-rc.2 upgrade . \\\n  --refresh-gradle-discovery\n```\n\nThe refresh updates `androidProject.modules`, production/test paths, protected\nbuild files, and all five Gradle task groups together. Without the flag,\nupgrade preserves an intentionally customized task matrix. The explicit\nrefresh is also allowed on an already installed `0.10.0` when the evaluated\nGradle model has changed; an unchanged refresh remains byte-idempotent.\n\n### Bundled workflow skills\n\nVersion `0.8.0` ships namespaced derivatives of the five Superpowers v6.2.0\nworkflows that Orchestrator actually uses:\n\n- `android-orchestrator-brainstorming`\n- `android-orchestrator-writing-plans`\n- `android-orchestrator-test-driven-development`\n- `android-orchestrator-systematic-debugging`\n- `android-orchestrator-verification-before-completion`\n\nThe plugin\'s compatible `config` hook registers their package-local directory\nwith OpenCode. Project configuration therefore pins only the exact\nOrchestrator package. There is no `using-superpowers` bootstrap, runtime GitHub\nfetch, localhost brainstorming server, browser launcher, remote image, or\ntelemetry path. Once npm has installed the Orchestrator package, skill\ndiscovery itself is offline.\n\nAn upgrade reconstructs `opencode.json`/`opencode.jsonc` from the verified\npre-install backup. The old exact Superpowers v6.2.0 reference disappears only\nwhen an earlier Orchestrator installation added it; a reference that already\nexisted before Orchestrator was installed remains user-owned and is preserved.\nSee the [migration guide](docs/MIGRATION.md) for the exact boundary.\n\n### Configurable unit-test and lint verification\n\nVerification policy lives in `automation/config.json`:\n\n```json\n{\n  "unitTestsEnabled": true,\n  "lintEnabled": fal'... 104212 more characters,
+    expected: /@frankzhang2026\/opencode-android-orchestrator@1\.3\.6/,
+    operator: 'match',
+    diff: 'simple'
+  }
+
+test at tests/upgrade.test.mjs:280:1
+✖ plans an older-version upgrade without writing recovery or managed files (661.716275ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  + actual - expected
+  
+  + '1.3.7-rc.2'
+  - '1.3.6'
+         ^
+  
+      at TestContext.<anonymous> (file:///Users/zhanglong/files/program/cctest/taskdescriptions/orchestrator-fix-20261020-resilience/candidate-source/tests/upgrade.test.mjs:299:12)
+      at Test.runInAsyncScope (node:async_hooks:228:14)
+      at Test.run (node:internal/test_runner/test:1118:25)
+      at Test.start (node:internal/test_runner/test:1015:17)
+      at startSubtestAfterBootstrap (node:internal/test_runner/harness:358:17) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: '1.3.7-rc.2',
+    expected: '1.3.6',
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at tests/upgrade.test.mjs:321:1
+✖ upgrades legacy configurations without moduleScope in primary mode (583.627446ms)
+  Error: Cannot inspect process ownership: spawnSync ps EPERM
+      at invariant (file:///Users/zhanglong/files/program/cctest/taskdescriptions/orchestrator-fix-20261020-resilience/candidate-source/dist/queue/storage.js:7:15)
+      at processIdentity (file:///Users/zhanglong/files/program/cctest/taskdescriptions/orchestrator-fix-20261020-resilience/candidate-source/dist/queue/storage.js:72:5)
+      at fileLock (file:///Users/zhanglong/files/program/cctest/taskdescriptions/orchestrator-fix-20261020-resilience/candidate-source/dist/queue/storage.js:104:22)
+      at withQueueLifecycleLock (file:///Users/zhanglong/files/program/cctest/taskdescriptions/orchestrator-fix-20261020-resilience/candidate-source/dist/queue/lifecycle.js:15:21)
+      at applyProjectUpgrade (file:///Users/zhanglong/files/program/cctest/taskdescriptions/orchestrator-fix-20261020-resilience/candidate-source/dist/installer/upgrade.js:1108:12)
+      at runProjectUpgrade (file:///Users/zhanglong/files/program/cctest/taskdescriptions/orchestrator-fix-20261020-resilience/candidate-source/dist/installer/upgrade.js:1298:19)
+      at TestContext.<anonymous> (file:///Users/zhanglong/files/program/cctest/taskdescriptions/orchestrator-fix-20261020-resilience/candidate-source/tests/upgrade.test.mjs:361:20)
+      at Test.runInAsyncScope (node:async_hooks:228:14)
+      at Test.run (node:internal/test_runner/test:1118:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:787:18)
+
+test at tests/upgrade.test.mjs:391:1
+✖ upgrades unchanged managed files, preserves original merges, and restores obsolete user files (691.779839ms)
+  Error: Cannot inspect process ownership: spawnSync ps EPERM
+      at invariant (file:///Users/zhanglong/files/program/cctest/taskdescriptions/orchestrator-fix-20261020-resilience/candidate-source/dist/queue/storage.js:7:15)
+      at processIdentity (file:///Users/zhanglong/files/program/cctest/taskdescriptions/orchestrator-fix-20261020-resilience/candidate-source/dist/queue/storage.js:72:5)
+      at fileLock (file:///Users/zhanglong/files/program/cctest/taskdescriptions/orchestrator-fix-20261020-resilience/candidate-source/dist/queue/storage.js:104:22)
+      at withQueueLifecycleLock (file:///Users/zhanglong/files/program/cctest/taskdescriptions/orchestrator-fix-20261020-resilience/candidate-source/dist/queue/lifecycle.js:15:21)
+      at applyProjectUpgrade (file:///Users/zhanglong/files/program/cctest/taskdescriptions/orchestrator-fix-20261020-resilience/candidate-source/dist/installer/upgrade.js:1108:12)
+      at runProjectUpgrade (file:///Users/zhanglong/files/program/cctest/taskdescriptions/orchestrator-fix-20261020-resilience/candidate-source/dist/installer/upgrade.js:1298:19)
+      at TestContext.<anonymous> (file:///Users/zhanglong/files/program/cctest/taskdescriptions/orchestrator-fix-20261020-resilience/candidate-source/tests/upgrade.test.mjs:406:20)
+      at Test.runInAsyncScope (node:async_hooks:228:14)
+      at Test.run (node:internal/test_runner/test:1118:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:787:18)
+
+test at tests/upgrade.test.mjs:487:1
+✖ upgrade refresh rebuilds modules, paths, and task allowlists from Gradle (731.36801ms)
+  Error: Cannot inspect process ownership: spawnSync ps EPERM
+      at invariant (file:///Users/zhanglong/files/program/cctest/taskdescriptions/orchestrator-fix-20261020-resilience/candidate-source/dist/queue/storage.js:7:15)
+      at processIdentity (file:///Users/zhanglong/files/program/cctest/taskdescriptions/orchestrator-fix-20261020-resilience/candidate-source/dist/queue/storage.js:72:5)
+      at fileLock (file:///Users/zhanglong/files/program/cctest/taskdescriptions/orchestrator-fix-20261020-resilience/candidate-source/dist/queue/storage.js:104:22)
+      at withQueueLifecycleLock (file:///Users/zhanglong/files/program/cctest/taskdescriptions/orchestrator-fix-20261020-resilience/candidate-source/dist/queue/lifecycle.js:15:21)
+      at applyProjectUpgrade (file:///Users/zhanglong/files/program/cctest/taskdescriptions/orchestrator-fix-20261020-resilience/candidate-source/dist/installer/upgrade.js:1108:12)
+      at runProjectUpgrade (file:///Users/zhanglong/files/program/cctest/taskdescriptions/orchestrator-fix-20261020-resilience/candidate-source/dist/installer/upgrade.js:1298:19)
+      at TestContext.<anonymous> (file:///Users/zhanglong/files/program/cctest/taskdescriptions/orchestrator-fix-20261020-resilience/candidate-source/tests/upgrade.test.mjs:542:20)
+      at Test.runInAsyncScope (node:async_hooks:228:14)
+      at Test.run (node:internal/test_runner/test:1118:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:787:18)
+
+test at tests/upgrade.test.mjs:579:1
+✖ upgrade preserves a Superpowers reference that predates Orchestrator installation (507.213339ms)
+  Error: Cannot inspect process ownership: spawnSync ps EPERM
+      at invariant (file:///Users/zhanglong/files/program/cctest/taskdescriptions/orchestrator-fix-20261020-resilience/candidate-source/dist/queue/storage.js:7:15)
+      at processIdentity (file:///Users/zhanglong/files/program/cctest/taskdescriptions/orchestrator-fix-20261020-resilience/candidate-source/dist/queue/storage.js:72:5)
+      at fileLock (file:///Users/zhanglong/files/program/cctest/taskdescriptions/orchestrator-fix-20261020-resilience/candidate-source/dist/queue/storage.js:104:22)
+      at withQueueLifecycleLock (file:///Users/zhanglong/files/program/cctest/taskdescriptions/orchestrator-fix-20261020-resilience/candidate-source/dist/queue/lifecycle.js:15:21)
+      at applyProjectUpgrade (file:///Users/zhanglong/files/program/cctest/taskdescriptions/orchestrator-fix-20261020-resilience/candidate-source/dist/installer/upgrade.js:1108:12)
+      at runProjectUpgrade (file:///Users/zhanglong/files/program/cctest/taskdescriptions/orchestrator-fix-20261020-resilience/candidate-source/dist/installer/upgrade.js:1298:19)
+      at TestContext.<anonymous> (file:///Users/zhanglong/files/program/cctest/taskdescriptions/orchestrator-fix-20261020-resilience/candidate-source/tests/upgrade.test.mjs:584:20)
+      at Test.runInAsyncScope (node:async_hooks:228:14)
+      at Test.run (node:internal/test_runner/test:1118:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:787:18)
+
+test at tests/upgrade.test.mjs:607:1
+✖ upgrade tolerates permission drift and preserves user AGENTS content (549.252964ms)
+  Error: Cannot inspect process ownership: spawnSync ps EPERM
+      at invariant (file:///Users/zhanglong/files/program/cctest/taskdescriptions/orchestrator-fix-20261020-resilience/candidate-source/dist/queue/storage.js:7:15)
+      at processIdentity (file:///Users/zhanglong/files/program/cctest/taskdescriptions/orchestrator-fix-20261020-resilience/candidate-source/dist/queue/storage.js:72:5)
+      at fileLock (file:///Users/zhanglong/files/program/cctest/taskdescriptions/orchestrator-fix-20261020-resilience/candidate-source/dist/queue/storage.js:104:22)
+      at withQueueLifecycleLock (file:///Users/zhanglong/files/program/cctest/taskdescriptions/orchestrator-fix-20261020-resilience/candidate-source/dist/queue/lifecycle.js:15:21)
+      at applyProjectUpgrade (file:///Users/zhanglong/files/program/cctest/taskdescriptions/orchestrator-fix-20261020-resilience/candidate-source/dist/installer/upgrade.js:1108:12)
+      at runProjectUpgrade (file:///Users/zhanglong/files/program/cctest/taskdescriptions/orchestrator-fix-20261020-resilience/candidate-source/dist/installer/upgrade.js:1298:19)
+      at TestContext.<anonymous> (file:///Users/zhanglong/files/program/cctest/taskdescriptions/orchestrator-fix-20261020-resilience/candidate-source/tests/upgrade.test.mjs:631:20)
+      at Test.runInAsyncScope (node:async_hooks:228:14)
+      at Test.run (node:internal/test_runner/test:1118:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:787:18)
+
+test at tests/upgrade.test.mjs:856:1
+✖ post-upgrade verification failure restores the complete older installation (717.317119ms)
+  AssertionError [ERR_ASSERTION]: The validation function is expected to return "true". Received false
+  
+  Caught error:
+  
+  Error: Cannot inspect process ownership: spawnSync ps EPERM
+      at TestContext.<anonymous> (file:///Users/zhanglong/files/program/cctest/taskdescriptions/orchestrator-fix-20261020-resilience/candidate-source/tests/upgrade.test.mjs:874:12)
+      at Test.runInAsyncScope (node:async_hooks:228:14)
+      at Test.run (node:internal/test_runner/test:1118:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:787:18)
+      at Test.postRun (node:internal/test_runner/test:1247:19)
+      at Test.run (node:internal/test_runner/test:1175:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:787:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: Error: Cannot inspect process ownership: spawnSync ps EPERM
+        at invariant (file:///Users/zhanglong/files/program/cctest/taskdescriptions/orchestrator-fix-20261020-resilience/candidate-source/dist/queue/storage.js:7:15)
+        at processIdentity (file:///Users/zhanglong/files/program/cctest/taskdescriptions/orchestrator-fix-20261020-resilience/candidate-source/dist/queue/storage.js:72:5)
+        at fileLock (file:///Users/zhanglong/files/program/cctest/taskdescriptions/orchestrator-fix-20261020-resilience/candidate-source/dist/queue/storage.js:104:22)
+        at withQueueLifecycleLock (file:///Users/zhanglong/files/program/cctest/taskdescriptions/orchestrator-fix-20261020-resilience/candidate-source/dist/queue/lifecycle.js:15:21)
+        at applyProjectUpgrade (file:///Users/zhanglong/files/program/cctest/taskdescriptions/orchestrator-fix-20261020-resilience/candidate-source/dist/installer/upgrade.js:1108:12)
+        at runProjectUpgrade (file:///Users/zhanglong/files/program/cctest/taskdescriptions/orchestrator-fix-20261020-resilience/candidate-source/dist/installer/upgrade.js:1298:19)
+        at file:///Users/zhanglong/files/program/cctest/taskdescriptions/orchestrator-fix-20261020-resilience/candidate-source/tests/upgrade.test.mjs:876:9
+        at getActual (node:assert:611:5)
+        at strict.throws (node:assert:759:24)
+        at TestContext.<anonymous> (file:///Users/zhanglong/files/program/cctest/taskdescriptions/orchestrator-fix-20261020-resilience/candidate-source/tests/upgrade.test.mjs:874:12),
+    operator: 'throws',
+    diff: 'simple'
+  }
+
+test at tests/upgrade.test.mjs:922:1
+✖ failed upgrade restores permission drift and changed AGENTS content exactly (542.758615ms)
+  AssertionError [ERR_ASSERTION]: The validation function is expected to return "true". Received false
+  
+  Caught error:
+  
+  Error: Cannot inspect process ownership: spawnSync ps EPERM
+      at TestContext.<anonymous> (file:///Users/zhanglong/files/program/cctest/taskdescriptions/orchestrator-fix-20261020-resilience/candidate-source/tests/upgrade.test.mjs:953:12)
+      at Test.runInAsyncScope (node:async_hooks:228:14)
+      at Test.run (node:internal/test_runner/test:1118:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:787:18)
+      at Test.postRun (node:internal/test_runner/test:1247:19)
+      at Test.run (node:internal/test_runner/test:1175:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:787:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: Error: Cannot inspect process ownership: spawnSync ps EPERM
+        at invariant (file:///Users/zhanglong/files/program/cctest/taskdescriptions/orchestrator-fix-20261020-resilience/candidate-source/dist/queue/storage.js:7:15)
+        at processIdentity (file:///Users/zhanglong/files/program/cctest/taskdescriptions/orchestrator-fix-20261020-resilience/candidate-source/dist/queue/storage.js:72:5)
+        at fileLock (file:///Users/zhanglong/files/program/cctest/taskdescriptions/orchestrator-fix-20261020-resilience/candidate-source/dist/queue/storage.js:104:22)
+        at withQueueLifecycleLock (file:///Users/zhanglong/files/program/cctest/taskdescriptions/orchestrator-fix-20261020-resilience/candidate-source/dist/queue/lifecycle.js:15:21)
+        at applyProjectUpgrade (file:///Users/zhanglong/files/program/cctest/taskdescriptions/orchestrator-fix-20261020-resilience/candidate-source/dist/installer/upgrade.js:1108:12)
+        at runProjectUpgrade (file:///Users/zhanglong/files/program/cctest/taskdescriptions/orchestrator-fix-20261020-resilience/candidate-source/dist/installer/upgrade.js:1298:19)
+        at file:///Users/zhanglong/files/program/cctest/taskdescriptions/orchestrator-fix-20261020-resilience/candidate-source/tests/upgrade.test.mjs:955:9
+        at getActual (node:assert:611:5)
+        at strict.throws (node:assert:759:24)
+        at TestContext.<anonymous> (file:///Users/zhanglong/files/program/cctest/taskdescriptions/orchestrator-fix-20261020-resilience/candidate-source/tests/upgrade.test.mjs:953:12),
+    operator: 'throws',
+    diff: 'simple'
+  }
+
+test at tests/upgrade.test.mjs:978:1
+✖ apply refuses a tampered upgrade plan before creating control state (743.658237ms)
+  AssertionError [ERR_ASSERTION]: The validation function is expected to return "true". Received false
+  
+  Caught error:
+  
+  Error: Cannot inspect process ownership: spawnSync ps EPERM
+      at TestContext.<anonymous> (file:///Users/zhanglong/files/program/cctest/taskdescriptions/orchestrator-fix-20261020-resilience/candidate-source/tests/upgrade.test.mjs:988:12)
+      at Test.runInAsyncScope (node:async_hooks:228:14)
+      at Test.run (node:internal/test_runner/test:1118:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:787:18)
+      at Test.postRun (node:internal/test_runner/test:1247:19)
+      at Test.run (node:internal/test_runner/test:1175:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:787:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: Error: Cannot inspect process ownership: spawnSync ps EPERM
+        at invariant (file:///Users/zhanglong/files/program/cctest/taskdescriptions/orchestrator-fix-20261020-resilience/candidate-source/dist/queue/storage.js:7:15)
+        at processIdentity (file:///Users/zhanglong/files/program/cctest/taskdescriptions/orchestrator-fix-20261020-resilience/candidate-source/dist/queue/storage.js:72:5)
+        at fileLock (file:///Users/zhanglong/files/program/cctest/taskdescriptions/orchestrator-fix-20261020-resilience/candidate-source/dist/queue/storage.js:104:22)
+        at withQueueLifecycleLock (file:///Users/zhanglong/files/program/cctest/taskdescriptions/orchestrator-fix-20261020-resilience/candidate-source/dist/queue/lifecycle.js:15:21)
+        at applyProjectUpgrade (file:///Users/zhanglong/files/program/cctest/taskdescriptions/orchestrator-fix-20261020-resilience/candidate-source/dist/installer/upgrade.js:1108:12)
+        at file:///Users/zhanglong/files/program/cctest/taskdescriptions/orchestrator-fix-20261020-resilience/candidate-source/tests/upgrade.test.mjs:989:13
+        at getActual (node:assert:611:5)
+        at strict.throws (node:assert:759:24)
+        at TestContext.<anonymous> (file:///Users/zhanglong/files/program/cctest/taskdescriptions/orchestrator-fix-20261020-resilience/candidate-source/tests/upgrade.test.mjs:988:12)
+        at Test.runInAsyncScope (node:async_hooks:228:14),
+    operator: 'throws',
+    diff: 'simple'
+  }
+
+test at tests/upgrade.test.mjs:1029:1
+✖ custom queue policies stay editable after repeated upgrade without accepting managed drift (818.260159ms)
+  Error: Cannot inspect process ownership: spawnSync ps EPERM
+      at invariant (file:///Users/zhanglong/files/program/cctest/taskdescriptions/orchestrator-fix-20261020-resilience/candidate-source/dist/queue/storage.js:7:15)
+      at processIdentity (file:///Users/zhanglong/files/program/cctest/taskdescriptions/orchestrator-fix-20261020-resilience/candidate-source/dist/queue/storage.js:72:5)
+      at fileLock (file:///Users/zhanglong/files/program/cctest/taskdescriptions/orchestrator-fix-20261020-resilience/candidate-source/dist/queue/storage.js:104:22)
+      at withQueueLifecycleLock (file:///Users/zhanglong/files/program/cctest/taskdescriptions/orchestrator-fix-20261020-resilience/candidate-source/dist/queue/lifecycle.js:15:21)
+      at applyProjectUpgrade (file:///Users/zhanglong/files/program/cctest/taskdescriptions/orchestrator-fix-20261020-resilience/candidate-source/dist/installer/upgrade.js:1108:12)
+      at runProjectUpgrade (file:///Users/zhanglong/files/program/cctest/taskdescriptions/orchestrator-fix-20261020-resilience/candidate-source/dist/installer/upgrade.js:1298:19)
+      at TestContext.<anonymous> (file:///Users/zhanglong/files/program/cctest/taskdescriptions/orchestrator-fix-20261020-resilience/candidate-source/tests/upgrade.test.mjs:1045:19)
+      at Test.runInAsyncScope (node:async_hooks:228:14)
+      at Test.run (node:internal/test_runner/test:1118:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:787:18)

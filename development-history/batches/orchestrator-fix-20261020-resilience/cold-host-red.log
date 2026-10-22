@@ -1,0 +1,72 @@
+Fixture evidence: /Users/zhanglong/files/program/cctest/taskdescriptions/orchestrator-fix-20261020-resilience/driver-fixtures/orchestrator-queue-test-KHQ0iy
+node:internal/modules/run_main:107
+    triggerUncaughtException(
+    ^
+
+AssertionError [ERR_ASSERTION]: {
+  "version": 1,
+  "specificationSha256": "44c9328bd2f9992ad32458168f865c119dde8b0e2ffac45249c948d491c277f6",
+  "candidateSha256": "33e223bb02daf956f35062173543a1e37d99155a4c3fe990852a0ee28c3eae27",
+  "startedAt": 1792486748708,
+  "executionDeadline": 1792486982372,
+  "cleanupDeadline": 1792487102372,
+  "phase": "RESTORATION_BLOCKED",
+  "intent": "VERIFIED",
+  "error": "Error: Upgrade contains unregistered repository edits; Error: Restored installation drifted from the original snapshot",
+  "upgradeHead": null,
+  "taskKey": null,
+  "result": null,
+  "events": [
+    {
+      "phase": "INSTALLED",
+      "at": 1792486768489,
+      "event": "START"
+    },
+    {
+      "phase": "INSTALLED",
+      "at": 1792486784460,
+      "event": "DONE"
+    },
+    {
+      "phase": "UPGRADE_COMMITTED",
+      "at": 1792486784540,
+      "event": "START"
+    },
+    {
+      "phase": "UPGRADE_COMMITTED",
+      "at": 1792486784639,
+      "event": "FAILED"
+    },
+    {
+      "phase": "RESTORED",
+      "at": 1792486784825,
+      "event": "START"
+    },
+    {
+      "phase": "RESTORED",
+      "at": 1792486786459,
+      "event": "DONE"
+    },
+    {
+      "phase": "VERIFIED",
+      "at": 1792486786559,
+      "event": "START"
+    }
+  ]
+}
+Error: Restored installation drifted from the original snapshot
+
+
+1 !== 0
+
+    at file:///Users/zhanglong/files/program/cctest/taskdescriptions/orchestrator-fix-20261020-resilience/source/tests/trial-driver.integration.mjs:131:8
+    at process.processTicksAndRejections (node:internal/process/task_queues:104:5) {
+  generatedMessage: false,
+  code: 'ERR_ASSERTION',
+  actual: 1,
+  expected: 0,
+  operator: 'strictEqual',
+  diff: 'simple'
+}
+
+Node.js v24.14.0

@@ -1,0 +1,19 @@
+{
+  "completedAt": "2026-10-22T07:13:49.567952+00:00",
+  "userAuthorizedDeletion": true,
+  "branchesRetained": true,
+  "removed": [
+    {
+      "path": "/Users/zhanglong/files/npmprogram/opencode_android_orchestrator/development-history/batches/orchestrator-fix-20261020-resilience/source",
+      "head": "6fbff5863f94c9e16c3222b81af9de4c47dc61f9",
+      "branch": "fix/wordpress-resilience-20261020",
+      "discardedStatus": ""
+    },
+    {
+      "path": "/Users/zhanglong/files/npmprogram/opencode_android_orchestrator/development-history/batches/orchestrator-fix-20261020-resilience/wordpress-worktrees/task-resilience-phone-rc3-20261020-v1",
+      "head": "6726cfea5c9f726bccbf06a1e76f34a5b011df96",
+      "branch": "automation/task-resilience-phone-rc3-20261020-v1",
+      "discardedStatus": " M WordPress/src/main/java/org/wordpress/android/util/DomainPhoneNumberUtils.kt\n M WordPress/src/test/java/org/wordpress/android/util/DomainPhoneNumberUtilsTest.kt\n?? automation/tasks/TASK-RESILIENCE-PHONE-RC3-20261020.json\n?? docs/plans/TASK-RESILIENCE-PHONE-RC3-20261020.md\n"
+    }
+  ]
+}

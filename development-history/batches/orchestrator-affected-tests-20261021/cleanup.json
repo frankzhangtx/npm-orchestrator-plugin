@@ -1,0 +1,18 @@
+{
+  "completedAt": "2026-10-22T06:53:54.065152+00:00",
+  "removed": [
+    {
+      "path": "installed",
+      "logicalBytes": 55484635
+    },
+    {
+      "path": "verify-package-host.mjs",
+      "logicalBytes": 2073
+    },
+    {
+      "path": "local-package.log",
+      "logicalBytes": 0
+    }
+  ],
+  "retained": "Release tarball, artifact identity, test logs, delivery report and publication receipts. Historical installation paths in evidence no longer exist."
+}

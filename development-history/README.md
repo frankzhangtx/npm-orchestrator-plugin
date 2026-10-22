@@ -76,3 +76,8 @@
 - 前次索引列出的 78 个缺失历史证据目标没有恢复；迁移后的链接仍指向原来的证据位置。正文中的历史命令、日志路径与补丁内容保留，不能直接视为当前可执行操作。
 - 本目录独立于产品源码和 npm 发布的 `docs/`，不进入当前 `package.json` 的发布白名单。
 - `cctest` 中仍在使用的 `.opencode/`、`automation/`、`scripts/automation/` 和 Android 任务计划保留原位。其历史版本已包含在备份快照中。
+
+## 2026-10-22 新迁入批次
+
+- [开发与验证批次](batches/README.md)：1.4.0 发布资料及未完成的 WordPress resilience 修复现场。
+- [本次目录迁移清单](batches/migration-20261022.json)：旧/新路径及四个源码/工作树的 HEAD、Git 状态对比。

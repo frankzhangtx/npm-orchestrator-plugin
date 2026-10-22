@@ -1,0 +1,14 @@
+✔ ships exactly the 29 audited V3 automation shell files (4.809519ms)
+✔ preserves audited shell bytes and executable modes (15.963826ms)
+✔ all migrated automation files are valid Bash scripts (151.159441ms)
+✔ preflight accepts absent legacy Scheduler tools but rejects enabled ones (36.69664ms)
+✔ OpenCode config discovery retries only the transient checkpoint failure (1409.363395ms)
+✔ shadow run reserves stdout for one machine-readable JSON document (641.630526ms)
+ℹ tests 6
+ℹ suites 0
+ℹ pass 6
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 2383.492184

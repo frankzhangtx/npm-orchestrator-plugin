@@ -1,0 +1,2 @@
+text(await tools.write_stdin({session_id:44663,chars:"\u0003","yield_time_ms":1000,"max_output_tokens":500}));
+text(await tools.exec_command({cmd:"rg -n -A14 '^✖|EPERM|EACCES|not ok' /private/tmp/orchestrator-resilience-full-tests.log | head -65; git status --short","workdir":"/private/tmp/orchestrator-resilience-20261019","max_output_tokens":1800}));

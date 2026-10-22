@@ -1,0 +1,12 @@
+{
+  "at": "2026-10-20T08:40:03.445Z",
+  "restoration": "VERIFIED",
+  "businessResult": null,
+  "trialErrorRetained": "Trial interrupted by SIGTERM; restoration required; Error: Restored installation drifted",
+  "originalHostLoaded": true,
+  "installationSnapshotMatches": true,
+  "method": "Explicit bounded cleanup of exact sealed host additions after successful original doctor and host probe",
+  "originalCleanupDeadline": 1792471639757,
+  "operatorCleanupDeadline": 1792486147000,
+  "authorization": "User continuation on 2026-10-20; cleanup only, no replay of old business task"
+}

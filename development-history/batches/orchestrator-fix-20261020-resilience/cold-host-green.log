@@ -1,0 +1,79 @@
+Fixture evidence: /Users/zhanglong/files/program/cctest/taskdescriptions/orchestrator-fix-20261020-resilience/driver-fixtures/orchestrator-queue-test-UFyHL3
+node:internal/modules/run_main:107
+    triggerUncaughtException(
+    ^
+
+AssertionError [ERR_ASSERTION]: {
+  "version": 1,
+  "specificationSha256": "6a475a1343d6c486c169ffe837105ecd19ab1de10118cac48469a14a8316a356",
+  "candidateSha256": "fd1de38183aee61c58fbfba75a347c7a5c2ea45cb88c815969e2b53c9b3148ee",
+  "startedAt": 1792486867289,
+  "executionDeadline": 1792487102466,
+  "cleanupDeadline": 1792487222466,
+  "phase": "VERIFIED",
+  "intent": null,
+  "error": "Error: Upgrade contains unregistered repository edits",
+  "upgradeHead": null,
+  "taskKey": null,
+  "result": null,
+  "events": [
+    {
+      "phase": "INSTALLED",
+      "at": 1792486880445,
+      "event": "START"
+    },
+    {
+      "phase": "INSTALLED",
+      "at": 1792486890041,
+      "event": "DONE"
+    },
+    {
+      "phase": "UPGRADE_COMMITTED",
+      "at": 1792486890200,
+      "event": "START"
+    },
+    {
+      "phase": "UPGRADE_COMMITTED",
+      "at": 1792486890358,
+      "event": "FAILED"
+    },
+    {
+      "phase": "RESTORED",
+      "at": 1792486890465,
+      "event": "START"
+    },
+    {
+      "phase": "RESTORED",
+      "at": 1792486891497,
+      "event": "DONE"
+    },
+    {
+      "phase": "VERIFIED",
+      "at": 1792486891560,
+      "event": "START"
+    },
+    {
+      "phase": "VERIFIED",
+      "at": 1792486897552,
+      "event": "DONE"
+    }
+  ]
+}
+
+
+1 !== 0
+
+    at file:///Users/zhanglong/files/program/cctest/taskdescriptions/orchestrator-fix-20261020-resilience/source/tests/trial-driver.integration.mjs:131:8
+    at ModuleJob.run (node:internal/modules/esm/module_job:430:25)
+    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+    at async onImport.tracePromise.__proto__ (node:internal/modules/esm/loader:661:26)
+    at async asyncRunEntryPointWithESMLoader (node:internal/modules/run_main:101:5) {
+  generatedMessage: false,
+  code: 'ERR_ASSERTION',
+  actual: 1,
+  expected: 0,
+  operator: 'strictEqual',
+  diff: 'simple'
+}
+
+Node.js v24.14.0

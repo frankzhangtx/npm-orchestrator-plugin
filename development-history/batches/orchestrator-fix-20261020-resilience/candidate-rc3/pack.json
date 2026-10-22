@@ -1,0 +1,1456 @@
+[
+  {
+    "id": "@frankzhang2026/opencode-android-orchestrator@1.3.7-rc.3",
+    "name": "@frankzhang2026/opencode-android-orchestrator",
+    "version": "1.3.7-rc.3",
+    "size": 480933,
+    "unpackedSize": 2149498,
+    "shasum": "447c99d3aeffcdaeebe02a11a37789b9f3da0615",
+    "integrity": "sha512-UFfYP1IFWi9AxFIg9P9LY4sHcnKrVz4m8rfEVsY8CE6C32AUDK9bnkg3a+oweEqIkUDWC+12ulXyxe6CccYZsw==",
+    "filename": "frankzhang2026-opencode-android-orchestrator-1.3.7-rc.3.tgz",
+    "files": [
+      {
+        "path": "CHANGELOG.md",
+        "size": 27025,
+        "mode": 420
+      },
+      {
+        "path": "LICENSE",
+        "size": 1071,
+        "mode": 420
+      },
+      {
+        "path": "README.md",
+        "size": 39653,
+        "mode": 420
+      },
+      {
+        "path": "THIRD_PARTY_NOTICES.md",
+        "size": 5410,
+        "mode": 420
+      },
+      {
+        "path": "dist/cli.d.ts",
+        "size": 64,
+        "mode": 420
+      },
+      {
+        "path": "dist/cli.d.ts.map",
+        "size": 100,
+        "mode": 420
+      },
+      {
+        "path": "dist/cli.js",
+        "size": 22858,
+        "mode": 420
+      },
+      {
+        "path": "dist/cli.js.map",
+        "size": 19163,
+        "mode": 420
+      },
+      {
+        "path": "dist/commands/index.d.ts",
+        "size": 129,
+        "mode": 420
+      },
+      {
+        "path": "dist/commands/index.d.ts.map",
+        "size": 149,
+        "mode": 420
+      },
+      {
+        "path": "dist/commands/index.js",
+        "size": 130,
+        "mode": 420
+      },
+      {
+        "path": "dist/commands/index.js.map",
+        "size": 196,
+        "mode": 420
+      },
+      {
+        "path": "dist/compatibility/hooks.d.ts",
+        "size": 1530,
+        "mode": 420
+      },
+      {
+        "path": "dist/compatibility/hooks.d.ts.map",
+        "size": 797,
+        "mode": 420
+      },
+      {
+        "path": "dist/compatibility/hooks.js",
+        "size": 1439,
+        "mode": 420
+      },
+      {
+        "path": "dist/compatibility/hooks.js.map",
+        "size": 964,
+        "mode": 420
+      },
+      {
+        "path": "dist/compatibility/versions.d.ts",
+        "size": 996,
+        "mode": 420
+      },
+      {
+        "path": "dist/compatibility/versions.d.ts.map",
+        "size": 870,
+        "mode": 420
+      },
+      {
+        "path": "dist/compatibility/versions.js",
+        "size": 4438,
+        "mode": 420
+      },
+      {
+        "path": "dist/compatibility/versions.js.map",
+        "size": 4353,
+        "mode": 420
+      },
+      {
+        "path": "dist/config/android-sdk.d.ts",
+        "size": 389,
+        "mode": 420
+      },
+      {
+        "path": "dist/config/android-sdk.d.ts.map",
+        "size": 441,
+        "mode": 420
+      },
+      {
+        "path": "dist/config/android-sdk.js",
+        "size": 1819,
+        "mode": 420
+      },
+      {
+        "path": "dist/config/android-sdk.js.map",
+        "size": 1833,
+        "mode": 420
+      },
+      {
+        "path": "dist/config/commit-message-prefix.d.ts",
+        "size": 2040,
+        "mode": 420
+      },
+      {
+        "path": "dist/config/commit-message-prefix.d.ts.map",
+        "size": 1364,
+        "mode": 420
+      },
+      {
+        "path": "dist/config/commit-message-prefix.js",
+        "size": 6609,
+        "mode": 420
+      },
+      {
+        "path": "dist/config/commit-message-prefix.js.map",
+        "size": 6061,
+        "mode": 420
+      },
+      {
+        "path": "dist/config/long-command-timeout.d.ts",
+        "size": 1264,
+        "mode": 420
+      },
+      {
+        "path": "dist/config/long-command-timeout.d.ts.map",
+        "size": 636,
+        "mode": 420
+      },
+      {
+        "path": "dist/config/long-command-timeout.js",
+        "size": 2544,
+        "mode": 420
+      },
+      {
+        "path": "dist/config/long-command-timeout.js.map",
+        "size": 2079,
+        "mode": 420
+      },
+      {
+        "path": "dist/config/queue-policy.d.ts",
+        "size": 435,
+        "mode": 420
+      },
+      {
+        "path": "dist/config/queue-policy.d.ts.map",
+        "size": 458,
+        "mode": 420
+      },
+      {
+        "path": "dist/config/queue-policy.js",
+        "size": 1075,
+        "mode": 420
+      },
+      {
+        "path": "dist/config/queue-policy.js.map",
+        "size": 1134,
+        "mode": 420
+      },
+      {
+        "path": "dist/config/verification-policy.d.ts",
+        "size": 1235,
+        "mode": 420
+      },
+      {
+        "path": "dist/config/verification-policy.d.ts.map",
+        "size": 736,
+        "mode": 420
+      },
+      {
+        "path": "dist/config/verification-policy.js",
+        "size": 4435,
+        "mode": 420
+      },
+      {
+        "path": "dist/config/verification-policy.js.map",
+        "size": 4026,
+        "mode": 420
+      },
+      {
+        "path": "dist/doctor/index.d.ts",
+        "size": 1552,
+        "mode": 420
+      },
+      {
+        "path": "dist/doctor/index.d.ts.map",
+        "size": 1464,
+        "mode": 420
+      },
+      {
+        "path": "dist/doctor/index.js",
+        "size": 10799,
+        "mode": 420
+      },
+      {
+        "path": "dist/doctor/index.js.map",
+        "size": 9846,
+        "mode": 420
+      },
+      {
+        "path": "dist/doctor/installation.d.ts",
+        "size": 243,
+        "mode": 420
+      },
+      {
+        "path": "dist/doctor/installation.d.ts.map",
+        "size": 277,
+        "mode": 420
+      },
+      {
+        "path": "dist/doctor/installation.js",
+        "size": 27463,
+        "mode": 420
+      },
+      {
+        "path": "dist/doctor/installation.js.map",
+        "size": 21309,
+        "mode": 420
+      },
+      {
+        "path": "dist/index.d.ts",
+        "size": 7176,
+        "mode": 420
+      },
+      {
+        "path": "dist/index.d.ts.map",
+        "size": 4049,
+        "mode": 420
+      },
+      {
+        "path": "dist/index.js",
+        "size": 3975,
+        "mode": 420
+      },
+      {
+        "path": "dist/index.js.map",
+        "size": 2149,
+        "mode": 420
+      },
+      {
+        "path": "dist/installer/adaptive-templates.d.ts",
+        "size": 4552,
+        "mode": 420
+      },
+      {
+        "path": "dist/installer/adaptive-templates.d.ts.map",
+        "size": 3084,
+        "mode": 420
+      },
+      {
+        "path": "dist/installer/adaptive-templates.js",
+        "size": 17322,
+        "mode": 420
+      },
+      {
+        "path": "dist/installer/adaptive-templates.js.map",
+        "size": 14734,
+        "mode": 420
+      },
+      {
+        "path": "dist/installer/agents-config.d.ts",
+        "size": 1275,
+        "mode": 420
+      },
+      {
+        "path": "dist/installer/agents-config.d.ts.map",
+        "size": 993,
+        "mode": 420
+      },
+      {
+        "path": "dist/installer/agents-config.js",
+        "size": 7062,
+        "mode": 420
+      },
+      {
+        "path": "dist/installer/agents-config.js.map",
+        "size": 6482,
+        "mode": 420
+      },
+      {
+        "path": "dist/installer/android-project.d.ts",
+        "size": 1369,
+        "mode": 420
+      },
+      {
+        "path": "dist/installer/android-project.d.ts.map",
+        "size": 1353,
+        "mode": 420
+      },
+      {
+        "path": "dist/installer/android-project.js",
+        "size": 14928,
+        "mode": 420
+      },
+      {
+        "path": "dist/installer/android-project.js.map",
+        "size": 12989,
+        "mode": 420
+      },
+      {
+        "path": "dist/installer/capabilities-script.d.ts",
+        "size": 104,
+        "mode": 420
+      },
+      {
+        "path": "dist/installer/capabilities-script.d.ts.map",
+        "size": 178,
+        "mode": 420
+      },
+      {
+        "path": "dist/installer/capabilities-script.js",
+        "size": 6710,
+        "mode": 420
+      },
+      {
+        "path": "dist/installer/capabilities-script.js.map",
+        "size": 321,
+        "mode": 420
+      },
+      {
+        "path": "dist/installer/directory-identity.d.ts",
+        "size": 751,
+        "mode": 420
+      },
+      {
+        "path": "dist/installer/directory-identity.d.ts.map",
+        "size": 722,
+        "mode": 420
+      },
+      {
+        "path": "dist/installer/directory-identity.js",
+        "size": 3737,
+        "mode": 420
+      },
+      {
+        "path": "dist/installer/directory-identity.js.map",
+        "size": 3761,
+        "mode": 420
+      },
+      {
+        "path": "dist/installer/gradle-verification.d.ts",
+        "size": 2210,
+        "mode": 420
+      },
+      {
+        "path": "dist/installer/gradle-verification.d.ts.map",
+        "size": 1531,
+        "mode": 420
+      },
+      {
+        "path": "dist/installer/gradle-verification.js",
+        "size": 18179,
+        "mode": 420
+      },
+      {
+        "path": "dist/installer/gradle-verification.js.map",
+        "size": 15643,
+        "mode": 420
+      },
+      {
+        "path": "dist/installer/index.d.ts",
+        "size": 4832,
+        "mode": 420
+      },
+      {
+        "path": "dist/installer/index.d.ts.map",
+        "size": 2786,
+        "mode": 420
+      },
+      {
+        "path": "dist/installer/index.js",
+        "size": 2265,
+        "mode": 420
+      },
+      {
+        "path": "dist/installer/index.js.map",
+        "size": 1272,
+        "mode": 420
+      },
+      {
+        "path": "dist/installer/init.d.ts",
+        "size": 4097,
+        "mode": 420
+      },
+      {
+        "path": "dist/installer/init.d.ts.map",
+        "size": 2930,
+        "mode": 420
+      },
+      {
+        "path": "dist/installer/init.js",
+        "size": 26523,
+        "mode": 420
+      },
+      {
+        "path": "dist/installer/init.js.map",
+        "size": 21293,
+        "mode": 420
+      },
+      {
+        "path": "dist/installer/install-manifest.d.ts",
+        "size": 5693,
+        "mode": 420
+      },
+      {
+        "path": "dist/installer/install-manifest.d.ts.map",
+        "size": 4400,
+        "mode": 420
+      },
+      {
+        "path": "dist/installer/install-manifest.js",
+        "size": 46045,
+        "mode": 420
+      },
+      {
+        "path": "dist/installer/install-manifest.js.map",
+        "size": 40401,
+        "mode": 420
+      },
+      {
+        "path": "dist/installer/local-package.d.ts",
+        "size": 323,
+        "mode": 420
+      },
+      {
+        "path": "dist/installer/local-package.d.ts.map",
+        "size": 291,
+        "mode": 420
+      },
+      {
+        "path": "dist/installer/local-package.js",
+        "size": 2999,
+        "mode": 420
+      },
+      {
+        "path": "dist/installer/local-package.js.map",
+        "size": 3134,
+        "mode": 420
+      },
+      {
+        "path": "dist/installer/opencode-config.d.ts",
+        "size": 1803,
+        "mode": 420
+      },
+      {
+        "path": "dist/installer/opencode-config.d.ts.map",
+        "size": 1311,
+        "mode": 420
+      },
+      {
+        "path": "dist/installer/opencode-config.js",
+        "size": 12544,
+        "mode": 420
+      },
+      {
+        "path": "dist/installer/opencode-config.js.map",
+        "size": 11645,
+        "mode": 420
+      },
+      {
+        "path": "dist/installer/package-source.d.ts",
+        "size": 1562,
+        "mode": 420
+      },
+      {
+        "path": "dist/installer/package-source.d.ts.map",
+        "size": 1467,
+        "mode": 420
+      },
+      {
+        "path": "dist/installer/package-source.js",
+        "size": 10515,
+        "mode": 420
+      },
+      {
+        "path": "dist/installer/package-source.js.map",
+        "size": 10716,
+        "mode": 420
+      },
+      {
+        "path": "dist/installer/project-capabilities.d.ts",
+        "size": 1665,
+        "mode": 420
+      },
+      {
+        "path": "dist/installer/project-capabilities.d.ts.map",
+        "size": 1434,
+        "mode": 420
+      },
+      {
+        "path": "dist/installer/project-capabilities.js",
+        "size": 5086,
+        "mode": 420
+      },
+      {
+        "path": "dist/installer/project-capabilities.js.map",
+        "size": 5912,
+        "mode": 420
+      },
+      {
+        "path": "dist/installer/restore.d.ts",
+        "size": 1365,
+        "mode": 420
+      },
+      {
+        "path": "dist/installer/restore.d.ts.map",
+        "size": 1137,
+        "mode": 420
+      },
+      {
+        "path": "dist/installer/restore.js",
+        "size": 11778,
+        "mode": 420
+      },
+      {
+        "path": "dist/installer/restore.js.map",
+        "size": 12403,
+        "mode": 420
+      },
+      {
+        "path": "dist/installer/uninstall.d.ts",
+        "size": 3044,
+        "mode": 420
+      },
+      {
+        "path": "dist/installer/uninstall.d.ts.map",
+        "size": 2448,
+        "mode": 420
+      },
+      {
+        "path": "dist/installer/uninstall.js",
+        "size": 32749,
+        "mode": 420
+      },
+      {
+        "path": "dist/installer/uninstall.js.map",
+        "size": 29616,
+        "mode": 420
+      },
+      {
+        "path": "dist/installer/upgrade.d.ts",
+        "size": 4877,
+        "mode": 420
+      },
+      {
+        "path": "dist/installer/upgrade.d.ts.map",
+        "size": 3855,
+        "mode": 420
+      },
+      {
+        "path": "dist/installer/upgrade.js",
+        "size": 60796,
+        "mode": 420
+      },
+      {
+        "path": "dist/installer/upgrade.js.map",
+        "size": 52348,
+        "mode": 420
+      },
+      {
+        "path": "dist/opencode-plugin.d.ts",
+        "size": 90,
+        "mode": 420
+      },
+      {
+        "path": "dist/opencode-plugin.d.ts.map",
+        "size": 165,
+        "mode": 420
+      },
+      {
+        "path": "dist/opencode-plugin.js",
+        "size": 239,
+        "mode": 420
+      },
+      {
+        "path": "dist/opencode-plugin.js.map",
+        "size": 189,
+        "mode": 420
+      },
+      {
+        "path": "dist/plugin/index.d.ts",
+        "size": 1017,
+        "mode": 420
+      },
+      {
+        "path": "dist/plugin/index.d.ts.map",
+        "size": 474,
+        "mode": 420
+      },
+      {
+        "path": "dist/plugin/index.js",
+        "size": 4621,
+        "mode": 420
+      },
+      {
+        "path": "dist/plugin/index.js.map",
+        "size": 3396,
+        "mode": 420
+      },
+      {
+        "path": "dist/queue/approvals.d.ts",
+        "size": 1670,
+        "mode": 420
+      },
+      {
+        "path": "dist/queue/approvals.d.ts.map",
+        "size": 1492,
+        "mode": 420
+      },
+      {
+        "path": "dist/queue/approvals.js",
+        "size": 3921,
+        "mode": 420
+      },
+      {
+        "path": "dist/queue/approvals.js.map",
+        "size": 3966,
+        "mode": 420
+      },
+      {
+        "path": "dist/queue/cli.d.ts",
+        "size": 121,
+        "mode": 420
+      },
+      {
+        "path": "dist/queue/cli.d.ts.map",
+        "size": 183,
+        "mode": 420
+      },
+      {
+        "path": "dist/queue/cli.js",
+        "size": 9121,
+        "mode": 420
+      },
+      {
+        "path": "dist/queue/cli.js.map",
+        "size": 8600,
+        "mode": 420
+      },
+      {
+        "path": "dist/queue/delegation.d.ts",
+        "size": 2226,
+        "mode": 420
+      },
+      {
+        "path": "dist/queue/delegation.d.ts.map",
+        "size": 2069,
+        "mode": 420
+      },
+      {
+        "path": "dist/queue/delegation.js",
+        "size": 8100,
+        "mode": 420
+      },
+      {
+        "path": "dist/queue/delegation.js.map",
+        "size": 7954,
+        "mode": 420
+      },
+      {
+        "path": "dist/queue/executor.d.ts",
+        "size": 891,
+        "mode": 420
+      },
+      {
+        "path": "dist/queue/executor.d.ts.map",
+        "size": 883,
+        "mode": 420
+      },
+      {
+        "path": "dist/queue/executor.js",
+        "size": 48355,
+        "mode": 420
+      },
+      {
+        "path": "dist/queue/executor.js.map",
+        "size": 44580,
+        "mode": 420
+      },
+      {
+        "path": "dist/queue/lifecycle.d.ts",
+        "size": 195,
+        "mode": 420
+      },
+      {
+        "path": "dist/queue/lifecycle.d.ts.map",
+        "size": 263,
+        "mode": 420
+      },
+      {
+        "path": "dist/queue/lifecycle.js",
+        "size": 1215,
+        "mode": 420
+      },
+      {
+        "path": "dist/queue/lifecycle.js.map",
+        "size": 1217,
+        "mode": 420
+      },
+      {
+        "path": "dist/queue/model-ledger.d.ts",
+        "size": 1217,
+        "mode": 420
+      },
+      {
+        "path": "dist/queue/model-ledger.d.ts.map",
+        "size": 1290,
+        "mode": 420
+      },
+      {
+        "path": "dist/queue/model-ledger.js",
+        "size": 2640,
+        "mode": 420
+      },
+      {
+        "path": "dist/queue/model-ledger.js.map",
+        "size": 2602,
+        "mode": 420
+      },
+      {
+        "path": "dist/queue/model-process.d.ts",
+        "size": 1272,
+        "mode": 420
+      },
+      {
+        "path": "dist/queue/model-process.d.ts.map",
+        "size": 1129,
+        "mode": 420
+      },
+      {
+        "path": "dist/queue/model-process.js",
+        "size": 10000,
+        "mode": 420
+      },
+      {
+        "path": "dist/queue/model-process.js.map",
+        "size": 10459,
+        "mode": 420
+      },
+      {
+        "path": "dist/queue/model-run.d.ts",
+        "size": 320,
+        "mode": 420
+      },
+      {
+        "path": "dist/queue/model-run.d.ts.map",
+        "size": 331,
+        "mode": 420
+      },
+      {
+        "path": "dist/queue/model-run.js",
+        "size": 8238,
+        "mode": 420
+      },
+      {
+        "path": "dist/queue/model-run.js.map",
+        "size": 8158,
+        "mode": 420
+      },
+      {
+        "path": "dist/queue/preconditions.d.ts",
+        "size": 1254,
+        "mode": 420
+      },
+      {
+        "path": "dist/queue/preconditions.d.ts.map",
+        "size": 1294,
+        "mode": 420
+      },
+      {
+        "path": "dist/queue/preconditions.js",
+        "size": 13316,
+        "mode": 420
+      },
+      {
+        "path": "dist/queue/preconditions.js.map",
+        "size": 12611,
+        "mode": 420
+      },
+      {
+        "path": "dist/queue/presentation.d.ts",
+        "size": 572,
+        "mode": 420
+      },
+      {
+        "path": "dist/queue/presentation.d.ts.map",
+        "size": 472,
+        "mode": 420
+      },
+      {
+        "path": "dist/queue/presentation.js",
+        "size": 7092,
+        "mode": 420
+      },
+      {
+        "path": "dist/queue/presentation.js.map",
+        "size": 7079,
+        "mode": 420
+      },
+      {
+        "path": "dist/queue/process-ownership.d.ts",
+        "size": 890,
+        "mode": 420
+      },
+      {
+        "path": "dist/queue/process-ownership.d.ts.map",
+        "size": 794,
+        "mode": 420
+      },
+      {
+        "path": "dist/queue/process-ownership.js",
+        "size": 3594,
+        "mode": 420
+      },
+      {
+        "path": "dist/queue/process-ownership.js.map",
+        "size": 4137,
+        "mode": 420
+      },
+      {
+        "path": "dist/queue/progress.d.ts",
+        "size": 219,
+        "mode": 420
+      },
+      {
+        "path": "dist/queue/progress.d.ts.map",
+        "size": 306,
+        "mode": 420
+      },
+      {
+        "path": "dist/queue/progress.js",
+        "size": 3174,
+        "mode": 420
+      },
+      {
+        "path": "dist/queue/progress.js.map",
+        "size": 3699,
+        "mode": 420
+      },
+      {
+        "path": "dist/queue/queue.d.ts",
+        "size": 8463,
+        "mode": 420
+      },
+      {
+        "path": "dist/queue/queue.d.ts.map",
+        "size": 8289,
+        "mode": 420
+      },
+      {
+        "path": "dist/queue/queue.js",
+        "size": 62131,
+        "mode": 420
+      },
+      {
+        "path": "dist/queue/queue.js.map",
+        "size": 57217,
+        "mode": 420
+      },
+      {
+        "path": "dist/queue/run-scope.d.ts",
+        "size": 499,
+        "mode": 420
+      },
+      {
+        "path": "dist/queue/run-scope.d.ts.map",
+        "size": 495,
+        "mode": 420
+      },
+      {
+        "path": "dist/queue/run-scope.js",
+        "size": 1362,
+        "mode": 420
+      },
+      {
+        "path": "dist/queue/run-scope.js.map",
+        "size": 1569,
+        "mode": 420
+      },
+      {
+        "path": "dist/queue/service.d.ts",
+        "size": 821,
+        "mode": 420
+      },
+      {
+        "path": "dist/queue/service.d.ts.map",
+        "size": 781,
+        "mode": 420
+      },
+      {
+        "path": "dist/queue/service.js",
+        "size": 8272,
+        "mode": 420
+      },
+      {
+        "path": "dist/queue/service.js.map",
+        "size": 8866,
+        "mode": 420
+      },
+      {
+        "path": "dist/queue/storage.d.ts",
+        "size": 1716,
+        "mode": 420
+      },
+      {
+        "path": "dist/queue/storage.d.ts.map",
+        "size": 1545,
+        "mode": 420
+      },
+      {
+        "path": "dist/queue/storage.js",
+        "size": 9091,
+        "mode": 420
+      },
+      {
+        "path": "dist/queue/storage.js.map",
+        "size": 9298,
+        "mode": 420
+      },
+      {
+        "path": "dist/queue/supervision.d.ts",
+        "size": 1453,
+        "mode": 420
+      },
+      {
+        "path": "dist/queue/supervision.d.ts.map",
+        "size": 1446,
+        "mode": 420
+      },
+      {
+        "path": "dist/queue/supervision.js",
+        "size": 14701,
+        "mode": 420
+      },
+      {
+        "path": "dist/queue/supervision.js.map",
+        "size": 15218,
+        "mode": 420
+      },
+      {
+        "path": "dist/queue/tools.d.ts",
+        "size": 681,
+        "mode": 420
+      },
+      {
+        "path": "dist/queue/tools.d.ts.map",
+        "size": 501,
+        "mode": 420
+      },
+      {
+        "path": "dist/queue/tools.js",
+        "size": 16467,
+        "mode": 420
+      },
+      {
+        "path": "dist/queue/tools.js.map",
+        "size": 13820,
+        "mode": 420
+      },
+      {
+        "path": "dist/tools/index.d.ts",
+        "size": 1883,
+        "mode": 420
+      },
+      {
+        "path": "dist/tools/index.d.ts.map",
+        "size": 1527,
+        "mode": 420
+      },
+      {
+        "path": "dist/tools/index.js",
+        "size": 8371,
+        "mode": 420
+      },
+      {
+        "path": "dist/tools/index.js.map",
+        "size": 6510,
+        "mode": 420
+      },
+      {
+        "path": "dist/trial/driver.d.ts",
+        "size": 921,
+        "mode": 420
+      },
+      {
+        "path": "dist/trial/driver.d.ts.map",
+        "size": 858,
+        "mode": 420
+      },
+      {
+        "path": "dist/trial/driver.js",
+        "size": 24674,
+        "mode": 420
+      },
+      {
+        "path": "dist/trial/driver.js.map",
+        "size": 23774,
+        "mode": 420
+      },
+      {
+        "path": "dist/trial/ledger.d.ts",
+        "size": 1067,
+        "mode": 420
+      },
+      {
+        "path": "dist/trial/ledger.d.ts.map",
+        "size": 1047,
+        "mode": 420
+      },
+      {
+        "path": "dist/trial/ledger.js",
+        "size": 2437,
+        "mode": 420
+      },
+      {
+        "path": "dist/trial/ledger.js.map",
+        "size": 2465,
+        "mode": 420
+      },
+      {
+        "path": "dist/trial/restoration.d.ts",
+        "size": 785,
+        "mode": 420
+      },
+      {
+        "path": "dist/trial/restoration.d.ts.map",
+        "size": 749,
+        "mode": 420
+      },
+      {
+        "path": "dist/trial/restoration.js",
+        "size": 1497,
+        "mode": 420
+      },
+      {
+        "path": "dist/trial/restoration.js.map",
+        "size": 1476,
+        "mode": 420
+      },
+      {
+        "path": "docs/GRADLE-6.7.1.md",
+        "size": 5904,
+        "mode": 420
+      },
+      {
+        "path": "docs/LOCAL-TRIAL.md",
+        "size": 7830,
+        "mode": 420
+      },
+      {
+        "path": "docs/MIGRATION.md",
+        "size": 25375,
+        "mode": 420
+      },
+      {
+        "path": "docs/QUEUE.md",
+        "size": 39843,
+        "mode": 420
+      },
+      {
+        "path": "docs/SECURITY.md",
+        "size": 17796,
+        "mode": 420
+      },
+      {
+        "path": "docs/TROUBLESHOOTING.md",
+        "size": 32175,
+        "mode": 420
+      },
+      {
+        "path": "package.json",
+        "size": 1836,
+        "mode": 420
+      },
+      {
+        "path": "resources/third-party/superpowers-v6.2.0/LICENSE",
+        "size": 1070,
+        "mode": 420
+      },
+      {
+        "path": "resources/third-party/superpowers-v6.2.0/PROVENANCE.md",
+        "size": 909,
+        "mode": 420
+      },
+      {
+        "path": "resources/third-party/superpowers-v6.2.0/skills/android-orchestrator-brainstorming/SKILL.md",
+        "size": 1945,
+        "mode": 420
+      },
+      {
+        "path": "resources/third-party/superpowers-v6.2.0/skills/android-orchestrator-systematic-debugging/references/condition-based-waiting-example.ts",
+        "size": 5054,
+        "mode": 420
+      },
+      {
+        "path": "resources/third-party/superpowers-v6.2.0/skills/android-orchestrator-systematic-debugging/references/condition-based-waiting.md",
+        "size": 3516,
+        "mode": 420
+      },
+      {
+        "path": "resources/third-party/superpowers-v6.2.0/skills/android-orchestrator-systematic-debugging/references/defense-in-depth.md",
+        "size": 3650,
+        "mode": 420
+      },
+      {
+        "path": "resources/third-party/superpowers-v6.2.0/skills/android-orchestrator-systematic-debugging/references/root-cause-tracing.md",
+        "size": 5318,
+        "mode": 420
+      },
+      {
+        "path": "resources/third-party/superpowers-v6.2.0/skills/android-orchestrator-systematic-debugging/scripts/find-polluter.sh",
+        "size": 1986,
+        "mode": 493
+      },
+      {
+        "path": "resources/third-party/superpowers-v6.2.0/skills/android-orchestrator-systematic-debugging/SKILL.md",
+        "size": 9626,
+        "mode": 420
+      },
+      {
+        "path": "resources/third-party/superpowers-v6.2.0/skills/android-orchestrator-test-driven-development/references/writing-good-tests.md",
+        "size": 8239,
+        "mode": 420
+      },
+      {
+        "path": "resources/third-party/superpowers-v6.2.0/skills/android-orchestrator-test-driven-development/SKILL.md",
+        "size": 9179,
+        "mode": 420
+      },
+      {
+        "path": "resources/third-party/superpowers-v6.2.0/skills/android-orchestrator-verification-before-completion/SKILL.md",
+        "size": 3664,
+        "mode": 420
+      },
+      {
+        "path": "resources/third-party/superpowers-v6.2.0/skills/android-orchestrator-writing-plans/SKILL.md",
+        "size": 2503,
+        "mode": 420
+      },
+      {
+        "path": "templates/.opencode/agents/scheduled-coder.md",
+        "size": 5401,
+        "mode": 420
+      },
+      {
+        "path": "templates/.opencode/agents/scheduled-planner.md",
+        "size": 13953,
+        "mode": 420
+      },
+      {
+        "path": "templates/.opencode/agents/scheduled-reviewer.md",
+        "size": 2538,
+        "mode": 420
+      },
+      {
+        "path": "templates/.opencode/commands/abort-task.md",
+        "size": 568,
+        "mode": 420
+      },
+      {
+        "path": "templates/.opencode/commands/acceptance.md",
+        "size": 572,
+        "mode": 420
+      },
+      {
+        "path": "templates/.opencode/commands/change.md",
+        "size": 3398,
+        "mode": 420
+      },
+      {
+        "path": "templates/.opencode/commands/resume-review.md",
+        "size": 579,
+        "mode": 420
+      },
+      {
+        "path": "templates/.opencode/commands/resume-task.md",
+        "size": 575,
+        "mode": 420
+      },
+      {
+        "path": "templates/.opencode/skills/scheduled-quality-coder/SKILL.md",
+        "size": 8592,
+        "mode": 420
+      },
+      {
+        "path": "templates/.opencode/skills/scheduled-quality-orchestrator/SKILL.md",
+        "size": 10237,
+        "mode": 420
+      },
+      {
+        "path": "templates/.opencode/skills/scheduled-quality-reviewer/SKILL.md",
+        "size": 5296,
+        "mode": 420
+      },
+      {
+        "path": "templates/AGENTS.md.fragment",
+        "size": 2693,
+        "mode": 420
+      },
+      {
+        "path": "templates/automation/config.json",
+        "size": 2038,
+        "mode": 420
+      },
+      {
+        "path": "templates/automation/config.schema.json",
+        "size": 14212,
+        "mode": 420
+      },
+      {
+        "path": "templates/automation/task-contract.schema.json",
+        "size": 17632,
+        "mode": 420
+      },
+      {
+        "path": "templates/automation/tasks/TASK-TEMPLATE.json.example",
+        "size": 2241,
+        "mode": 420
+      },
+      {
+        "path": "templates/automation/verification/collect.init.gradle",
+        "size": 6932,
+        "mode": 420
+      },
+      {
+        "path": "templates/automation/verification/contract.cjs",
+        "size": 13175,
+        "mode": 420
+      },
+      {
+        "path": "templates/automation/verification/inventory.cjs",
+        "size": 43365,
+        "mode": 420
+      },
+      {
+        "path": "templates/automation/verification/project.cjs",
+        "size": 22881,
+        "mode": 420
+      },
+      {
+        "path": "templates/automation/verification/recovery.cjs",
+        "size": 43996,
+        "mode": 420
+      },
+      {
+        "path": "templates/automation/verification/runtime.init.gradle",
+        "size": 3264,
+        "mode": 420
+      },
+      {
+        "path": "templates/automation/verification/status.cjs",
+        "size": 6621,
+        "mode": 420
+      },
+      {
+        "path": "templates/automation/verification/worktree.cjs",
+        "size": 1992,
+        "mode": 420
+      },
+      {
+        "path": "templates/docs/plans/README.md",
+        "size": 1116,
+        "mode": 420
+      },
+      {
+        "path": "templates/installation-manifest.schema.json",
+        "size": 12960,
+        "mode": 420
+      },
+      {
+        "path": "templates/README.md",
+        "size": 5162,
+        "mode": 420
+      },
+      {
+        "path": "templates/scripts/automation/abort-task.sh",
+        "size": 8326,
+        "mode": 493
+      },
+      {
+        "path": "templates/scripts/automation/accept-and-integrate.sh",
+        "size": 14721,
+        "mode": 493
+      },
+      {
+        "path": "templates/scripts/automation/acceptance-report.sh",
+        "size": 8921,
+        "mode": 493
+      },
+      {
+        "path": "templates/scripts/automation/approve-and-run.sh",
+        "size": 8717,
+        "mode": 493
+      },
+      {
+        "path": "templates/scripts/automation/begin-review.sh",
+        "size": 873,
+        "mode": 493
+      },
+      {
+        "path": "templates/scripts/automation/block-task.sh",
+        "size": 696,
+        "mode": 493
+      },
+      {
+        "path": "templates/scripts/automation/claim-task.sh",
+        "size": 5375,
+        "mode": 493
+      },
+      {
+        "path": "templates/scripts/automation/integration-scope-gate.sh",
+        "size": 4652,
+        "mode": 493
+      },
+      {
+        "path": "templates/scripts/automation/lib.sh",
+        "size": 58717,
+        "mode": 493
+      },
+      {
+        "path": "templates/scripts/automation/orchestrate-task.sh",
+        "size": 7515,
+        "mode": 493
+      },
+      {
+        "path": "templates/scripts/automation/preflight.sh",
+        "size": 11859,
+        "mode": 493
+      },
+      {
+        "path": "templates/scripts/automation/prepare-contract-review.sh",
+        "size": 4264,
+        "mode": 493
+      },
+      {
+        "path": "templates/scripts/automation/quality-gate.sh",
+        "size": 3738,
+        "mode": 493
+      },
+      {
+        "path": "templates/scripts/automation/queue-task.sh",
+        "size": 1322,
+        "mode": 493
+      },
+      {
+        "path": "templates/scripts/automation/record-red.sh",
+        "size": 11175,
+        "mode": 493
+      },
+      {
+        "path": "templates/scripts/automation/resume-review-fix.sh",
+        "size": 1545,
+        "mode": 493
+      },
+      {
+        "path": "templates/scripts/automation/resume-review.sh",
+        "size": 5725,
+        "mode": 493
+      },
+      {
+        "path": "templates/scripts/automation/resume-task.sh",
+        "size": 6700,
+        "mode": 493
+      },
+      {
+        "path": "templates/scripts/automation/scope-gate.sh",
+        "size": 5197,
+        "mode": 493
+      },
+      {
+        "path": "templates/scripts/automation/select-task.sh",
+        "size": 1062,
+        "mode": 493
+      },
+      {
+        "path": "templates/scripts/automation/shadow-run.sh",
+        "size": 1012,
+        "mode": 493
+      },
+      {
+        "path": "templates/scripts/automation/show-acceptance-review.sh",
+        "size": 7665,
+        "mode": 493
+      },
+      {
+        "path": "templates/scripts/automation/status.sh",
+        "size": 4237,
+        "mode": 493
+      },
+      {
+        "path": "templates/scripts/automation/submit-review.sh",
+        "size": 4159,
+        "mode": 493
+      },
+      {
+        "path": "templates/scripts/automation/tests/run-tests.sh",
+        "size": 64160,
+        "mode": 493
+      },
+      {
+        "path": "templates/scripts/automation/transition-state.sh",
+        "size": 531,
+        "mode": 493
+      },
+      {
+        "path": "templates/scripts/automation/validate-contract.sh",
+        "size": 8274,
+        "mode": 493
+      },
+      {
+        "path": "templates/scripts/automation/verify-integration.sh",
+        "size": 1545,
+        "mode": 493
+      },
+      {
+        "path": "templates/scripts/automation/verify-task.sh",
+        "size": 3693,
+        "mode": 493
+      }
+    ],
+    "entryCount": 288,
+    "bundled": []
+  }
+]

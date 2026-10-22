@@ -1,0 +1,12 @@
+✔ isolated abort archives only changes allowed by the sealed task-worktree contract (28838.97426ms)
+✔ cached-only full tests cannot authorize an automatic commit or release the fixed workspace (7677.287604ms)
+✔ failed OpenCode processes retain the fixed workspace without inventing a shared fault (5229.938547ms)
+✔ isolated agent failure preserves A, allows B integration, and keeps C waiting for A (36384.111858ms)
+ℹ tests 4
+ℹ suites 0
+ℹ pass 4
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 78307.59229

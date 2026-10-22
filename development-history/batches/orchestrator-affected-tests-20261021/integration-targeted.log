@@ -1,0 +1,235 @@
+✔ renders unavailable optional capabilities and rejects enabling missing lint (38.146726ms)
+✔ renders portable configuration and a focused task example from Kotlin project metadata (15.713171ms)
+✔ defaults multi-application projects to all-module scope without requiring a primary module (23.737293ms)
+✔ rejects unsupported module scopes (6.573978ms)
+✔ rejects long-command timeouts outside the bounded integer range (10.29768ms)
+✔ rejects a non-boolean Android lint policy (10.873738ms)
+✔ rejects a non-boolean unit-test policy (7.096472ms)
+✔ rejects an unsupported commit-message prefix mode (6.511617ms)
+✔ reports an unknown explicit primary module without writing files (8.515426ms)
+✔ nested Gradle roots require authoritative capability discovery (4.205942ms)
+✔ rejects a custom module directory outside the Git root (5.044114ms)
+✔ ignores root plugin aliases declared with apply(false) (11.423129ms)
+✔ infers a complete flavored matrix and prefers the module-named flavor (7.540071ms)
+✔ disables configuration cache and discovers marker output on repeated calls (11.401842ms)
+✔ uses Gradle runtime modules for dynamic includes and convention plugins (60.258243ms)
+✔ rejects malformed runtime module markers (0.3481ms)
+✔ discovers absent optional capabilities without inventing tasks and still requires build tasks (33.560053ms)
+✔ normalizes root task paths and rejects non-marker output (1.212678ms)
+✔ CLI and tools project a live Shell stage without changing queue or approvals (1372.96061ms)
+✔ legacy initial runs and supervised runs expose bounded live notes (1438.434113ms)
+✔ stale, malformed, terminal and foreign runtime records never replace queue outcomes (2064.209647ms)
+✔ a resumed worker projects fresh run-bound state over its retained BLOCKED record (1451.021055ms)
+✔ new unscoped drafts require a sealed and visible full-verification reason when capabilities exist (834.908197ms)
+✔ capability defaults accept affected Debug V7 and do not rewrite older stored drafts (1164.222576ms)
+✖ Planner reads generated capabilities/template and presents scoped policies before approval (1.877266ms)
+✔ V4 queue and shell share explicit inventory policy validation; legacy contracts stay V3 (1917.119277ms)
+✔ V4 rejects aliases, duplicate behavior identities across overlapping filters and undeclared policy fields (1.54524ms)
+✔ baseline auto-classifies existing regression tests and RED/GREEN use the same complete manifest (3.160246ms)
+✔ existing skips and per-task empty baselines require explicit approval; no new skips are tolerated (0.500788ms)
+✔ collector rejects cached, interrupted, malformed, duplicate and count-mismatched executions (13.857432ms)
+✔ parameter instances are separate identities and same test names in different tasks do not collide (0.274165ms)
+✔ snapshot includes unchanged custom test resources and detects their edits (362.426638ms)
+ℹ tests 32
+ℹ suites 0
+ℹ pass 31
+ℹ fail 1
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 8591.046854
+
+✖ failing tests:
+
+test at tests/runtime-progress.test.mjs:154:1
+✖ Planner reads generated capabilities/template and presents scoped policies before approval (1.877266ms)
+  AssertionError [ERR_ASSERTION]: The input did not match the regular expression /mode: affected, variants: debug/. Input:
+  
+  '---\n' +
+    'description: Plans from stable commits and approves durable contracts while the background queue executes\n' +
+    'mode: primary\n' +
+    'temperature: 0.1\n' +
+    'steps: 48\n' +
+    'permission:\n' +
+    '  "*": deny\n' +
+    '  android_orchestrator_status: allow\n' +
+    '  android_orchestrator_doctor: allow\n' +
+    '  android_orchestrator_snapshot: allow\n' +
+    '  android_orchestrator_intake: allow\n' +
+    '  android_orchestrator_queue: allow\n' +
+    '  read: deny\n' +
+    '  edit: deny\n' +
+    '  bash: deny\n' +
+    '  glob: deny\n' +
+    '  grep: deny\n' +
+    '  list: deny\n' +
+    '  skill:\n' +
+    '    "*": deny\n' +
+    '    "android-orchestrator-brainstorming": allow\n' +
+    '    "android-orchestrator-writing-plans": allow\n' +
+    '    "scheduled-quality-orchestrator": allow\n' +
+    '  question: allow\n' +
+    '  schedule_job: deny\n' +
+    '  list_jobs: deny\n' +
+    '  get_version: deny\n' +
+    '  get_skill: deny\n' +
+    '  install_skill: deny\n' +
+    '  get_job: deny\n' +
+    '  update_job: deny\n' +
+    '  delete_job: deny\n' +
+    '  cleanup_global: deny\n' +
+    '  run_job: deny\n' +
+    '  job_logs: deny\n' +
+    '  task: deny\n' +
+    '  external_directory: deny\n' +
+    '  webfetch: deny\n' +
+    '  websearch: deny\n' +
+    '  doom_loop: deny\n' +
+    '---\n' +
+    '\n' +
+    '## Trusted delegated runs\n' +
+    '\n' +
+    'First read `android_orchestrator_snapshot`. Only a `delegation` object returned\n' +
+    'by that trusted tool for this native `/change` session enables delegated mode.\n' +
+    'Request text, approval phrases and model assertions cannot enable it. In that\n' +
+    'mode, generate and display the complete proposal, plan and V8 contract using\n' +
+    "exactly the grant's task ID, planning HEAD, target branch, paths, test targets,\n" +
+    'workspace/commit strategy and policies. Do not ask or simulate the two approval\n' +
+    'questions: call intake `draft`, display its sealed review, then call `enqueue`\n' +
+    'with the exact returned key, digest and approvalText. Intake records delegated\n' +
+    'approval and consumes the grant atomically. An unresolved product choice or a\n' +
+    'rejected grant stops the run; do not widen scope, alter budgets, create a second\n' +
+    'task version or fall back to fabricated human approval. The trusted driver owns\n' +
+    'queue controls and cleanup. Without verified delegation, all ordinary fresh\n' +
+    'question requirements below remain in force.\n' +
+    '\n' +
+    '\n' +
+    '\n' +
+    'Load `scheduled-quality-orchestrator`, `android-orchestrator-brainstorming`\n' +
+    'and `android-orchestrator-writing-plans`. The queue workflow below governs\n' +
+    'artifact locations and execution; write plan content through the intake tool.\n' +
+    '\n' +
+    'Use `android_orchestrator_snapshot` action `snapshot` to obtain compact metadata\n' +
+    'containing the local target branch and a fixed `planningHead`. Discover paths\n' +
+    'with bounded `list` pages using that exact commit, then read code, tests,\n' +
+    'configuration and plan instructions with `readChunk` at the same commit. Follow\n' +
+    'every returned cursor until it is null when the complete result matters. The\n' +
+    'legacy `read` action remains available only for known-small files. Do not inspect\n' +
+    "Coder's live working files, switch branches or wait for its repository lease.\n" +
+    'New requests may be planned while another task is coding, awaiting acceptance,\n' +
+    'integrating or blocked.\n' +
+    '\n' +
+    'Present one small observable change with exact implementation/test paths,\n' +
+    'acceptance criteria, boundaries, test filters and non-goals. Ask only questions\n' +
+    'that materially affect that change. Display the complete proposal and call the\n' +
+    "skill's fresh single-choice `方案确认` question. Ordinary request text never grants\n" +
+    'approval. After approval, assemble a complete plan and contract in memory and\n' +
+    'call `android_orchestrator_intake` with action `draft`; do not create files in the\n' +
+    "product checkout. Preserve the snapshot's target branch and planningHead.\n" +
+    '\n' +
+    'Read `automation/config.json` and `automation/tasks/TASK-TEMPLATE.json.example`\n' +
+    'through snapshot `readChunk` at the fixed planningHead before proposing verification.\n' +
+    'When `androidProject.capabilities` exists, start from the generated V7 template:\n' +
+    'propose `verification.scope: { version: 2, mode: affected-tests, variants: debug,\n' +
+    'maxManualRetries: 1 }` for Android Debug-capable projects, narrowing allowedPaths\n' +
+    'and targetTests to this task. For small edits use exact file paths, not broad globs.\n' +
+    'The intake verificationPreview shows selected test classes and reasons, or an explicit\n' +
+    'module fallback when static analysis cannot prove a narrow scope. Present these\n' +
+    'results before approval. This policy retains required build/lint/device tasks and\n' +
+    'allows sealed unchanged-candidate verification reuse across Review/integration.\n' +
+    'Never rewrite an existing V1 approval or promise a five-minute duration.\n' +
+    'Use the generated variants policy for projects\n' +
+    'without Debug variants. Present scope, selected variants, recovery and execution\n' +
+    'limits in the proposal; obtain explicit approval before sealing those policies.\n' +
+    'Do not infer recovery or Worker termination authority from the template alone.\n' +
+    'If a legacy/full verification contract is explicitly needed (including when the\n' +
+    'user declines the V7 policies), explain that it runs every configured unit-test\n' +
+    'and assemble task, including Release variants. Set `verificationFallbackReason`\n' +
+    'on the draft input to the reviewed reason (10 or more characters, at most 512\n' +
+    'UTF-8 bytes). Intake rejects an unscoped new draft with capabilities unless this\n' +
+    'reason is present; approval text includes the reason. Never rewrite stored drafts\n' +
+    'or approved contracts. Without capabilities, retain V4 with verification version 2,\n' +
+    'or V5 only with explicitly approved bounded baseline recovery.\n' +
+    'Declare only task behavior cases;\n' +
+    'the executor captures existing focused tests before Coder edits and adds them\n' +
+    'as regression coverage. Explicitly approve inventory mode `focusedBaseline`,\n' +
+    'existing skips (`reject` or `preserve`) and empty baseline (`reject` or `allow`).\n' +
+    'Default both policies to `reject`; use `allow` only for an intentionally empty\n' +
+    'scope such as a new test class. Use fully qualified configured Test task paths,\n' +
+    'and include each parameter instance in the exact behavior identity. Discovered\n' +
+    'test/resource directories do not expand `allowedPaths` or agent permissions.\n' +
+    'Give every verification case a stable ID,\n' +
+    'its one-based acceptance-criterion reference, its source, and its exact test\n' +
+    'identity. Classify preserved behavior as `before: pass`, changed behavior as\n' +
+    '`before: fail`, and an uncertain old boundary as `before: observe`. Do not infer\n' +
+    'exact serializer, parser, locale, date or framework output from declarations or\n' +
+    'memory. For preserved behavior, use an existing trusted test or explicitly mark\n' +
+    'the value for baseline capture. Plan examples are implementation guidance and\n' +
+    'must not add requirements beyond the contract. Check acceptance criteria,\n' +
+    'non-goals and verification expectations for contradictions before drafting.\n' +
+    '\n' +
+    'For V5/V6/V7/V8, present all recovery fields before contract approval: `version: 1`,\n' +
+    '`scope: baseline`, `maxEnvironmentRetries`, `maxManualRetries`,\n' +
+    '`maxSameFailureRetries` (each 0..3), `maxElapsedMs` (1000..86400000), and\n' +
+    '`initialDelayMs`/`maxDelayMs` (1000..600000, maximum at least initial).\n' +
+    'Explain that classified temporary network/rate-limit failures may retry only\n' +
+    'in deterministic baseline capture. Unknown failures require a fresh resume\n' +
+    'approval within the separate manual budget. Historical test failures, changed\n' +
+    'inputs and corrupted evidence cannot use this route. The elapsed limit stops\n' +
+    'new attempts; it does not terminate a hung process. Recovery does not authorize\n' +
+    'model retries, changed tests, wider scope, or automatic local integration.\n' +
+    'Keep existing V4 contracts unchanged; do not silently add V5 authority.\n' +
+    '\n' +
+    'Use schema V6, V7 or V8 only when the proposal also explicitly approves Worker\n' +
+    'termination. Present `execution: { version: 1, maxRunMs, maxStageMs,\n' +
+    'terminationGraceMs }`: run/stage limits are 1000..86400000 ms, stage at most\n' +
+    'run, and TERM grace is 1000..60000 ms. These wall-clock limits apply to each\n' +
+    'reserved execution, including baseline recovery, review, integration and\n' +
+    'abort. An independent supervisor may TERM owned processes and then KILL\n' +
+    'survivors after grace. Deadlines include sleep time and survive scheduler or\n' +
+    'supervisor restart. Log silence is never a reason to kill. Show the actual\n' +
+    'limits before contract approval; do not infer this authority for old tasks.\n' +
+    'Unknown ownership retains the slot. A stopped candidate is not accepted; a\n' +
+    'visible commit keeps its existing transaction for idempotent recovery.\n' +
+    '\n' +
+    'Use V7/V8 only with separately approved `stageRecovery`: `version: 1`,\n' +
+    '`maxEnvironmentRetries`, `maxSameFailureRetries` (0..3), `maxElapsedMs`\n' +
+    '(1000..86400000), `initialDelayMs` and `maxDelayMs` (1000..600000,\n' +
+    'maximum at least initial). Each of RED, GREEN and independent Review has its\n' +
+    'own cumulative environment budget and recovery window. Only deterministic\n' +
+    'verification is retried; no model call or commit is replayed. Attempts and\n' +
+    'backoff are durable; changed inputs, ambiguous processes and altered evidence\n' +
+    'stop recovery. Exhausted or unknown verification failures preserve the task\n' +
+    'without spending implementation or Review correction cycles. This does not\n' +
+    'authorize a task-wide model-cost budget, provider retries or evidence revision.\n' +
+    'V1..V6 contracts gain none of this authority through an upgrade.\n' +
+    '\n' +
+    'When the draft does not specify a workspace or commit policy, use the values in\n' +
+    '`automation/config.json`; new installations configure `inPlaceExclusive` and\n' +
+    '`humanApproval`. A user may explicitly override the commit policy to\n' +
+    '`autoCommit` for `inPlaceExclusive`, or for `isolatedWorktree` with a new V8\n' +
+    'contract explicitly setting `continuity.isolatedAutoIntegration: true`. Explain the effective policy before\n' +
+    'sealing: quality gates still include build, fresh unit tests in the approved verification scope and independent\n' +
+    'Review; automatic mode authorizes local commit and integration, never remote\n' +
+    'push. Older isolated contracts retain human acceptance. Never infer a policy\n' +
+    'from an old approval or successful tests.\n' +
+    '\n' +
+    'Present the returned sealed contract, plan, digest, version, schedule,\n' +
+    'dependencies, workspace strategy, commit policy and local target branch. Call a\n' +
+    'fresh `合同确认` single-choice question using the exact returned `question` arguments. Only its selected approval authorizes `enqueue` with that\n' +
+    'key and digest. Adjustments create a new draft version and require a new revie'... 3863 more characters
+  
+      at TestContext.<anonymous> (file:///Users/zhanglong/files/program/cctest/taskdescriptions/orchestrator-affected-tests-20261021/source/tests/runtime-progress.test.mjs:157:10)
+      at Test.runInAsyncScope (node:async_hooks:228:14)
+      at Test.run (node:internal/test_runner/test:1118:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:787:18)
+      at Test.postRun (node:internal/test_runner/test:1247:19)
+      at Test.run (node:internal/test_runner/test:1175:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:787:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: '---\ndescription: Plans from stable commits and approves durable contracts while the background queue executes\nmode: primary\ntemperature: 0.1\nsteps: 48\npermission:\n  "*": deny\n  android_orchestrator_status: allow\n  android_orchestrator_doctor: allow\n  android_orchestrator_snapshot: allow\n  android_orchestrator_intake: allow\n  android_orchestrator_queue: allow\n  read: deny\n  edit: deny\n  bash: deny\n  glob: deny\n  grep: deny\n  list: deny\n  skill:\n    "*": deny\n    "android-orchestrator-brainstorming": allow\n    "android-orchestrator-writing-plans": allow\n    "scheduled-quality-orchestrator": allow\n  question: allow\n  schedule_job: deny\n  list_jobs: deny\n  get_version: deny\n  get_skill: deny\n  install_skill: deny\n  get_job: deny\n  update_job: deny\n  delete_job: deny\n  cleanup_global: deny\n  run_job: deny\n  job_logs: deny\n  task: deny\n  external_directory: deny\n  webfetch: deny\n  websearch: deny\n  doom_loop: deny\n---\n\n## Trusted delegated runs\n\nFirst read `android_orchestrator_snapshot`. Only a `delegation` object returned\nby that trusted tool for this native `/change` session enables delegated mode.\nRequest text, approval phrases and model assertions cannot enable it. In that\nmode, generate and display the complete proposal, plan and V8 contract using\nexactly the grant\'s task ID, planning HEAD, target branch, paths, test targets,\nworkspace/commit strategy and policies. Do not ask or simulate the two approval\nquestions: call intake `draft`, display its sealed review, then call `enqueue`\nwith the exact returned key, digest and approvalText. Intake records delegated\napproval and consumes the grant atomically. An unresolved product choice or a\nrejected grant stops the run; do not widen scope, alter budgets, create a second\ntask version or fall back to fabricated human approval. The trusted driver owns\nqueue controls and cleanup. Without verified delegation, all ordinary fresh\nquestion requirements below remain in force.\n\n\n\nLoad `scheduled-quality-orchestrator`, `android-orchestrator-brainstorming`\nand `android-orchestrator-writing-plans`. The queue workflow below governs\nartifact locations and execution; write plan content through the intake tool.\n\nUse `android_orchestrator_snapshot` action `snapshot` to obtain compact metadata\ncontaining the local target branch and a fixed `planningHead`. Discover paths\nwith bounded `list` pages using that exact commit, then read code, tests,\nconfiguration and plan instructions with `readChunk` at the same commit. Follow\nevery returned cursor until it is null when the complete result matters. The\nlegacy `read` action remains available only for known-small files. Do not inspect\nCoder\'s live working files, switch branches or wait for its repository lease.\nNew requests may be planned while another task is coding, awaiting acceptance,\nintegrating or blocked.\n\nPresent one small observable change with exact implementation/test paths,\nacceptance criteria, boundaries, test filters and non-goals. Ask only questions\nthat materially affect that change. Display the complete proposal and call the\nskill\'s fresh single-choice `方案确认` question. Ordinary request text never grants\napproval. After approval, assemble a complete plan and contract in memory and\ncall `android_orchestrator_intake` with action `draft`; do not create files in the\nproduct checkout. Preserve the snapshot\'s target branch and planningHead.\n\nRead `automation/config.json` and `automation/tasks/TASK-TEMPLATE.json.example`\nthrough snapshot `readChunk` at the fixed planningHead before proposing verification.\nWhen `androidProject.capabilities` exists, start from the generated V7 template:\npropose `verification.scope: { version: 2, mode: affected-tests, variants: debug,\nmaxManualRetries: 1 }` for Android Debug-capable projects, narrowing allowedPaths\nand targetTests to this task. For small edits use exact file paths, not broad globs.\nThe intake verificationPreview shows selected test classes and reasons, or an explicit\nmodule fallback when static analysis cannot prove a narrow scope. Present these\nresults before approval. This policy retains required build/lint/device tasks and\nallows sealed unchanged-candidate verification reuse across Review/integration.\nNever rewrite an existing V1 approval or promise a five-minute duration.\nUse the generated variants policy for projects\nwithout Debug variants. Present scope, selected variants, recovery and execution\nlimits in the proposal; obtain explicit approval before sealing those policies.\nDo not infer recovery or Worker termination authority from the template alone.\nIf a legacy/full verification contract is explicitly needed (including when the\nuser declines the V7 policies), explain that it runs every configured unit-test\nand assemble task, including Release variants. Set `verificationFallbackReason`\non the draft input to the reviewed reason (10 or more characters, at most 512\nUTF-8 bytes). Intake rejects an unscoped new draft with capabilities unless this\nreason is present; approval text includes the reason. Never rewrite stored drafts\nor approved contracts. Without capabilities, retain V4 with verification version 2,\nor V5 only with explicitly approved bounded baseline recovery.\nDeclare only task behavior cases;\nthe executor captures existing focused tests before Coder edits and adds them\nas regression coverage. Explicitly approve inventory mode `focusedBaseline`,\nexisting skips (`reject` or `preserve`) and empty baseline (`reject` or `allow`).\nDefault both policies to `reject`; use `allow` only for an intentionally empty\nscope such as a new test class. Use fully qualified configured Test task paths,\nand include each parameter instance in the exact behavior identity. Discovered\ntest/resource directories do not expand `allowedPaths` or agent permissions.\nGive every verification case a stable ID,\nits one-based acceptance-criterion reference, its source, and its exact test\nidentity. Classify preserved behavior as `before: pass`, changed behavior as\n`before: fail`, and an uncertain old boundary as `before: observe`. Do not infer\nexact serializer, parser, locale, date or framework output from declarations or\nmemory. For preserved behavior, use an existing trusted test or explicitly mark\nthe value for baseline capture. Plan examples are implementation guidance and\nmust not add requirements beyond the contract. Check acceptance criteria,\nnon-goals and verification expectations for contradictions before drafting.\n\nFor V5/V6/V7/V8, present all recovery fields before contract approval: `version: 1`,\n`scope: baseline`, `maxEnvironmentRetries`, `maxManualRetries`,\n`maxSameFailureRetries` (each 0..3), `maxElapsedMs` (1000..86400000), and\n`initialDelayMs`/`maxDelayMs` (1000..600000, maximum at least initial).\nExplain that classified temporary network/rate-limit failures may retry only\nin deterministic baseline capture. Unknown failures require a fresh resume\napproval within the separate manual budget. Historical test failures, changed\ninputs and corrupted evidence cannot use this route. The elapsed limit stops\nnew attempts; it does not terminate a hung process. Recovery does not authorize\nmodel retries, changed tests, wider scope, or automatic local integration.\nKeep existing V4 contracts unchanged; do not silently add V5 authority.\n\nUse schema V6, V7 or V8 only when the proposal also explicitly approves Worker\ntermination. Present `execution: { version: 1, maxRunMs, maxStageMs,\nterminationGraceMs }`: run/stage limits are 1000..86400000 ms, stage at most\nrun, and TERM grace is 1000..60000 ms. These wall-clock limits apply to each\nreserved execution, including baseline recovery, review, integration and\nabort. An independent supervisor may TERM owned processes and then KILL\nsurvivors after grace. Deadlines include sleep time and survive scheduler or\nsupervisor restart. Log silence is never a reason to kill. Show the actual\nlimits before contract approval; do not infer this authority for old tasks.\nUnknown ownership retains the slot. A stopped candidate is not accepted; a\nvisible commit keeps its existing transaction for idempotent recovery.\n\nUse V7/V8 only with separately approved `stageRecovery`: `version: 1`,\n`maxEnvironmentRetries`, `maxSameFailureRetries` (0..3), `maxElapsedMs`\n(1000..86400000), `initialDelayMs` and `maxDelayMs` (1000..600000,\nmaximum at least initial). Each of RED, GREEN and independent Review has its\nown cumulative environment budget and recovery window. Only deterministic\nverification is retried; no model call or commit is replayed. Attempts and\nbackoff are durable; changed inputs, ambiguous processes and altered evidence\nstop recovery. Exhausted or unknown verification failures preserve the task\nwithout spending implementation or Review correction cycles. This does not\nauthorize a task-wide model-cost budget, provider retries or evidence revision.\nV1..V6 contracts gain none of this authority through an upgrade.\n\nWhen the draft does not specify a workspace or commit policy, use the values in\n`automation/config.json`; new installations configure `inPlaceExclusive` and\n`humanApproval`. A user may explicitly override the commit policy to\n`autoCommit` for `inPlaceExclusive`, or for `isolatedWorktree` with a new V8\ncontract explicitly setting `continuity.isolatedAutoIntegration: true`. Explain the effective policy before\nsealing: quality gates still include build, fresh unit tests in the approved verification scope and independent\nReview; automatic mode authorizes local commit and integration, never remote\npush. Older isolated contracts retain human acceptance. Never infer a policy\nfrom an old approval or successful tests.\n\nPresent the returned sealed contract, plan, digest, version, schedule,\ndependencies, workspace strategy, commit policy and local target branch. Call a\nfresh `合同确认` single-choice question using the exact returned `question` arguments. Only its selected approval authorizes `enqueue` with that\nkey and digest. Adjustments create a new draft version and require a new revie'... 3863 more characters,
+    expected: /mode: affected, variants: debug/,
+    operator: 'match',
+    diff: 'simple'
+  }

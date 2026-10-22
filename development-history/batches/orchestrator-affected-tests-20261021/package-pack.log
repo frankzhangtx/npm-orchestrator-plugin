@@ -1,0 +1,8 @@
+
+> @frankzhang2026/opencode-android-orchestrator@1.4.0 prepack
+> npm run build
+
+
+> @frankzhang2026/opencode-android-orchestrator@1.4.0 build
+> tsc -p tsconfig.json
+

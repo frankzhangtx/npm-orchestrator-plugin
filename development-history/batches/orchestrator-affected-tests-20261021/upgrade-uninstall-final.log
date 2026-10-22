@@ -1,0 +1,32 @@
+✔ plans read-only and safely uninstalls unchanged managed resources (460.811676ms)
+✔ retains content, permission, and deletion drift while uninstalling safe files (425.797905ms)
+✔ refuses a corrupted original backup before creating uninstall state (197.016711ms)
+✔ refuses an unfinished upgrade marker before planning writes (171.381504ms)
+✔ apply refuses a tampered uninstall plan before creating recovery state (279.339118ms)
+✔ post-write failure rolls the complete installed state back (470.467201ms)
+✔ CLI uninstall supports structured JSON output (527.112557ms)
+✔ plans an older-version upgrade without writing recovery or managed files (255.103074ms)
+✔ upgrades legacy configurations without moduleScope in primary mode (514.710506ms)
+✔ upgrades unchanged managed files, preserves original merges, and restores obsolete user files (465.139801ms)
+✔ upgrade refresh rebuilds modules, paths, and task allowlists from Gradle (469.976768ms)
+✔ upgrade preserves a Superpowers reference that predates Orchestrator installation (433.151293ms)
+✔ upgrade tolerates permission drift and preserves user AGENTS content (423.129042ms)
+✔ repeated upgrade is byte-idempotent for the current version (179.673783ms)
+✔ same-version upgrade refuses a self-consistent managed-resource rewrite (175.991448ms)
+✔ upgrade refuses an unfinished transaction marker before planning writes (158.279771ms)
+✔ upgrade refuses an unfinished uninstall marker before planning writes (161.036374ms)
+✔ upgrade refuses a user-modified managed file before creating recovery state (166.790863ms)
+✔ upgrade refuses a corrupted original backup before writing (167.169399ms)
+✔ post-upgrade verification failure restores the complete older installation (418.562175ms)
+✔ failed upgrade restores permission drift and changed AGENTS content exactly (411.131758ms)
+✔ apply refuses a tampered upgrade plan before creating control state (337.024731ms)
+✔ upgrade refuses to downgrade a newer installed package (157.063086ms)
+✔ custom queue policies stay editable after repeated upgrade without accepting managed drift (648.317946ms)
+ℹ tests 24
+ℹ suites 0
+ℹ pass 24
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 5739.48484

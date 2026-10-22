@@ -1,0 +1,168 @@
+{
+  "ok": false,
+  "checks": [
+    {
+      "id": "opencode-version",
+      "label": "OpenCode version",
+      "status": "pass",
+      "summary": "OpenCode 1.15.13 is certified.",
+      "details": [
+        "Detected executable: opencode"
+      ]
+    },
+    {
+      "id": "git-root",
+      "label": "Git root",
+      "status": "pass",
+      "summary": "Found /Users/zhanglong/files/program/wordpresslocal/WordPress.",
+      "details": []
+    },
+    {
+      "id": "android-project",
+      "label": "Android/Gradle project",
+      "status": "pass",
+      "summary": "Detected 12 Android module(s) using groovy DSL.",
+      "details": [
+        "Settings: /Users/zhanglong/files/program/wordpresslocal/WordPress/settings.gradle",
+        ":WordPress: application (/Users/zhanglong/files/program/wordpresslocal/WordPress/WordPress/build.gradle)",
+        ":libs:analytics: library (/Users/zhanglong/files/program/wordpresslocal/WordPress/libs/analytics/build.gradle)",
+        ":libs:annotations: jvm-library (/Users/zhanglong/files/program/wordpresslocal/WordPress/libs/annotations/build.gradle)",
+        ":libs:editor: library (/Users/zhanglong/files/program/wordpresslocal/WordPress/libs/editor/build.gradle)",
+        ":libs:fluxc: library (/Users/zhanglong/files/program/wordpresslocal/WordPress/libs/fluxc/build.gradle)",
+        ":libs:fluxc-annotations: jvm-library (/Users/zhanglong/files/program/wordpresslocal/WordPress/libs/fluxc-annotations/build.gradle)",
+        ":libs:fluxc-processor: jvm-library (/Users/zhanglong/files/program/wordpresslocal/WordPress/libs/fluxc-processor/build.gradle)",
+        ":libs:image-editor: library (/Users/zhanglong/files/program/wordpresslocal/WordPress/libs/image-editor/build.gradle)",
+        ":libs:mocks: library (/Users/zhanglong/files/program/wordpresslocal/WordPress/libs/mocks/build.gradle)",
+        ":libs:networking: library (/Users/zhanglong/files/program/wordpresslocal/WordPress/libs/networking/build.gradle)",
+        ":libs:posttypes: library (/Users/zhanglong/files/program/wordpresslocal/WordPress/libs/posttypes/build.gradle)",
+        ":libs:processors: jvm-library (/Users/zhanglong/files/program/wordpresslocal/WordPress/libs/processors/build.gradle)"
+      ]
+    },
+    {
+      "id": "gradle-wrapper",
+      "label": "Gradle Wrapper",
+      "status": "pass",
+      "summary": "gradlew and gradle-wrapper.properties are present.",
+      "details": [
+        "/Users/zhanglong/files/program/wordpresslocal/WordPress/gradlew"
+      ]
+    },
+    {
+      "id": "git-command",
+      "label": "Git command",
+      "status": "pass",
+      "summary": "git is available.",
+      "details": [
+        "git version 2.48.1"
+      ]
+    },
+    {
+      "id": "jq-command",
+      "label": "jq command",
+      "status": "pass",
+      "summary": "jq is available.",
+      "details": [
+        "jq-1.7.1-apple"
+      ]
+    },
+    {
+      "id": "rg-command",
+      "label": "ripgrep command",
+      "status": "pass",
+      "summary": "rg is available.",
+      "details": [
+        "ripgrep 15.2.0 (rev e89fff89ac)"
+      ]
+    },
+    {
+      "id": "shasum-command",
+      "label": "shasum command",
+      "status": "pass",
+      "summary": "shasum is available.",
+      "details": [
+        "6.02"
+      ]
+    },
+    {
+      "id": "java-command",
+      "label": "Java command",
+      "status": "pass",
+      "summary": "java is available.",
+      "details": [
+        "openjdk version \"21.0.11\" 2026-04-21"
+      ]
+    },
+    {
+      "id": "android-sdk",
+      "label": "Android SDK",
+      "status": "pass",
+      "summary": "Found Android SDK at /Users/zhanglong/Library/Android/sdk.",
+      "details": [
+        "Source: ANDROID_HOME"
+      ]
+    },
+    {
+      "id": "gradle-runtime",
+      "label": "Actual Gradle build JVM",
+      "status": "fail",
+      "summary": "The selected wrapper's actual build environment could not be verified.",
+      "details": [
+        "Error: Cannot verify the wrapper's actual Gradle/JVM: Exception in thread \"main\" java.io.FileNotFoundException: /Users/zhanglong/.gradle/wrapper/dists/gradle-9.4.1-all/3ntwf3anqevuwi5w46u989ey1/gradle-9.4.1-all.zip.lck (Operation not permitted)\n\tat java.base/java.io.RandomAccessFile.open0(Native Method)\n\tat java.base/java.io.RandomAccessFile.open(RandomAccessFile.java:356)\n\tat java.base/java.io.RandomAccessFile.<init>(RandomAccessFile.java:273)\n\tat java.base/java.io.RandomAccessFile.<init>(RandomAccessFile.java:223)\n\tat org.gradle.wrapper.GradleWrapperMain.main(SourceFile:67)\n"
+      ]
+    },
+    {
+      "id": "installation-manifest",
+      "label": "Installation manifest",
+      "status": "pass",
+      "summary": "@frankzhang2026/opencode-android-orchestrator@1.3.6 tracks 55 installed files.",
+      "details": [
+        "Installation ID: upgrade-20261018100241491-470647a1-01fd-41a2-966e-380a55186457"
+      ]
+    },
+    {
+      "id": "managed-resources",
+      "label": "Managed resources",
+      "status": "pass",
+      "summary": "All 55 managed files match the manifest or supported verification-policy overrides.",
+      "details": []
+    },
+    {
+      "id": "managed-permissions",
+      "label": "Managed permissions",
+      "status": "pass",
+      "summary": "All managed modes match; 29 automation scripts are executable.",
+      "details": []
+    },
+    {
+      "id": "installation-backups",
+      "label": "Installation backups",
+      "status": "pass",
+      "summary": "1 required original-file backup(s) match the manifest.",
+      "details": []
+    },
+    {
+      "id": "managed-configuration",
+      "label": "Managed configuration",
+      "status": "pass",
+      "summary": "OpenCode, AGENTS, and adaptive Android configuration are consistent.",
+      "details": [
+        "OpenCode configuration: opencode.json",
+        "AGENTS managed block: present and unchanged",
+        "Automation module scope: all",
+        "Automation default module: :WordPress",
+        "Unit-test verification: enabled",
+        "Android lint verification: disabled",
+        "Commit-message prefix mode: required"
+      ]
+    },
+    {
+      "id": "commit-message-prefix",
+      "label": "Commit-message prefix",
+      "status": "pass",
+      "summary": "The required user-maintained commit-message prefix is configured.",
+      "details": [
+        "/Users/zhanglong/files/program/wordpresslocal/WordPress/automation/automation-commit-prefix"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,811 @@
+✔ renders unavailable optional capabilities and rejects enabling missing lint (20.72754ms)
+✔ renders portable configuration and a focused task example from Kotlin project metadata (8.753812ms)
+✔ defaults multi-application projects to all-module scope without requiring a primary module (8.573346ms)
+✔ rejects unsupported module scopes (6.93127ms)
+✔ rejects long-command timeouts outside the bounded integer range (10.441137ms)
+✔ rejects a non-boolean Android lint policy (10.509181ms)
+✔ rejects a non-boolean unit-test policy (6.961943ms)
+✔ rejects an unsupported commit-message prefix mode (10.20392ms)
+✔ reports an unknown explicit primary module without writing files (11.140237ms)
+✔ nested Gradle roots require authoritative capability discovery (3.92145ms)
+✔ rejects a custom module directory outside the Git root (4.570169ms)
+✔ V2 preserves independent Review while reusing unchanged GREEN gates (64832.522894ms)
+✔ body-only edits include caller regressions and exclude unrelated tests (259.527844ms)
+✔ new policy baseline selects existing related tests; legacy policy stays module-wide (154.370871ms)
+✔ API change falls back with an auditable reason (182.913814ms)
+✔ unknown dynamic dispatch falls back with an auditable reason (173.427247ms)
+✔ missing source falls back with an auditable reason (203.177649ms)
+✔ broad approved envelope falls back with an auditable reason (192.2195ms)
+✔ new or modified test classes always join the selected set (378.589477ms)
+✔ reuse requires identical inputs, environment, baseline and evidence (1.53663ms)
+✔ every selected filter must have real passing cases; missing and skipped tests fail (0.929937ms)
+✔ method-only classification does not hide changed literals outside method bodies (0.913888ms)
+✔ plans a new AGENTS managed block without writing (2.551509ms)
+✔ appends one CRLF managed block and is byte-idempotent (2.242536ms)
+✔ refuses a modified or malformed managed block (3.312217ms)
+✔ upgrade preserves user AGENTS changes outside the managed block (0.661905ms)
+✔ upgrade adopts an AGENTS file whose managed markers were removed (0.442515ms)
+✔ upgrade refuses malformed or duplicate AGENTS markers (0.220025ms)
+✔ refuses symbolic-link and non-file AGENTS targets (2.02029ms)
+✔ detects a Kotlin DSL multi-module Android project from a module directory (10.984543ms)
+✔ detects Groovy DSL modules with a custom projectDir mapping (4.987068ms)
+✔ detects an Android plugin applied directly to the Gradle root project (3.233578ms)
+✔ rejects a directory that is neither Git nor an Android Gradle project (1.099829ms)
+✔ doctor combines OpenCode and Android project checks (6.01912ms)
+✔ ships the complete namespaced bundled skill inventory (6.089725ms)
+✔ keeps only the runtime support files referenced by bundled skills (0.511924ms)
+✔ does not bundle the visual companion or any external runtime reference (0.626756ms)
+✔ retains the upstream MIT license and provenance (1.000408ms)
+✔ native delegation binds exact requirement/session and emits a distinct single-use proof (7.436538ms)
+✔ expired, altered, widened or unscoped grants are rejected (3.135433ms)
+✔ plan and contract hashes are sealed before grant consumption (0.373431ms)
+✔ queue transaction consumes delegation with enqueue and repeats return the same task (2524.384829ms)
+✔ real OpenCode native argument transports bind the original requirement digest (1.801451ms)
+✔ native transport rejects altered content, multiple arguments and noncanonical decoding without binding (1.28989ms)
+✔ native transport preserves literal backslash sequences, surrounding whitespace and quotes (0.818323ms)
+✔ missing original package restores from verified snapshot; changed caches are preserved (11.453259ms)
+✔ staged original package copy recovers a recognized partial file without overwriting other data (7.60215ms)
+✔ packages and links the complete user-documentation inventory (13.782307ms)
+✔ keeps every repository-local documentation link resolvable (3.174988ms)
+✔ documents fixed-version migration, recovery, and security boundaries portably (2.503078ms)
+✔ ignores root plugin aliases declared with apply(false) (9.946865ms)
+✔ infers a complete flavored matrix and prefers the module-named flavor (9.14898ms)
+✔ disables configuration cache and discovers marker output on repeated calls (10.675623ms)
+✔ uses Gradle runtime modules for dynamic includes and convention plugins (28.581851ms)
+✔ rejects malformed runtime module markers (0.34342ms)
+✔ discovers absent optional capabilities without inventing tasks and still requires build tasks (6.012943ms)
+✔ normalizes root task paths and rejects non-marker output (0.22205ms)
+✔ affected verification completes review and integration using only affected Debug tasks (101678.266669ms)
+✔ dependency download retry repeats only assembly and preserves unit test checkpoints (82097.501524ms)
+✔ approved candidate recovery skips passed phases and retains the implementation budget (90326.277461ms)
+✔ paused queue reserves approved abort maintenance while ordinary work remains paused (2388.753339ms)
+✔ Review corrections start fresh verification without invalidating archived checkpoints (103668.993065ms)
+✔ Review environment recovery invokes a fresh Reviewer and rejects stale recovery approvals (86250.957725ms)
+✔ integration recovery retries the same committed candidate and failed subphase (105189.660257ms)
+✔ impact backoff rejects changed input before another build (42664.969079ms)
+✔ impact backoff rejects changed attempt-log before another build (42863.882497ms)
+✔ focused inventory failures preserve their structured reason and never retry as network faults (29586.09711ms)
+✔ production edits select only affected Debug flavors and remove aggregate builds (24.995793ms)
+✔ flavor-specific edits narrow variants; library changes include transitive consumers (41.763337ms)
+✔ test-only changes run relevant unit suites without unrelated application packaging (43.107024ms)
+✔ Release sources, unknown paths and missing task capabilities cannot silently pass Debug verification (12.349264ms)
+✔ baseline uses the approved path envelope and actual selection retains explicit acceptance tasks (4.971849ms)
+✔ dependency TLS interruptions are retryable while certificate, authorization, missing artifacts and code failures are not (2.641931ms)
+✔ dependency impact widens a directly edited consumer without accepting Release-only edits as Debug (4.275403ms)
+✖ plans and installs all managed resources in a Kotlin DSL project (112.841639ms)
+✔ initialization honors an explicitly disabled commit-prefix policy (306.274865ms)
+✔ installs a multi-application project in all-module mode without primary selection (661.928678ms)
+✔ init renders runtime-discovered dynamic modules and their focused tasks (213.211216ms)
+✖ repeated init is byte-idempotent for an unchanged installation (536.845531ms)
+✔ init preserves a pre-existing regular worktree allowlist (150.451873ms)
+✔ init rejects a non-regular worktree allowlist before installation writes (20.329154ms)
+✔ installs dynamic resources in a Groovy DSL project (330.305065ms)
+✔ init fails dependency checks before creating installation state (6.692159ms)
+✔ init stops on a template conflict before creating control state (17.975673ms)
+✔ init restores original files when post-install verification fails (574.156075ms)
+✔ plans sorted SHA-256 manifest entries without writing the target (13.769451ms)
+✔ reports sorted copy and generate content conflicts without writing (42.792569ms)
+✔ accepts an identical existing file without changing it (41.372845ms)
+✔ treats an existing-file mode change as a conflict (82.495398ms)
+✔ allows explicit merged content but still blocks a merged-file mode change (22.655835ms)
+✔ backs up existing files before publishing a prepared manifest (8.675855ms)
+✔ refuses stale plans before creating installer control state (2.547204ms)
+✔ refuses tampered plan paths before writing outside installer control state (24.679277ms)
+✔ refuses tampered manifest content and file metadata before writing (40.506039ms)
+✔ cleans partial backup state when backup integrity verification fails (4.181367ms)
+✔ rejects unsafe, duplicate, and symbolic-link managed paths (3.049187ms)
+✔ marks a manifest installed only after every file and backup verifies (16.910037ms)
+✔ applies managed files and completes the manifest after verification (12.884014ms)
+✔ automatically rolls managed files back when verification fails (12.699935ms)
+✔ detects a tampered backup before installation completion (11.120039ms)
+✔ rolls a partially applied prepared installation back to original hashes (11.284302ms)
+✔ rollback refuses user-modified paths before restoring anything (8.078595ms)
+✔ ships a portable JSON Schema for installation manifests (0.510155ms)
+✖ installation and doctor accept unavailable optional verification capabilities (417.320032ms)
+✖ installed doctor validates dependencies, inventory, files, modes, backups, and configuration (560.881838ms)
+✖ installed doctor warns without failing while the required prefix is unconfigured (460.219151ms)
+✖ installed doctor accepts repository verification-policy changes (339.672434ms)
+✔ installed integrity rejects non-boolean verification-policy changes (282.769128ms)
+✖ installed doctor reports content and executable-mode drift separately (199.131354ms)
+✔ installed doctor detects unsafe adaptive configuration even when it is valid JSON (349.011761ms)
+✔ installed doctor verifies original-file backups independently (267.469614ms)
+✔ installed doctor fails closed for a missing manifest (141.502809ms)
+✔ installed doctor rejects a self-consistent manifest rewrite of a packaged resource (209.015357ms)
+✔ installed doctor reports missing commands and an unavailable SDK (238.672686ms)
+✔ doctor CLI enables installation checks in JSON mode and exits unsuccessfully (5748.109695ms)
+✔ installed doctor accepts isolated auto-commit configuration and rejects invalid queue policies (5207.554576ms)
+✖ installed Planner tools consume real question-hook receipts and reject approval prose (1468.408291ms)
+✔ installation transaction self-test runs all 46 checks with shipped templates (215880.303853ms)
+✔ final inventory check rejects every bound input and evidence mutation (3083.584063ms)
+✔ a failed GREEN rerun invalidates earlier success until another complete GREEN passes (3156.01729ms)
+✔ early GREEN rejection, interrupted sealing and missing or mismatched markers cannot reuse old evidence (3174.912404ms)
+✔ RED refuses premature production edits and keeps failed preparation attempts within budget (5612.200314ms)
+✔ partial sealing consumes a preparation attempt without replacing an existing RED (2482.710761ms)
+✔ human-owned files stay outside evidence and exclusion policy changes invalidate the binding (2916.519824ms)
+✔ discovery rejects external, generated, symlink and production-overlap test inputs (559.235688ms)
+✔ V4 queue preserves baseline inventory through RED, GREEN, independent review and acceptance (48364.84378ms)
+✔ V4 isolated revalidation rechecks an advanced production baseline (78530.303421ms)
+✔ V4 isolated revalidation rejects changed frozen tests (52677.372063ms)
+✔ V4 interrupted baseline gives an actionable new-task route; old-run status cannot mask a resume refusal (15102.012438ms)
+✔ V4 interrupted baseline gives an actionable new-task route; legacy-without-run status cannot mask a resume refusal (18223.510696ms)
+✔ V4 interrupted baseline gives an actionable new-task route; corrupt status cannot mask a resume refusal (18590.770483ms)
+✔ V4 queue reports BASELINE_NOT_GREEN with recovery guidance (baseline) (15017.961924ms)
+✔ V4 queue reports CASE_EXPECTATION_MISMATCH with recovery guidance (regression) (21990.698932ms)
+✔ V4 queue reports INCOMPLETE_COLLECTION with recovery guidance (interrupted) (23464.600653ms)
+✔ V4 queue reports COVERAGE_MISMATCH with recovery guidance (missing-green) (29347.050038ms)
+✔ V8 continuity is shared by queue and Shell validation and requires exact new approval (2686.73392ms)
+✔ planning input fingerprints bind file additions, deletions and executable modes (909.277413ms)
+✔ isolated automatic A then dependent B refreshes only unchanged declared inputs and completes two local commits (118937.757866ms)
+✔ failed isolated A retains evidence while B auto-integrates and C remains dependent on A (68979.792642ms)
+✔ planning refuses input drift before creating a workspace or invoking a model (2205.266104ms)
+✔ planning refuses external drift before creating a workspace or invoking a model (1780.004054ms)
+✔ planning refuses configuration drift before creating a workspace or invoking a model (2024.382122ms)
+✔ planning refuses refresh-disabled drift before creating a workspace or invoking a model (1886.635989ms)
+✔ automatic integration refuses revocation after review without creating a commit intent (43324.980319ms)
+✔ automatic integration refuses target-drift after review without creating a commit intent (49011.322071ms)
+✔ isolated automatic transaction recovers COMMITTED crash without creating a second commit (56387.541211ms)
+✔ isolated automatic transaction recovers INTEGRATED crash without creating a second commit (59098.538155ms)
+✔ an abort received during final scope verification stops before commit intent publication (49226.472862ms)
+✔ local tgz installs offline once, retains artifact and rejects installed-content drift (1958.103984ms)
+✔ durable model reservation survives restart without resetting time or counts (2.25779ms)
+✔ unknown ownership, drift, forged continuation and replay are rejected (0.752886ms)
+✔ coder and reviewer share cumulative model-call budget across cycles (0.365001ms)
+✔ owned step cutoff terminates the host and detached descendants before authorizing handoff (994.35107ms)
+✔ model prose and exit zero do not establish a budget stop (791.399336ms)
+✔ malformed events and wall-clock deadlines never authorize step continuation (2140.799726ms)
+✔ driver restart recovers its recorded Planner without relaunching the native command (1676.166782ms)
+✔ fast failing hosts preserve their actual exit without an ownership race (4610.705896ms)
+✔ model host binds its session directory even when the parent PWD differs (1282.943549ms)
+✔ driver cancellation terminates its owned model before the execution deadline (1680.066414ms)
+✔ model continuation requires explicit bounded V8 approval (809.562577ms)
+✔ supervised coder budget stop resumes once with sealed RED and completes review (54078.105765ms)
+✔ nested installation selects Git root, persisted discovery selects build root, and SDK comes from that build (626.894553ms)
+✔ nested unattended direct Gradle invocation is refused while controlled scripts remain allowed (882.379286ms)
+✔ nested classified tests lifecycle in inPlaceExclusive never executes decoy wrappers (67382.532032ms)
+✔ nested inventory lifecycle in inPlaceExclusive never executes decoy wrappers (63189.739859ms)
+✔ nested inventory lifecycle in isolatedWorktree never executes decoy wrappers (62149.452441ms)
+✔ nested V7 recovery lifecycle in inPlaceExclusive never executes decoy wrappers (70689.059264ms)
+✔ merges the Orchestrator plugin without removing existing configuration (5.665762ms)
+✔ is byte-for-byte idempotent once the required plugins exist (0.855692ms)
+✔ preserves JSONC comments, trailing commas, order, and plugin options (1.583212ms)
+✔ treats an exact plugin tuple reference as already installed (0.314561ms)
+✔ preserves CRLF, tabs, and the absence of a final newline (0.514125ms)
+✔ rejects a different reference for the managed plugin (0.729768ms)
+✔ rejects duplicate plugins by package identity (0.265854ms)
+✔ rejects invalid JSONC structures instead of repairing them (1.137298ms)
+✔ plans a new opencode.json without writing it (29.113131ms)
+✔ plans an existing opencode.jsonc without modifying it (97.094034ms)
+✔ refuses ambiguous, symbolic-link, and non-file config paths (40.978432ms)
+✔ keeps package identity parsing and pinned constants aligned (0.396904ms)
+✔ packs the complete minimal bundled workflow skill inventory (2417.536165ms)
+✔ effective configuration rejects duplicate registry and local plugin sources (14.473223ms)
+✔ local identity binds artifact digests, prerelease version, entry, content and modes (65.617197ms)
+✔ source versions retain complete SemVer and reject invalid numeric identifiers (0.23263ms)
+✔ prefix exception passes intake, fingerprint, Shell and reservation staged=false (2333.967058ms)
+✔ prefix exception passes intake, fingerprint, Shell and reservation staged=true (2206.652819ms)
+✔ upgrade drift blocks snapshot and direct draft even at the same package version (1711.576869ms)
+✔ NUL parser retains spaces, Unicode, newlines, staged deletion and both rename sides (1306.652225ms)
+✔ external dirty changes after review retain draft and receipt until durable enqueue (1519.493307ms)
+✔ unstarted waiting releases slot, preserves authorization, deduplicates writes, resumes once (2950.491773ms)
+✔ paused and cancelled waits do not revive when conditions recover (3092.09267ms)
+✔ configuration commits during waiting require replanning and leave old digest intact (2905.352274ms)
+✔ Worker race returns waiting before ownership or workspace creation and without a model call (2825.195083ms)
+✔ only owned planning artifacts allow live predecessor intake, unknown edits remain external (3918.160839ms)
+✔ required invalid prefix reports an independent configuration error (1587.669676ms)
+✔ empty subprocess output still identifies helper and exit status (520.806461ms)
+✔ process identity is stable across locales; unknown legacy identity cannot trigger takeover (583.747471ms)
+✔ large waiting path evidence is paginated and corrupted wait binding fails closed (1919.554925ms)
+✔ WordPress-style 14-file upgrade waits, cancels, replans at new HEAD and executes with prefix edits (41542.399237ms)
+✔ JSONC installations retain planning and same-version configuration checks (1442.44153ms)
+✔ draft readiness has a bounded card and exact evidence without changing its digest (1545.083345ms)
+✔ custom sources, non-Debug tasks and reachable JVM dependencies drive configuration and Shell validation (164.004567ms)
+✔ new model refuses unrelated JVM modules, missing edges, unsafe/overlapping roots and fabricated tasks (9.898457ms)
+✔ runtime model is portable and rejects duplicate, malformed and out-of-build output (25.469282ms)
+✔ Debug leads focused feedback while non-Debug variants and Android consumers remain required (98.942067ms)
+✔ variants without local tests retain build, lint and device gates and cannot be omitted (12.336438ms)
+✔ model-supplied approval text and fabricated question output cannot create a receipt (3.801683ms)
+✔ receipt binds session, contract/candidate and operation and is consumed exactly once (3.686124ms)
+✔ adjustments, multi-select questions and altered question text cannot approve (0.663677ms)
+✔ a genuine proposal choice permits only one draft and a restart requires a new question (0.554584ms)
+✔ V5 resumes full failure with retained checkpoints, no model retry and persistent budgets (54023.599634ms)
+✔ V5 resumes discovery failure with retained checkpoints, no model retry and persistent budgets (52605.31832ms)
+✔ V5 resumes collection failure with retained checkpoints, no model retry and persistent budgets (46107.335592ms)
+✔ environment retries stop at the approved persisted budget without resetting on service restart (15641.418211ms)
+✔ unknown baseline failure requires explicit approval and uses only the manual recovery budget (45215.581535ms)
+✔ recovery rejects baseline-full.json changes and consumes the scheduled wake (15186.0279ms)
+✔ recovery rejects baseline-discovery.json changes and consumes the scheduled wake (15901.196619ms)
+✔ recovery rejects baseline-recovery.json changes and consumes the scheduled wake (14714.870887ms)
+✔ recovery rejects attempt changes and consumes the scheduled wake (15659.784119ms)
+✔ recovery rejects checkpoint-symlink changes and consumes the scheduled wake (14967.608387ms)
+✔ recovery rejects product changes and consumes the scheduled wake (12378.363451ms)
+✔ recovery rejects config changes and consumes the scheduled wake (12103.74031ms)
+✔ recovery rejects toolchain changes and consumes the scheduled wake (14845.964211ms)
+✔ recovery rejects target-head changes and consumes the scheduled wake (13281.89369ms)
+✔ historical focused failures cannot be retried automatically or by manual resume (15328.953956ms)
+✔ isolated recovery reuses its retained workspace at capacity and preserves human acceptance (37274.59205ms)
+✔ pause, revocation and elapsed deadline prevent an otherwise due baseline retry (9647.738089ms)
+✔ V5 does not automatically retry There were failing tests (9467.37381ms)
+✔ V5 does not automatically retry unexpected tool error (9520.60439ms)
+✔ queue completes all required gates with absent optional lint and device tasks (39782.89159ms)
+✔ required device capability is rejected before approval, V4=false (677.621209ms)
+✔ required device capability is rejected before approval, V4=true (679.683596ms)
+✔ human fixed mode waits before commit, integrates only the accepted candidate, then releases the slot (46271.723444ms)
+✔ queue ownership accepts OpenCode command descendants in a separate process group (31409.48112ms)
+✔ queue ownership still rejects an unrelated process that copies the active run id (1604.770386ms)
+✔ explicit automatic fixed mode executes quality gates and commits locally without human acceptance (37430.103666ms)
+✔ isolated waiting candidates release execution, dependencies wait for integration, and drift requires fresh review (100216.678529ms)
+✔ cached-only full tests cannot authorize an automatic commit or release the fixed workspace (10500.159726ms)
+✔ failed OpenCode processes retain the fixed workspace without inventing a shared fault (6944.185035ms)
+✔ isolated agent failure preserves A, allows B integration, and keeps C waiting for A (52287.180913ms)
+✔ large inventories cannot truncate task status or any registered review question (1819.266248ms)
+✔ evidence chunks preserve exact Unicode JSON and reject stale or cross-resource cursors (10004.017552ms)
+✔ large summary messages remain bounded and omitted previews retain exact evidence access (1622.471027ms)
+✔ altered questions, other sessions and changed candidates cannot authorize a large-evidence abort (1284.259099ms)
+✔ a stopped real queue worker can archive after approval despite oversized inventories (23814.088812ms)
+✔ crash at commit transaction INTENT preserves ownership and recovers one local commit (39509.740905ms)
+✔ crash at commit transaction COMMITTED preserves ownership and recovers one local commit (38424.328139ms)
+✔ crash at commit transaction VERIFIED preserves ownership and recovers one local commit (38255.083018ms)
+✔ crash at commit transaction INTEGRATED preserves ownership and recovers one local commit (38997.9371ms)
+✔ crash at commit transaction COMPLETED preserves ownership and recovers one local commit (39173.174599ms)
+✔ real queue executes 0 review corrections, exhausted=false (31594.706254ms)
+✔ real queue executes 0 review corrections, exhausted=true (23882.247475ms)
+✔ real queue executes 1 review corrections, exhausted=false (37655.285398ms)
+✔ real queue executes 1 review corrections, exhausted=true (30257.269213ms)
+✔ real queue executes 2 review corrections, exhausted=false (42566.055071ms)
+✔ real queue executes 2 review corrections, exhausted=true (35722.720469ms)
+✔ approved queue reviewer recovery preserves sealed candidate, tamper=false (37904.081908ms)
+✔ approved queue reviewer recovery preserves sealed candidate, tamper=true (20043.652347ms)
+✔ concurrent daemons and repeated wakeups share one executor; restarting scheduler keeps its live worker (36700.378849ms)
+✔ CLI enqueue starts a paused service and wakes it for subsequent new tasks (3749.599989ms)
+✔ dead transaction owners need explicit recovery and live owners are never stolen (794.295505ms)
+✔ planning reads a stable commit but external edits prevent approval from entering the queue (1026.488983ms)
+✔ planning snapshot stays compact while list pages discover stable committed paths (702.982425ms)
+✔ snapshot chunks preserve exact UTF-8 content and make bounded forward progress (849.307759ms)
+✔ approval seals the configured default or an explicit policy, deduplicates, and rejects tampering (1816.969803ms)
+✔ a newly enqueued task resumes the durable queue and preserves FIFO ordering (2073.886446ms)
+✔ drafts and rejected enqueues leave a paused queue unchanged (2560.463104ms)
+✔ duplicate enqueue does not resume a paused queue or recreate a cancelled task (1315.687781ms)
+✔ new enqueue resumes a paused queue without clearing its active blocker (2096.564785ms)
+✔ new enqueue resumes a paused queue without clearing its fault blocker (2093.128738ms)
+✔ legacy configuration without a commit policy retains human approval (901.191735ms)
+✔ one atomic claim respects deadlines, dependencies, priority and pause (3535.942692ms)
+✔ fixed waiting workspaces and mode changes prevent new claims (2243.032224ms)
+✔ unsupported policy combinations and missing dependency approvals fail (1311.410002ms)
+✔ unattended commands reject direct and indirect Git mutation paths (427.823106ms)
+✔ uncommitted claim-time policy change waits without changing sealed authorization (2509.933155ms)
+✔ capacity and public faults block execution but do not reject durable intake (2661.063216ms)
+✔ revocation blocks automatic execution and durable notification acknowledgements survive reload (1465.142667ms)
+✔ queue and installed shell require explicit V5 recovery without relaxing inventory verification (3208.766377ms)
+✔ recovery policy rejects unbounded, ambiguous or unsupported authorization (0.400135ms)
+✔ classification distinguishes environment, history, preparation, implementation and unknown failures (2.618817ms)
+✔ retry budgets and backoff survive serialization, do not spend repair budgets, and stop without progress (1.550093ms)
+✔ successful or signal-terminated commands cannot acquire network retry authority from log text (0.289029ms)
+✔ zero budgets, recovery deadline and incomplete attempts stop new retries (0.322132ms)
+✔ ships complete MIT license and third-party notices (5.92725ms)
+✔ keeps the published release outcome auditable and outside package files (2.727336ms)
+✔ records the verified 0.3.0 Registry publication (1.805538ms)
+✔ records the verified 0.4.0 Registry publication (1.769762ms)
+✔ records the verified 0.5.0 Registry publication (2.169591ms)
+✔ records the verified 0.6.0 Registry publication (1.838743ms)
+✔ records the recovered and verified 0.6.1 Registry publication (2.713346ms)
+✔ ships the complete non-historical infrastructure template inventory (3.640201ms)
+✖ locks the portable V6 infrastructure resources and file modes (1.998503ms)
+✔ keeps configuration, schemas, and contract example structurally aligned (2.758119ms)
+✔ keeps the render sources project-independent and Scheduler-free (3.368429ms)
+✔ provides one portable and bounded AGENTS managed block (0.749418ms)
+✔ exact restoration removes candidate additions, preserves queue audit, and is idempotent (1014.220558ms)
+✔ unregistered edits or corrupted backup stop before any restoration write (801.327669ms)
+✔ interrupted restoration resumes only registered absent or partial original files (889.567934ms)
+✔ restoration requires paused idle queue and does not snapshot runtime task evidence (1249.165279ms)
+✔ final acceptance detects ignored manifest drift without overwriting it (1119.968354ms)
+✔ runtime inspection uses the configured Gradle JVM and refuses absent or incompatible evidence (2.71981ms)
+✔ Gradle user JVM overrides and init scripts change the recovery binding; ignored local inputs require isolation setup (522.24547ms)
+✔ RED rejects identical exception/message from fixtures, rules, helpers and missing stacks (428.595738ms)
+✔ every criterion requires a case or an enabled mandatory verification task (729.348156ms)
+✔ inventory rejects an actual JVM change with unchanged source and launch environment (2730.459737ms)
+✔ scoped supervisor cannot outlive its task authorization deadline (1256.911469ms)
+✔ scoped runs never silently add supervision authority to legacy contracts (1319.929654ms)
+✔ durable scope excludes historical tasks through enqueue, reload and resume (2089.089919ms)
+✔ expired scope remains closed across resume; only bounded scoped cleanup is allowed (2589.921281ms)
+✔ five explicitly scoped candidates are accepted but a sixth or duplicate is rejected (0.76879ms)
+✔ CLI and tools project a live Shell stage without changing queue or approvals (1947.973092ms)
+✔ legacy initial runs and supervised runs expose bounded live notes (1564.473748ms)
+✔ stale, malformed, terminal and foreign runtime records never replace queue outcomes (2492.878144ms)
+✔ a resumed worker projects fresh run-bound state over its retained BLOCKED record (1970.525354ms)
+✔ new unscoped drafts require a sealed and visible full-verification reason when capabilities exist (1674.715877ms)
+✔ capability defaults accept affected Debug V7 and do not rewrite older stored drafts (1787.337777ms)
+✔ Planner reads generated capabilities/template and presents scoped policies before approval (0.573948ms)
+✔ keeps the package root plugin-only for the OpenCode loader (6.836614ms)
+✔ exports a loadable OpenCode plugin using only common hooks (10.335277ms)
+✔ raises managed long commands to the default timeout without shortening callers (4.448566ms)
+✔ loads a configurable managed long-command timeout from the worktree (3.893243ms)
+✔ rejects hooks outside the certified common API (0.622341ms)
+✔ CLI exposes the planned lifecycle commands (156.658603ms)
+✔ CLI exposes doctor-specific help (149.811437ms)
+✔ CLI exposes init options and rejects an incomplete module selection (571.750137ms)
+✔ CLI exposes upgrade options and rejects an incomplete module selection (588.251769ms)
+✔ CLI exposes uninstall options and rejects unknown flags (297.010937ms)
+✔ ships exactly the 29 audited V3 automation shell files (3.230034ms)
+✖ preserves audited shell bytes and executable modes (2.68055ms)
+✔ all migrated automation files are valid Bash scripts (185.273377ms)
+✔ preflight accepts absent legacy Scheduler tools but rejects enabled ones (48.654531ms)
+✔ OpenCode config discovery retries only the transient checkpoint failure (1567.58194ms)
+✔ shadow run reserves stdout for one machine-readable JSON document (1151.811688ms)
+✔ stage checkpoints reject edits before, during publication and during sealing without adopting altered bytes (246.365425ms)
+✔ stage recovery requires V7 approval and bounded policy without changing older contracts (516.074451ms)
+✔ runtime stage checkpoints preserve contract approval while policy edits remain rejected (1378.250543ms)
+✔ stage checkpoint bridge rejects callers without the active supervised Worker identity (1841.211153ms)
+✔ phase retry budgets survive reload and reject unknown failures, clock rollback and no progress (1.751799ms)
+✔ RED, GREEN and Reviewer retry transient commands with independent budgets and no extra model or fix cycles (59232.2882ms)
+✔ a Review correction cannot reset the GREEN environment budget (34429.022881ms)
+✔ green exhaustion blocks without spending an implementation fix or requesting changes (25661.842296ms)
+✔ review exhaustion blocks without spending an implementation fix or requesting changes (30228.98162ms)
+✔ durable backoff rejects input changes before another command (15489.656162ms)
+✔ durable backoff rejects attempt changes before another command (16037.466195ms)
+✔ durable backoff rejects ledger changes before another command (14639.733121ms)
+✔ non-environment failures never retry: Compilation failed. HTTP 429 (20609.609852ms)
+✔ non-environment failures never retry: unknown tool failure (19113.996058ms)
+✔ large shell status is bounded; digest-bound pages reconstruct original UTF-8 evidence (1166.397589ms)
+✔ schema V3 rejects contradictory or ambiguous test classifications (812.133708ms)
+✔ schema V3 records RED only when every declared case matches (39651.424259ms)
+✔ schema V3 rejects RED when a preserved behavior also fails (16674.59072ms)
+✔ a crash before or after lock publication never leaves an anonymous owner (764.097035ms)
+✔ supervision leaves an owner record being written intact without stealing its lock (513.106198ms)
+✔ a lock released or replaced during the process probe is neither rejected nor recovered (487.510169ms)
+✔ supervision retains live and unowned dead locks and only recovers an owned dead lock (602.840353ms)
+✔ approved new-file supplement proves original-baseline passing behavior without changing RED (3056.290086ms)
+✔ missing authorization, original-test edits and tests needing new production cannot become supplements (7316.042849ms)
+✔ ships the exact audited OpenCode queue agent, command, and skill inventory (4.140064ms)
+✔ preserves the audited queue template bytes and non-executable modes (3.228055ms)
+✔ keeps migrated templates project-independent and structurally valid (3.177899ms)
+✔ grants every scheduled agent only the two read-only orchestrator tools (0.514717ms)
+✔ V4 queue and shell share explicit inventory policy validation; legacy contracts stay V3 (2244.258035ms)
+✔ V4 rejects aliases, duplicate behavior identities across overlapping filters and undeclared policy fields (1.641029ms)
+✔ baseline auto-classifies existing regression tests and RED/GREEN use the same complete manifest (3.563083ms)
+✔ existing skips and per-task empty baselines require explicit approval; no new skips are tolerated (0.611055ms)
+✔ collector rejects cached, interrupted, malformed, duplicate and count-mismatched executions (16.391538ms)
+✔ parameter instances are separate identities and same test names in different tasks do not collide (0.397889ms)
+✔ snapshot includes unchanged custom test resources and detects their edits (502.386142ms)
+✔ registers exactly the two read-only tools with a strict task ID schema (5.786587ms)
+✔ doctor is bounded to the loaded worktree and returns structured read-only diagnostics (2.208536ms)
+✔ status authenticates its installation and invokes only the fixed script for one task (1.729135ms)
+✔ status passes the script path and task ID as separate shell expressions (1.535645ms)
+✔ status rejects invalid task IDs before integrity checks or command execution (1.566029ms)
+✔ status fails closed on an unauthenticated installation without changing the worktree (2.062225ms)
+✔ read-only tools reject contexts outside the workspace or aborted before execution (1.147197ms)
+▶ status rejects failed commands, malformed task output, and oversized output
+  ✔ failed command (1.101539ms)
+  ✔ malformed JSON (1.205811ms)
+  ✔ wrong contract (1.161616ms)
+  ✔ oversized JSON (1.185248ms)
+✔ status rejects failed commands, malformed task output, and oversized output (8.890888ms)
+✔ trial restart preserves execution and cleanup deadlines and rejects a changed specification (45.007467ms)
+✔ an interrupted operation cannot be replayed as a fresh phase (104.909236ms)
+✔ pending restoration survives queue cleanup and rejects another validation baseline (525.843615ms)
+✖ plans read-only and safely uninstalls unchanged managed resources (291.382083ms)
+✖ retains content, permission, and deletion drift while uninstalling safe files (534.419301ms)
+✔ refuses a corrupted original backup before creating uninstall state (263.870203ms)
+✔ refuses an unfinished upgrade marker before planning writes (218.806925ms)
+✔ apply refuses a tampered uninstall plan before creating recovery state (439.563465ms)
+✔ post-write failure rolls the complete installed state back (711.765766ms)
+✖ CLI uninstall supports structured JSON output (717.471405ms)
+✖ plans an older-version upgrade without writing recovery or managed files (380.233502ms)
+✔ upgrades legacy configurations without moduleScope in primary mode (599.272423ms)
+✖ upgrades unchanged managed files, preserves original merges, and restores obsolete user files (676.980275ms)
+✔ upgrade refresh rebuilds modules, paths, and task allowlists from Gradle (558.772491ms)
+✔ upgrade preserves a Superpowers reference that predates Orchestrator installation (575.564133ms)
+✔ upgrade tolerates permission drift and preserves user AGENTS content (697.951144ms)
+✖ repeated upgrade is byte-idempotent for the current version (251.703139ms)
+✔ same-version upgrade refuses a self-consistent managed-resource rewrite (282.745459ms)
+✔ upgrade refuses an unfinished transaction marker before planning writes (204.436964ms)
+✔ upgrade refuses an unfinished uninstall marker before planning writes (192.100123ms)
+✔ upgrade refuses a user-modified managed file before creating recovery state (283.834681ms)
+✔ upgrade refuses a corrupted original backup before writing (216.847615ms)
+✔ post-upgrade verification failure restores the complete older installation (696.798113ms)
+✔ failed upgrade restores permission drift and changed AGENTS content exactly (834.640279ms)
+✔ apply refuses a tampered upgrade plan before creating control state (430.610095ms)
+✔ upgrade refuses to downgrade a newer installed package (208.242969ms)
+✔ custom queue policies stay editable after repeated upgrade without accepting managed drift (1298.11457ms)
+✔ extracts OpenCode semantic versions from command output (2.770078ms)
+✔ classifies certified, warned, and unsupported OpenCode versions (0.834292ms)
+✔ doctor passes a certified OpenCode executable (0.828415ms)
+✔ doctor warns for an in-range uncertified OpenCode version (0.265845ms)
+✔ doctor fails when OpenCode cannot be executed (0.417785ms)
+✔ termination requires a new V6 contract with bounded execution policy (430.63475ms)
+✔ durable deadlines survive reload, include sleep time, and never use log silence (0.819966ms)
+✔ status, task evidence and queue controls redact the supervision ownership token (2158.167177ms)
+✔ ownership inventory handles detached children, PID reuse and unknown descendants without retaining environments (2.408369ms)
+✔ real process signals require both the unique token and unchanged process identity (547.766447ms)
+✔ deadline stops TERM-resistant Gradle and its detached child, retains evidence and leaves unrelated processes alive (77143.048047ms)
+✔ scheduler and supervisor restart retain the live Worker, stage deadline and termination budget (43923.770134ms)
+✔ uncertain Worker identity sends no signals and keeps the execution slot and workspace lease (7615.775559ms)
+✔ a healthy V6 Worker completes local integration without any termination signal (31638.439426ms)
+✔ timeout after a local commit preserves the transaction and recovery integrates the same commit once (60495.84652ms)
+ℹ tests 422
+ℹ suites 0
+ℹ pass 406
+ℹ fail 16
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 1130712.741261
+
+✖ failing tests:
+
+test at tests/init.test.mjs:183:1
+✖ plans and installs all managed resources in a Kotlin DSL project (112.841639ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  
+  58 !== 55
+  
+      at TestContext.<anonymous> (file:///Users/zhanglong/files/program/cctest/taskdescriptions/orchestrator-affected-tests-20261021/source/tests/init.test.mjs:198:12)
+      at Test.runInAsyncScope (node:async_hooks:228:14)
+      at Test.run (node:internal/test_runner/test:1118:25)
+      at Test.start (node:internal/test_runner/test:1015:17)
+      at startSubtestAfterBootstrap (node:internal/test_runner/harness:358:17) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: 58,
+    expected: 55,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at tests/init.test.mjs:463:1
+✖ repeated init is byte-idempotent for an unchanged installation (536.845531ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  
+  58 !== 55
+  
+      at TestContext.<anonymous> (file:///Users/zhanglong/files/program/cctest/taskdescriptions/orchestrator-affected-tests-20261021/source/tests/init.test.mjs:491:12)
+      at Test.runInAsyncScope (node:async_hooks:228:14)
+      at Test.run (node:internal/test_runner/test:1118:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:787:18)
+      at Test.postRun (node:internal/test_runner/test:1247:19)
+      at Test.run (node:internal/test_runner/test:1175:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:787:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: 58,
+    expected: 55,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at tests/installation-doctor.test.mjs:136:1
+✖ installation and doctor accept unavailable optional verification capabilities (417.320032ms)
+  AssertionError [ERR_ASSERTION]: OpenCode Android Orchestrator doctor
+  
+  [PASS] OpenCode version: OpenCode 1.15.13 is certified.
+    Detected executable: opencode
+  [PASS] Git root: Found /var/folders/hx/fkt_lz1d0ss_m1181nv0hn1m0000gn/T/orchestrator-installed-doctor-kjKBwP.
+  [PASS] Android/Gradle project: Detected 1 Android module(s) using kotlin DSL.
+    Settings: /var/folders/hx/fkt_lz1d0ss_m1181nv0hn1m0000gn/T/orchestrator-installed-doctor-kjKBwP/settings.gradle.kts
+    :mobile: application (/var/folders/hx/fkt_lz1d0ss_m1181nv0hn1m0000gn/T/orchestrator-installed-doctor-kjKBwP/clients/mobile/build.gradle.kts)
+  [PASS] Gradle Wrapper: gradlew and gradle-wrapper.properties are present.
+    /var/folders/hx/fkt_lz1d0ss_m1181nv0hn1m0000gn/T/orchestrator-installed-doctor-kjKBwP/gradlew
+  [PASS] Git command: git is available.
+    git fixture version
+  [PASS] jq command: jq is available.
+    jq fixture version
+  [PASS] ripgrep command: rg is available.
+    rg fixture version
+  [PASS] shasum command: shasum is available.
+    shasum fixture version
+  [PASS] Java command: java is available.
+    java fixture version
+  [PASS] Android SDK: Found Android SDK at /var/folders/hx/fkt_lz1d0ss_m1181nv0hn1m0000gn/T/orchestrator-installed-doctor-kjKBwP/fixture-sdk.
+    Source: local.properties sdk.dir
+  [PASS] Actual Gradle build JVM: Gradle 6.7.1 configures with Java 1.8.0_312.
+    /fixture/jdk8
+  [FAIL] Installation manifest: 4 manifest identity, state, inventory, or mode issue(s) were found.
+    Manifest tracks 58 files; expected 55.
+    Unexpected manifest entry: automation/verification/selected-tests.cjs
+    Unexpected manifest entry: automation/verification/test-selection.cjs
+    Unexpected manifest entry: automation/verification/verification-reuse.cjs
+  [PASS] Managed resources: All 58 managed files match the manifest or supported verification-policy overrides.
+  [PASS] Managed permissions: All managed modes match; 29 automation scripts are executable.
+  [PASS] Installation backups: 2 required original-file backup(s) match the manifest.
+  [PASS] Managed configuration: OpenCode, AGENTS, and adaptive Android configuration are consistent.
+    OpenCode configuration: opencode.jsonc
+    AGENTS managed block: present and unchanged
+    Automation module scope: all
+    Automation default module: :mobile
+    Unit-test verification: enabled
+    Android lint verification: disabled
+    Commit-message prefix mode: required
+  [PASS] Commit-message prefix: The required user-maintained commit-message prefix is configured.
+    /var/folders/hx/fkt_lz1d0ss_m1181nv0hn1m0000gn/T/orchestrator-installed-doctor-kjKBwP/automation/automation-commit-prefix
+  
+  Result: FAILED
+  
+  
+  false !== true
+  
+      at TestContext.<anonymous> (file:///Users/zhanglong/files/program/cctest/taskdescriptions/orchestrator-affected-tests-20261021/source/tests/installation-doctor.test.mjs:143:12)
+      at Test.runInAsyncScope (node:async_hooks:228:14)
+      at Test.run (node:internal/test_runner/test:1118:25)
+      at Test.start (node:internal/test_runner/test:1015:17)
+      at startSubtestAfterBootstrap (node:internal/test_runner/harness:358:17) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: false,
+    expected: true,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at tests/installation-doctor.test.mjs:153:1
+✖ installed doctor validates dependencies, inventory, files, modes, backups, and configuration (560.881838ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  
+  false !== true
+  
+      at TestContext.<anonymous> (file:///Users/zhanglong/files/program/cctest/taskdescriptions/orchestrator-affected-tests-20261021/source/tests/installation-doctor.test.mjs:158:12)
+      at Test.runInAsyncScope (node:async_hooks:228:14)
+      at Test.run (node:internal/test_runner/test:1118:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:787:18)
+      at Test.postRun (node:internal/test_runner/test:1247:19)
+      at Test.run (node:internal/test_runner/test:1175:12)
+      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:358:3) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: false,
+    expected: true,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at tests/installation-doctor.test.mjs:174:1
+✖ installed doctor warns without failing while the required prefix is unconfigured (460.219151ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  
+  false !== true
+  
+      at TestContext.<anonymous> (file:///Users/zhanglong/files/program/cctest/taskdescriptions/orchestrator-affected-tests-20261021/source/tests/installation-doctor.test.mjs:184:12)
+      at Test.runInAsyncScope (node:async_hooks:228:14)
+      at Test.run (node:internal/test_runner/test:1118:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:787:18)
+      at Test.postRun (node:internal/test_runner/test:1247:19)
+      at Test.run (node:internal/test_runner/test:1175:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:787:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: false,
+    expected: true,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at tests/installation-doctor.test.mjs:195:1
+✖ installed doctor accepts repository verification-policy changes (339.672434ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  
+  false !== true
+  
+      at TestContext.<anonymous> (file:///Users/zhanglong/files/program/cctest/taskdescriptions/orchestrator-affected-tests-20261021/source/tests/installation-doctor.test.mjs:208:12)
+      at Test.runInAsyncScope (node:async_hooks:228:14)
+      at Test.run (node:internal/test_runner/test:1118:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:787:18)
+      at Test.postRun (node:internal/test_runner/test:1247:19)
+      at Test.run (node:internal/test_runner/test:1175:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:787:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: false,
+    expected: true,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at tests/installation-doctor.test.mjs:242:1
+✖ installed doctor reports content and executable-mode drift separately (199.131354ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  
+  'fail' !== 'pass'
+  
+      at TestContext.<anonymous> (file:///Users/zhanglong/files/program/cctest/taskdescriptions/orchestrator-affected-tests-20261021/source/tests/installation-doctor.test.mjs:254:12)
+      at Test.runInAsyncScope (node:async_hooks:228:14)
+      at Test.run (node:internal/test_runner/test:1118:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:787:18)
+      at Test.postRun (node:internal/test_runner/test:1247:19)
+      at Test.run (node:internal/test_runner/test:1175:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:787:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: 'fail',
+    expected: 'pass',
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at tests/installation-doctor.test.mjs:448:1
+✖ installed Planner tools consume real question-hook receipts and reject approval prose (1468.408291ms)
+  AssertionError [ERR_ASSERTION]: The input did not match the regular expression /fresh, matching/. Input:
+  
+  'Error: Queue mutation requires an intact installation: installation-manifest'
+  
+      at async TestContext.<anonymous> (file:///Users/zhanglong/files/program/cctest/taskdescriptions/orchestrator-affected-tests-20261021/source/tests/installation-doctor.test.mjs:485:5)
+      at async Test.run (node:internal/test_runner/test:1125:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:787:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: Error: Queue mutation requires an intact installation: installation-manifest
+        at invariant (file:///Users/zhanglong/files/program/cctest/taskdescriptions/orchestrator-affected-tests-20261021/source/dist/queue/storage.js:7:15)
+        at bounded (file:///Users/zhanglong/files/program/cctest/taskdescriptions/orchestrator-affected-tests-20261021/source/dist/queue/tools.js:20:13)
+        at Object.execute (file:///Users/zhanglong/files/program/cctest/taskdescriptions/orchestrator-affected-tests-20261021/source/dist/queue/tools.js:64:31)
+        at TestContext.<anonymous> (file:///Users/zhanglong/files/program/cctest/taskdescriptions/orchestrator-affected-tests-20261021/source/tests/installation-doctor.test.mjs:485:33)
+        at async Test.run (node:internal/test_runner/test:1125:7)
+        at async Test.processPendingSubtests (node:internal/test_runner/test:787:7),
+    expected: /fresh, matching/,
+    operator: 'rejects',
+    diff: 'simple'
+  }
+
+test at tests/resource-template-migration.test.mjs:85:1
+✖ locks the portable V6 infrastructure resources and file modes (1.998503ms)
+  AssertionError [ERR_ASSERTION]: automation/verification/verification-reuse.cjs
+  + actual - expected
+  
+  + 'bd001fc58a535042a7e1fadb04ea8c8ff7468e50fafae9931b35d8059a79f426'
+  - 'a696b527e6611ec30b06c1d294bdce1b9dd07b683e6e6db64b8a1db9207aa5d2'
+  
+      at TestContext.<anonymous> (file:///Users/zhanglong/files/program/cctest/taskdescriptions/orchestrator-affected-tests-20261021/source/tests/resource-template-migration.test.mjs:88:12)
+      at Test.runInAsyncScope (node:async_hooks:228:14)
+      at Test.run (node:internal/test_runner/test:1118:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:787:18)
+      at Test.postRun (node:internal/test_runner/test:1247:19)
+      at Test.run (node:internal/test_runner/test:1175:12)
+      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:358:3) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: 'bd001fc58a535042a7e1fadb04ea8c8ff7468e50fafae9931b35d8059a79f426',
+    expected: 'a696b527e6611ec30b06c1d294bdce1b9dd07b683e6e6db64b8a1db9207aa5d2',
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at tests/shell-template-migration.test.mjs:158:1
+✖ preserves audited shell bytes and executable modes (2.68055ms)
+  AssertionError [ERR_ASSERTION]: scripts/automation/acceptance-report.sh
+  + actual - expected
+  
+  + '5589cfc57a3a314e4212e34ddce23b94ae718a8dc579ce590e8e905bbb4c84cb'
+  - 'ceac9fbd7653362ecb18f5c8de953a49985c74acbd78b1cadff3465a1841ffba'
+  
+      at TestContext.<anonymous> (file:///Users/zhanglong/files/program/cctest/taskdescriptions/orchestrator-affected-tests-20261021/source/tests/shell-template-migration.test.mjs:164:12)
+      at Test.runInAsyncScope (node:async_hooks:228:14)
+      at Test.run (node:internal/test_runner/test:1118:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:787:18)
+      at Test.postRun (node:internal/test_runner/test:1247:19)
+      at Test.run (node:internal/test_runner/test:1175:12)
+      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:358:3) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: '5589cfc57a3a314e4212e34ddce23b94ae718a8dc579ce590e8e905bbb4c84cb',
+    expected: 'ceac9fbd7653362ecb18f5c8de953a49985c74acbd78b1cadff3465a1841ffba',
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at tests/uninstall.test.mjs:145:1
+✖ plans read-only and safely uninstalls unchanged managed resources (291.382083ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  
+  58 !== 55
+  
+      at TestContext.<anonymous> (file:///Users/zhanglong/files/program/cctest/taskdescriptions/orchestrator-affected-tests-20261021/source/tests/uninstall.test.mjs:168:12)
+      at Test.runInAsyncScope (node:async_hooks:228:14)
+      at Test.run (node:internal/test_runner/test:1118:25)
+      at Test.start (node:internal/test_runner/test:1015:17)
+      at startSubtestAfterBootstrap (node:internal/test_runner/harness:358:17) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: 58,
+    expected: 55,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at tests/uninstall.test.mjs:231:1
+✖ retains content, permission, and deletion drift while uninstalling safe files (534.419301ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  
+  54 !== 51
+  
+      at TestContext.<anonymous> (file:///Users/zhanglong/files/program/cctest/taskdescriptions/orchestrator-affected-tests-20261021/source/tests/uninstall.test.mjs:257:12)
+      at Test.runInAsyncScope (node:async_hooks:228:14)
+      at Test.run (node:internal/test_runner/test:1118:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:787:18)
+      at Test.postRun (node:internal/test_runner/test:1247:19)
+      at Test.run (node:internal/test_runner/test:1175:12)
+      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:358:3) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: 54,
+    expected: 51,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at tests/uninstall.test.mjs:418:1
+✖ CLI uninstall supports structured JSON output (717.471405ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  
+  58 !== 55
+  
+      at TestContext.<anonymous> (file:///Users/zhanglong/files/program/cctest/taskdescriptions/orchestrator-affected-tests-20261021/source/tests/uninstall.test.mjs:433:12)
+      at Test.runInAsyncScope (node:async_hooks:228:14)
+      at Test.run (node:internal/test_runner/test:1118:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:787:18)
+      at Test.postRun (node:internal/test_runner/test:1247:19)
+      at Test.run (node:internal/test_runner/test:1175:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:787:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: 58,
+    expected: 55,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at tests/upgrade.test.mjs:280:1
+✖ plans an older-version upgrade without writing recovery or managed files (380.233502ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  
+  58 !== 55
+  
+      at TestContext.<anonymous> (file:///Users/zhanglong/files/program/cctest/taskdescriptions/orchestrator-affected-tests-20261021/source/tests/upgrade.test.mjs:300:12)
+      at Test.runInAsyncScope (node:async_hooks:228:14)
+      at Test.run (node:internal/test_runner/test:1118:25)
+      at Test.start (node:internal/test_runner/test:1015:17)
+      at startSubtestAfterBootstrap (node:internal/test_runner/harness:358:17) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: 58,
+    expected: 55,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at tests/upgrade.test.mjs:391:1
+✖ upgrades unchanged managed files, preserves original merges, and restores obsolete user files (676.980275ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  
+  58 !== 55
+  
+      at TestContext.<anonymous> (file:///Users/zhanglong/files/program/cctest/taskdescriptions/orchestrator-affected-tests-20261021/source/tests/upgrade.test.mjs:416:12)
+      at Test.runInAsyncScope (node:async_hooks:228:14)
+      at Test.run (node:internal/test_runner/test:1118:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:787:18)
+      at Test.postRun (node:internal/test_runner/test:1247:19)
+      at Test.run (node:internal/test_runner/test:1175:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:787:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: 58,
+    expected: 55,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at tests/upgrade.test.mjs:673:1
+✖ repeated upgrade is byte-idempotent for the current version (251.703139ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  
+  58 !== 55
+  
+      at TestContext.<anonymous> (file:///Users/zhanglong/files/program/cctest/taskdescriptions/orchestrator-affected-tests-20261021/source/tests/upgrade.test.mjs:689:12)
+      at Test.runInAsyncScope (node:async_hooks:228:14)
+      at Test.run (node:internal/test_runner/test:1118:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:787:18)
+      at Test.postRun (node:internal/test_runner/test:1247:19)
+      at Test.run (node:internal/test_runner/test:1175:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:787:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: 58,
+    expected: 55,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }

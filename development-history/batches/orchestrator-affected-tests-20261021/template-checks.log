@@ -1,0 +1,23 @@
+✔ ships the complete non-historical infrastructure template inventory (4.787706ms)
+✔ locks the portable V6 infrastructure resources and file modes (2.743926ms)
+✔ keeps configuration, schemas, and contract example structurally aligned (2.364823ms)
+✔ keeps the render sources project-independent and Scheduler-free (4.394519ms)
+✔ provides one portable and bounded AGENTS managed block (1.49491ms)
+✔ ships exactly the 29 audited V3 automation shell files (3.202678ms)
+✔ preserves audited shell bytes and executable modes (5.050824ms)
+✔ all migrated automation files are valid Bash scripts (155.768724ms)
+✔ preflight accepts absent legacy Scheduler tools but rejects enabled ones (38.233686ms)
+✔ OpenCode config discovery retries only the transient checkpoint failure (1456.409504ms)
+✔ shadow run reserves stdout for one machine-readable JSON document (635.016327ms)
+✔ ships the exact audited OpenCode queue agent, command, and skill inventory (4.062805ms)
+✔ preserves the audited queue template bytes and non-executable modes (1.888451ms)
+✔ keeps migrated templates project-independent and structurally valid (1.961135ms)
+✔ grants every scheduled agent only the two read-only orchestrator tools (3.311272ms)
+ℹ tests 15
+ℹ suites 0
+ℹ pass 15
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 2409.225851

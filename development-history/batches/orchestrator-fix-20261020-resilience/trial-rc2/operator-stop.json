@@ -1,0 +1,6 @@
+{
+  "pid": 52778,
+  "started": "Tue Oct 20 11:47:19 2026",
+  "reason": "Package fixture exposed capacity-scan cleanup race; stop rc2 and validate final rc3 within original candidate budget.",
+  "signal": "SIGTERM"
+}

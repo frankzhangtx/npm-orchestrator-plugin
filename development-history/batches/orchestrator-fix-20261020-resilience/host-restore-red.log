@@ -1,0 +1,61 @@
+✔ exact restoration removes candidate additions, preserves queue audit, and is idempotent (910.013491ms)
+✔ unregistered edits or corrupted backup stop before any restoration write (663.466023ms)
+✔ interrupted restoration resumes only registered absent or partial original files (767.415998ms)
+✔ restoration requires paused idle queue and does not snapshot runtime task evidence (984.74149ms)
+✔ final acceptance detects ignored manifest drift without overwriting it (754.861421ms)
+✖ explicit host cleanup removes only sealed dependency additions after restoration (940.246024ms)
+✖ host cleanup cannot replay changed managed files or non-host additions (839.931808ms)
+ℹ tests 7
+ℹ suites 0
+ℹ pass 5
+ℹ fail 2
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 6012.338311
+
+✖ failing tests:
+
+test at tests/restore-installation.test.mjs:71:1
+✖ explicit host cleanup removes only sealed dependency additions after restoration (940.246024ms)
+  Error: Restored installation drifted
+      at invariant (file:///Users/zhanglong/files/program/cctest/taskdescriptions/orchestrator-fix-20261020-resilience/candidate-source/dist/queue/storage.js:7:15)
+      at file:///Users/zhanglong/files/program/cctest/taskdescriptions/orchestrator-fix-20261020-resilience/candidate-source/dist/installer/restore.js:143:13
+      at file:///Users/zhanglong/files/program/cctest/taskdescriptions/orchestrator-fix-20261020-resilience/candidate-source/dist/installer/restore.js:57:16
+      at withQueueLifecycleLock (file:///Users/zhanglong/files/program/cctest/taskdescriptions/orchestrator-fix-20261020-resilience/candidate-source/dist/queue/lifecycle.js:18:16)
+      at idle (file:///Users/zhanglong/files/program/cctest/taskdescriptions/orchestrator-fix-20261020-resilience/candidate-source/dist/installer/restore.js:55:12)
+      at restoreInstallation (file:///Users/zhanglong/files/program/cctest/taskdescriptions/orchestrator-fix-20261020-resilience/candidate-source/dist/installer/restore.js:122:12)
+      at TestContext.<anonymous> (file:///Users/zhanglong/files/program/cctest/taskdescriptions/orchestrator-fix-20261020-resilience/candidate-source/tests/restore-installation.test.mjs:83:3)
+      at async Test.run (node:internal/test_runner/test:1125:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:787:7)
+
+test at tests/restore-installation.test.mjs:92:1
+✖ host cleanup cannot replay changed managed files or non-host additions (839.931808ms)
+  AssertionError [ERR_ASSERTION]: The input did not match the regular expression /host additions/. Input:
+  
+  'Error: Restored installation drifted'
+  
+      at TestContext.<anonymous> (file:///Users/zhanglong/files/program/cctest/taskdescriptions/orchestrator-fix-20261020-resilience/candidate-source/tests/restore-installation.test.mjs:98:10)
+      at Test.runInAsyncScope (node:async_hooks:228:14)
+      at Test.run (node:internal/test_runner/test:1118:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:787:18)
+      at Test.postRun (node:internal/test_runner/test:1247:19)
+      at Test.run (node:internal/test_runner/test:1175:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:787:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: Error: Restored installation drifted
+        at invariant (file:///Users/zhanglong/files/program/cctest/taskdescriptions/orchestrator-fix-20261020-resilience/candidate-source/dist/queue/storage.js:7:15)
+        at file:///Users/zhanglong/files/program/cctest/taskdescriptions/orchestrator-fix-20261020-resilience/candidate-source/dist/installer/restore.js:143:13
+        at file:///Users/zhanglong/files/program/cctest/taskdescriptions/orchestrator-fix-20261020-resilience/candidate-source/dist/installer/restore.js:57:16
+        at withQueueLifecycleLock (file:///Users/zhanglong/files/program/cctest/taskdescriptions/orchestrator-fix-20261020-resilience/candidate-source/dist/queue/lifecycle.js:18:16)
+        at idle (file:///Users/zhanglong/files/program/cctest/taskdescriptions/orchestrator-fix-20261020-resilience/candidate-source/dist/installer/restore.js:55:12)
+        at restoreInstallation (file:///Users/zhanglong/files/program/cctest/taskdescriptions/orchestrator-fix-20261020-resilience/candidate-source/dist/installer/restore.js:122:12)
+        at file:///Users/zhanglong/files/program/cctest/taskdescriptions/orchestrator-fix-20261020-resilience/candidate-source/tests/restore-installation.test.mjs:98:21
+        at getActual (node:assert:611:5)
+        at strict.throws (node:assert:759:24)
+        at TestContext.<anonymous> (file:///Users/zhanglong/files/program/cctest/taskdescriptions/orchestrator-fix-20261020-resilience/candidate-source/tests/restore-installation.test.mjs:98:10),
+    expected: /host additions/,
+    operator: 'throws',
+    diff: 'simple'
+  }

@@ -1,0 +1,113 @@
+✖ body-only edits include caller regressions and exclude unrelated tests (113.702771ms)
+✖ new policy baseline selects existing related tests; legacy policy stays module-wide (91.470402ms)
+✖ API change falls back with an auditable reason (92.79544ms)
+✖ unknown dynamic dispatch falls back with an auditable reason (92.543308ms)
+✖ missing source falls back with an auditable reason (92.605933ms)
+✖ broad approved envelope falls back with an auditable reason (91.306412ms)
+✖ new or modified test classes always join the selected set (93.514614ms)
+ℹ tests 7
+ℹ suites 0
+ℹ pass 0
+ℹ fail 7
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 776.945864
+
+✖ failing tests:
+
+test at tests/affected-test-selection.test.mjs:31:1
+✖ body-only edits include caller regressions and exclude unrelated tests (113.702771ms)
+  Error: Invalid Android capability model: invalid verification scope policy
+      at fail (/Users/zhanglong/files/program/cctest/taskdescriptions/orchestrator-affected-tests-20261021/source/templates/automation/verification/project.cjs:6:35)
+      at validateVerificationScope (/Users/zhanglong/files/program/cctest/taskdescriptions/orchestrator-affected-tests-20261021/source/templates/automation/verification/project.cjs:172:9)
+      at selectVerification (/Users/zhanglong/files/program/cctest/taskdescriptions/orchestrator-affected-tests-20261021/source/templates/automation/verification/project.cjs:190:5)
+      at TestContext.<anonymous> (file:///Users/zhanglong/files/program/cctest/taskdescriptions/orchestrator-affected-tests-20261021/source/tests/affected-test-selection.test.mjs:34:10)
+      at Test.runInAsyncScope (node:async_hooks:228:14)
+      at Test.run (node:internal/test_runner/test:1118:25)
+      at Test.start (node:internal/test_runner/test:1015:17)
+      at startSubtestAfterBootstrap (node:internal/test_runner/harness:358:17)
+
+test at tests/affected-test-selection.test.mjs:40:1
+✖ new policy baseline selects existing related tests; legacy policy stays module-wide (91.470402ms)
+  Error: Invalid Android capability model: invalid verification scope policy
+      at fail (/Users/zhanglong/files/program/cctest/taskdescriptions/orchestrator-affected-tests-20261021/source/templates/automation/verification/project.cjs:6:35)
+      at validateVerificationScope (/Users/zhanglong/files/program/cctest/taskdescriptions/orchestrator-affected-tests-20261021/source/templates/automation/verification/project.cjs:172:9)
+      at selectVerification (/Users/zhanglong/files/program/cctest/taskdescriptions/orchestrator-affected-tests-20261021/source/templates/automation/verification/project.cjs:190:5)
+      at TestContext.<anonymous> (file:///Users/zhanglong/files/program/cctest/taskdescriptions/orchestrator-affected-tests-20261021/source/tests/affected-test-selection.test.mjs:42:15)
+      at Test.runInAsyncScope (node:async_hooks:228:14)
+      at Test.run (node:internal/test_runner/test:1118:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:787:18)
+      at Test.postRun (node:internal/test_runner/test:1247:19)
+      at Test.run (node:internal/test_runner/test:1175:12)
+      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:358:3)
+
+test at tests/affected-test-selection.test.mjs:52:3
+✖ API change falls back with an auditable reason (92.79544ms)
+  Error: Invalid Android capability model: invalid verification scope policy
+      at fail (/Users/zhanglong/files/program/cctest/taskdescriptions/orchestrator-affected-tests-20261021/source/templates/automation/verification/project.cjs:6:35)
+      at validateVerificationScope (/Users/zhanglong/files/program/cctest/taskdescriptions/orchestrator-affected-tests-20261021/source/templates/automation/verification/project.cjs:172:9)
+      at selectVerification (/Users/zhanglong/files/program/cctest/taskdescriptions/orchestrator-affected-tests-20261021/source/templates/automation/verification/project.cjs:190:5)
+      at TestContext.<anonymous> (file:///Users/zhanglong/files/program/cctest/taskdescriptions/orchestrator-affected-tests-20261021/source/tests/affected-test-selection.test.mjs:52:97)
+      at Test.runInAsyncScope (node:async_hooks:228:14)
+      at Test.run (node:internal/test_runner/test:1118:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:787:18)
+      at Test.postRun (node:internal/test_runner/test:1247:19)
+      at Test.run (node:internal/test_runner/test:1175:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:787:7)
+
+test at tests/affected-test-selection.test.mjs:52:3
+✖ unknown dynamic dispatch falls back with an auditable reason (92.543308ms)
+  Error: Invalid Android capability model: invalid verification scope policy
+      at fail (/Users/zhanglong/files/program/cctest/taskdescriptions/orchestrator-affected-tests-20261021/source/templates/automation/verification/project.cjs:6:35)
+      at validateVerificationScope (/Users/zhanglong/files/program/cctest/taskdescriptions/orchestrator-affected-tests-20261021/source/templates/automation/verification/project.cjs:172:9)
+      at selectVerification (/Users/zhanglong/files/program/cctest/taskdescriptions/orchestrator-affected-tests-20261021/source/templates/automation/verification/project.cjs:190:5)
+      at TestContext.<anonymous> (file:///Users/zhanglong/files/program/cctest/taskdescriptions/orchestrator-affected-tests-20261021/source/tests/affected-test-selection.test.mjs:52:97)
+      at Test.runInAsyncScope (node:async_hooks:228:14)
+      at Test.run (node:internal/test_runner/test:1118:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:787:18)
+      at Test.postRun (node:internal/test_runner/test:1247:19)
+      at Test.run (node:internal/test_runner/test:1175:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:787:7)
+
+test at tests/affected-test-selection.test.mjs:52:3
+✖ missing source falls back with an auditable reason (92.605933ms)
+  Error: Invalid Android capability model: invalid verification scope policy
+      at fail (/Users/zhanglong/files/program/cctest/taskdescriptions/orchestrator-affected-tests-20261021/source/templates/automation/verification/project.cjs:6:35)
+      at validateVerificationScope (/Users/zhanglong/files/program/cctest/taskdescriptions/orchestrator-affected-tests-20261021/source/templates/automation/verification/project.cjs:172:9)
+      at selectVerification (/Users/zhanglong/files/program/cctest/taskdescriptions/orchestrator-affected-tests-20261021/source/templates/automation/verification/project.cjs:190:5)
+      at TestContext.<anonymous> (file:///Users/zhanglong/files/program/cctest/taskdescriptions/orchestrator-affected-tests-20261021/source/tests/affected-test-selection.test.mjs:52:97)
+      at Test.runInAsyncScope (node:async_hooks:228:14)
+      at Test.run (node:internal/test_runner/test:1118:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:787:18)
+      at Test.postRun (node:internal/test_runner/test:1247:19)
+      at Test.run (node:internal/test_runner/test:1175:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:787:7)
+
+test at tests/affected-test-selection.test.mjs:52:3
+✖ broad approved envelope falls back with an auditable reason (91.306412ms)
+  Error: Invalid Android capability model: invalid verification scope policy
+      at fail (/Users/zhanglong/files/program/cctest/taskdescriptions/orchestrator-affected-tests-20261021/source/templates/automation/verification/project.cjs:6:35)
+      at validateVerificationScope (/Users/zhanglong/files/program/cctest/taskdescriptions/orchestrator-affected-tests-20261021/source/templates/automation/verification/project.cjs:172:9)
+      at selectVerification (/Users/zhanglong/files/program/cctest/taskdescriptions/orchestrator-affected-tests-20261021/source/templates/automation/verification/project.cjs:190:5)
+      at TestContext.<anonymous> (file:///Users/zhanglong/files/program/cctest/taskdescriptions/orchestrator-affected-tests-20261021/source/tests/affected-test-selection.test.mjs:52:97)
+      at Test.runInAsyncScope (node:async_hooks:228:14)
+      at Test.run (node:internal/test_runner/test:1118:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:787:18)
+      at Test.postRun (node:internal/test_runner/test:1247:19)
+      at Test.run (node:internal/test_runner/test:1175:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:787:7)
+
+test at tests/affected-test-selection.test.mjs:53:1
+✖ new or modified test classes always join the selected set (93.514614ms)
+  Error: Invalid Android capability model: invalid verification scope policy
+      at fail (/Users/zhanglong/files/program/cctest/taskdescriptions/orchestrator-affected-tests-20261021/source/templates/automation/verification/project.cjs:6:35)
+      at validateVerificationScope (/Users/zhanglong/files/program/cctest/taskdescriptions/orchestrator-affected-tests-20261021/source/templates/automation/verification/project.cjs:172:9)
+      at selectVerification (/Users/zhanglong/files/program/cctest/taskdescriptions/orchestrator-affected-tests-20261021/source/templates/automation/verification/project.cjs:190:5)
+      at TestContext.<anonymous> (file:///Users/zhanglong/files/program/cctest/taskdescriptions/orchestrator-affected-tests-20261021/source/tests/affected-test-selection.test.mjs:55:10)
+      at Test.runInAsyncScope (node:async_hooks:228:14)
+      at Test.run (node:internal/test_runner/test:1118:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:787:18)
+      at Test.postRun (node:internal/test_runner/test:1247:19)
+      at Test.run (node:internal/test_runner/test:1175:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:787:7)

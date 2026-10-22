@@ -1,0 +1,2 @@
+text(await tools.write_stdin({session_id:86699,chars:"","yield_time_ms":1000,"max_output_tokens":700}));
+text(await tools.exec_command({cmd:"tail -12 /private/tmp/orchestrator-resilience-green.log; rg -n 'timeout|origin|AssertionError' tests/inventory-evidence.test.mjs | tail -15; cat src/queue/delegation.ts | head -40; rg -n 'modelContinuation|continuity' tests/queue-fixture.mjs | head -20; git diff --check","workdir":"/private/tmp/orchestrator-resilience-20261019","max_output_tokens":1200}));

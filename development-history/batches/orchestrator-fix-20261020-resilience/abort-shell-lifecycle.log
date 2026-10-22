@@ -1,0 +1,58 @@
+ok 1 - required missing or unconfigured commit prefix blocks task startup but not shadow verification
+ok 2 - invalid and symbolic-link commit-prefix files fail closed
+ok 3 - exact tracked and untracked entries are ignored without hiding rename sources
+ok 4 - a non-allowlisted worktree change still blocks orchestration startup
+ok 5 - invalid, duplicate, symbolic-link, patterned, and protected allowlist input fails closed
+ok 6 - repository configuration defaults unit tests on and lint off and honors both switches
+ok 7 - legacy queue rejects missing human approval
+ok 8 - explicit queue creates one auditable PENDING state
+ok 9 - selector returns exactly one eligible task
+ok 10 - selector refuses to choose among multiple eligible tasks
+ok 11 - stopped-process locks are recovered without bypassing state rules
+ok 12 - illegal state transition is rejected
+ok 13 - claim verifies workspace identity and records a green baseline
+ok 14 - focused failing test records genuine RED evidence
+ok 15 - scope gate rejects protected path changes
+ok 16 - scope gate rejects obvious test weakening
+ok 17 - G1-G6 seal all tracked and untracked product changes
+ok 18 - orchestrator creates an explicit sealed reviewer handoff
+ok 19 - a budget-exhausted reviewer resumes from the sealed diff without rerunning Coder
+ok 20 - independent approval stops at AWAITING_HUMAN
+ok 21 - append-only transition audit contains the complete gated lifecycle
+ok 22 - first verification failure allows one systematic fix attempt
+ok 23 - second verification failure deterministically stops in TEST_FAILED
+ok 24 - preflight blocks dirty task roots without retrying implicitly
+ok 25 - reviewer and baseline recovery reject unrelated BLOCKED states
+ok 26 - reviewer findings are recorded as a distinct state
+ok 27 - one configured reviewer repair gets a fresh quality-gate cycle
+ok 28 - reviewer repair limit prevents an unbounded agent loop
+ok 29 - proposal gate requires the configured approval option token
+ok 30 - approved proposal seals plan, contract, branch, HEAD, and hashes
+ok 31 - contract gate rejects execution without the exact approval option token
+Switched to a new branch 'automation/task-test-004'
+ok 32 - persistent repository lease rejects a concurrent automation task
+ok 33 - contract approval switches to a leased task branch while deferring the sealed plan and contract to the product commit
+ok 34 - automated evidence becomes one focused, SHA-verified human acceptance card
+ok 35 - acceptance display rejects a changed diff and never advances state
+ok 36 - integrator requires final acceptance bound to the sealed diff
+Switched to branch 'master'
+ok 37 - in-place integration preserves allowlisted local state without evidence or commit leakage
+ok 38 - one verified commit reaches the original branch and deletes the integrated local task branch without push
+Switched to a new branch 'automation/task-test-008'
+Switched to branch 'master'
+ok 39 - abort refuses unrelated files and archives allowed uncommitted changes in a recovery commit
+Switched to a new branch 'automation/task-test-009'
+Switched to branch 'master'
+ok 40 - aborting before product edits archives planning artifacts without creating a planning-only commit
+Switched to a new branch 'automation/task-test-010'
+ok 41 - one explicitly approved baseline interruption resumes through PENDING without product changes
+ok 42 - baseline recovery stops after one auditable restart
+Switched to branch 'master'
+Preparing worktree (new branch 'automation/task-test-007')
+ok 43 - optional isolation removes its task worktree and integrated local task branch without a second candidate
+Switched to a new branch 'automation/task-test-006'
+ok 44 - a clean descendant commit is recognized as original-branch drift
+ok 45 - original-branch drift blocks integration while preserving the original and task branches
+Switched to branch 'master'
+ok 46 - explicit abort preserves recovery evidence and restores the original branch without changing its ref
+1..46

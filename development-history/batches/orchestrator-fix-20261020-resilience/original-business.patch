@@ -1,0 +1,45 @@
+diff --git a/WordPress/src/test/java/org/wordpress/android/ui/posts/editor/ImageEditorFileUtilsTest.kt b/WordPress/src/test/java/org/wordpress/android/ui/posts/editor/ImageEditorFileUtilsTest.kt
+index 408a3e0..65a58cf 100644
+--- a/WordPress/src/test/java/org/wordpress/android/ui/posts/editor/ImageEditorFileUtilsTest.kt
++++ b/WordPress/src/test/java/org/wordpress/android/ui/posts/editor/ImageEditorFileUtilsTest.kt
+@@ -65,6 +65,40 @@ class ImageEditorFileUtilsTest : BaseUnitTest() {
+         assertThat(outputFile.exists()).isFalse()
+     }
+ 
++    @Test
++    fun `if directory contains subdirectories, they are preserved without recursive cleanup`() {
++        // Arrange
++        val directory: File = temporaryFolder.newFolder(TEST_OUTPUT_FOLDER)
++        val directoryPath: String = directory.path
++        val oldTimestamp = System.currentTimeMillis() - DURATION
++
++        val emptySubdirectory = File(directory, "emptySubdirectory")
++        emptySubdirectory.mkdirs()
++
++        val populatedSubdirectory = File(directory, "populatedSubdirectory")
++        populatedSubdirectory.mkdirs()
++        val nestedFile = File(populatedSubdirectory, "nestedFile")
++        nestedFile.createNewFile()
++        val nestedSubdirectory = File(populatedSubdirectory, "nestedSubdirectory")
++        nestedSubdirectory.mkdirs()
++
++        nestedFile.setLastModified(oldTimestamp)
++        nestedSubdirectory.setLastModified(oldTimestamp)
++        populatedSubdirectory.setLastModified(oldTimestamp)
++        emptySubdirectory.setLastModified(oldTimestamp)
++
++        // Act
++        test {
++            fileUtils.deleteFilesOlderThanDurationFromDirectory(directoryPath, DURATION)
++        }
++
++        // Assert
++        assertThat(emptySubdirectory.exists()).isTrue()
++        assertThat(populatedSubdirectory.exists()).isTrue()
++        assertThat(nestedFile.exists()).isTrue()
++        assertThat(nestedSubdirectory.exists()).isTrue()
++    }
++
+     @After
+     fun tearDown() {
+         temporaryFolder.delete()

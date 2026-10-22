@@ -1,0 +1,27 @@
+✔ keeps the package root plugin-only for the OpenCode loader (7.950579ms)
+✔ exports a loadable OpenCode plugin using only common hooks (16.102798ms)
+✔ raises managed long commands to the default timeout without shortening callers (5.881358ms)
+✔ loads a configurable managed long-command timeout from the worktree (5.496681ms)
+✔ rejects hooks outside the certified common API (0.981216ms)
+✔ CLI exposes the planned lifecycle commands (219.474707ms)
+✔ CLI exposes doctor-specific help (209.647236ms)
+✔ CLI exposes init options and rejects an incomplete module selection (895.317902ms)
+✔ CLI exposes upgrade options and rejects an incomplete module selection (935.272799ms)
+✔ CLI exposes uninstall options and rejects unknown flags (483.714018ms)
+✔ RED capture receives the configured timeout even when the model requests twenty minutes (6.179182ms)
+✔ V4 queue and shell share explicit inventory policy validation; legacy contracts stay V3 (3109.636158ms)
+✔ V4 rejects aliases, duplicate behavior identities across overlapping filters and undeclared policy fields (2.314853ms)
+✔ baseline auto-classifies existing regression tests and RED/GREEN use the same complete manifest (6.381711ms)
+✔ existing skips and per-task empty baselines require explicit approval; no new skips are tolerated (1.06959ms)
+✔ collector rejects cached, interrupted, malformed, duplicate and count-mismatched executions (25.719201ms)
+✔ parameter instances are separate identities and same test names in different tasks do not collide (0.436929ms)
+✔ snapshot includes unchanged custom test resources and detects their edits (423.870405ms)
+✔ RED diagnostics identify both exception-type and assertion-origin mismatches before spending another preparation attempt (0.886805ms)
+ℹ tests 19
+ℹ suites 0
+ℹ pass 19
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 4038.043975

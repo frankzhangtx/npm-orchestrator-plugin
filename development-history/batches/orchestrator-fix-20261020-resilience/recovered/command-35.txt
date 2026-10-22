@@ -1,0 +1,1 @@
+text(await tools.exec_command({cmd:"npm view @frankzhang2026/opencode-android-orchestrator versions --json","sandbox_permissions":"require_escalated","justification":"是否允许只读核对 npm 已有版本，避免本地修复版本号与已发布版本冲突？不会发布。","yield_time_ms":1000,"max_output_tokens":1000}));

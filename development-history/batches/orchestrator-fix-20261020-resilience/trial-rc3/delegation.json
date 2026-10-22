@@ -1,0 +1,90 @@
+{
+  "version": 1,
+  "id": "resilience-20261020-rc3-TASK-RESILIENCE-PHONE-RC3-20261020",
+  "runId": "resilience-20261020-rc3",
+  "sourceRoot": "/Users/zhanglong/files/program/cctest/taskdescriptions/orchestrator-fix-20261020-resilience/wordpress",
+  "originalHead": "2c5e68b4cb82001a799339fa319cc33bc4b55541",
+  "planningHead": "6726cfea5c9f726bccbf06a1e76f34a5b011df96",
+  "targetBranch": "trial/resilience-20261020-rc3",
+  "upgradePaths": [
+    ".opencode/agents/scheduled-planner.md",
+    ".opencode/skills/scheduled-quality-coder/SKILL.md",
+    "automation/config.json",
+    "automation/verification/inventory.cjs",
+    "opencode.json"
+  ],
+  "requestSha256": "6030131c4a8e3b09685596052754162db8d536c5291bb3af6afef9bc1468da4b",
+  "candidateSha256": "33e223bb02daf956f35062173543a1e37d99155a4c3fe990852a0ee28c3eae27",
+  "configSha256": "662f91ad1d3db519336c09156dbc25392a1ccc7435f83d42fca8ed2d05f8c3a2",
+  "taskId": "TASK-RESILIENCE-PHONE-RC3-20261020",
+  "allowedPaths": [
+    "WordPress/src/main/java/org/wordpress/android/util/DomainPhoneNumberUtils.kt",
+    "WordPress/src/test/java/org/wordpress/android/util/DomainPhoneNumberUtilsTest.kt"
+  ],
+  "targetTests": [
+    {
+      "gradleTask": ":WordPress:testWordpressDebugUnitTest",
+      "filter": "org.wordpress.android.util.DomainPhoneNumberUtilsTest"
+    }
+  ],
+  "workspaceStrategy": "isolatedWorktree",
+  "commitPolicy": "autoCommit",
+  "expiresAt": "2026-10-20T09:31:18.411601+00:00",
+  "cleanupExpiresAt": "2026-10-20T09:46:18.411601+00:00",
+  "policies": {
+    "recovery": {
+      "version": 1,
+      "scope": "baseline",
+      "maxEnvironmentRetries": 2,
+      "maxManualRetries": 1,
+      "maxSameFailureRetries": 2,
+      "maxElapsedMs": 1800000,
+      "initialDelayMs": 2000,
+      "maxDelayMs": 30000
+    },
+    "execution": {
+      "version": 1,
+      "maxRunMs": 7200000,
+      "maxStageMs": 3600000,
+      "terminationGraceMs": 10000
+    },
+    "stageRecovery": {
+      "version": 1,
+      "maxEnvironmentRetries": 2,
+      "maxSameFailureRetries": 2,
+      "maxElapsedMs": 1800000,
+      "initialDelayMs": 2000,
+      "maxDelayMs": 30000
+    },
+    "maxFixLoops": 1,
+    "deviceTestsRequired": false,
+    "continuity": {
+      "version": 1,
+      "isolatedAutoIntegration": true,
+      "planningRefresh": "reject",
+      "planningInputs": [
+        "WordPress/src/main/java/org/wordpress/android/util/DomainPhoneNumberUtils.kt",
+        "WordPress/src/test/java/org/wordpress/android/util/DomainPhoneNumberUtilsTest.kt"
+      ]
+    },
+    "modelContinuation": {
+      "version": 1,
+      "maxContinuations": 1,
+      "maxCalls": 4,
+      "maxElapsedMs": 2700000,
+      "stepLimit": 96
+    },
+    "verificationScope": {
+      "version": 1,
+      "mode": "affected",
+      "variants": "debug",
+      "maxManualRetries": 1
+    },
+    "maxPreparationFixes": 1,
+    "inventory": {
+      "mode": "focusedBaseline",
+      "existingSkips": "reject",
+      "emptyBaseline": "reject"
+    }
+  }
+}

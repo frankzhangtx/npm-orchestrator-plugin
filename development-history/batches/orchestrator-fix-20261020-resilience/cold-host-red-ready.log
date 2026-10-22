@@ -1,0 +1,102 @@
+Fixture evidence: /Users/zhanglong/files/program/cctest/taskdescriptions/orchestrator-fix-20261020-resilience/driver-fixtures/orchestrator-queue-test-m9RDpv
+node:internal/modules/run_main:107
+    triggerUncaughtException(
+    ^
+
+AssertionError [ERR_ASSERTION]: {
+  "version": 1,
+  "specificationSha256": "fd1f08182689a1a73f3519cda7bcb0d0b9aeffcef77f598651c6caebd05813bc",
+  "candidateSha256": "33e223bb02daf956f35062173543a1e37d99155a4c3fe990852a0ee28c3eae27",
+  "startedAt": 1792487237948,
+  "executionDeadline": 1792487475706,
+  "cleanupDeadline": 1792487595706,
+  "phase": "RESTORATION_BLOCKED",
+  "intent": "VERIFIED",
+  "error": "Error: Restored installation drifted from the original snapshot",
+  "upgradeHead": "946ffc4d117b61139712334a9b169fef75753d4c",
+  "taskKey": "TASK-TRIAL@1",
+  "result": "COMPLETED",
+  "events": [
+    {
+      "phase": "INSTALLED",
+      "at": 1792487244176,
+      "event": "START"
+    },
+    {
+      "phase": "INSTALLED",
+      "at": 1792487248800,
+      "event": "DONE"
+    },
+    {
+      "phase": "UPGRADE_COMMITTED",
+      "at": 1792487248843,
+      "event": "START"
+    },
+    {
+      "phase": "UPGRADE_COMMITTED",
+      "at": 1792487251676,
+      "event": "DONE"
+    },
+    {
+      "phase": "AUTHORIZED",
+      "at": 1792487251718,
+      "event": "START"
+    },
+    {
+      "phase": "AUTHORIZED",
+      "at": 1792487253070,
+      "event": "DONE"
+    },
+    {
+      "phase": "PLANNED",
+      "at": 1792487253117,
+      "event": "START"
+    },
+    {
+      "phase": "PLANNED",
+      "at": 1792487269328,
+      "event": "DONE"
+    },
+    {
+      "phase": "TASK_FINISHED",
+      "at": 1792487269370,
+      "event": "START"
+    },
+    {
+      "phase": "TASK_FINISHED",
+      "at": 1792487329085,
+      "event": "DONE"
+    },
+    {
+      "phase": "RESTORED",
+      "at": 1792487329176,
+      "event": "START"
+    },
+    {
+      "phase": "RESTORED",
+      "at": 1792487330692,
+      "event": "DONE"
+    },
+    {
+      "phase": "VERIFIED",
+      "at": 1792487330735,
+      "event": "START"
+    }
+  ]
+}
+Error: Restored installation drifted from the original snapshot
+
+
+1 !== 0
+
+    at file:///Users/zhanglong/files/program/cctest/taskdescriptions/orchestrator-fix-20261020-resilience/source/tests/trial-driver.integration.mjs:135:8
+    at process.processTicksAndRejections (node:internal/process/task_queues:104:5) {
+  generatedMessage: false,
+  code: 'ERR_ASSERTION',
+  actual: 1,
+  expected: 0,
+  operator: 'strictEqual',
+  diff: 'simple'
+}
+
+Node.js v24.14.0

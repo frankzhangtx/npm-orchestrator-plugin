@@ -1,0 +1,76 @@
+✔ keeps the package root plugin-only for the OpenCode loader (7.684617ms)
+✔ exports a loadable OpenCode plugin using only common hooks (13.777193ms)
+✔ raises managed long commands to the default timeout without shortening callers (4.051307ms)
+✔ loads a configurable managed long-command timeout from the worktree (4.079908ms)
+✔ rejects hooks outside the certified common API (1.359405ms)
+✔ CLI exposes the planned lifecycle commands (160.950897ms)
+✔ CLI exposes doctor-specific help (171.977278ms)
+✔ CLI exposes init options and rejects an incomplete module selection (656.948486ms)
+✔ CLI exposes upgrade options and rejects an incomplete module selection (651.502527ms)
+✔ CLI exposes uninstall options and rejects unknown flags (308.978373ms)
+✖ RED capture receives the configured timeout even when the model requests twenty minutes (4.948248ms)
+✔ V4 queue and shell share explicit inventory policy validation; legacy contracts stay V3 (2229.96729ms)
+✔ V4 rejects aliases, duplicate behavior identities across overlapping filters and undeclared policy fields (1.487405ms)
+✔ baseline auto-classifies existing regression tests and RED/GREEN use the same complete manifest (3.47022ms)
+✔ existing skips and per-task empty baselines require explicit approval; no new skips are tolerated (0.570609ms)
+✔ collector rejects cached, interrupted, malformed, duplicate and count-mismatched executions (14.97756ms)
+✔ parameter instances are separate identities and same test names in different tasks do not collide (0.463229ms)
+✔ snapshot includes unchanged custom test resources and detects their edits (303.450647ms)
+✖ RED diagnostics identify both exception-type and assertion-origin mismatches before spending another preparation attempt (2.373832ms)
+ℹ tests 19
+ℹ suites 0
+ℹ pass 17
+ℹ fail 2
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 2735.511098
+
+✖ failing tests:
+
+test at tests/scaffold.test.mjs:290:1
+✖ RED capture receives the configured timeout even when the model requests twenty minutes (4.948248ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  + actual - expected
+  
+  + 1200000
+  - 1800000
+  
+      at TestContext.<anonymous> (file:///Users/zhanglong/files/program/cctest/taskdescriptions/orchestrator-fix-20261020-resilience/source/tests/scaffold.test.mjs:294:10)
+      at async Test.run (node:internal/test_runner/test:1125:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:787:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: 1200000,
+    expected: 1800000,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at tests/test-inventory.test.mjs:137:1
+✖ RED diagnostics identify both exception-type and assertion-origin mismatches before spending another preparation attempt (2.373832ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly deep-equal:
+  + actual - expected
+  
+  + undefined
+  - {
+  -   message: true,
+  -   origin: false,
+  -   singleFailure: true,
+  -   type: false
+  - }
+  
+      at TestContext.<anonymous> (file:///Users/zhanglong/files/program/cctest/taskdescriptions/orchestrator-fix-20261020-resilience/source/tests/test-inventory.test.mjs:148:10)
+      at Test.runInAsyncScope (node:async_hooks:228:14)
+      at Test.run (node:internal/test_runner/test:1118:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:787:18)
+      at Test.postRun (node:internal/test_runner/test:1247:19)
+      at Test.run (node:internal/test_runner/test:1175:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:787:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: undefined,
+    expected: { singleFailure: true, type: false, message: true, origin: false },
+    operator: 'deepStrictEqual',
+    diff: 'simple'
+  }

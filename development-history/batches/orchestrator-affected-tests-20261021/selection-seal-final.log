@@ -1,0 +1,40 @@
+✔ body-only edits include caller regressions and exclude unrelated tests (292.286338ms)
+✔ new policy baseline selects existing related tests; legacy policy stays module-wide (173.333016ms)
+✔ API change falls back with an auditable reason (303.224727ms)
+✔ unknown dynamic dispatch falls back with an auditable reason (207.508151ms)
+✔ missing source falls back with an auditable reason (225.687963ms)
+✔ broad approved envelope falls back with an auditable reason (165.315317ms)
+✔ new or modified test classes always join the selected set (212.801526ms)
+✔ Kotlin descriptive test names and unrelated unsupported sources do not discard a known mapping (243.582948ms)
+✔ reachable repeated-test annotation cannot be silently omitted from selected tests (263.367481ms)
+✔ reachable custom test annotation cannot be silently omitted from selected tests (232.436151ms)
+✔ reachable Java inherited tests cannot be silently omitted from selected tests (342.277632ms)
+✔ reachable Kotlin inherited tests cannot be silently omitted from selected tests (369.684601ms)
+✔ reachable abstract test class cannot be silently omitted from selected tests (225.474402ms)
+✔ a new approved method captures its entire existing class at baseline (435.012166ms)
+✔ an approved new class remains absent from baseline selection (230.94186ms)
+✔ wildcard baseline example.PhoneTest.* retains module verification (271.037915ms)
+✔ wildcard baseline example.*Test retains module verification (277.92628ms)
+✔ reuse requires identical inputs, environment, baseline and evidence (1.336259ms)
+✔ every selected filter must have real passing cases; missing and skipped tests fail (1.124423ms)
+✔ method-only classification does not hide changed literals outside method bodies (1.124625ms)
+✔ ships the complete non-historical infrastructure template inventory (11.417928ms)
+✔ locks the portable V6 infrastructure resources and file modes (8.238594ms)
+✔ keeps configuration, schemas, and contract example structurally aligned (3.972934ms)
+✔ keeps the render sources project-independent and Scheduler-free (5.250714ms)
+✔ provides one portable and bounded AGENTS managed block (2.358355ms)
+✔ selected baseline identifies every old method rather than merely its class (2.310089ms)
+✔ selected baseline is written once and cannot be replaced by a later capture (576.74101ms)
+✔ selected results combine focused evidence with new execution and retain baseline targets (565.624589ms)
+✔ a reused focused result cannot hide a missing baseline method (451.703962ms)
+✔ module fallback reruns sealed baseline targets and rejects deleted old cases (521.089594ms)
+✔ fallback without a selected baseline reports not required without executing tests (827.925017ms)
+✔ changed sealed baseline bytes cannot be used for selected or fallback verification (737.381111ms)
+ℹ tests 32
+ℹ suites 0
+ℹ pass 32
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 4626.056078

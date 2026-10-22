@@ -1,0 +1,19 @@
+✔ body-only edits include caller regressions and exclude unrelated tests (447.343581ms)
+✔ new policy baseline selects existing related tests; legacy policy stays module-wide (398.7843ms)
+✔ API change falls back with an auditable reason (555.808764ms)
+✔ unknown dynamic dispatch falls back with an auditable reason (324.808878ms)
+✔ missing source falls back with an auditable reason (507.785515ms)
+✔ broad approved envelope falls back with an auditable reason (597.339493ms)
+✔ new or modified test classes always join the selected set (293.013036ms)
+✔ Kotlin descriptive test names and unrelated unsupported sources do not discard a known mapping (493.174245ms)
+✔ reuse requires identical inputs, environment, baseline and evidence (6.503555ms)
+✔ every selected filter must have real passing cases; missing and skipped tests fail (2.394412ms)
+✔ method-only classification does not hide changed literals outside method bodies (1.295727ms)
+ℹ tests 11
+ℹ suites 0
+ℹ pass 11
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 3858.879374

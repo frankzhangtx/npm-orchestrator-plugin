@@ -1,0 +1,3 @@
+text(await tools.write_stdin({session_id:4798,chars:"","yield_time_ms":1000,"max_output_tokens":800}));
+text(await tools.write_stdin({session_id:91403,chars:"","yield_time_ms":1000,"max_output_tokens":800}));
+text(await tools.exec_command({cmd:"tail -6 /private/tmp/orchestrator-resilience-full-tests-unrestricted.log; python3 - <<'PY'\nimport json\nfrom pathlib import Path\np=Path('/private/tmp/wordpress-resilience-clone-doctor.json')\nd=json.loads(p.read_text());print('clone doctor',d.get('ok'));print([x for x in d.get('checks',[]) if x.get('status')=='fail'])\nPY","max_output_tokens":1100}));

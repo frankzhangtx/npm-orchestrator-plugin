@@ -1,0 +1,22 @@
+✔ body-only edits include caller regressions and exclude unrelated tests (162.722883ms)
+✔ new policy baseline selects existing related tests; legacy policy stays module-wide (113.35268ms)
+✔ API change falls back with an auditable reason (116.694071ms)
+✔ unknown dynamic dispatch falls back with an auditable reason (102.179464ms)
+✔ missing source falls back with an auditable reason (104.812763ms)
+✔ broad approved envelope falls back with an auditable reason (91.94848ms)
+✔ new or modified test classes always join the selected set (102.508089ms)
+✔ production edits select only affected Debug flavors and remove aggregate builds (13.670768ms)
+✔ flavor-specific edits narrow variants; library changes include transitive consumers (8.508062ms)
+✔ test-only changes run relevant unit suites without unrelated application packaging (2.54545ms)
+✔ Release sources, unknown paths and missing task capabilities cannot silently pass Debug verification (9.741202ms)
+✔ baseline uses the approved path envelope and actual selection retains explicit acceptance tasks (4.716411ms)
+✔ dependency TLS interruptions are retryable while certificate, authorization, missing artifacts and code failures are not (2.245841ms)
+✔ dependency impact widens a directly edited consumer without accepting Release-only edits as Debug (4.288073ms)
+ℹ tests 14
+ℹ suites 0
+ℹ pass 14
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 916.314969

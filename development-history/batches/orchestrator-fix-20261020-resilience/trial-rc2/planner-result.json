@@ -1,0 +1,10 @@
+{
+  "reason": "CANCELLED",
+  "steps": 32,
+  "exitCode": null,
+  "signal": "SIGTERM",
+  "processesExited": true,
+  "sessionID": "ses_ea893134effew5wktcHMdIkl4D",
+  "startedAt": 1792468111708,
+  "endedAt": 1792468590437
+}

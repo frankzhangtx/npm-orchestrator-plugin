@@ -1,0 +1,21 @@
+import assert from 'node:assert/strict';
+import {readFileSync,writeFileSync} from 'node:fs';
+import {dirname,join} from 'node:path';
+import {fileURLToPath} from 'node:url';
+import {TaskQueue} from './candidate-source/dist/queue/queue.js';
+import {serviceStatus} from './candidate-source/dist/queue/service.js';
+import {pendingRestoration} from './candidate-source/dist/trial/restoration.js';
+import {verifyInstallationRestorePoint} from './candidate-source/dist/installer/restore.js';
+const batch=dirname(fileURLToPath(import.meta.url)), queue=new TaskQueue(join(batch,'wordpress'));
+assert.equal(serviceStatus(queue).running,false);
+assert.equal(pendingRestoration(queue.storage.runtime),null);
+verifyInstallationRestorePoint(join(batch,'trial-rc2/installation-restore'));
+assert.equal(JSON.parse(readFileSync(join(batch,'clone-rc2-final.json'))).restoration.ok,true);
+queue.storage.transaction(d=>{
+  assert.equal(d.paused,true);assert.equal(d.active,null);assert.equal(d.fault,null);
+  assert.equal(d.items.length,0);
+  assert.equal(d.runScope.runId,'resilience-20261020-rc2');
+  writeFileSync(join(batch,'trial-rc2/retired-run-scope.json'),JSON.stringify(d.runScope,null,2)+'\n');
+  delete d.runScope;
+});
+console.log('Removed only the completed rc2 cleanup scope; retained delegation and draft history.');

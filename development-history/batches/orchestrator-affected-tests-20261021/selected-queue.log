@@ -1,0 +1,40 @@
+✔ V2 preserves independent Review while reusing unchanged GREEN gates (66820.265745ms)
+✖ selected baseline and GREEN execute through the real queue without module-wide tests (20084.667374ms)
+ℹ tests 2
+ℹ suites 0
+ℹ pass 1
+ℹ fail 1
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 87244.809213
+
+✖ failing tests:
+
+test at tests/affected-queue.test.mjs:44:1
+✖ selected baseline and GREEN execute through the real queue without module-wide tests (20084.667374ms)
+  AssertionError [ERR_ASSERTION]: [automation] contract valid: TASK-IMPACT
+  [automation] preflight completed (mode=orchestrated, shadow=0, source=0, task=TASK-IMPACT, sdk=/var/folders/hx/fkt_lz1d0ss_m1181nv0hn1m0000gn/T/orchestrator-queue-test-Uz8i0R)
+  [automation] TASK-IMPACT: PENDING -> CODING
+  [automation] TASK-IMPACT claimed; complete V5 baseline sealed
+  [automation] starting scheduled-coder for TASK-IMPACT in /private/var/folders/hx/fkt_lz1d0ss_m1181nv0hn1m0000gn/T/orchestrator-queue-test-Uz8i0R/project
+  [automation] contract valid: TASK-IMPACT
+  [automation] ERROR: task has no product changes beyond its sealed planning artifacts
+  [automation] TASK-IMPACT: CODING -> BLOCKED
+  [automation] ERROR: TASK-IMPACT stopped in BLOCKED; inspect /private/var/folders/hx/fkt_lz1d0ss_m1181nv0hn1m0000gn/T/orchestrator-queue-test-Uz8i0R/project/.git/automation-runtime/evidence/TASK-IMPACT
+  orchestrate-task.sh exited with 1: [automation] ERROR: TASK-IMPACT stopped in BLOCKED; inspect /private/var/folders/hx/fkt_lz1d0ss_m1181nv0hn1m0000gn/T/orchestrator-queue-test-Uz8i0R/project/.git/automation-runtime/evidence/TASK-IMPACT; OpenCode scheduled-coder exited with 1; inspect this task's agent evidence
+  + actual - expected
+  
+  + 'BLOCKED'
+  - 'AWAITING_HUMAN'
+  
+      at TestContext.<anonymous> (file:///Users/zhanglong/files/program/cctest/taskdescriptions/orchestrator-affected-tests-20261021/source/tests/affected-queue.test.mjs:64:55)
+      at async Test.run (node:internal/test_runner/test:1125:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:787:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: 'BLOCKED',
+    expected: 'AWAITING_HUMAN',
+    operator: 'strictEqual',
+    diff: 'simple'
+  }

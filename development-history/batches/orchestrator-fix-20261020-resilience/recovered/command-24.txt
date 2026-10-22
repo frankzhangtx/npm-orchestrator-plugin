@@ -1,0 +1,2 @@
+text(await tools.write_stdin({session_id:44827,chars:"","yield_time_ms":1000,"max_output_tokens":700}));
+text(await tools.exec_command({cmd:"python3 - <<'PY'\nfrom pathlib import Path\np=Path('/private/tmp/orchestrator-resilience-candidate-install.json');print(p.read_text()[:1600])\nPY","max_output_tokens":900}));

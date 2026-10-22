@@ -1,0 +1,5 @@
+{
+  "packSourceHead": "2a327315016f255625619418cb45730ca8b70bad",
+  "testSourceHead": "5f8dc9287db31108695a2ff1c1deb8b87a3174d4",
+  "difference": "Only excluded tests align version assertions; frozen artifact unchanged."
+}

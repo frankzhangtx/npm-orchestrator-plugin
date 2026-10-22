@@ -1,0 +1,33 @@
+{
+  "main": "/Users/zhanglong/files/npmprogram/opencode_android_orchestrator",
+  "head": "214cb4d0ceb8e763f5b9ebd7b6f152f63776519a",
+  "version": "1.4.0",
+  "clean": true,
+  "featureBranchRemoved": true,
+  "featureWorktreeRemoved": true,
+  "originalInstallationOk": true,
+  "originalRestorationComparisonOk": true,
+  "originalVersion": "1.3.6",
+  "wordpressUpgraded": false,
+  "fiveMinuteTargetMeasured": false,
+  "frozenHostCheck": "PASSED",
+  "remotePushed": true,
+  "npmPublished": true,
+  "remoteMainAtLastRead": "214cb4d0ceb8e763f5b9ebd7b6f152f63776519a",
+  "credentialInspection": {
+    "gitOsxKeychainGitHubCredential": false,
+    "githubCliAuth": false,
+    "gitCredentialFile": false,
+    "netrcCredentialFile": false,
+    "githubTokenEnvironment": false,
+    "sshAgentIdentity": false,
+    "encryptedSshPrivateKeyFile": "~/.ssh/id_ed25519",
+    "sshKeyPassphraseFoundInStandardKeychainItems": false,
+    "intellijGitHubKeychainCredentialFound": true,
+    "intellijSshPassphraseKeychainItemFound": true
+  },
+  "remotePushReceipt": "github-push-receipt.json",
+  "npmPublicationReceipt": "npm-publication/receipt.json",
+  "isolatedInstallationRemoved": true,
+  "cleanupReceipt": "cleanup.json"
+}

@@ -1,0 +1,40 @@
+✔ reuse requires identical inputs, environment, baseline and evidence (1.290669ms)
+✔ every selected filter must have real passing cases; missing and skipped tests fail (1.069263ms)
+✔ method-only classification does not hide changed literals outside method bodies (2.205204ms)
+✔ ships the complete non-historical infrastructure template inventory (3.035531ms)
+✔ locks the portable V6 infrastructure resources and file modes (18.934814ms)
+✔ keeps configuration, schemas, and contract example structurally aligned (4.079174ms)
+✔ keeps the render sources project-independent and Scheduler-free (11.773689ms)
+✔ provides one portable and bounded AGENTS managed block (3.406461ms)
+✔ CLI and tools project a live Shell stage without changing queue or approvals (1826.788421ms)
+✔ legacy initial runs and supervised runs expose bounded live notes (1887.449818ms)
+✔ stale, malformed, terminal and foreign runtime records never replace queue outcomes (2260.960899ms)
+✔ a resumed worker projects fresh run-bound state over its retained BLOCKED record (2024.677531ms)
+✔ new unscoped drafts require a sealed and visible full-verification reason when capabilities exist (980.465304ms)
+✔ capability defaults accept affected Debug V7 and do not rewrite older stored drafts (1494.645402ms)
+✔ Planner reads generated capabilities/template and presents scoped policies before approval (0.857687ms)
+✔ selected baseline identifies every old method rather than merely its class (4.593324ms)
+✔ selected baseline is written once and cannot be replaced by a later capture (583.942809ms)
+✔ selected results combine focused evidence with new execution and retain baseline targets (497.867388ms)
+✔ a reused focused result cannot hide a missing baseline method (767.035577ms)
+✔ module fallback reruns sealed baseline targets and rejects deleted old cases (448.91378ms)
+✔ fallback without a selected baseline reports not required without executing tests (465.16938ms)
+✔ changed sealed baseline bytes cannot be used for selected or fallback verification (853.762592ms)
+✔ ships exactly the 29 audited V3 automation shell files (3.961127ms)
+✔ preserves audited shell bytes and executable modes (14.775785ms)
+✔ all migrated automation files are valid Bash scripts (308.192332ms)
+✔ preflight accepts absent legacy Scheduler tools but rejects enabled ones (59.213581ms)
+✔ OpenCode config discovery retries only the transient checkpoint failure (1693.565679ms)
+✔ shadow run reserves stdout for one machine-readable JSON document (944.208325ms)
+✔ ships the exact audited OpenCode queue agent, command, and skill inventory (3.368499ms)
+✔ preserves the audited queue template bytes and non-executable modes (6.178682ms)
+✔ keeps migrated templates project-independent and structurally valid (4.544379ms)
+✔ grants every scheduled agent only the two read-only orchestrator tools (0.552526ms)
+ℹ tests 32
+ℹ suites 0
+ℹ pass 32
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 10975.101463

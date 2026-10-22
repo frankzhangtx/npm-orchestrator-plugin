@@ -1,0 +1,94 @@
+✖ plans and installs all managed resources in a Kotlin DSL project (86.99132ms)
+✖ installation and doctor accept unavailable optional verification capabilities (309.458352ms)
+ℹ tests 2
+ℹ suites 0
+ℹ pass 0
+ℹ fail 2
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 647.727443
+
+✖ failing tests:
+
+test at tests/init.test.mjs:183:1
+✖ plans and installs all managed resources in a Kotlin DSL project (86.99132ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  
+  58 !== 55
+  
+      at TestContext.<anonymous> (file:///Users/zhanglong/files/program/cctest/taskdescriptions/orchestrator-affected-tests-20261021/source/tests/init.test.mjs:198:12)
+      at Test.runInAsyncScope (node:async_hooks:228:14)
+      at Test.run (node:internal/test_runner/test:1118:25)
+      at Test.start (node:internal/test_runner/test:1015:17)
+      at startSubtestAfterBootstrap (node:internal/test_runner/harness:358:17) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: 58,
+    expected: 55,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at tests/installation-doctor.test.mjs:136:1
+✖ installation and doctor accept unavailable optional verification capabilities (309.458352ms)
+  AssertionError [ERR_ASSERTION]: OpenCode Android Orchestrator doctor
+  
+  [PASS] OpenCode version: OpenCode 1.15.13 is certified.
+    Detected executable: opencode
+  [PASS] Git root: Found /var/folders/hx/fkt_lz1d0ss_m1181nv0hn1m0000gn/T/orchestrator-installed-doctor-uvNA1U.
+  [PASS] Android/Gradle project: Detected 1 Android module(s) using kotlin DSL.
+    Settings: /var/folders/hx/fkt_lz1d0ss_m1181nv0hn1m0000gn/T/orchestrator-installed-doctor-uvNA1U/settings.gradle.kts
+    :mobile: application (/var/folders/hx/fkt_lz1d0ss_m1181nv0hn1m0000gn/T/orchestrator-installed-doctor-uvNA1U/clients/mobile/build.gradle.kts)
+  [PASS] Gradle Wrapper: gradlew and gradle-wrapper.properties are present.
+    /var/folders/hx/fkt_lz1d0ss_m1181nv0hn1m0000gn/T/orchestrator-installed-doctor-uvNA1U/gradlew
+  [PASS] Git command: git is available.
+    git fixture version
+  [PASS] jq command: jq is available.
+    jq fixture version
+  [PASS] ripgrep command: rg is available.
+    rg fixture version
+  [PASS] shasum command: shasum is available.
+    shasum fixture version
+  [PASS] Java command: java is available.
+    java fixture version
+  [PASS] Android SDK: Found Android SDK at /var/folders/hx/fkt_lz1d0ss_m1181nv0hn1m0000gn/T/orchestrator-installed-doctor-uvNA1U/fixture-sdk.
+    Source: local.properties sdk.dir
+  [PASS] Actual Gradle build JVM: Gradle 6.7.1 configures with Java 1.8.0_312.
+    /fixture/jdk8
+  [FAIL] Installation manifest: 4 manifest identity, state, inventory, or mode issue(s) were found.
+    Manifest tracks 58 files; expected 55.
+    Unexpected manifest entry: automation/verification/selected-tests.cjs
+    Unexpected manifest entry: automation/verification/test-selection.cjs
+    Unexpected manifest entry: automation/verification/verification-reuse.cjs
+  [PASS] Managed resources: All 58 managed files match the manifest or supported verification-policy overrides.
+  [PASS] Managed permissions: All managed modes match; 29 automation scripts are executable.
+  [PASS] Installation backups: 2 required original-file backup(s) match the manifest.
+  [PASS] Managed configuration: OpenCode, AGENTS, and adaptive Android configuration are consistent.
+    OpenCode configuration: opencode.jsonc
+    AGENTS managed block: present and unchanged
+    Automation module scope: all
+    Automation default module: :mobile
+    Unit-test verification: enabled
+    Android lint verification: disabled
+    Commit-message prefix mode: required
+  [PASS] Commit-message prefix: The required user-maintained commit-message prefix is configured.
+    /var/folders/hx/fkt_lz1d0ss_m1181nv0hn1m0000gn/T/orchestrator-installed-doctor-uvNA1U/automation/automation-commit-prefix
+  
+  Result: FAILED
+  
+  
+  false !== true
+  
+      at TestContext.<anonymous> (file:///Users/zhanglong/files/program/cctest/taskdescriptions/orchestrator-affected-tests-20261021/source/tests/installation-doctor.test.mjs:143:12)
+      at Test.runInAsyncScope (node:async_hooks:228:14)
+      at Test.run (node:internal/test_runner/test:1118:25)
+      at Test.start (node:internal/test_runner/test:1015:17)
+      at startSubtestAfterBootstrap (node:internal/test_runner/harness:358:17) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: false,
+    expected: true,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }

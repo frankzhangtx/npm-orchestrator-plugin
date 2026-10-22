@@ -1,0 +1,30 @@
+✖ isolated abort archives only changes allowed by the sealed task-worktree contract (26849.014447ms)
+ℹ tests 1
+ℹ suites 0
+ℹ pass 0
+ℹ fail 1
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 26989.098328
+
+✖ failing tests:
+
+test at tests/queue-failures.test.mjs:8:1
+✖ isolated abort archives only changes allowed by the sealed task-worktree contract (26849.014447ms)
+  AssertionError [ERR_ASSERTION]: The input did not match the regular expression /out-of-contract path: unapproved.txt/. Input:
+  
+  'jq: error: Could not open file /private/var/folders/hx/fkt_lz1d0ss_m1181nv0hn1m0000gn/T/orchestrator-queue-test-RFVMpT/project/automation/tasks/TASK-ABORT.json: No such file or directory\n' +
+    '[automation] ERROR: abort refuses to archive an out-of-contract path: app/src/main/java/TASK-ABORT.kt\n'
+  
+      at TestContext.<anonymous> (file:///Users/zhanglong/files/program/cctest/taskdescriptions/orchestrator-fix-20261020-resilience/source/tests/queue-failures.test.mjs:31:12)
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async Test.run (node:internal/test_runner/test:1125:7)
+      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:358:3) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: 'jq: error: Could not open file /private/var/folders/hx/fkt_lz1d0ss_m1181nv0hn1m0000gn/T/orchestrator-queue-test-RFVMpT/project/automation/tasks/TASK-ABORT.json: No such file or directory\n[automation] ERROR: abort refuses to archive an out-of-contract path: app/src/main/java/TASK-ABORT.kt\n',
+    expected: /out-of-contract path: unapproved.txt/,
+    operator: 'match',
+    diff: 'simple'
+  }

@@ -1,0 +1,1 @@
+text(await tools.exec_command({cmd:"sed -n '265,345p' src/trial/driver.ts; cat /Users/zhanglong/files/program/wordpresslocal/WordPress/.git/info/exclude; cat /private/tmp/orchestrator-resilience-replay.json | head -45","workdir":"/private/tmp/orchestrator-resilience-20261019","max_output_tokens":2000}));

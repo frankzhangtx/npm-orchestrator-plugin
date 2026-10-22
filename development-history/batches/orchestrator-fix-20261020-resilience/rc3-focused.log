@@ -1,0 +1,46 @@
+✔ packages and links the complete user-documentation inventory (6.398965ms)
+✔ keeps every repository-local documentation link resolvable (3.838594ms)
+✔ documents fixed-version migration, recovery, and security boundaries portably (1.978608ms)
+✔ ships complete MIT license and third-party notices (5.189937ms)
+✔ keeps the published release outcome auditable and outside package files (2.418747ms)
+✔ records the verified 0.3.0 Registry publication (1.732342ms)
+✔ records the verified 0.4.0 Registry publication (1.832815ms)
+✔ records the verified 0.5.0 Registry publication (2.798128ms)
+✔ records the verified 0.6.0 Registry publication (2.012166ms)
+✔ records the recovered and verified 0.6.1 Registry publication (2.992472ms)
+✔ ships the complete non-historical infrastructure template inventory (3.928967ms)
+✔ locks the portable V6 infrastructure resources and file modes (8.219957ms)
+✔ keeps configuration, schemas, and contract example structurally aligned (3.545053ms)
+✔ keeps the render sources project-independent and Scheduler-free (3.594245ms)
+✔ provides one portable and bounded AGENTS managed block (1.000805ms)
+✔ keeps the package root plugin-only for the OpenCode loader (7.822634ms)
+✔ exports a loadable OpenCode plugin using only common hooks (13.767182ms)
+✔ raises managed long commands to the default timeout without shortening callers (4.756057ms)
+✔ loads a configurable managed long-command timeout from the worktree (4.883597ms)
+✔ rejects hooks outside the certified common API (1.020114ms)
+✔ CLI exposes the planned lifecycle commands (182.184161ms)
+✔ CLI exposes doctor-specific help (159.571339ms)
+✔ CLI exposes init options and rejects an incomplete module selection (538.956533ms)
+✔ CLI exposes upgrade options and rejects an incomplete module selection (526.278133ms)
+✔ CLI exposes uninstall options and rejects unknown flags (253.753377ms)
+✔ RED capture receives the configured timeout even when the model requests twenty minutes (3.420983ms)
+✔ ships the exact audited OpenCode queue agent, command, and skill inventory (4.275227ms)
+✔ preserves the audited queue template bytes and non-executable modes (4.897961ms)
+✔ keeps migrated templates project-independent and structurally valid (4.086874ms)
+✔ grants every scheduled agent only the two read-only orchestrator tools (0.642782ms)
+✔ V4 queue and shell share explicit inventory policy validation; legacy contracts stay V3 (1918.016799ms)
+✔ V4 rejects aliases, duplicate behavior identities across overlapping filters and undeclared policy fields (1.161378ms)
+✔ baseline auto-classifies existing regression tests and RED/GREEN use the same complete manifest (3.58026ms)
+✔ existing skips and per-task empty baselines require explicit approval; no new skips are tolerated (0.721517ms)
+✔ collector rejects cached, interrupted, malformed, duplicate and count-mismatched executions (13.007499ms)
+✔ parameter instances are separate identities and same test names in different tasks do not collide (0.276525ms)
+✔ snapshot includes unchanged custom test resources and detects their edits (228.072084ms)
+✔ RED diagnostics identify both exception-type and assertion-origin mismatches before spending another preparation attempt (0.467425ms)
+ℹ tests 38
+ℹ suites 0
+ℹ pass 38
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 2376.035056

@@ -1,0 +1,27 @@
+✔ planning reads a stable commit but external edits prevent approval from entering the queue (1380.535891ms)
+✔ planning snapshot stays compact while list pages discover stable committed paths (893.735862ms)
+✔ snapshot chunks preserve exact UTF-8 content and make bounded forward progress (1084.401124ms)
+✔ approval seals the configured default or an explicit policy, deduplicates, and rejects tampering (2757.94059ms)
+✔ a newly enqueued task resumes the durable queue and preserves FIFO ordering (2712.141319ms)
+✔ drafts and rejected enqueues leave a paused queue unchanged (2913.157106ms)
+✔ duplicate enqueue does not resume a paused queue or recreate a cancelled task (1531.384797ms)
+✔ new enqueue resumes a paused queue without clearing its active blocker (2094.814625ms)
+✔ new enqueue resumes a paused queue without clearing its fault blocker (2088.6653ms)
+✔ legacy configuration without a commit policy retains human approval (1032.744038ms)
+✔ one atomic claim respects deadlines, dependencies, priority and pause (3860.892208ms)
+✔ fixed waiting workspaces and mode changes prevent new claims (2529.844793ms)
+✔ unsupported policy combinations and missing dependency approvals fail (1516.82498ms)
+✔ unattended commands reject direct and indirect Git mutation paths (578.216065ms)
+✔ uncommitted claim-time policy change waits without changing sealed authorization (3466.441981ms)
+✔ capacity and public faults block execution but do not reject durable intake (3002.096347ms)
+✔ an active executor does not scan a workspace being removed during integration (1467.175274ms)
+✔ a workspace disappearing during capacity observation defers reservation without hiding real disk errors (1627.949176ms)
+✔ revocation blocks automatic execution and durable notification acknowledgements survive reload (1488.960145ms)
+ℹ tests 19
+ℹ suites 0
+ℹ pass 19
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 38514.040406

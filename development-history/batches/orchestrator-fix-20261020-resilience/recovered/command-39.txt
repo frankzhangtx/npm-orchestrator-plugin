@@ -1,0 +1,2 @@
+text(await tools.write_stdin({session_id:27100,chars:"","yield_time_ms":1000,"max_output_tokens":300}));
+text(await tools.exec_command({cmd:"wc -l /private/tmp/orchestrator-resilience-full-tests-unrestricted.log; rg '^✖' /private/tmp/orchestrator-resilience-full-tests-unrestricted.log; tail -3 /private/tmp/orchestrator-resilience-trial-ready-20261019/planner-stderr.log; git status --short","workdir":"/private/tmp/orchestrator-resilience-20261019","max_output_tokens":700}));

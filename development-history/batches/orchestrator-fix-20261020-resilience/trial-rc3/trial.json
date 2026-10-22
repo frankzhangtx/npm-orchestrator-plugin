@@ -1,0 +1,71 @@
+{
+  "version": 1,
+  "specificationSha256": "a11f7afded52651fd349dcbf60c70b25af2d82576b0e09b3106512b09291f171",
+  "candidateSha256": "33e223bb02daf956f35062173543a1e37d99155a4c3fe990852a0ee28c3eae27",
+  "startedAt": 1792485980955,
+  "executionDeadline": 1792488678411,
+  "cleanupDeadline": 1792489578411,
+  "phase": "RESTORATION_BLOCKED",
+  "intent": "RESTORED",
+  "error": "Error: Trial execution deadline exhausted; Error: Trial cleanup deadline exhausted",
+  "upgradeHead": "6726cfea5c9f726bccbf06a1e76f34a5b011df96",
+  "taskKey": "TASK-RESILIENCE-PHONE-RC3-20261020@1",
+  "result": null,
+  "events": [
+    {
+      "phase": "INSTALLED",
+      "at": 1792485998284,
+      "event": "START"
+    },
+    {
+      "phase": "INSTALLED",
+      "at": 1792486026253,
+      "event": "DONE"
+    },
+    {
+      "phase": "UPGRADE_COMMITTED",
+      "at": 1792486026298,
+      "event": "START"
+    },
+    {
+      "phase": "UPGRADE_COMMITTED",
+      "at": 1792486044718,
+      "event": "DONE"
+    },
+    {
+      "phase": "AUTHORIZED",
+      "at": 1792486044765,
+      "event": "START"
+    },
+    {
+      "phase": "AUTHORIZED",
+      "at": 1792486047320,
+      "event": "DONE"
+    },
+    {
+      "phase": "PLANNED",
+      "at": 1792486047520,
+      "event": "START"
+    },
+    {
+      "phase": "PLANNED",
+      "at": 1792486370836,
+      "event": "DONE"
+    },
+    {
+      "phase": "TASK_FINISHED",
+      "at": 1792486370970,
+      "event": "START"
+    },
+    {
+      "phase": "TASK_FINISHED",
+      "at": 1792488679149,
+      "event": "FAILED"
+    },
+    {
+      "phase": "RESTORED",
+      "at": 1792488679258,
+      "event": "START"
+    }
+  ]
+}

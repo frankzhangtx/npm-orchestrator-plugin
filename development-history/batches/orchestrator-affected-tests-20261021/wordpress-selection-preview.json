@@ -1,0 +1,34 @@
+{
+  "readOnly": true,
+  "root": "/Users/zhanglong/files/program/wordpresslocal/WordPress",
+  "contract": {
+    "id": "READONLY-PREVIEW",
+    "planPath": "docs/plans/READONLY-PREVIEW.md",
+    "allowedPaths": [
+      "WordPress/src/main/java/org/wordpress/android/util/DomainPhoneNumberUtils.kt",
+      "WordPress/src/test/java/org/wordpress/android/util/DomainPhoneNumberUtilsTest.kt"
+    ],
+    "targetTests": [
+      {
+        "gradleTask": ":WordPress:testVanillaDebugUnitTest",
+        "filter": "org.wordpress.android.util.DomainPhoneNumberUtilsTest"
+      }
+    ],
+    "verification": {
+      "scope": {
+        "version": 2,
+        "mode": "affected-tests",
+        "variants": "debug",
+        "maxManualRetries": 1
+      }
+    }
+  },
+  "planError": "Invalid Android capability model: selected task outside configured capabilities: fullUnitTestTasks",
+  "selectorOnly": {
+    "mode": "fallback",
+    "targets": [],
+    "reasons": [
+      "Conservative fallback: dynamic class loading/reflection in module"
+    ]
+  }
+}

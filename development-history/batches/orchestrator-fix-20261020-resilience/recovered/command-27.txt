@@ -1,0 +1,2 @@
+text(await tools.exec_command({cmd:"python3 - <<'PY'\nfrom pathlib import Path\np=Path('/private/tmp/orchestrator-resilience-native-trial.py');s=p.read_text();compile(s,str(p),'exec');p.write_bytes(s.encode('ascii','backslashreplace'))\nPY","max_output_tokens":300}));
+text(await tools.exec_command({cmd:"python3 /private/tmp/orchestrator-resilience-native-trial.py","sandbox_permissions":"require_escalated","justification":"是否允许继续执行已授权的独立 WordPress 副本验证？启动脚本的编码问题已修正，尚未开始试跑。","yield_time_ms":1000,"max_output_tokens":500}));

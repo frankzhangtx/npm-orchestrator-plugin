@@ -1,0 +1,10 @@
+{
+  "completedAt": "2026-10-22T07:01:48.559245+00:00",
+  "removedDirectory": "driver-fixtures",
+  "archive": "driver-fixtures-archived-20261022.tar.gz",
+  "verifiedRegularFiles": 96764,
+  "archiveBytes": 395912905,
+  "sha256": "638126d092db00036197f61dc7d491c5c4c36df6e4c873d6d05e2c7014039522",
+  "restoreCommand": "tar -xzf driver-fixtures-archived-20261022.tar.gz",
+  "unfinishedTaskPreserved": true
+}

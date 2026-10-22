@@ -1,0 +1,598 @@
+diff --git a/CHANGELOG.md b/CHANGELOG.md
+index de71aa6..97a6d3c 100644
+--- a/CHANGELOG.md
++++ b/CHANGELOG.md
+@@ -1,5 +1,12 @@
+ # Changelog
+ 
++## 1.3.7-rc.2
++
++- Apply the configured long-command timeout floor to RED capture.
++- Report exception count, type, message and origin mismatches together.
++- Guide assertion preparation and bounded handling of interrupted verification.
++- Preserve strict RED/GREEN acceptance and existing recovery budgets.
++
+ ## 1.3.6 - 2026-10-18
+ 
+ - Restore interrupted local trials on SIGINT/SIGTERM; provide cleanup-only
+diff --git a/README.md b/README.md
+index 314791d..7df25a5 100644
+--- a/README.md
++++ b/README.md
+@@ -2,6 +2,10 @@
+ 
+ Reusable OpenCode orchestration for macOS Android projects.
+ 
++Version 1.3.7-rc.2 protects RED capture with the configured long-command timeout
++and reports all assertion mismatches together. Planner/Coder guidance aligns
++assertions with approved contracts and stops repeated attempts after interruption.
++
+ Version 1.3.6 adds interrupted
+ trial cleanup and fresh restoration acceptance, and retains the fix for the
+ status helper. Version 1.3.4 added bounded local
+@@ -20,7 +24,7 @@ installation changes require a fresh snapshot. Changes to the exact
+ Version 1.2.3 selects verification tasks from changed source sets and their
+ transitive consumers under explicitly approved contracts. Environment recovery
+ retries only failed verification steps while preserving candidate-bound evidence.
+-The commands below pin version 1.3.6. For local candidate validation,
++The commands below pin version 1.3.7-rc.2. For local candidate validation,
+ use the frozen local-package workflow in docs/LOCAL-TRIAL.md.
+ See the [changelog](CHANGELOG.md) for release details.
+ 
+@@ -98,9 +102,9 @@ project builds retain their configured cache behavior.
+ ## Quick start
+ 
+ ```sh
+-npx @frankzhang2026/opencode-android-orchestrator@1.3.6 init .
++npx @frankzhang2026/opencode-android-orchestrator@1.3.7-rc.2 init .
+ $EDITOR automation/automation-commit-prefix
+-npx @frankzhang2026/opencode-android-orchestrator@1.3.6 doctor .
++npx @frankzhang2026/opencode-android-orchestrator@1.3.7-rc.2 doctor .
+ opencode --agent scheduled-planner .
+ ```
+ 
+@@ -110,7 +114,7 @@ a task contract without selecting a primary module. To intentionally restrict
+ generated contracts to one module, opt into primary-module scope:
+ 
+ ```sh
+-npx @frankzhang2026/opencode-android-orchestrator@1.3.6 init . \
++npx @frankzhang2026/opencode-android-orchestrator@1.3.7-rc.2 init . \
+   --module-scope primary \
+   --primary-module :mobile
+ ```
+@@ -138,7 +142,7 @@ For an existing manifest-managed installation whose generated module/task
+ lists are incomplete, refresh all derived Gradle data in one upgrade:
+ 
+ ```sh
+-npx @frankzhang2026/opencode-android-orchestrator@1.3.6 upgrade . \
++npx @frankzhang2026/opencode-android-orchestrator@1.3.7-rc.2 upgrade . \
+   --refresh-gradle-discovery
+ ```
+ 
+@@ -495,7 +499,7 @@ preparation alone as resource installation;
+ ## Init
+ 
+ ```sh
+-npx @frankzhang2026/opencode-android-orchestrator@1.3.6 init .
++npx @frankzhang2026/opencode-android-orchestrator@1.3.7-rc.2 init .
+ $EDITOR automation/automation-commit-prefix
+ opencode --agent scheduled-planner .
+ ```
+diff --git a/docs/GRADLE-6.7.1.md b/docs/GRADLE-6.7.1.md
+index 3712496..dcea82f 100644
+--- a/docs/GRADLE-6.7.1.md
++++ b/docs/GRADLE-6.7.1.md
+@@ -1,7 +1,7 @@
+ # Gradle 6.7.1 review fixes (1.2.0)
+ 
+ These changes are included in 1.2.0 and are absent from
+-1.1.0. Use the pinned 1.3.6 package, including the lazy Android
++1.1.0. Use the pinned 1.3.7-rc.2 package, including the lazy Android
+ test-output compatibility fix. Do not copy individual
+ managed files into an existing installation or reuse evidence made with the
+ previous collector. Keep existing evidence and approve a new task after upgrade.
+diff --git a/docs/MIGRATION.md b/docs/MIGRATION.md
+index d86fcec..a6fbcfe 100644
+--- a/docs/MIGRATION.md
++++ b/docs/MIGRATION.md
+@@ -1,13 +1,13 @@
+ # Migration guide
+ 
+ This guide covers migration to
+-`@frankzhang2026/opencode-android-orchestrator@1.3.6`. Pin the exact version and
++`@frankzhang2026/opencode-android-orchestrator@1.3.7-rc.2`. Pin the exact version and
+ prove the migration in a disposable clone before changing a long-lived
+ repository.
+ 
+ ## 1.3.1 startup preconditions
+ 
+-Stop the service and finish or abort retained workspaces before upgrading to 1.3.6.
++Stop the service and finish or abort retained workspaces before upgrading to 1.3.7-rc.2.
+ Unstarted waits do not own workspaces and may remain in the inbox. Review and commit
+ all generated upgrade files before requesting a new planning snapshot. Old approved
+ contracts remain sealed: this upgrade does not change their baseline or verification
+@@ -17,7 +17,7 @@ fresh planning/approval.
+ The queue document remains schema 1 with additive precondition evidence and the new
+ `WAITING_PRECONDITION` state. Old documents are readable. Do not run an older scheduler
+ against a queue containing the new state: it cannot resume those waits. Before any
+-rollback, stop 1.3.6, cancel unstarted waits and preserve the runtime evidence. Never
++rollback, stop 1.3.7-rc.2, cancel unstarted waits and preserve the runtime evidence. Never
+ delete queue state or locks to make an older scheduler start.
+ 
+ New process identities are captured with the C locale consistently in service,
+@@ -78,10 +78,10 @@ protocol boundaries.
+ 
+ | Current state | Correct command | Important distinction |
+ | --- | --- | --- |
+-| No orchestrator files or manifest | `npx @frankzhang2026/opencode-android-orchestrator@1.3.6 init .` | Normal new installation; all runtime-detected Android modules and registered debug verification tasks are discovered automatically. |
++| No orchestrator files or manifest | `npx @frankzhang2026/opencode-android-orchestrator@1.3.7-rc.2 init .` | Normal new installation; all runtime-detected Android modules and registered debug verification tasks are discovered automatically. |
+ | Published `0.1.0` scaffold only | Remove any project-local `@0.1.0` plugin reference after review, then run `init`. | `0.1.0` did not create a usable managed installation and cannot be upgraded. |
+-| `0.2.0` through `0.10.0` manifest-managed installation with intact managed/backup content | Run the `1.3.6` `upgrade`; add `--refresh-gradle-discovery` when generated module/task lists are incomplete. | Refresh replaces all derived module metadata, source paths, protected build files, and task allowlists from one Gradle runtime snapshot. Module scope, operator policies, user-owned AGENTS content, and an existing commit-prefix sidecar remain preserved. |
+-| Healthy `1.0.0` through `1.2.3` installation | Stop the queue service, finish or abort retained workspaces, then run the fixed `1.3.6` `upgrade`. | Pending inbox contracts remain durable. Version 1.1.0 adds V4 test inventories, opt-in V5-V8 recovery/continuity and Android build capabilities; older approved contracts retain their authority. |
++| `0.2.0` through `0.10.0` manifest-managed installation with intact managed/backup content | Run the `1.3.7-rc.2` `upgrade`; add `--refresh-gradle-discovery` when generated module/task lists are incomplete. | Refresh replaces all derived module metadata, source paths, protected build files, and task allowlists from one Gradle runtime snapshot. Module scope, operator policies, user-owned AGENTS content, and an existing commit-prefix sidecar remain preserved. |
++| Healthy `1.0.0` through `1.2.3` installation | Stop the queue service, finish or abort retained workspaces, then run the fixed `1.3.7-rc.2` `upgrade`. | Pending inbox contracts remain durable. Version 1.1.0 adds V4 test inventories, opt-in V5-V8 recovery/continuity and Android build capabilities; older approved contracts retain their authority. |
+ | Manually copied V3 files, no `.automation-plugin/manifest.json` | Finish active tasks, preserve historical evidence separately, then run `init`. | Exact files can be reused; differing managed files fail as conflicts. |
+ | Healthy older manifest-managed installation | Run `doctor`, then the fixed target version's `upgrade`. | `upgrade` requires a valid installed manifest and intact original backups. |
+ | Healthy current-version manifest | Run `doctor`; repeated `init` or same-version `upgrade` is verification-only and byte-idempotent. | Do not reinstall or delete the manifest. |
+@@ -127,7 +127,7 @@ installation of `0.1.0` alone does not require project-file cleanup.
+ Initialize with the fixed version:
+ 
+ ```sh
+-npx @frankzhang2026/opencode-android-orchestrator@1.3.6 init .
++npx @frankzhang2026/opencode-android-orchestrator@1.3.7-rc.2 init .
+ ```
+ 
+ New installations default to all-module scope, so multiple application modules
+@@ -175,7 +175,7 @@ Use the lifecycle command selected by the active manifest:
+ 
+ ```sh
+ npx --yes --registry=https://registry.npmjs.org/ \
+-  @frankzhang2026/opencode-android-orchestrator@1.3.6 upgrade . --json
++  @frankzhang2026/opencode-android-orchestrator@1.3.7-rc.2 upgrade . --json
+ ```
+ 
+ The command-level Registry option is useful when a company-wide npm Registry
+@@ -205,7 +205,7 @@ computed includes dynamically or a company convention plugin applied
+ 
+ ```sh
+ npx --yes --registry=https://registry.npmjs.org/ \
+-  @frankzhang2026/opencode-android-orchestrator@1.3.6 upgrade . \
++  @frankzhang2026/opencode-android-orchestrator@1.3.7-rc.2 upgrade . \
+   --refresh-gradle-discovery --json
+ ```
+ 
+@@ -289,7 +289,7 @@ use the queue rather than the old direct Shell commands. See [Queue operation](Q
+ Run all checks from the detected Git root:
+ 
+ ```sh
+-npx @frankzhang2026/opencode-android-orchestrator@1.3.6 doctor .
++npx @frankzhang2026/opencode-android-orchestrator@1.3.7-rc.2 doctor .
+ opencode debug config
+ opencode debug skill
+ opencode debug agent scheduled-planner
+@@ -394,7 +394,7 @@ Reviewer verification commands can retry identified environment failures within
+ separate persisted budgets; model/provider calls and integration are unchanged.
+ Recovery logic extends the existing managed recovery.cjs. Version 1.1.0 has
+ 52 managed resources, including the Android project capability validator.
+-Upgrade with 1.3.6; same-version upgrade does not refresh
++Upgrade with 1.3.7-rc.2; same-version upgrade does not refresh
+ managed templates. See the V7 policy and retained-evidence workflow in QUEUE.md.
+ 
+ 
+diff --git a/docs/QUEUE.md b/docs/QUEUE.md
+index 251f6e1..7729c74 100644
+--- a/docs/QUEUE.md
++++ b/docs/QUEUE.md
+@@ -1,6 +1,6 @@
+ # Queue and background execution
+ 
+-Version `1.3.6` stores proposals and approved contracts under
++Version `1.3.7-rc.2` stores proposals and approved contracts under
+ `<git-common-dir>/automation-runtime/inbox/queue.json`. A contract is runnable
+ only after its full plan, version, digest, target branch and commit policy are
+ approved and durably recorded. Planning reads a fixed `planningHead`, so another
+diff --git a/docs/SECURITY.md b/docs/SECURITY.md
+index b333b7e..257f51e 100644
+--- a/docs/SECURITY.md
++++ b/docs/SECURITY.md
+@@ -1,7 +1,7 @@
+ # Security model
+ 
+ This document describes the security properties of
+-`@frankzhang2026/opencode-android-orchestrator@1.3.6`. The lifecycle foundation
++`@frankzhang2026/opencode-android-orchestrator@1.3.7-rc.2`. The lifecycle foundation
+ completed the real OpenCode `1.14.22` and `1.15.13` release matrix in `0.2.0`;
+ `1.0.0` retains that compatibility boundary.
+ 
+diff --git a/docs/TROUBLESHOOTING.md b/docs/TROUBLESHOOTING.md
+index 6865605..052d4d5 100644
+--- a/docs/TROUBLESHOOTING.md
++++ b/docs/TROUBLESHOOTING.md
+@@ -1,7 +1,7 @@
+ # Troubleshooting
+ 
+ Use this guide for
+-`@frankzhang2026/opencode-android-orchestrator@1.3.6`.
++`@frankzhang2026/opencode-android-orchestrator@1.3.7-rc.2`.
+ 
+ ## Start with read-only evidence
+ 
+@@ -11,7 +11,7 @@ From the repository root, capture:
+ git status --short --branch
+ git rev-parse HEAD
+ opencode --version
+-npx @frankzhang2026/opencode-android-orchestrator@1.3.6 doctor . --json
++npx @frankzhang2026/opencode-android-orchestrator@1.3.7-rc.2 doctor . --json
+ ```
+ 
+ If installation never completed, doctor will correctly report a missing or
+@@ -51,9 +51,9 @@ command-scoped override:
+ 
+ ```sh
+ npm --registry=https://registry.npmjs.org/ view \
+-  @frankzhang2026/opencode-android-orchestrator@1.3.6 version
++  @frankzhang2026/opencode-android-orchestrator@1.3.7-rc.2 version
+ npx --yes --registry=https://registry.npmjs.org/ \
+-  @frankzhang2026/opencode-android-orchestrator@1.3.6 upgrade . --json
++  @frankzhang2026/opencode-android-orchestrator@1.3.7-rc.2 upgrade . --json
+ ```
+ 
+ This leaves the company's saved npm configuration unchanged. Use the option
+@@ -83,7 +83,7 @@ Git-backed Superpowers plugin at runtime.
+ | Invalid `--long-command-timeout-ms` | The value is not an integer from `120000` through `7200000`. | Use the `1800000` ms default or pass an intentional bounded value to `init`/`upgrade`; do not edit the generated config directly. |
+ | Android SDK failure | No valid explicit SDK, `ANDROID_HOME`, `ANDROID_SDK_ROOT`, or `local.properties` `sdk.dir` was found. | Configure one real SDK root containing `platforms/` and `build-tools/`. Do not publish `local.properties`. |
+ | Missing `git`, `jq`, `rg`, `shasum`, or Java | Required deterministic command is unavailable on `PATH`. | Install or restore the missing command, record its version, and rerun the read-only checks. |
+-| `Bundled Orchestrator skill is unavailable` | The installed `1.3.6` package is incomplete, damaged, or loaded from an unsupported partial copy. | Reinstall the exact package, inspect its `resources/third-party/superpowers-v6.2.0/skills/` entries, restart OpenCode, and rerun `opencode debug skill`. Do not add an external Superpowers plugin as a fallback. |
++| `Bundled Orchestrator skill is unavailable` | The installed `1.3.7-rc.2` package is incomplete, damaged, or loaded from an unsupported partial copy. | Reinstall the exact package, inspect its `resources/third-party/superpowers-v6.2.0/skills/` entries, restart OpenCode, and rerun `opencode debug skill`. Do not add an external Superpowers plugin as a fallback. |
+ | `current process does not own this task queue execution` immediately after Coder start on 1.0.1 | OpenCode created the tool shell in a separate process group, so 1.0.1 rejected a legitimate Worker descendant. | Upgrade to 1.0.2 or later, restart OpenCode, then use the approved resume or abort workflow for the retained task. Do not edit the queue or lease files. |
+ | The exact Superpowers v6.2.0 plugin remains after upgrade | That entry existed in the verified pre-install OpenCode file and is therefore user-owned. | Leave it in place or remove it as a separate reviewed configuration change. Upgrade only removes the old Orchestrator-managed entry. |
+ 
+@@ -100,7 +100,7 @@ silence of `./gradlew tasks --all --console=plain | rg ...` in a large build.
+ For an existing installation, run:
+ 
+ ```sh
+-npx @frankzhang2026/opencode-android-orchestrator@1.3.6 upgrade . \
++npx @frankzhang2026/opencode-android-orchestrator@1.3.7-rc.2 upgrade . \
+   --refresh-gradle-discovery
+ ```
+ 
+@@ -109,7 +109,7 @@ least `1800000` milliseconds. A higher timeout already supplied by the caller
+ is preserved; unrelated Bash commands are unchanged. To configure one hour,
+ run `upgrade . --long-command-timeout-ms 3600000` on a healthy installation.
+ If a command still reports `120000 ms`, confirm that the project manifest and
+-OpenCode plugin reference are both `1.3.6`, restart the OpenCode session so the
++OpenCode plugin reference are both `1.3.7-rc.2`, restart the OpenCode session so the
+ plugin reloads, and rerun doctor before attempting recovery.
+ 
+ After installation, inspect OpenCode discovery separately:
+@@ -204,7 +204,7 @@ manifest version or hashes, delete the control directory, or bypass drift checks
+ The published 1.3.4 transaction self-test omits `automation/verification/status.cjs`
+ from its temporary fixture. An otherwise valid upgrade can fail after check 17
+ with `POST_UPGRADE_VERIFICATION_FAILED` and `MODULE_NOT_FOUND`, then roll back.
+-Version 1.3.6 includes this helper in the fixture and runs the complete 46-check
++Version 1.3.7-rc.2 includes this helper in the fixture and runs the complete 46-check
+ script in the Node regression suite. Do not remove the failing check or patch an
+ installed package to report success.
+ 
+@@ -401,3 +401,25 @@ Already approved V4 contracts still execute their original full verification,
+ including configured Release tasks. Upgrade does not narrow their authority.
+ Use the existing approved abort/cancel workflow and obtain a new scoped proposal
+ when a different verification policy is needed; do not edit a sealed contract.
++
++## RED preparation mismatches and interrupted commands
++
++`CASE_EXPECTATION_MISMATCH` includes per-case `failureChecks` for exception count,
++exact type, message and origin. Inspect all four before using a preparation retry.
++A helper assertion can fail origin matching even when its caller is the correct
++test. AssertJ/JUnit string comparisons can throw ComparisonFailure (or appear as
++Gradle's PlaceholderAssertionError), which is not an exact java.lang.AssertionError.
++Keep the approved behavior and either align test preparation with the contract or
++approve a revised contract; compilation failures never count as RED.
++
++`record-red.sh` now receives the same configured long-command timeout floor as
++GREEN and other managed commands. A larger value can be selected through the
++supported upgrade `--long-command-timeout-ms` option; it does not extend approved
++Worker deadlines. A timeout does not prove a stalled Gradle compiler.
++
++If interruption leaves a stage lock and RUNNING ledger, stop after recording the
++phase and cause. Do not repeatedly run RED, delete locks or reset counters. Queue
++`recover-execution` only reconciles executor ownership; it is not a general repair
++for an interrupted RED ledger. Preserve the candidate for explicit recovery or
++approved abort/replanning. These changes prevent the missing timeout protection
++and improve diagnosis; they do not add automatic adoption of interrupted ledgers.
+diff --git a/package-lock.json b/package-lock.json
+index 0b11490..f8e95eb 100644
+--- a/package-lock.json
++++ b/package-lock.json
+@@ -1,12 +1,12 @@
+ {
+   "name": "@frankzhang2026/opencode-android-orchestrator",
+-  "version": "1.3.6",
++  "version": "1.3.7-rc.2",
+   "lockfileVersion": 3,
+   "requires": true,
+   "packages": {
+     "": {
+       "name": "@frankzhang2026/opencode-android-orchestrator",
+-      "version": "1.3.6",
++      "version": "1.3.7-rc.2",
+       "license": "MIT",
+       "dependencies": {
+         "jsonc-parser": "3.3.1"
+diff --git a/package.json b/package.json
+index c802e63..0bfb889 100644
+--- a/package.json
++++ b/package.json
+@@ -1,6 +1,6 @@
+ {
+   "name": "@frankzhang2026/opencode-android-orchestrator",
+-  "version": "1.3.6",
++  "version": "1.3.7-rc.2",
+   "description": "Reusable OpenCode orchestration for Android projects",
+   "license": "MIT",
+   "author": "frankzhang2026",
+diff --git a/src/config/long-command-timeout.ts b/src/config/long-command-timeout.ts
+index d1cc81c..9f5c2ee 100644
+--- a/src/config/long-command-timeout.ts
++++ b/src/config/long-command-timeout.ts
+@@ -11,6 +11,7 @@ export const LONG_RUNNING_AUTOMATION_SCRIPTS = [
+   "claim-task.sh",
+   "orchestrate-task.sh",
+   "quality-gate.sh",
++  "record-red.sh",
+   "resume-review.sh",
+   "resume-task.sh",
+   "submit-review.sh",
+diff --git a/templates/.opencode/agents/scheduled-planner.md b/templates/.opencode/agents/scheduled-planner.md
+index f7fcd77..ac75b49 100644
+--- a/templates/.opencode/agents/scheduled-planner.md
++++ b/templates/.opencode/agents/scheduled-planner.md
+@@ -224,3 +224,11 @@ changed files and next action, fetching paginated evidence where needed. A prede
+ scope alone does not establish ownership of dirty paths. The exact
+ `automation/automation-commit-prefix` path is exempt from dirty checks; its independent
+ format validation and all committed baseline rules still apply.
++
++When specifying RED evidence, align the planned assertion with both
++`expectedFailure.type` and `expectedFailure.origin`. A generic
++`java.lang.AssertionError` contract with the test method as origin requires an
++inline assertion that throws that exact type. Existing AssertJ/JUnit string
++assertions may use ComparisonFailure or a Gradle serialization wrapper; inspect
++the implementation rather than assuming their exception type. Explain this
++constraint in the plan before approval, without changing the requested behavior.
+diff --git a/templates/.opencode/skills/scheduled-quality-coder/SKILL.md b/templates/.opencode/skills/scheduled-quality-coder/SKILL.md
+index 3507320..2a8a814 100644
+--- a/templates/.opencode/skills/scheduled-quality-coder/SKILL.md
++++ b/templates/.opencode/skills/scheduled-quality-coder/SKILL.md
+@@ -55,6 +55,14 @@ it with `./scripts/automation/block-task.sh <TASK-ID> <reason>` before stopping.
+    edits still need contract and agent permission. On the initial coding cycle,
+    add or change the smallest behavior test
+    permitted by `allowedPaths`.
++   Before the first RED run, compare every new assertion with the sealed
++   `expectedFailure.type` and `expectedFailure.origin`. The first non-framework
++   stack frame must match the declared origin, and the test body must appear in
++   the stack. When the contract declares `java.lang.AssertionError` at the test
++   method, throw that exact error inline at a failed behavior comparison; do not
++   move the assertion into a helper or assume AssertJ/JUnit string assertions
++   produce that exact exception. Preserve meaningful expected/actual comparisons.
++   Read every `failureChecks` field together before using a preparation retry.
+ 5. If RED evidence does not already exist, capture a genuine RED result. For a
+    schema V3/V4/V5/V6/V7 contract use:
+ 
+@@ -136,3 +144,14 @@ backoff. An environment/unknown stop is not a request to change production code
+ or weaken tests; preserve the candidate and stop. Provider/model failures still
+ follow the existing approved recovery route. Never edit the recovery ledger,
+ locks or earlier logs. V1..V6 keep their original retry semantics.
++
++## Interrupted verification commands
++
++Use the configured long-command timeout for `record-red.sh` as for GREEN.
++If a tool reports command timeout/interruption, inspect bounded status and the
++phase ledger once. An existing phase lock or a `RUNNING` ledger without a durable
++outcome requires ownership recovery; repeating the command cannot repair it.
++Do not spend the remaining model steps rereading unchanged logs or trying denied
++process commands. Preserve evidence and invoke the allowed `block-task.sh` with
++the exact phase and interruption reason, then stop. Never delete a lock, edit a
++ledger, reset a budget, or treat a timed-out compile as valid RED.
+diff --git a/templates/automation/verification/inventory.cjs b/templates/automation/verification/inventory.cjs
+index 5b10fda..ed1830f 100644
+--- a/templates/automation/verification/inventory.cjs
++++ b/templates/automation/verification/inventory.cjs
+@@ -30,7 +30,7 @@ const recovery = (code, phase) => phase === "baseline"
+   EMPTY_BASELINE: "Correct the focused scope, or approve a new contract explicitly allowing an empty baseline for new tests.",
+   BASELINE_SKIPPED: "Restore the skipped tests or approve a new contract explicitly preserving existing skips.",
+   COVERAGE_MISMATCH: "Restore the listed missing or skipped cases; newly added behavior requires explicit contract coverage.",
+-  CASE_EXPECTATION_MISMATCH: "Inspect each listed case; fix test preparation only within the approved requirements, otherwise revise the contract.",
++  CASE_EXPECTATION_MISMATCH: "Inspect all failureChecks (singleFailure, type, message, origin) together before retrying. Match the declared exception and assertion location; fix test preparation only within the approved requirements, otherwise revise the contract.",
+   EVIDENCE_CHANGED: "Restore the sealed inputs or create a revised task; do not overwrite baseline or RED evidence.",
+   UNSUPPORTED_TEST_INPUT: "Use repository-local test source/resource directories separated from production and generated outputs, then retry with a corrected configuration.",
+   INPUT_CHANGED_DURING_RUN: "Stop concurrent edits or input-generating side effects and rerun; this attempt was not sealed.",
+@@ -132,7 +132,7 @@ function evaluateCoverage(contract, baseline, collection, phase, manifest) {
+   for (const [key, item] of expected) {
+     const result = actual.get(key);
+     if (!result) { coverage.push({ ...item, problem: "missing" }); continue; }
+-    let valid;
++    let valid, failureChecks = null;
+     if (phase === "green") {
+       const sealed = manifest.cases.find(candidate => identity(candidate) === key);
+       valid = result.result === "SUCCESS" || (sealed.allowSkip && result.result === "SKIPPED");
+@@ -140,14 +140,23 @@ function evaluateCoverage(contract, baseline, collection, phase, manifest) {
+       valid = result.result === "SUCCESS" || (item.result === "SKIPPED" && contract.verification.inventory.existingSkips === "preserve" && result.result === "SKIPPED");
+     } else {
+       const failure = item.expectedFailure;
+-      const matched = result.result === "FAILURE" && failure && result.failures.length === 1 &&
+-        result.failures[0].type === failure.type && (!failure.messageIncludes || result.failures[0].message.includes(failure.messageIncludes)) &&
+-        matchesFailureOrigin(failure, result.failures[0], item);
++      if (result.result === "FAILURE" && failure) {
++        const single = result.failures.length === 1;
++        // Evaluate every constraint independently: fixing the exception type must
++        // not consume a second attempt just to discover an already-wrong origin.
++        failureChecks = {
++          singleFailure: single,
++          type: single && result.failures[0].type === failure.type,
++          message: single && (!failure.messageIncludes || result.failures[0].message.includes(failure.messageIncludes)),
++          origin: single && matchesFailureOrigin(failure, result.failures[0], item),
++        };
++      }
++      const matched = failureChecks && Object.values(failureChecks).every(Boolean);
+       valid = item.before === "pass" ? result.result === "SUCCESS" : item.before === "fail" ? matched : result.result === "SUCCESS" || matched;
+     }
+     const entry = { id: item.id, taskPath: item.taskPath, className: item.className, name: item.name,
+       classification: item.classification, intent: item.intent ?? "regression", valid: Boolean(valid), actual: result,
+-      expectedFailure: item.expectedFailure ?? null, actualFailureTypes: (result.failures ?? []).map(failure => failure.type),
++      failureChecks, expectedFailure: item.expectedFailure ?? null, actualFailureTypes: (result.failures ?? []).map(failure => failure.type),
+       allowSkip: item.classification === "regression" && item.result === "SKIPPED" && result.result === "SKIPPED" };
+     cases.push(entry);
+     if (!valid) (result.result === "SKIPPED" ? coverage : mismatches).push({ ...entry, problem: result.result === "SKIPPED" ? "newly-skipped" : "unexpected-result" });
+diff --git a/tests/documentation.test.mjs b/tests/documentation.test.mjs
+index bc254ea..ddac992 100644
+--- a/tests/documentation.test.mjs
++++ b/tests/documentation.test.mjs
+@@ -83,7 +83,7 @@ test("documents fixed-version migration, recovery, and security boundaries porta
+   assert.match(migration, /manifest-managed version/);
+   assert.match(
+     allDocumentation,
+-    /@frankzhang2026\/opencode-android-orchestrator@1\.3\.6/,
++    /@frankzhang2026\/opencode-android-orchestrator@1\.3\.7-rc\.2/,
+   );
+   assert.doesNotMatch(
+     allDocumentation,
+diff --git a/tests/installation-doctor.test.mjs b/tests/installation-doctor.test.mjs
+index b2030b4..fa15818 100644
+--- a/tests/installation-doctor.test.mjs
++++ b/tests/installation-doctor.test.mjs
+@@ -352,7 +352,7 @@ test("installed doctor rejects a self-consistent manifest rewrite of a packaged
+     assert.equal(check(report, "installation-manifest").status, "fail");
+     assert.match(
+       check(report, "installation-manifest").details.join("\n"),
+-      /does not match the packaged 1\.3\.6 template/,
++      /does not match the packaged 1\.3\.7-rc\.2 template/,
+     );
+     assert.equal(
+       check(report, "managed-resources").status,
+diff --git a/tests/release-metadata.test.mjs b/tests/release-metadata.test.mjs
+index 0668718..71e962d 100644
+--- a/tests/release-metadata.test.mjs
++++ b/tests/release-metadata.test.mjs
+@@ -16,9 +16,9 @@ test("ships complete MIT license and third-party notices", () => {
+   const license = read("LICENSE");
+   const notices = read("THIRD_PARTY_NOTICES.md");
+ 
+-  assert.equal(packageJson.version, "1.3.6");
+-  assert.equal(packageLock.version, "1.3.6");
+-  assert.equal(packageLock.packages[""].version, "1.3.6");
++  assert.equal(packageJson.version, "1.3.7-rc.2");
++  assert.equal(packageLock.version, "1.3.7-rc.2");
++  assert.equal(packageLock.packages[""].version, "1.3.7-rc.2");
+   assert.equal(packageJson.license, "MIT");
+   assert.equal(packageJson.author, "frankzhang2026");
+   assert.deepEqual(packageJson.repository, {
+@@ -266,7 +266,7 @@ test("records the verified 0.6.0 Registry publication", () => {
+   const authorization = read("release/0.6.0-authorization.md");
+   const releaseNotes = read("release/0.6.0-release-notes.md");
+ 
+-  assert.equal(packageJson.version, "1.3.6");
++  assert.equal(packageJson.version, "1.3.7-rc.2");
+   assert.doesNotMatch(packageJson.files.join("\n"), /release\//);
+   assert.doesNotMatch(packageJson.files.join("\n"), /tests\//);
+   assert.match(authorization, /Status: PUBLISHED/);
+@@ -323,7 +323,7 @@ test("records the recovered and verified 0.6.1 Registry publication", () => {
+   const authorization = read("release/0.6.1-authorization.md");
+   const releaseNotes = read("release/0.6.1-release-notes.md");
+ 
+-  assert.equal(packageJson.version, "1.3.6");
++  assert.equal(packageJson.version, "1.3.7-rc.2");
+   assert.doesNotMatch(packageJson.files.join("\n"), /release\//);
+   assert.doesNotMatch(packageJson.files.join("\n"), /tests\//);
+   assert.match(authorization, /Status: PUBLISHED/);
+diff --git a/tests/scaffold.test.mjs b/tests/scaffold.test.mjs
+index 5875b62..70fec03 100644
+--- a/tests/scaffold.test.mjs
++++ b/tests/scaffold.test.mjs
+@@ -286,3 +286,10 @@ test("CLI exposes uninstall options and rejects unknown flags", () => {
+   assert.equal(invalid.status, 2);
+   assert.match(invalid.stderr, /Unexpected uninstall argument/);
+ });
++
++test("RED capture receives the configured timeout even when the model requests twenty minutes", async () => {
++  const hooks = await plugin({ directory: process.cwd(), worktree: process.cwd(), $: () => { throw new Error("unexpected shell"); } });
++  const args = { command: "./scripts/automation/record-red.sh TASK-IMGCACHE-001", timeout: 1_200_000 };
++  await hooks["tool.execute.before"]({ tool: "bash", sessionID: "red-session", callID: "red-call" }, { args });
++  assert.equal(args.timeout, DEFAULT_LONG_COMMAND_TIMEOUT_MS);
++});
+diff --git a/tests/test-inventory.test.mjs b/tests/test-inventory.test.mjs
+index 69d46e1..83296b8 100644
+--- a/tests/test-inventory.test.mjs
++++ b/tests/test-inventory.test.mjs
+@@ -133,3 +133,21 @@ test("snapshot includes unchanged custom test resources and detects their edits"
+     assert.equal(readFileSync(file, "utf8").includes("2"), true);
+   } finally { f.cleanup(); }
+ });
++
++test("RED diagnostics identify both exception-type and assertion-origin mismatches before spending another preparation attempt", () => {
++  const value = contract();
++  value.verification.cases[0].expectedFailure.origin = { className: "example.FeatureTest", methodName: "approved" };
++  const sample = structuredClone(red);
++  const raised = sample.cases[1].failures[0];
++  raised.type = "org.gradle.internal.serialize.PlaceholderAssertionError";
++  raised.stack.unshift("example.FeatureTest.assertFormattedPhoneNumber(FeatureTest.kt:10)");
++  const inspect = () => {
++    try { evaluateCoverage(value, baseline, sample, "red"); assert.fail("invalid RED must stay rejected"); }
++    catch (error) { assert.equal(error.code, "CASE_EXPECTATION_MISMATCH"); return error.issues[0]; }
++  };
++  assert.deepEqual(inspect().failureChecks, { singleFailure: true, type: false, message: true, origin: false });
++  raised.type = "java.lang.AssertionError";
++  assert.deepEqual(inspect().failureChecks, { singleFailure: true, type: true, message: true, origin: false });
++  raised.stack.shift();
++  assert.equal(evaluateCoverage(value, baseline, sample, "red").summary.expectedRed, 1);
++});
+diff --git a/tests/upgrade.test.mjs b/tests/upgrade.test.mjs
+index 79dfea5..0807ecf 100644
+--- a/tests/upgrade.test.mjs
++++ b/tests/upgrade.test.mjs
+@@ -296,7 +296,7 @@ test("plans an older-version upgrade without writing recovery or managed files",
+     assert.equal(plan.moduleScope, "all");
+     assert.equal(plan.primaryModule, ":mobile");
+     assert.equal(plan.fromVersion, "0.2.0");
+-    assert.equal(plan.toVersion, "1.3.6");
++    assert.equal(plan.toVersion, "1.3.7-rc.2");
+     assert.equal(plan.desiredFiles.length, 55);
+     assert.equal(plan.removedFiles.length, 0);
+     assert.equal(existsSync(plan.recoveryDirectory), false);
+@@ -411,7 +411,7 @@ test("upgrades unchanged managed files, preserves original merges, and restores
+     assert.equal(result.status, "upgraded");
+     assert.equal(result.moduleScope, "all");
+     assert.equal(result.fromVersion, "0.2.0");
+-    assert.equal(result.toVersion, "1.3.6");
++    assert.equal(result.toVersion, "1.3.7-rc.2");
+     assert.equal(result.commitMessagePrefixStatus, "existing-configured");
+     assert.equal(result.managedFileCount, 55);
+     assert.equal(result.writtenFileCount, 6);
+@@ -431,7 +431,7 @@ test("upgrades unchanged managed files, preserves original merges, and restores
+     assert.equal(lstatSync(join(root, "legacy/user-note.txt")).mode & 0o777, 0o600);
+ 
+     const manifest = readInstallationManifest(root);
+-    assert.equal(manifest.package.version, "1.3.6");
++    assert.equal(manifest.package.version, "1.3.7-rc.2");
+     assert.equal(manifest.installation.id, "upgrade-success-001");
+     assert.equal(manifest.installation.state, "installed");
+     assert.equal(verifyInstallationIntegrity(root).ok, true);
+@@ -478,7 +478,7 @@ test("upgrades unchanged managed files, preserves original merges, and restores
+     assert.equal(doctor.ok, true);
+     assert.match(formatProjectUpgradeResult(result), /Result: UPGRADED/);
+     assert.match(formatProjectUpgradeResult(result), /Module scope: all/);
+-    assert.match(formatProjectUpgradeResult(result), /0\.2\.0 -> 1\.3\.6/);
++    assert.match(formatProjectUpgradeResult(result), /0\.2\.0 -> 1\.3\.7-rc\.2/);
+   } finally {
+     rmSync(root, { recursive: true, force: true });
+   }
+@@ -549,8 +549,8 @@ test("upgrade refresh rebuilds modules, paths, and task allowlists from Gradle",
+ 
+     assert.equal(result.status, "upgraded");
+     assert.equal(result.doctor.ok, true);
+-    assert.equal(result.fromVersion, "1.3.6");
+-    assert.equal(result.toVersion, "1.3.6");
++    assert.equal(result.fromVersion, "1.3.7-rc.2");
++    assert.equal(result.toVersion, "1.3.7-rc.2");
+     assert.deepEqual(
+       config.androidProject.modules.map(({ gradlePath }) => gradlePath),
+       [":component_me", ":mobile"],

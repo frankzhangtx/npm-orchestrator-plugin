@@ -1,0 +1,71 @@
+{
+  "version": 1,
+  "specificationSha256": "7f2573143e2fa275c7ccb352c628470cb95d502639b43981c038ef252808b1d6",
+  "candidateSha256": "a7dd75668da742fc4fa5a550868398946a1d27d7ea389962e2001a550e0e4834",
+  "startedAt": 1792468042742,
+  "executionDeadline": 1792470739757,
+  "cleanupDeadline": 1792471639757,
+  "phase": "RESTORATION_BLOCKED",
+  "intent": "VERIFIED",
+  "error": "Trial interrupted by SIGTERM; restoration required; Error: Restored installation drifted",
+  "upgradeHead": "3311aeaa578fecccdb33a151fcc0089d14cd163e",
+  "taskKey": null,
+  "result": null,
+  "events": [
+    {
+      "phase": "INSTALLED",
+      "at": 1792468058188,
+      "event": "START"
+    },
+    {
+      "phase": "INSTALLED",
+      "at": 1792468091591,
+      "event": "DONE"
+    },
+    {
+      "phase": "UPGRADE_COMMITTED",
+      "at": 1792468091636,
+      "event": "START"
+    },
+    {
+      "phase": "UPGRADE_COMMITTED",
+      "at": 1792468109743,
+      "event": "DONE"
+    },
+    {
+      "phase": "AUTHORIZED",
+      "at": 1792468109813,
+      "event": "START"
+    },
+    {
+      "phase": "AUTHORIZED",
+      "at": 1792468111622,
+      "event": "DONE"
+    },
+    {
+      "phase": "PLANNED",
+      "at": 1792468111666,
+      "event": "START"
+    },
+    {
+      "phase": "PLANNED",
+      "at": 1792468590495,
+      "event": "FAILED"
+    },
+    {
+      "phase": "RESTORED",
+      "at": 1792468590693,
+      "event": "START"
+    },
+    {
+      "phase": "RESTORED",
+      "at": 1792468596543,
+      "event": "DONE"
+    },
+    {
+      "phase": "VERIFIED",
+      "at": 1792468596642,
+      "event": "START"
+    }
+  ]
+}

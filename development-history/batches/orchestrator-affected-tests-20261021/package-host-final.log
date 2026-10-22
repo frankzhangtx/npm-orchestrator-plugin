@@ -1,0 +1,19 @@
+Package version: 1.4.0
+node:internal/modules/run_main:107
+    triggerUncaughtException(
+    ^
+
+AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+
+0 !== 5
+
+    at file:///Users/zhanglong/files/program/cctest/taskdescriptions/orchestrator-affected-tests-20261021/verify-package-host.mjs:22:9 {
+  generatedMessage: true,
+  code: 'ERR_ASSERTION',
+  actual: 0,
+  expected: 5,
+  operator: 'strictEqual',
+  diff: 'simple'
+}
+
+Node.js v24.14.0

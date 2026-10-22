@@ -1,0 +1,86 @@
+[
+  {
+    "attempt": "red-001-229b3bde-f88e-4d86-b4be-698a93aad779",
+    "reason": "CASE_EXPECTATION_MISMATCH",
+    "issues": [
+      {
+        "id": "SINGLE-PLUS",
+        "checks": {
+          "singleFailure": true,
+          "type": false,
+          "message": true,
+          "origin": false
+        }
+      },
+      {
+        "id": "TRIM-WHITESPACE",
+        "checks": {
+          "singleFailure": true,
+          "type": false,
+          "message": true,
+          "origin": false
+        }
+      },
+      {
+        "id": "INTERNAL-CHARACTERS",
+        "checks": {
+          "singleFailure": true,
+          "type": false,
+          "message": true,
+          "origin": false
+        }
+      },
+      {
+        "id": "WHITESPACE-ONLY-TRIM",
+        "checks": {
+          "singleFailure": true,
+          "type": false,
+          "message": true,
+          "origin": false
+        }
+      }
+    ]
+  },
+  {
+    "attempt": "red-002-7dc941f4-cd38-4416-b4bc-ea9b62e350c4",
+    "reason": "CASE_EXPECTATION_MISMATCH",
+    "issues": [
+      {
+        "id": "SINGLE-PLUS",
+        "checks": {
+          "singleFailure": true,
+          "type": true,
+          "message": true,
+          "origin": false
+        }
+      },
+      {
+        "id": "TRIM-WHITESPACE",
+        "checks": {
+          "singleFailure": true,
+          "type": true,
+          "message": true,
+          "origin": false
+        }
+      },
+      {
+        "id": "INTERNAL-CHARACTERS",
+        "checks": {
+          "singleFailure": true,
+          "type": true,
+          "message": true,
+          "origin": false
+        }
+      },
+      {
+        "id": "WHITESPACE-ONLY-TRIM",
+        "checks": {
+          "singleFailure": true,
+          "type": true,
+          "message": true,
+          "origin": false
+        }
+      }
+    ]
+  }
+]

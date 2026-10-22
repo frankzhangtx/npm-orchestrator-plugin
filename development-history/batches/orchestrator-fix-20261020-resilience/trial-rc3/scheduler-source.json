@@ -1,0 +1,11 @@
+{
+  "pid": 8737,
+  "started": "Tue Oct 20 16:52:51 2026",
+  "packageIdentity": {
+    "kind": "local-tgz",
+    "name": "@frankzhang2026/opencode-android-orchestrator",
+    "version": "1.3.7-rc.3",
+    "packageRoot": "/Users/zhanglong/files/program/cctest/taskdescriptions/orchestrator-fix-20261020-resilience/installations/33e223bb02daf956f35062173543a1e37d99155a4c3fe990852a0ee28c3eae27/node_modules/@frankzhang2026/opencode-android-orchestrator",
+    "artifactSha256": "33e223bb02daf956f35062173543a1e37d99155a4c3fe990852a0ee28c3eae27"
+  }
+}

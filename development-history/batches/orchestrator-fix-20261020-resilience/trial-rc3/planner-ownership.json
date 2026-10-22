@@ -1,0 +1,537 @@
+{
+  "version": 1,
+  "token": "fac848cd4e17f065ec415f0406c859609434dff9f8a3d1722c6c8ee19bbb4649",
+  "root": {
+    "pid": 61181,
+    "started": "Tue Oct 20 16:47:27 2026"
+  },
+  "known": [
+    {
+      "pid": 61181,
+      "started": "Tue Oct 20 16:47:27 2026",
+      "ppid": 36089,
+      "pgid": 61181,
+      "owned": true
+    },
+    {
+      "pid": 65724,
+      "ppid": 61181,
+      "pgid": 65724,
+      "started": "Tue Oct 20 16:47:40 2026",
+      "owned": true
+    },
+    {
+      "pid": 68019,
+      "ppid": 61181,
+      "pgid": 61181,
+      "started": "Tue Oct 20 16:47:45 2026",
+      "owned": false
+    },
+    {
+      "pid": 68790,
+      "ppid": 61181,
+      "pgid": 61181,
+      "started": "Tue Oct 20 16:47:47 2026",
+      "owned": true
+    },
+    {
+      "pid": 68938,
+      "ppid": 61181,
+      "pgid": 68938,
+      "started": "Tue Oct 20 16:47:47 2026",
+      "owned": false
+    },
+    {
+      "pid": 69065,
+      "ppid": 61181,
+      "pgid": 69065,
+      "started": "Tue Oct 20 16:47:48 2026",
+      "owned": false
+    },
+    {
+      "pid": 69117,
+      "ppid": 61181,
+      "pgid": 69117,
+      "started": "Tue Oct 20 16:47:48 2026",
+      "owned": false
+    },
+    {
+      "pid": 69118,
+      "ppid": 61181,
+      "pgid": 69118,
+      "started": "Tue Oct 20 16:47:48 2026",
+      "owned": false
+    },
+    {
+      "pid": 69160,
+      "ppid": 61181,
+      "pgid": 69160,
+      "started": "Tue Oct 20 16:47:48 2026",
+      "owned": false
+    },
+    {
+      "pid": 70148,
+      "ppid": 61181,
+      "pgid": 70148,
+      "started": "Tue Oct 20 16:47:50 2026",
+      "owned": false
+    },
+    {
+      "pid": 70301,
+      "ppid": 61181,
+      "pgid": 70301,
+      "started": "Tue Oct 20 16:47:51 2026",
+      "owned": false
+    },
+    {
+      "pid": 70401,
+      "ppid": 61181,
+      "pgid": 70401,
+      "started": "Tue Oct 20 16:47:51 2026",
+      "owned": false
+    },
+    {
+      "pid": 71046,
+      "ppid": 61181,
+      "pgid": 61181,
+      "started": "Tue Oct 20 16:47:53 2026",
+      "owned": false
+    },
+    {
+      "pid": 72051,
+      "ppid": 61181,
+      "pgid": 61181,
+      "started": "Tue Oct 20 16:47:57 2026",
+      "owned": false
+    },
+    {
+      "pid": 73436,
+      "ppid": 61181,
+      "pgid": 61181,
+      "started": "Tue Oct 20 16:48:00 2026",
+      "owned": false
+    },
+    {
+      "pid": 74119,
+      "ppid": 61181,
+      "pgid": 74119,
+      "started": "Tue Oct 20 16:48:02 2026",
+      "owned": false
+    },
+    {
+      "pid": 74172,
+      "ppid": 61181,
+      "pgid": 74172,
+      "started": "Tue Oct 20 16:48:03 2026",
+      "owned": false
+    },
+    {
+      "pid": 74176,
+      "ppid": 61181,
+      "pgid": 74176,
+      "started": "Tue Oct 20 16:48:03 2026",
+      "owned": false
+    },
+    {
+      "pid": 74212,
+      "ppid": 61181,
+      "pgid": 74212,
+      "started": "Tue Oct 20 16:48:03 2026",
+      "owned": false
+    },
+    {
+      "pid": 76523,
+      "ppid": 61181,
+      "pgid": 76523,
+      "started": "Tue Oct 20 16:48:11 2026",
+      "owned": false
+    },
+    {
+      "pid": 76939,
+      "ppid": 61181,
+      "pgid": 76939,
+      "started": "Tue Oct 20 16:48:12 2026",
+      "owned": true
+    },
+    {
+      "pid": 84285,
+      "ppid": 61181,
+      "pgid": 61181,
+      "started": "Tue Oct 20 16:48:30 2026",
+      "owned": false
+    },
+    {
+      "pid": 86492,
+      "ppid": 61181,
+      "pgid": 86492,
+      "started": "Tue Oct 20 16:48:35 2026",
+      "owned": false
+    },
+    {
+      "pid": 86602,
+      "ppid": 61181,
+      "pgid": 86602,
+      "started": "Tue Oct 20 16:48:35 2026",
+      "owned": false
+    },
+    {
+      "pid": 86708,
+      "ppid": 61181,
+      "pgid": 86708,
+      "started": "Tue Oct 20 16:48:36 2026",
+      "owned": false
+    },
+    {
+      "pid": 86849,
+      "ppid": 61181,
+      "pgid": 86849,
+      "started": "Tue Oct 20 16:48:36 2026",
+      "owned": true
+    },
+    {
+      "pid": 86878,
+      "ppid": 86849,
+      "pgid": 86849,
+      "started": "Tue Oct 20 16:48:36 2026",
+      "owned": true
+    },
+    {
+      "pid": 86881,
+      "ppid": 86878,
+      "pgid": 86849,
+      "started": "Tue Oct 20 16:48:36 2026",
+      "owned": true
+    },
+    {
+      "pid": 88804,
+      "ppid": 61181,
+      "pgid": 88804,
+      "started": "Tue Oct 20 16:48:43 2026",
+      "owned": false
+    },
+    {
+      "pid": 89035,
+      "ppid": 61181,
+      "pgid": 89035,
+      "started": "Tue Oct 20 16:48:44 2026",
+      "owned": false
+    },
+    {
+      "pid": 92437,
+      "ppid": 61181,
+      "pgid": 92437,
+      "started": "Tue Oct 20 16:48:51 2026",
+      "owned": true
+    },
+    {
+      "pid": 92935,
+      "ppid": 61181,
+      "pgid": 92935,
+      "started": "Tue Oct 20 16:48:51 2026",
+      "owned": false
+    },
+    {
+      "pid": 97329,
+      "ppid": 61181,
+      "pgid": 97329,
+      "started": "Tue Oct 20 16:49:01 2026",
+      "owned": false
+    },
+    {
+      "pid": 97492,
+      "ppid": 61181,
+      "pgid": 97492,
+      "started": "Tue Oct 20 16:49:01 2026",
+      "owned": false
+    },
+    {
+      "pid": 97693,
+      "ppid": 61181,
+      "pgid": 97693,
+      "started": "Tue Oct 20 16:49:02 2026",
+      "owned": true
+    },
+    {
+      "pid": 1742,
+      "ppid": 61181,
+      "pgid": 1742,
+      "started": "Tue Oct 20 16:49:08 2026",
+      "owned": false
+    },
+    {
+      "pid": 2227,
+      "ppid": 61181,
+      "pgid": 2227,
+      "started": "Tue Oct 20 16:49:09 2026",
+      "owned": false
+    },
+    {
+      "pid": 6274,
+      "ppid": 61181,
+      "pgid": 6274,
+      "started": "Tue Oct 20 16:49:17 2026",
+      "owned": true
+    },
+    {
+      "pid": 6816,
+      "ppid": 61181,
+      "pgid": 6816,
+      "started": "Tue Oct 20 16:49:18 2026",
+      "owned": false
+    },
+    {
+      "pid": 8374,
+      "ppid": 61181,
+      "pgid": 61181,
+      "started": "Tue Oct 20 16:49:21 2026",
+      "owned": false
+    },
+    {
+      "pid": 9127,
+      "ppid": 61181,
+      "pgid": 9127,
+      "started": "Tue Oct 20 16:49:22 2026",
+      "owned": false
+    },
+    {
+      "pid": 9347,
+      "ppid": 61181,
+      "pgid": 9347,
+      "started": "Tue Oct 20 16:49:23 2026",
+      "owned": false
+    },
+    {
+      "pid": 9348,
+      "ppid": 61181,
+      "pgid": 9348,
+      "started": "Tue Oct 20 16:49:23 2026",
+      "owned": true
+    },
+    {
+      "pid": 9589,
+      "ppid": 61181,
+      "pgid": 9589,
+      "started": "Tue Oct 20 16:49:23 2026",
+      "owned": false
+    },
+    {
+      "pid": 9739,
+      "ppid": 61181,
+      "pgid": 9739,
+      "started": "Tue Oct 20 16:49:23 2026",
+      "owned": false
+    },
+    {
+      "pid": 10352,
+      "ppid": 61181,
+      "pgid": 61181,
+      "started": "Tue Oct 20 16:49:25 2026",
+      "owned": false
+    },
+    {
+      "pid": 11651,
+      "ppid": 61181,
+      "pgid": 11651,
+      "started": "Tue Oct 20 16:49:28 2026",
+      "owned": true
+    },
+    {
+      "pid": 11738,
+      "ppid": 61181,
+      "pgid": 11738,
+      "started": "Tue Oct 20 16:49:28 2026",
+      "owned": false
+    },
+    {
+      "pid": 12000,
+      "ppid": 61181,
+      "pgid": 12000,
+      "started": "Tue Oct 20 16:49:29 2026",
+      "owned": false
+    },
+    {
+      "pid": 14195,
+      "ppid": 61181,
+      "pgid": 14195,
+      "started": "Tue Oct 20 16:49:33 2026",
+      "owned": true
+    },
+    {
+      "pid": 14476,
+      "ppid": 61181,
+      "pgid": 14476,
+      "started": "Tue Oct 20 16:49:34 2026",
+      "owned": false
+    },
+    {
+      "pid": 14673,
+      "ppid": 61181,
+      "pgid": 14673,
+      "started": "Tue Oct 20 16:49:34 2026",
+      "owned": false
+    },
+    {
+      "pid": 17112,
+      "ppid": 61181,
+      "pgid": 17112,
+      "started": "Tue Oct 20 16:49:40 2026",
+      "owned": false
+    },
+    {
+      "pid": 17121,
+      "ppid": 61181,
+      "pgid": 17121,
+      "started": "Tue Oct 20 16:49:40 2026",
+      "owned": true
+    },
+    {
+      "pid": 17224,
+      "ppid": 61181,
+      "pgid": 17224,
+      "started": "Tue Oct 20 16:49:41 2026",
+      "owned": false
+    },
+    {
+      "pid": 17319,
+      "ppid": 61181,
+      "pgid": 17319,
+      "started": "Tue Oct 20 16:49:41 2026",
+      "owned": true
+    },
+    {
+      "pid": 29799,
+      "ppid": 61181,
+      "pgid": 29799,
+      "started": "Tue Oct 20 16:50:10 2026",
+      "owned": false
+    },
+    {
+      "pid": 30163,
+      "ppid": 61181,
+      "pgid": 30163,
+      "started": "Tue Oct 20 16:50:11 2026",
+      "owned": false
+    },
+    {
+      "pid": 82800,
+      "ppid": 61181,
+      "pgid": 61181,
+      "started": "Tue Oct 20 16:52:00 2026",
+      "owned": false
+    },
+    {
+      "pid": 83308,
+      "ppid": 61181,
+      "pgid": 83308,
+      "started": "Tue Oct 20 16:52:01 2026",
+      "owned": true
+    },
+    {
+      "pid": 98075,
+      "ppid": 61181,
+      "pgid": 61181,
+      "started": "Tue Oct 20 16:52:30 2026",
+      "owned": false
+    },
+    {
+      "pid": 98654,
+      "ppid": 61181,
+      "pgid": 61181,
+      "started": "Tue Oct 20 16:52:31 2026",
+      "owned": false
+    },
+    {
+      "pid": 98661,
+      "ppid": 98654,
+      "pgid": 61181,
+      "started": "Tue Oct 20 16:52:31 2026",
+      "owned": false
+    },
+    {
+      "pid": 98666,
+      "ppid": 98661,
+      "pgid": 61181,
+      "started": "Tue Oct 20 16:52:31 2026",
+      "owned": false
+    },
+    {
+      "pid": 98875,
+      "ppid": 61181,
+      "pgid": 61181,
+      "started": "Tue Oct 20 16:52:32 2026",
+      "owned": false
+    },
+    {
+      "pid": 99550,
+      "ppid": 61181,
+      "pgid": 61181,
+      "started": "Tue Oct 20 16:52:33 2026",
+      "owned": false
+    },
+    {
+      "pid": 99825,
+      "ppid": 61181,
+      "pgid": 99825,
+      "started": "Tue Oct 20 16:52:33 2026",
+      "owned": false
+    },
+    {
+      "pid": 99832,
+      "ppid": 61181,
+      "pgid": 99832,
+      "started": "Tue Oct 20 16:52:33 2026",
+      "owned": true
+    },
+    {
+      "pid": 99988,
+      "ppid": 61181,
+      "pgid": 99988,
+      "started": "Tue Oct 20 16:52:34 2026",
+      "owned": true
+    },
+    {
+      "pid": 721,
+      "ppid": 61181,
+      "pgid": 721,
+      "started": "Tue Oct 20 16:52:34 2026",
+      "owned": false
+    },
+    {
+      "pid": 5541,
+      "ppid": 61181,
+      "pgid": 61181,
+      "started": "Tue Oct 20 16:52:44 2026",
+      "owned": false
+    },
+    {
+      "pid": 6407,
+      "ppid": 61181,
+      "pgid": 6407,
+      "started": "Tue Oct 20 16:52:46 2026",
+      "owned": false
+    },
+    {
+      "pid": 6577,
+      "ppid": 61181,
+      "pgid": 6577,
+      "started": "Tue Oct 20 16:52:46 2026",
+      "owned": false
+    },
+    {
+      "pid": 8152,
+      "ppid": 61181,
+      "pgid": 8152,
+      "started": "Tue Oct 20 16:52:49 2026",
+      "owned": false
+    },
+    {
+      "pid": 8248,
+      "ppid": 61181,
+      "pgid": 8248,
+      "started": "Tue Oct 20 16:52:50 2026",
+      "owned": false
+    }
+  ],
+  "state": "EXITED",
+  "updatedAt": 1792486370696
+}

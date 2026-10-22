@@ -1,0 +1,11 @@
+{
+  "verifiedAt": "2026-10-22T04:03:08.843049+00:00",
+  "package": "@frankzhang2026/opencode-android-orchestrator",
+  "version": "1.4.0",
+  "latest": "1.4.0",
+  "npmUser": "frankzhang2026",
+  "publishExitCode": 0,
+  "registryIntegrity": "sha512-K5NfHo7rVT+tETixAE29mOQrkwYsLMGa0bLp+1e5sSVDRIURFtxHyyppccOKmqc9zwzD0ZAsw1CkGVfwuP4Erg==",
+  "matchesFrozenArtifact": true,
+  "sha256": "f7664231809f13f560acfec9f09ad06741d4ed9668008780066794cf0b58c9f9"
+}

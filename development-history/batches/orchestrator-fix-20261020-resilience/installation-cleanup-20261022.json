@@ -1,0 +1,32 @@
+{
+  "completedAt": "2026-10-22T07:03:33.908097+00:00",
+  "authorization": "User explicitly requested deletion of unfinished task candidate installations and restoration backups.",
+  "removed": [
+    {
+      "path": "installations",
+      "fileCount": 7498,
+      "logicalBytes": 110901461
+    },
+    {
+      "path": "trial-rc2/original-package",
+      "fileCount": 3744,
+      "logicalBytes": 53357493
+    },
+    {
+      "path": "trial-rc2/installation-restore",
+      "fileCount": 248,
+      "logicalBytes": 5742346
+    },
+    {
+      "path": "trial-rc3/original-package",
+      "fileCount": 3744,
+      "logicalBytes": 53357493
+    },
+    {
+      "path": "trial-rc3/installation-restore",
+      "fileCount": 248,
+      "logicalBytes": 5504689
+    }
+  ],
+  "restorationBackupsDeleted": true
+}

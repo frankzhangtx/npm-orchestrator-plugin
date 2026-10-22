@@ -1,0 +1,51 @@
+{
+  "migratedAt": "2026-10-22T07:06:14.923840+00:00",
+  "method": "same-filesystem directory rename, then git worktree repair",
+  "paths": [
+    {
+      "from": "/Users/zhanglong/files/program/cctest/taskdescriptions/orchestrator-fix-20261020-resilience",
+      "to": "/Users/zhanglong/files/npmprogram/opencode_android_orchestrator/development-history/batches/orchestrator-fix-20261020-resilience"
+    },
+    {
+      "from": "/Users/zhanglong/files/program/cctest/taskdescriptions/orchestrator-affected-tests-20261021",
+      "to": "/Users/zhanglong/files/npmprogram/opencode_android_orchestrator/development-history/batches/orchestrator-affected-tests-20261021"
+    }
+  ],
+  "gitBefore": {
+    "source": {
+      "head": "6fbff5863f94c9e16c3222b81af9de4c47dc61f9",
+      "status": ""
+    },
+    "candidate-source": {
+      "head": "04cf0372e116c02e85fd50a1b5e5cf1136b7ced8",
+      "status": ""
+    },
+    "wordpress": {
+      "head": "6726cfea5c9f726bccbf06a1e76f34a5b011df96",
+      "status": ""
+    },
+    "wordpress-worktrees/task-resilience-phone-rc3-20261020-v1": {
+      "head": "6726cfea5c9f726bccbf06a1e76f34a5b011df96",
+      "status": " M WordPress/src/main/java/org/wordpress/android/util/DomainPhoneNumberUtils.kt\n M WordPress/src/test/java/org/wordpress/android/util/DomainPhoneNumberUtilsTest.kt\n?? automation/tasks/TASK-RESILIENCE-PHONE-RC3-20261020.json\n?? docs/plans/TASK-RESILIENCE-PHONE-RC3-20261020.md\n"
+    }
+  },
+  "gitAfter": {
+    "source": {
+      "head": "6fbff5863f94c9e16c3222b81af9de4c47dc61f9",
+      "status": ""
+    },
+    "candidate-source": {
+      "head": "04cf0372e116c02e85fd50a1b5e5cf1136b7ced8",
+      "status": ""
+    },
+    "wordpress": {
+      "head": "6726cfea5c9f726bccbf06a1e76f34a5b011df96",
+      "status": ""
+    },
+    "wordpress-worktrees/task-resilience-phone-rc3-20261020-v1": {
+      "head": "6726cfea5c9f726bccbf06a1e76f34a5b011df96",
+      "status": " M WordPress/src/main/java/org/wordpress/android/util/DomainPhoneNumberUtils.kt\n M WordPress/src/test/java/org/wordpress/android/util/DomainPhoneNumberUtilsTest.kt\n?? automation/tasks/TASK-RESILIENCE-PHONE-RC3-20261020.json\n?? docs/plans/TASK-RESILIENCE-PHONE-RC3-20261020.md\n"
+    }
+  },
+  "historicalPaths": "Preserved verbatim; use path mapping for current locations. Deleted installation and restoration backups remain deleted."
+}

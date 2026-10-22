@@ -1,0 +1,1 @@
+text(await tools.exec_command({cmd:"git status --short; git branch --show-current; cat .git/info/exclude; python3 - <<'PY'\nfrom pathlib import Path\nimport json\np=Path('.git/automation-runtime/inbox/queue.json');d=json.loads(p.read_text());print('paused',d.get('paused'))\nPY","workdir":"/private/tmp/wordpress-resilience-20261019","max_output_tokens":1000}));

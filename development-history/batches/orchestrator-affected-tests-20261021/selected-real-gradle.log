@@ -1,0 +1,12 @@
+{"selectedTests":{"version":1,"state":"PASSED","targets":[{"gradleTask":":app:testDebugUnitTest","filter":"example.PhoneTest"},{"gradleTask":":app:testDebugUnitTest","filter":"example.CallerTest"}],"reusedFocusedTargets":[],"executedTargets":[{"gradleTask":":app:testDebugUnitTest","filter":"example.PhoneTest"},{"gradleTask":":app:testDebugUnitTest","filter":"example.CallerTest"}],"cases":[{"taskPath":":app:testDebugUnitTest","className":"example.CallerTest","name":"calls","displayName":"calls","result":"SUCCESS","failures":[]},{"taskPath":":app:testDebugUnitTest","className":"example.PhoneTest","name":"formats","displayName":"formats","result":"SUCCESS","failures":[]}],"selection":{"mode":"selected","targets":[{"gradleTask":":app:testDebugUnitTest","filter":"example.PhoneTest"},{"gradleTask":":app:testDebugUnitTest","filter":"example.CallerTest"}],"reasons":["real collector fixture"]}}}
+{"selectedTests":{"version":1,"state":"PASSED","targets":[{"gradleTask":":app:testDebugUnitTest","filter":"example.PhoneTest"},{"gradleTask":":app:testDebugUnitTest","filter":"example.CallerTest"}],"reusedFocusedTargets":[],"executedTargets":[{"gradleTask":":app:testDebugUnitTest","filter":"example.PhoneTest"},{"gradleTask":":app:testDebugUnitTest","filter":"example.CallerTest"}],"cases":[{"taskPath":":app:testDebugUnitTest","className":"example.CallerTest","name":"calls","displayName":"calls","result":"SUCCESS","failures":[]},{"taskPath":":app:testDebugUnitTest","className":"example.PhoneTest","name":"formats","displayName":"formats","result":"SUCCESS","failures":[]}],"selection":{"mode":"selected","targets":[{"gradleTask":":app:testDebugUnitTest","filter":"example.PhoneTest"},{"gradleTask":":app:testDebugUnitTest","filter":"example.CallerTest"}],"reasons":["real collector fixture"]}}}
+Real Gradle selected-test artifacts: /var/folders/hx/fkt_lz1d0ss_m1181nv0hn1m0000gn/T/orchestrator-queue-test-pypSvr
+✔ real Gradle executes selected classes, rejects empty/failing selections, and reruns Test tasks (24318.656209ms)
+ℹ tests 1
+ℹ suites 0
+ℹ pass 1
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 24463.78512

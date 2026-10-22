@@ -1,0 +1,7 @@
+{
+  "source": "delegatedCleanup",
+  "specificationSha256": "a11f7afded52651fd349dcbf60c70b25af2d82576b0e09b3106512b09291f171",
+  "taskKey": "TASK-RESILIENCE-PHONE-RC3-20261020@1",
+  "cleanupDeadline": 1792489578411,
+  "requestedAt": "2026-10-20T09:31:19.444Z"
+}

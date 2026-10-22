@@ -1,0 +1,10 @@
+{
+  "reason": "EXITED",
+  "steps": 19,
+  "exitCode": 0,
+  "signal": null,
+  "processesExited": true,
+  "sessionID": "ses_ea7815c9bffeo98TbNWKHo2Y4J",
+  "startedAt": 1792486047662,
+  "endedAt": 1792486370749
+}

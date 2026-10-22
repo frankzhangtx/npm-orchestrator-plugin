@@ -1,0 +1,10 @@
+{
+  "version": "1.4.0",
+  "sourceHead": "214cb4d0ceb8e763f5b9ebd7b6f152f63776519a",
+  "functionalCommit": "2071c91217f600dad8a6ed31fa0e33e10bd57a0d",
+  "artifact": "/Users/zhanglong/files/program/cctest/taskdescriptions/orchestrator-affected-tests-20261021/frankzhang2026-opencode-android-orchestrator-1.4.0.tgz",
+  "sha256": "f7664231809f13f560acfec9f09ad06741d4ed9668008780066794cf0b58c9f9",
+  "sha512": "2b935f1e8eeb553fad1138b1004dbd98e42b93062c2cc19ad1b2e9fb57b9b1254344851116dc47cb2a6971c38a9aa73dcf0cc3d1902cc350a41957f0b8fe04ae",
+  "installedPackageRoot": "/Users/zhanglong/files/program/cctest/taskdescriptions/orchestrator-affected-tests-20261021/installed/f7664231809f13f560acfec9f09ad06741d4ed9668008780066794cf0b58c9f9/node_modules/@frankzhang2026/opencode-android-orchestrator",
+  "remotePublication": false
+}

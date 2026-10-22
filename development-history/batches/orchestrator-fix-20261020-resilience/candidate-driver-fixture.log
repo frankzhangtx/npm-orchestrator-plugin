@@ -1,0 +1,102 @@
+Fixture evidence: /Users/zhanglong/files/program/cctest/taskdescriptions/orchestrator-fix-20261020-resilience/driver-fixtures/orchestrator-queue-test-r4HW7Q
+node:internal/modules/run_main:107
+    triggerUncaughtException(
+    ^
+
+AssertionError [ERR_ASSERTION]: {
+  "version": 1,
+  "specificationSha256": "4ac97bb2ed1c70a07603a879e47663ac0be4bbff74e537fdb20f4ce266b8aea4",
+  "candidateSha256": "a7dd75668da742fc4fa5a550868398946a1d27d7ea389962e2001a550e0e4834",
+  "startedAt": 1792468101807,
+  "executionDeadline": 1792468337915,
+  "cleanupDeadline": 1792468457915,
+  "phase": "RESTORATION_BLOCKED",
+  "intent": "VERIFIED",
+  "error": "Error: Restored queue must be paused without a fault",
+  "upgradeHead": "9dd2bee574ec7939be126351a072b85aee2bc319",
+  "taskKey": "TASK-TRIAL@1",
+  "result": "COMPLETED",
+  "events": [
+    {
+      "phase": "INSTALLED",
+      "at": 1792468111333,
+      "event": "START"
+    },
+    {
+      "phase": "INSTALLED",
+      "at": 1792468118377,
+      "event": "DONE"
+    },
+    {
+      "phase": "UPGRADE_COMMITTED",
+      "at": 1792468118423,
+      "event": "START"
+    },
+    {
+      "phase": "UPGRADE_COMMITTED",
+      "at": 1792468123597,
+      "event": "DONE"
+    },
+    {
+      "phase": "AUTHORIZED",
+      "at": 1792468123664,
+      "event": "START"
+    },
+    {
+      "phase": "AUTHORIZED",
+      "at": 1792468125427,
+      "event": "DONE"
+    },
+    {
+      "phase": "PLANNED",
+      "at": 1792468125487,
+      "event": "START"
+    },
+    {
+      "phase": "PLANNED",
+      "at": 1792468160010,
+      "event": "DONE"
+    },
+    {
+      "phase": "TASK_FINISHED",
+      "at": 1792468160092,
+      "event": "START"
+    },
+    {
+      "phase": "TASK_FINISHED",
+      "at": 1792468250061,
+      "event": "DONE"
+    },
+    {
+      "phase": "RESTORED",
+      "at": 1792468250162,
+      "event": "START"
+    },
+    {
+      "phase": "RESTORED",
+      "at": 1792468251745,
+      "event": "DONE"
+    },
+    {
+      "phase": "VERIFIED",
+      "at": 1792468251787,
+      "event": "START"
+    }
+  ]
+}
+Error: Restored queue must be paused without a fault
+
+
+1 !== 0
+
+    at file:///Users/zhanglong/files/program/cctest/taskdescriptions/orchestrator-fix-20261020-resilience/candidate-source/tests/trial-driver.integration.mjs:126:8
+    at process.processTicksAndRejections (node:internal/process/task_queues:104:5) {
+  generatedMessage: false,
+  code: 'ERR_ASSERTION',
+  actual: 1,
+  expected: 0,
+  operator: 'strictEqual',
+  diff: 'simple'
+}
+
+Node.js v24.14.0

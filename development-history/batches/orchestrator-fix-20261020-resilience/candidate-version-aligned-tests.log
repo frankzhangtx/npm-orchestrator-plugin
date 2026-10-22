@@ -1,0 +1,47 @@
+✔ packages and links the complete user-documentation inventory (14.394439ms)
+✔ keeps every repository-local documentation link resolvable (3.345967ms)
+✔ documents fixed-version migration, recovery, and security boundaries portably (1.493066ms)
+✔ installation and doctor accept unavailable optional verification capabilities (792.804373ms)
+✔ installed doctor validates dependencies, inventory, files, modes, backups, and configuration (545.49327ms)
+✔ installed doctor warns without failing while the required prefix is unconfigured (420.016591ms)
+✔ installed doctor accepts repository verification-policy changes (449.273816ms)
+✔ installed integrity rejects non-boolean verification-policy changes (636.145645ms)
+✔ installed doctor reports content and executable-mode drift separately (354.642242ms)
+✔ installed doctor detects unsafe adaptive configuration even when it is valid JSON (334.815363ms)
+✔ installed doctor verifies original-file backups independently (345.101536ms)
+✔ installed doctor fails closed for a missing manifest (400.710971ms)
+✔ installed doctor rejects a self-consistent manifest rewrite of a packaged resource (493.093358ms)
+✔ installed doctor reports missing commands and an unavailable SDK (405.917424ms)
+✔ doctor CLI enables installation checks in JSON mode and exits unsuccessfully (5904.674238ms)
+✔ installed doctor accepts isolated auto-commit configuration and rejects invalid queue policies (4282.894076ms)
+✔ installed Planner tools consume real question-hook receipts and reject approval prose (4058.461484ms)
+✔ plans an older-version upgrade without writing recovery or managed files (711.013146ms)
+✔ upgrades legacy configurations without moduleScope in primary mode (984.345251ms)
+✔ upgrades unchanged managed files, preserves original merges, and restores obsolete user files (1334.718491ms)
+✔ upgrade refresh rebuilds modules, paths, and task allowlists from Gradle (914.136383ms)
+✔ upgrade preserves a Superpowers reference that predates Orchestrator installation (1037.081967ms)
+✔ upgrade tolerates permission drift and preserves user AGENTS content (641.919875ms)
+✔ repeated upgrade is byte-idempotent for the current version (388.740047ms)
+✔ same-version upgrade refuses a self-consistent managed-resource rewrite (372.400284ms)
+✔ upgrade refuses an unfinished transaction marker before planning writes (345.458129ms)
+✔ upgrade refuses an unfinished uninstall marker before planning writes (479.815667ms)
+✔ upgrade refuses a user-modified managed file before creating recovery state (214.159074ms)
+✔ upgrade refuses a corrupted original backup before writing (422.558482ms)
+✔ post-upgrade verification failure restores the complete older installation (819.310915ms)
+✔ failed upgrade restores permission drift and changed AGENTS content exactly (569.946864ms)
+✔ apply refuses a tampered upgrade plan before creating control state (796.086327ms)
+✔ upgrade refuses to downgrade a newer installed package (198.801036ms)
+✔ custom queue policies stay editable after repeated upgrade without accepting managed drift (1405.434293ms)
+✔ extracts OpenCode semantic versions from command output (1.992146ms)
+✔ classifies certified, warned, and unsupported OpenCode versions (0.504887ms)
+✔ doctor passes a certified OpenCode executable (0.746433ms)
+✔ doctor warns for an in-range uncertified OpenCode version (0.312889ms)
+✔ doctor fails when OpenCode cannot be executed (1.620437ms)
+ℹ tests 39
+ℹ suites 0
+ℹ pass 39
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 19787.4773

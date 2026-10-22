@@ -1,0 +1,312 @@
+{
+  "plugin": {
+    "root": "/Users/zhanglong/files/npmprogram/opencode_android_orchestrator",
+    "branch": "main",
+    "head": "214cb4d0ceb8e763f5b9ebd7b6f152f63776519a",
+    "status": "",
+    "worktrees": "worktree /Users/zhanglong/files/npmprogram/opencode_android_orchestrator\nHEAD 214cb4d0ceb8e763f5b9ebd7b6f152f63776519a\nbranch refs/heads/main\n\nworktree /Users/zhanglong/files/program/cctest/taskdescriptions/orchestrator-affected-tests-20261021/source\nHEAD 214cb4d0ceb8e763f5b9ebd7b6f152f63776519a\nbranch refs/heads/feat/affected-tests-20261021\n\nworktree /Users/zhanglong/files/program/cctest/taskdescriptions/orchestrator-fix-20261017-223514-upgrade/source\nHEAD 2f4a74f4a996c0ed4deb78e0cb100e0917dcf926\nbranch refs/heads/fix/1.3.5-upgrade-selftest\nprunable gitdir file points to non-existent location\n\nworktree /Users/zhanglong/files/program/cctest/taskdescriptions/orchestrator-fix-20261020-resilience/source\nHEAD 6fbff5863f94c9e16c3222b81af9de4c47dc61f9\nbranch refs/heads/fix/wordpress-resilience-20261020",
+    "version": "1.4.0"
+  },
+  "wordpress": {
+    "root": "/Users/zhanglong/files/program/wordpresslocal/WordPress",
+    "branch": "automation/task-imgcache-001-v1",
+    "head": "2c5e68b4cb82001a799339fa319cc33bc4b55541",
+    "status": "M WordPress/src/test/java/org/wordpress/android/ui/posts/editor/ImageEditorFileUtilsTest.kt\n?? automation/tasks/TASK-IMGCACHE-001.json\n?? docs/plans/TASK-IMGCACHE-001.md",
+    "worktrees": "worktree /Users/zhanglong/files/program/wordpresslocal/WordPress\nHEAD 2c5e68b4cb82001a799339fa319cc33bc4b55541\nbranch refs/heads/automation/task-imgcache-001-v1"
+  },
+  "installation": {
+    "ok": true,
+    "manifestVersion": "1.3.6",
+    "manifestState": "installed",
+    "expectedEntry": "@frankzhang2026/opencode-android-orchestrator@1.3.6",
+    "configuredEntries": [
+      "@frankzhang2026/opencode-android-orchestrator@1.3.6"
+    ],
+    "configurationMatches": true,
+    "pendingTransactions": [],
+    "managedFileCount": 55,
+    "failures": [],
+    "files": {
+      ".automation-plugin/backups/upgrade-20261018100241491-470647a1-01fd-41a2-966e-380a55186457/opencode.json": {
+        "sha256": "c8d1ee3edf120666cbe17711bd5c9a991902fc5efafdeb40a9366cdd81502277",
+        "mode": 420
+      },
+      ".automation-plugin/manifest.json": {
+        "sha256": "1dcb2c6689f47ac360b5695500063e6d732a1f707f138e42ffe836887132bb72",
+        "mode": 384
+      },
+      ".opencode/agents/scheduled-coder.md": {
+        "sha256": "a4e21132fad70837019caf39b76d4a522aa51018da46bf65fada88195ab1a11d",
+        "mode": 420
+      },
+      ".opencode/agents/scheduled-planner.md": {
+        "sha256": "120045428517062f31ffd64827dc256b498dae290929efe7e47deaf0560afc40",
+        "mode": 420
+      },
+      ".opencode/agents/scheduled-reviewer.md": {
+        "sha256": "47f3f83eab2d7d96b483f34f90fbd2847f9d5d67c4b9d382f5273ea740a3f7ca",
+        "mode": 420
+      },
+      ".opencode/commands/abort-task.md": {
+        "sha256": "d35ebe358916280e151fad06de290be02b35785472396bc8d46a4af29b0ce1f7",
+        "mode": 420
+      },
+      ".opencode/commands/acceptance.md": {
+        "sha256": "b910108e63244eaa9dfcfe859ea7e8127ff21e808eb9fbed4fc439db2add573f",
+        "mode": 420
+      },
+      ".opencode/commands/change.md": {
+        "sha256": "ddbcab57d501f10dcd3dc2bb174f7ac51974b9d2dd50d42d49cb8035047dec49",
+        "mode": 420
+      },
+      ".opencode/commands/resume-review.md": {
+        "sha256": "f2b9cd32bbcd545e26dd2510640b243b1af7977fd3a617093c722624d7342e14",
+        "mode": 420
+      },
+      ".opencode/commands/resume-task.md": {
+        "sha256": "9f32fb95b13081ea18a5af4e07ec97a595b6b56292ef282fb3c9231554d41a7b",
+        "mode": 420
+      },
+      ".opencode/skills/scheduled-quality-coder/SKILL.md": {
+        "sha256": "24afbeb3f787988343ba31c41b912221bfcdc93abc789df8baee6866d273332d",
+        "mode": 420
+      },
+      ".opencode/skills/scheduled-quality-orchestrator/SKILL.md": {
+        "sha256": "328c9999bf8d6b37a20f14db6e7ec4eb9276f111ba8b45d6e783a4ddcc008555",
+        "mode": 420
+      },
+      ".opencode/skills/scheduled-quality-reviewer/SKILL.md": {
+        "sha256": "cde6c26146160cebb95524afaccd37bb3b17e27a7de79f4ce6aa651bfe2e6b25",
+        "mode": 420
+      },
+      "AGENTS.md": {
+        "sha256": "0f450d14d028f5f641394f8d54e97700da08abdfed07a314c03cd6555566ee14",
+        "mode": 420
+      },
+      "automation/config.json": {
+        "sha256": "59410aa974504c1fbcec2f14a6324fb14b6bb40bcad13bf67d8b27774f578d1f",
+        "mode": 420
+      },
+      "automation/config.schema.json": {
+        "sha256": "f18a41d8d5d15ce7c2a388d4774146c64a829389957451a325b67676d5f39afb",
+        "mode": 420
+      },
+      "automation/task-contract.schema.json": {
+        "sha256": "ca51da02550809b95ba39705d4a04586a7f76e45b49c2b415d018c1a09f82d03",
+        "mode": 420
+      },
+      "automation/tasks/TASK-TEMPLATE.json.example": {
+        "sha256": "68037a23886706fdd33638a06188de8e1e6016a1a0ecbd08457d9ea8dae898bf",
+        "mode": 420
+      },
+      "automation/verification/collect.init.gradle": {
+        "sha256": "9c3d9095876c26f65537fdae4a6cf52d9226f28b9a4c61cb2b91ada65e70a743",
+        "mode": 420
+      },
+      "automation/verification/contract.cjs": {
+        "sha256": "ba364cf49dc2dad76c08449bb9a108f27b365637d3c3840a0f6d8687e1fa88c6",
+        "mode": 420
+      },
+      "automation/verification/inventory.cjs": {
+        "sha256": "d36ff2ed28f7edc3cf2e7b6ebb8234558de1ff7368f103014963c66ede4dddd5",
+        "mode": 420
+      },
+      "automation/verification/project.cjs": {
+        "sha256": "897d7e8950a1a7312d8bb764a3dc4235db3efeb05829f92ecb3e608d5d9c8464",
+        "mode": 420
+      },
+      "automation/verification/recovery.cjs": {
+        "sha256": "cba937833554fa524e3b7d063205cf5262cd85f646760e25484577d4466d5cb9",
+        "mode": 420
+      },
+      "automation/verification/runtime.init.gradle": {
+        "sha256": "3d3645fdc4197ba5f1c7d04f0d475cca8242a258759f01a24dfd6c0757b1e4f8",
+        "mode": 420
+      },
+      "automation/verification/status.cjs": {
+        "sha256": "996cd42c47b94e1ab8d1ac0de855649904ab4348b8ca16cca94f7ee1bf8e65fb",
+        "mode": 420
+      },
+      "automation/verification/worktree.cjs": {
+        "sha256": "2ad71c57580ca2fd97f0abdcc87e80f3081fefbd293f3379fabc699587b3ed8c",
+        "mode": 420
+      },
+      "docs/plans/README.md": {
+        "sha256": "12620e9cc841353b17880d5cbde6362f8c0522175a430153d7004465833730e1",
+        "mode": 420
+      },
+      "opencode.json": {
+        "sha256": "26f9ef15d28b13c7eea0f661c7ae6ec005805ff5ed6728e1781fd2cceb7eb82e",
+        "mode": 420
+      },
+      "scripts/automation/abort-task.sh": {
+        "sha256": "6c4ba86055d79887ad70fb7ca5d45ea7eaed57ac2527a30ea09541a9fe761ece",
+        "mode": 493
+      },
+      "scripts/automation/accept-and-integrate.sh": {
+        "sha256": "83d5a9af844ce3a9316a9f8d8bd3ef8f1fe7fa597545ac5a6aa581ec1bacc669",
+        "mode": 493
+      },
+      "scripts/automation/acceptance-report.sh": {
+        "sha256": "ceac9fbd7653362ecb18f5c8de953a49985c74acbd78b1cadff3465a1841ffba",
+        "mode": 493
+      },
+      "scripts/automation/approve-and-run.sh": {
+        "sha256": "15443e2de6d0c7ead0c32932807534f329a56a4a58936c2649cd0998c1d916bb",
+        "mode": 493
+      },
+      "scripts/automation/begin-review.sh": {
+        "sha256": "ff5e276940621086399f537ce061a8de8ae05d213fe90ed8eaadb0045f86419a",
+        "mode": 493
+      },
+      "scripts/automation/block-task.sh": {
+        "sha256": "715814e3bdbeaae54fdd07489f01212f9a8d406943af1df8e795e57eef19c3a8",
+        "mode": 493
+      },
+      "scripts/automation/claim-task.sh": {
+        "sha256": "baa051bc581e79b49919b808eca341e2bf3e137c14b29f2813caccec51f54bbc",
+        "mode": 493
+      },
+      "scripts/automation/integration-scope-gate.sh": {
+        "sha256": "e7d29d4465ff62b5a755f276322a5c42bf9c6698318ee7dcbeff2dc99054f398",
+        "mode": 493
+      },
+      "scripts/automation/lib.sh": {
+        "sha256": "e98966dd48804db3f0753abf0c9bf5f43297e70cdc2f8961aeca465aa3e0c2db",
+        "mode": 493
+      },
+      "scripts/automation/orchestrate-task.sh": {
+        "sha256": "5fd14c8f2a97e96a99b1d4ac776dc457dd1dc27519b0d84d7f7adae662b726ee",
+        "mode": 493
+      },
+      "scripts/automation/preflight.sh": {
+        "sha256": "ecdac14b3cca8621f047a3676f3d9f4073c1585690a15a60e4737bd119da2caf",
+        "mode": 493
+      },
+      "scripts/automation/prepare-contract-review.sh": {
+        "sha256": "57036ecd3ca8ee205a8d5b81e2569d84b9567276ba7cb9571b89db54b8b55d74",
+        "mode": 493
+      },
+      "scripts/automation/quality-gate.sh": {
+        "sha256": "ea6f626cb73869d0958e7ab4545970ac2f227c8976bfcd5996074a6a56145662",
+        "mode": 493
+      },
+      "scripts/automation/queue-task.sh": {
+        "sha256": "25ddd03d9a02291c945cade4c425d25647a9474a0a91b0de3c651c808e71c341",
+        "mode": 493
+      },
+      "scripts/automation/record-red.sh": {
+        "sha256": "c440e7dc22604f3202c8848d0b0de097447bd4206d1c747d8b622c0b80040f77",
+        "mode": 493
+      },
+      "scripts/automation/resume-review-fix.sh": {
+        "sha256": "185c328f950c0c285d6a96968d82989b5991f282b2e102e284cb64981430bdd9",
+        "mode": 493
+      },
+      "scripts/automation/resume-review.sh": {
+        "sha256": "fcec8c1afd22af2b967960aeeb792e23a8ddced8e8aaa945b5db5afbe148b96c",
+        "mode": 493
+      },
+      "scripts/automation/resume-task.sh": {
+        "sha256": "1f1ea091aad111333edfabe57323d0439100f3fb4d19fa41c1af4ee81e8aa26f",
+        "mode": 493
+      },
+      "scripts/automation/scope-gate.sh": {
+        "sha256": "d9e2a48c9ee7f5b2b70da34ab046a97daa8f832b891084d28688d56c68cfc368",
+        "mode": 493
+      },
+      "scripts/automation/select-task.sh": {
+        "sha256": "9e6726efe0035734c77c66426b2c778bbf7f069b3e1d73b57b01db43516731c2",
+        "mode": 493
+      },
+      "scripts/automation/shadow-run.sh": {
+        "sha256": "6810d5d1425d0f7c52e8a8b667539171945fdbbef864609324a557201c6b7d4b",
+        "mode": 493
+      },
+      "scripts/automation/show-acceptance-review.sh": {
+        "sha256": "217ab977e2d993a6a9356825e9b94a13373864b7d9365552ece6667ea6b46b96",
+        "mode": 493
+      },
+      "scripts/automation/status.sh": {
+        "sha256": "5cface48d778461ea7ad70054dd9579969bfb4001a3543cf2ac4eefa30ffd4a6",
+        "mode": 493
+      },
+      "scripts/automation/submit-review.sh": {
+        "sha256": "de8ef1d61973c62b8f23877c4004d647a772ce294cce7724284d0e1c811949e4",
+        "mode": 493
+      },
+      "scripts/automation/tests/run-tests.sh": {
+        "sha256": "7e473cc551beb901b936ebd940eb4ef88fed2af4e9060e95eff244ac481d8a94",
+        "mode": 493
+      },
+      "scripts/automation/transition-state.sh": {
+        "sha256": "294d5d0e1c217d9efe3bf48d6f4d0eca1abec7a2216b27ec41da479766b5f7b7",
+        "mode": 493
+      },
+      "scripts/automation/validate-contract.sh": {
+        "sha256": "4726b895672a797bebf7204c5a56a7230e25b645175592b9a7bf41e2d00bea39",
+        "mode": 493
+      },
+      "scripts/automation/verify-integration.sh": {
+        "sha256": "bac5b302d84fae2167c82558fce3dffefd887a682b803d3bb4d6cebbd9bd6e92",
+        "mode": 493
+      },
+      "scripts/automation/verify-task.sh": {
+        "sha256": "bcc2b56ea9971466bc14d4c6c095cbbbd138a5f2c7006d27ef21dae73d70ed8a",
+        "mode": 493
+      }
+    }
+  },
+  "runtime": "/Users/zhanglong/files/program/wordpresslocal/WordPress/.git/automation-runtime",
+  "configured_plugins": [
+    "@frankzhang2026/opencode-android-orchestrator@1.3.6"
+  ],
+  "local_installations": [],
+  "queue": {
+    "paused": false,
+    "fault": null,
+    "active": null,
+    "stage": null,
+    "run_scope_present": false,
+    "run_scope": null,
+    "state_counts": {
+      "ABORTED": 9,
+      "CANCELLED": 8,
+      "COMPLETED": 3,
+      "BLOCKED": 1
+    },
+    "unfinished": [
+      {
+        "key": "TASK-IMGCACHE-001@1",
+        "state": "BLOCKED",
+        "taskRoot": "/Users/zhanglong/files/program/wordpresslocal/WordPress",
+        "waitingReason": "orchestrate-task.sh exited with 1: [automation] ERROR: TASK-IMGCACHE-001 stopped in BLOCKED; inspect /Users/zhanglong/files/program/wordpresslocal/WordPress/.git/automation-runtime/evidence/TASK-IMGCACHE-001"
+      }
+    ],
+    "pending_requests": [],
+    "draft_only": [
+      "TASK-WEEKLYDATE-001@2",
+      "TASK-STRICTDATE-001@2",
+      "TASK-PHONEPREFIX-001@2"
+    ]
+  },
+  "service": {
+    "pid": 9727,
+    "recorded_start": "Mon Oct 19 17:27:24 2026",
+    "pid_exists_identity_unverified": false,
+    "package_identity": {
+      "kind": "registry",
+      "name": "@frankzhang2026/opencode-android-orchestrator",
+      "version": "1.3.6",
+      "packageRoot": "/Users/zhanglong/.cache/opencode/packages/@frankzhang2026/opencode-android-orchestrator@1.3.6/node_modules/@frankzhang2026/opencode-android-orchestrator",
+      "artifactSha256": null
+    }
+  },
+  "locks": [
+    "repository.workspace.lease"
+  ],
+  "restoration": {
+    "ok": true,
+    "errors": []
+  }
+}

@@ -1,0 +1,10 @@
+{
+  "binding": "364c6812df3094214b8f42da39e2366d9aa23da6ce0f7a4b9899612b64d21a87",
+  "candidates": [
+    {
+      "sha256": "a7dd75668da742fc4fa5a550868398946a1d27d7ea389962e2001a550e0e4834",
+      "taskId": "TASK-RESILIENCE-PHONE-20261020",
+      "evidence": "/Users/zhanglong/files/program/cctest/taskdescriptions/orchestrator-fix-20261020-resilience/trial-rc2"
+    }
+  ]
+}

@@ -1,0 +1,15 @@
+✔ exact restoration removes candidate additions, preserves queue audit, and is idempotent (1572.518937ms)
+✔ unregistered edits or corrupted backup stop before any restoration write (902.498413ms)
+✔ interrupted restoration resumes only registered absent or partial original files (1100.924339ms)
+✔ restoration requires paused idle queue and does not snapshot runtime task evidence (1381.376843ms)
+✔ final acceptance detects ignored manifest drift without overwriting it (1093.141418ms)
+✔ explicit host cleanup removes only sealed dependency additions after restoration (1450.449197ms)
+✔ host cleanup cannot replay changed managed files or non-host additions (1095.228656ms)
+ℹ tests 7
+ℹ suites 0
+ℹ pass 7
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 8821.465145

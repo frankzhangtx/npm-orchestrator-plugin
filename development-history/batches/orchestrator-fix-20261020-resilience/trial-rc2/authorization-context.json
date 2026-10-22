@@ -1,0 +1,9 @@
+{
+  "source": "user requested continuation of interrupted resilience fix and real WordPress validation",
+  "candidateBudget": 3,
+  "businessTasksPerCandidate": 1,
+  "priorCandidate": "1.3.7-rc.1 (2026-10-19, artifacts missing; no authority reused)",
+  "originalWordPress": "preserve installation, blocked task and uncommitted edits",
+  "requestSha256": "6030131c4a8e3b09685596052754162db8d536c5291bb3af6afef9bc1468da4b",
+  "startedAt": "2026-10-20T03:47:19.757907+00:00"
+}
