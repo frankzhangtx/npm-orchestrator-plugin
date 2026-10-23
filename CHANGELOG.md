@@ -1,5 +1,26 @@
 # Changelog
 
+## 1.5.0 - 2026-10-23 (local, unpublished)
+
+- Default new capability-based contracts to bounded verification scope V3 with
+  exact test filters, task paths and concrete variants. Unknown coverage blocks
+  for replanning instead of widening to consumers, modules or full suites.
+- Preview verification from a fixed planning commit before proposal approval;
+  seal the preview and configuration into the draft and recheck at enqueue.
+- Make baseline tests optional and off by default. Source snapshots record no
+  passing result; preserve existing definitions and collect real identities at
+  RED. New tests remain tied to the approved behavior cases.
+- Preserve incremental compiler outputs and enable build-cache reuse while
+  requiring real focused Test execution. Clean is an explicit option, never an
+  automatic retry; reject extra verification and cleanup tasks in the Gradle graph.
+- Run RED/GREEN only for the approved targets. Keep independent Review, reuse
+  valid evidence at the same HEAD, and defer additional regressions/builds to
+  final verification on the fixed candidate commit. Reuse completed checkpoints
+  only for that identical candidate and retry only failed parts.
+- Preserve old approvals; require an explicit reviewed reason for new legacy
+  verification contracts. Update planning/execution skills and current-version
+  installation guidance without rewriting historical release evidence.
+
 ## 1.4.0 - 2026-10-21 (local, unpublished)
 
 - Select contract, changed-test and caller regression tests for supported small

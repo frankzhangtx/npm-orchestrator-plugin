@@ -1,7 +1,15 @@
 # Security model
 
+Scope version 3 seals exact test filters and verification task variants before
+execution. The managed Gradle graph guard rejects additional discovered
+verification tasks, unexpected Test tasks and unauthorized cleanup dependencies;
+ordinary compiler/resource prerequisites remain allowed. Snapshot baseline
+records never claim test success. Evidence reuse retains exact HEAD, source,
+configuration, environment and sealed test identities. These are workflow controls
+inside the existing trust model, not a sandbox for arbitrary build scripts.
+
 This document describes the security properties of
-`@frankzhang2026/opencode-android-orchestrator@1.4.0`. The lifecycle foundation
+`@frankzhang2026/opencode-android-orchestrator@1.5.0`. The lifecycle foundation
 completed the real OpenCode `1.14.22` and `1.15.13` release matrix in `0.2.0`;
 `1.0.0` retains that compatibility boundary.
 

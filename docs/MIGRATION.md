@@ -1,9 +1,35 @@
 # Migration guide
 
 This guide covers migration to
-`@frankzhang2026/opencode-android-orchestrator@1.4.0`. Pin the exact version and
+`@frankzhang2026/opencode-android-orchestrator@1.5.0`. Pin the exact version and
 prove the migration in a disposable clone before changing a long-lived
 repository.
+
+## Bounded verification in 1.5.0
+
+With discovered project capabilities, new drafts use scope version 3 (`bounded`).
+The read-only preview works before proposal approval and runs no Gradle. It lists
+exact target/regression filters, concrete task variants, known build dependencies
+and any explicitly authorized module clean tasks. Draft sealing binds that preview
+and configuration; enqueue rejects configuration drift.
+
+Baseline tests default to `snapshot`, which protects source/configuration identity
+without executing Gradle or claiming a passing baseline. Optional `execute` runs
+only approved targets. Snapshot mode supports appending ordinary Java/Kotlin
+`@Test` methods while preserving existing definitions; unsupported edits stop for
+replanning and never turn baseline tests on automatically. RED supplies real case
+identities and freezes them for GREEN and final verification.
+
+Scope 3 enables build-cache reuse and preserves compiler outputs. Its controlled
+entries reject implicit extra verification or cleanup tasks. Configuration-cache
+and shared-daemon restrictions remain for collector/process ownership compatibility.
+Actual dependency compilation can still be required by the selected tasks.
+
+The installer adds four verification resources (62 managed files). Previously
+approved scopes 1/2 retain their original semantics. A new legacy-scope draft
+requires an explicit reviewed fallback reason; it is not the default. Finish or
+abort active tasks before upgrading, review and commit generated files, then
+start a new planning session. Upgrading does not rewrite old approved contracts.
 
 ## 1.4.0 selected regression tests
 
@@ -15,7 +41,7 @@ and the doctor inventory grows from 55 to 58 files.
 
 ## 1.3.1 startup preconditions
 
-Stop the service and finish or abort retained workspaces before upgrading to 1.4.0.
+Stop the service and finish or abort retained workspaces before upgrading to 1.5.0.
 Unstarted waits do not own workspaces and may remain in the inbox. Review and commit
 all generated upgrade files before requesting a new planning snapshot. Old approved
 contracts remain sealed: this upgrade does not change their baseline or verification
@@ -25,7 +51,7 @@ fresh planning/approval.
 The queue document remains schema 1 with additive precondition evidence and the new
 `WAITING_PRECONDITION` state. Old documents are readable. Do not run an older scheduler
 against a queue containing the new state: it cannot resume those waits. Before any
-rollback, stop 1.4.0, cancel unstarted waits and preserve the runtime evidence. Never
+rollback, stop 1.5.0, cancel unstarted waits and preserve the runtime evidence. Never
 delete queue state or locks to make an older scheduler start.
 
 New process identities are captured with the C locale consistently in service,
@@ -86,10 +112,10 @@ protocol boundaries.
 
 | Current state | Correct command | Important distinction |
 | --- | --- | --- |
-| No orchestrator files or manifest | `npx @frankzhang2026/opencode-android-orchestrator@1.4.0 init .` | Normal new installation; all runtime-detected Android modules and registered debug verification tasks are discovered automatically. |
+| No orchestrator files or manifest | `npx @frankzhang2026/opencode-android-orchestrator@1.5.0 init .` | Normal new installation; all runtime-detected Android modules and registered debug verification tasks are discovered automatically. |
 | Published `0.1.0` scaffold only | Remove any project-local `@0.1.0` plugin reference after review, then run `init`. | `0.1.0` did not create a usable managed installation and cannot be upgraded. |
-| `0.2.0` through `0.10.0` manifest-managed installation with intact managed/backup content | Run the `1.4.0` `upgrade`; add `--refresh-gradle-discovery` when generated module/task lists are incomplete. | Refresh replaces all derived module metadata, source paths, protected build files, and task allowlists from one Gradle runtime snapshot. Module scope, operator policies, user-owned AGENTS content, and an existing commit-prefix sidecar remain preserved. |
-| Healthy `1.0.0` through `1.2.3` installation | Stop the queue service, finish or abort retained workspaces, then run the fixed `1.4.0` `upgrade`. | Pending inbox contracts remain durable. Version 1.1.0 adds V4 test inventories, opt-in V5-V8 recovery/continuity and Android build capabilities; older approved contracts retain their authority. |
+| `0.2.0` through `0.10.0` manifest-managed installation with intact managed/backup content | Run the `1.5.0` `upgrade`; add `--refresh-gradle-discovery` when generated module/task lists are incomplete. | Refresh replaces all derived module metadata, source paths, protected build files, and task allowlists from one Gradle runtime snapshot. Module scope, operator policies, user-owned AGENTS content, and an existing commit-prefix sidecar remain preserved. |
+| Healthy `1.0.0` through `1.4.0` installation | Stop the queue service, finish or abort retained workspaces, then run the fixed `1.5.0` `upgrade`. | Pending inbox contracts remain durable. Version 1.1.0 adds V4 test inventories, opt-in V5-V8 recovery/continuity and Android build capabilities; older approved contracts retain their authority. |
 | Manually copied V3 files, no `.automation-plugin/manifest.json` | Finish active tasks, preserve historical evidence separately, then run `init`. | Exact files can be reused; differing managed files fail as conflicts. |
 | Healthy older manifest-managed installation | Run `doctor`, then the fixed target version's `upgrade`. | `upgrade` requires a valid installed manifest and intact original backups. |
 | Healthy current-version manifest | Run `doctor`; repeated `init` or same-version `upgrade` is verification-only and byte-idempotent. | Do not reinstall or delete the manifest. |
@@ -135,7 +161,7 @@ installation of `0.1.0` alone does not require project-file cleanup.
 Initialize with the fixed version:
 
 ```sh
-npx @frankzhang2026/opencode-android-orchestrator@1.4.0 init .
+npx @frankzhang2026/opencode-android-orchestrator@1.5.0 init .
 ```
 
 New installations default to all-module scope, so multiple application modules
@@ -183,7 +209,7 @@ Use the lifecycle command selected by the active manifest:
 
 ```sh
 npx --yes --registry=https://registry.npmjs.org/ \
-  @frankzhang2026/opencode-android-orchestrator@1.4.0 upgrade . --json
+  @frankzhang2026/opencode-android-orchestrator@1.5.0 upgrade . --json
 ```
 
 The command-level Registry option is useful when a company-wide npm Registry
@@ -213,7 +239,7 @@ computed includes dynamically or a company convention plugin applied
 
 ```sh
 npx --yes --registry=https://registry.npmjs.org/ \
-  @frankzhang2026/opencode-android-orchestrator@1.4.0 upgrade . \
+  @frankzhang2026/opencode-android-orchestrator@1.5.0 upgrade . \
   --refresh-gradle-discovery --json
 ```
 
@@ -297,7 +323,7 @@ use the queue rather than the old direct Shell commands. See [Queue operation](Q
 Run all checks from the detected Git root:
 
 ```sh
-npx @frankzhang2026/opencode-android-orchestrator@1.4.0 doctor .
+npx @frankzhang2026/opencode-android-orchestrator@1.5.0 doctor .
 opencode debug config
 opencode debug skill
 opencode debug agent scheduled-planner
@@ -402,7 +428,7 @@ Reviewer verification commands can retry identified environment failures within
 separate persisted budgets; model/provider calls and integration are unchanged.
 Recovery logic extends the existing managed recovery.cjs. Version 1.1.0 has
 52 managed resources, including the Android project capability validator.
-Upgrade with 1.4.0; same-version upgrade does not refresh
+Upgrade with 1.5.0; same-version upgrade does not refresh
 managed templates. See the V7 policy and retained-evidence workflow in QUEUE.md.
 
 

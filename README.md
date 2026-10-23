@@ -2,10 +2,18 @@
 
 Reusable OpenCode orchestration for macOS Android projects.
 
-Version 1.4.0 selects affected regression tests for eligible small changes and
-reuses unchanged verification during independent Review. Uncertain impact falls
-back to module tests; existing approved contracts keep their scope. This local
-version has not been published to npm.
+New tasks use an explicit verification boundary: exact test filters, Gradle tasks
+and concrete variants are previewed before proposal approval and sealed with the
+contract. Baseline tests default off; the initial snapshot records no test pass.
+Incremental compiler outputs and build caches are retained. Unknown impact or
+out-of-bound tasks stop execution for replanning instead of widening the scope.
+
+RED and GREEN execute the focused targets. Independent Review reuses valid
+evidence only for the identical candidate. Supplemental regression and explicit
+build tasks run during final verification on the fixed candidate commit; changed
+HEADs require fresh focused tests. A repeated check of the same verified candidate
+reuses sealed checkpoints. Clean is an explicit opt-in, never an automatic retry.
+See [bounded verification](docs/QUEUE.md) for the complete contract and limitations.
 
 Version 1.3.6 adds interrupted
 trial cleanup and fresh restoration acceptance, and retains the fix for the
@@ -25,8 +33,9 @@ installation changes require a fresh snapshot. Changes to the exact
 Version 1.2.3 selects verification tasks from changed source sets and their
 transitive consumers under explicitly approved contracts. Environment recovery
 retries only failed verification steps while preserving candidate-bound evidence.
-The commands below pin version 1.4.0. For local candidate validation,
-use the frozen local-package workflow in docs/LOCAL-TRIAL.md.
+The commands below pin version 1.5.0, currently a local, unpublished release.
+Use them after publication; until then use the frozen local-package workflow
+in docs/LOCAL-TRIAL.md for candidate validation.
 See the [changelog](CHANGELOG.md) for release details.
 
 Version `0.2.0` is the first published lifecycle release. Version `0.3.0` adds
@@ -58,7 +67,7 @@ unless they explicitly override them. Fixed-directory tasks may use
 `autoCommit`. Optional isolated worktrees allow independent tasks to proceed.
 V8 contracts in 1.1.0 may explicitly approve isolated automatic local integration
 and bounded planning refresh; see [V8 continuity](docs/QUEUE.md#v8-isolated-integration-and-planning-refresh-110). Every queued
-execution requires build, fresh contract-scoped unit tests and independent Review. All
+execution requires approved compilation/test evidence and independent Review. All
 completion and recovery paths remain local and never push.
 Version `1.0.2` also allows queue-owned OpenCode shell commands to use a
 separate process group while preserving Worker ancestry checks. Version `1.0.1`
@@ -103,9 +112,9 @@ project builds retain their configured cache behavior.
 ## Quick start
 
 ```sh
-npx @frankzhang2026/opencode-android-orchestrator@1.4.0 init .
+npx @frankzhang2026/opencode-android-orchestrator@1.5.0 init .
 $EDITOR automation/automation-commit-prefix
-npx @frankzhang2026/opencode-android-orchestrator@1.4.0 doctor .
+npx @frankzhang2026/opencode-android-orchestrator@1.5.0 doctor .
 opencode --agent scheduled-planner .
 ```
 
@@ -115,7 +124,7 @@ a task contract without selecting a primary module. To intentionally restrict
 generated contracts to one module, opt into primary-module scope:
 
 ```sh
-npx @frankzhang2026/opencode-android-orchestrator@1.4.0 init . \
+npx @frankzhang2026/opencode-android-orchestrator@1.5.0 init . \
   --module-scope primary \
   --primary-module :mobile
 ```
@@ -143,7 +152,7 @@ For an existing manifest-managed installation whose generated module/task
 lists are incomplete, refresh all derived Gradle data in one upgrade:
 
 ```sh
-npx @frankzhang2026/opencode-android-orchestrator@1.4.0 upgrade . \
+npx @frankzhang2026/opencode-android-orchestrator@1.5.0 upgrade . \
   --refresh-gradle-discovery
 ```
 
@@ -500,7 +509,7 @@ preparation alone as resource installation;
 ## Init
 
 ```sh
-npx @frankzhang2026/opencode-android-orchestrator@1.4.0 init .
+npx @frankzhang2026/opencode-android-orchestrator@1.5.0 init .
 $EDITOR automation/automation-commit-prefix
 opencode --agent scheduled-planner .
 ```

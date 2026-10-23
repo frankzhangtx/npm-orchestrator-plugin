@@ -39,7 +39,10 @@ test("packs the complete minimal bundled workflow skill inventory", () => {
     assert.equal(result.status, 0, result.stderr);
     const records = JSON.parse(result.stdout);
     assert.equal(records.length, 1);
+    assert.equal(records[0].version, "1.5.0");
     const files = records[0].files;
+    for (const name of ["baseline-snapshot.cjs", "bounded-scope.cjs", "bounded-execution.cjs", "bounded.init.gradle"])
+      assert.ok(files.some(file => file.path === `templates/automation/verification/${name}`), `Missing bounded verification resource: ${name}`);
     const resourceFiles = files
       .map(({ path }) => path)
       .filter((path) => path.startsWith(`${resourceRoot}/`))

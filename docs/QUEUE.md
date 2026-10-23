@@ -1,6 +1,6 @@
 # Queue and background execution
 
-Version `1.4.0` stores proposals and approved contracts under
+Version `1.5.0` stores proposals and approved contracts under
 `<git-common-dir>/automation-runtime/inbox/queue.json`. A contract is runnable
 only after its full plan, version, digest, target branch and commit policy are
 approved and durably recorded. Planning reads a fixed `planningHead`, so another
@@ -49,9 +49,60 @@ active Worker. The script may share the Worker's process group or be a proven
 descendant in a separate OpenCode tool process group; an unrelated process is
 rejected even if it copies the visible run ID.
 
+## Bounded verification (default in 1.5.0)
+
+New capability-based examples use this explicit envelope under `verification`:
+
+```json
+"scope": {
+  "version": 3,
+  "mode": "bounded",
+  "maxManualRetries": 1,
+  "baseline": "snapshot",
+  "buildMode": "incremental",
+  "regressionTests": [],
+  "tasks": { "assembleTasks": [], "lintTasks": [], "deviceTestTasks": [] }
+}
+```
+
+`targetTests` fixes RED/GREEN class or method filters. `regressionTests` lists
+additional final targets. Task arrays select concrete discovered module/variant
+tasks; empty means no extra invocation. A target Test task compiles its necessary
+inputs, so an assemble task is needed only for an actual artifact requirement.
+Repository-required lint or device coverage must be explicit. Unknown coverage
+blocks; no consumer/module/full-suite fallback or automatic variant expansion is
+permitted. Generated tests must stay within the approved behavioral scope.
+
+Before the proposal question, call intake action `preview` with `draftJson`
+containing `{contract, planningHead}` (CLI: `queue preview <directory> <input.json>`).
+It reads configuration at that exact commit, runs no Gradle, and neither writes
+a draft nor consumes an approval receipt. Display its tasks, filters, variants,
+modules and necessary dependency compilation. Draft seals this computed plan and
+configuration hash into its digest. Enqueue rejects a changed preview/configuration.
+Old stored drafts have no added fields and retain their original digest/approval.
+New V1/V2 or unscoped contracts in capable projects require an explicit reviewed
+`verificationFallbackReason`; legacy behavior is never the default.
+
+Baseline test execution is optional and defaults OFF. `snapshot` records source,
+configuration and test-definition identities without Gradle and never claims a
+passing original test result. If preserving original tests cannot be established,
+stop for explanation; do not silently enable baseline or expand testing. Explicit
+`execute` runs only the declared target baseline tests. Incremental compilation
+and build-cache reuse are the defaults, with intermediates retained. Explicit
+`clean` is available; failure recovery never adds clean/cache deletion/global
+`--rerun-tasks`. Cold builds and dependency changes can still compile necessary
+inputs inside the approved graph.
+
+GREEN runs targets only; independent Review can reuse valid GREEN evidence at
+identical HEAD/inputs/environment. Final integration runs targets again at the
+fixed candidate commit, plus approved regression/build/lint/device tasks. Changed
+HEADs cannot share test evidence. Repeated verification at the same fixed candidate
+reuses sealed checkpoints; recovery reruns only the failed part. This avoids
+repeated assembly without weakening candidate identity.
+
 ## Selected regression tests (explicit scope V2)
 
-New generated examples propose `verification.scope` as
+Historical V2 examples propose `verification.scope` as
 `{ "version": 2, "mode": "affected-tests", "variants": "debug", "maxManualRetries": 1 }`.
 An existing V1 `affected` contract retains module-wide verification.
 
@@ -677,11 +728,11 @@ creating a second execution. The approval proof is stored in that item's authori
 
 Planner reads the generated task template and capability configuration at its fixed
 planning commit. It presents affected scope, variants, recovery and execution
-limits for explicit approval. A new unscoped draft in a capable project must include
+limits for explicit approval. In 1.5.0 a new non-bounded draft in a capable project must include
 `verificationFallbackReason` (at least 10 characters, at most 512 UTF-8 bytes) on
 the draft input. This reason is sealed into the digest and displayed in approval
-text; full verification may include every configured Release build. Scoped drafts
-omit the reason. Existing stored drafts and approvals retain their original policy.
+text; full verification may include every configured Release build. Bounded V3 drafts
+omit the reason; new V1/V2 scope drafts require one. Existing stored drafts and approvals retain their original policy.
 
 `queue status`, per-task details and the OpenCode queue tool report the current
 Shell `state` while its owning worker is live. `recordedState` retains the durable
