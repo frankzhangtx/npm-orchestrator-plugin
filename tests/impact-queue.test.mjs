@@ -23,7 +23,7 @@ function approve(f,maxEnvironmentRetries=1,extraPolicy={}) {
   const contract={...taskContract(f,'TASK-IMPACT'),schemaVersion:7,stageRecovery,
     recovery:{...stageRecovery,scope:'baseline',maxManualRetries:1},execution:{version:1,maxRunMs:360000,maxStageMs:240000,terminationGraceMs:1000}};
   contract.verification.scope={version:1,mode:'affected',variants:'debug',maxManualRetries:1};
-  const draft=f.queue.draft({contract,plan:'# Apply scoped verification with immutable retry checkpoints\n',...f.queue.snapshot()});
+  const draft=f.queue.draft({contract,verificationFallbackReason:'Explicitly exercise the previously approved legacy verification and recovery protocol.',plan:'# Apply scoped verification with immutable retry checkpoints\n',...f.queue.snapshot()});
   return f.queue.enqueue(draft.key,draft.digest,f.queue.approvalText(draft));
 }
 const evidence=f=>join(f.queue.storage.runtime,'evidence/TASK-IMPACT');

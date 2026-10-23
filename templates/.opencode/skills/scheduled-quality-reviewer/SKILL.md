@@ -66,12 +66,15 @@ you review.
 
    `./scripts/automation/submit-review.sh <TASK-ID> CHANGES_REQUESTED <summary>`
 
-   The script reruns the focused tests and full unit suite when
-   `unitTestsEnabled` is true, always runs the debug build, runs Android lint
-   when `lintEnabled` is true, and records that fresh output. Therefore do not
-   run those Gradle commands separately before an approval submission. Run an
-   individual verification command only to diagnose a failed submission, and
-   always reserve a step for the final `submit-review.sh` call.
+   The script checks evidence for the approved verification protocol. Scope
+   version 3 reuses sealed GREEN results only for the identical HEAD, files,
+   configuration and environment; independent source review is still required.
+   Extra regression filters and build tasks run during final verification on
+   the fixed candidate commit. A snapshot baseline has no test results: inspect
+   the real preserved-case results from RED and the frozen test definitions.
+   Do not run extra Gradle commands, expand tests/variants, or perform clean to
+   diagnose a failed submission. Report the blocker and retain the approved
+   scope. Always reserve a step for the final `submit-review.sh` call.
 
 ## Independence rules
 
@@ -79,8 +82,8 @@ you review.
   evidence produced by the coder.
 - Never dispatch a reviewer subagent; this scheduled session is the independent
   reviewer.
-- Never approve because the coder says tests passed. The fresh output produced
-  by `submit-review.sh` is the authoritative independent verification.
+- Never approve because the coder says tests passed. The validated evidence
+  returned by `submit-review.sh`, including explicit reuse, is authoritative.
 - Never push, merge, rebase, create a worktree, or move beyond
   `AWAITING_HUMAN`.
 - If verification cannot run, submit `CHANGES_REQUESTED` with the environmental

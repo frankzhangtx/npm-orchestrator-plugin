@@ -201,6 +201,38 @@ function captureBaseline(contractFile, configFile, root, evidence, mode, expecte
   }
   const checkpoint = name => { record.checkpoints[name] = fileHash(path.join(evidence, name)); };
   const persist = () => atomic(ledger, record);
+  const captureProtected = () => {
+    const { matchesPath } = require("./contract.cjs");
+    const protectedFiles = git(root, ["ls-files", "-z"]).split("\0").filter(file => file && config.protectedPaths.some(pattern => matchesPath(pattern, file)));
+    fs.writeFileSync(path.join(evidence, "protected.sha256"), protectedFiles.map(file => `${fileHash(path.join(root, file))}  ${path.join(root, file)}\n`).join(""), { flag: "wx" });
+    checkpoint("protected.sha256");
+  };
+  if (mode === "initial") {
+    require("./bounded-execution.cjs").prepareBuild(contractFile, configFile, root, evidence);
+    assert(digest(inputBinding(root, contractFile, configFile, contract)) === digest(binding), "Build preparation changed baseline inputs");
+    if (fs.existsSync(path.join(evidence, "build-preparation.json"))) checkpoint("build-preparation.json");
+  }
+  if (require("./baseline-snapshot.cjs").enabled(contract)) {
+    assert(mode === "initial" && record.attempts.length === 0, "Interrupted source snapshot requires explicit recovery; baseline execution is not authorized");
+    const attempt = { stage: "baseline-snapshot", mode, state: "RUNNING", testsExecuted: false, outcome: null,
+      queueRunId: process.env.AUTOMATION_QUEUE_RUN_ID, startedAt: Date.now() };
+    record.attempts.push(attempt); persist();
+    try {
+      captureProtected();
+      require("./inventory.cjs").captureSnapshotBaseline(contractFile, configFile, root, evidence);
+      assert(digest(inputBinding(root, contractFile, configFile, contract)) === digest(binding), "Source snapshot inputs changed");
+      attempt.files = artifactHashes(evidence, path.join(evidence, "snapshot-attempts"));
+      attempt.state = "CAPTURED"; attempt.finishedAt = Date.now();
+      checkpoint("baseline-inventory.json"); checkpoint("baseline.json");
+      Object.assign(record, { state: "COMPLETE", testsExecuted: false, outcome: null, nextRunAt: null, waitingReason: null });
+      persist(); return { ok: true, record };
+    } catch (error) {
+      attempt.state = "FAILED"; attempt.finishedAt = Date.now();
+      attempt.failure = classifyFailure({ phase: "baseline-snapshot", reasonCode: error.code ?? "EVIDENCE_CHANGED", log: error.message, exitCode: null });
+      record.state = "FAILED"; record.nextRunAt = null; record.waitingReason = error.message; persist(); throw error;
+    }
+  }
+  const boundedBaseline = contract.verification.scope?.version === 3;
   // One retry pays once even when it completes more than one remaining stage.
   let attemptMode = mode;
   for (const stage of ["baseline-full", "baseline-inventory"]) {
@@ -215,10 +247,15 @@ function captureBaseline(contractFile, configFile, root, evidence, mode, expecte
     const logFile = path.join(attemptDir, "command.log"), fd = fs.openSync(logFile, "wx");
     let result;
     try {
-      const args = stage === "baseline-full"
-        ? ["-euc", 'source "$1"; automation_run_baseline_unit_tests "$3" "$2"', "baseline-capture", path.join(root, "scripts/automation/lib.sh"), root, contractFile]
-        : [path.join(root, "automation/verification/inventory.cjs"), "baseline", contractFile, configFile, root, evidence];
-      result = cp.spawnSync(stage === "baseline-full" ? "bash" : process.execPath, args, { cwd: root, stdio: ["ignore", fd, fd] });
+      if (boundedBaseline && stage === "baseline-full") {
+        fs.writeSync(fd, "NOT_REQUIRED: bounded baseline executes focused targets only; approved regression targets run at final verification.\n");
+        result = { status: 0, signal: null };
+      } else {
+        const args = stage === "baseline-full"
+          ? ["-euc", 'source "$1"; automation_run_baseline_unit_tests "$3" "$2"', "baseline-capture", path.join(root, "scripts/automation/lib.sh"), root, contractFile]
+          : [path.join(root, "automation/verification/inventory.cjs"), "baseline", contractFile, configFile, root, evidence];
+        result = cp.spawnSync(stage === "baseline-full" ? "bash" : process.execPath, args, { cwd: root, stdio: ["ignore", fd, fd] });
+      }
     } finally { fs.closeSync(fd); }
     attempt.finishedAt = Date.now(); attempt.exitCode = result.status; attempt.state = result.status === 0 ? "PASSED" : "FAILED";
     let log = fs.readFileSync(logFile, "utf8"), reasonCode = "";
@@ -240,8 +277,8 @@ function captureBaseline(contractFile, configFile, root, evidence, mode, expecte
     }
     atomic(path.join(attemptDir, "process.json"), { exitCode: result.status, signal: result.signal, error: result.error?.message ?? null });
     attempt.files = [...artifactHashes(evidence, attemptDir), ...(attempt.inventoryFiles ?? []),
-      ...(contract.verification.scope?.version === 2 && fs.existsSync(path.join(evidence,"selected-test-attempts")) ? artifactHashes(evidence,path.join(evidence,"selected-test-attempts")) : [])]; delete attempt.inventoryFiles;
-    if (contract.verification.scope?.version === 2 && fs.existsSync(path.join(evidence,"baseline-selected.json")))
+      ...([2,3].includes(contract.verification.scope?.version) && fs.existsSync(path.join(evidence,"selected-test-attempts")) ? artifactHashes(evidence,path.join(evidence,"selected-test-attempts")) : [])]; delete attempt.inventoryFiles;
+    if ([2,3].includes(contract.verification.scope?.version) && fs.existsSync(path.join(evidence,"baseline-selected.json")))
       attempt.files.push(["baseline-selected.json",fileHash(path.join(evidence,"baseline-selected.json"))]);
     if (attempt.state === "FAILED") {
       attempt.failure = classifyFailure({ phase: stage, reasonCode, log, exitCode: result.status });
@@ -254,22 +291,31 @@ function captureBaseline(contractFile, configFile, root, evidence, mode, expecte
     }
     if (stage === "baseline-full") {
       const baselinePlan = contract.verification.scope ? require("./project.cjs").selectVerification(config,contract,root,[],true) : null;
+      const selectedExecuted = baselinePlan?.testSelection?.mode === "selected" && fs.existsSync(path.join(evidence,"baseline-selected.json"));
+      const noRegression = boundedBaseline;
+      if (noRegression) { attempt.state = "NOT_REQUIRED"; attempt.testsExecuted = false; }
       atomic(path.join(evidence, "baseline-full.json"), { taskId: contract.id, startedAt: new Date(attempt.startedAt).toISOString(),
         finishedAt: new Date(attempt.finishedAt).toISOString(), head: binding.head, worktree: root,
-        ...(baselinePlan?.testSelection?.mode === "selected" ? {baselineSelectedSha256:fileHash(path.join(evidence,"baseline-selected.json"))} : {}),
+        ...(selectedExecuted ? {baselineSelectedSha256:fileHash(path.join(evidence,"baseline-selected.json"))} : {}),
         cwd: require("./project.cjs").gradleBuildRoot(config, root),
-        command: baselinePlan?.testSelection?.mode === "selected" ? [process.execPath,path.join(root,"automation/verification/selected-tests.cjs"),contractFile,configFile,root,evidence,JSON.stringify(baselinePlan),"baseline"] : ["./gradlew", ...(baselinePlan ? baselinePlan.tasks.fullUnitTestTasks : config.gradleVerification.fullUnitTestTasks), ...(process.env.AUTOMATION_WORKER_TOKEN ? ["--no-daemon"] : [])], unitTestsEnabled: true, exitCode: 0, ...(contract.verification.scope?.version === 2 ? {testSelection:require("./project.cjs").selectVerification(config,contract,root,[],true).testSelection} : {}) }, true);
-      const { matchesPath } = require("./contract.cjs");
-      const protectedFiles = git(root, ["ls-files", "-z"]).split("\0").filter(file => file && config.protectedPaths.some(pattern => matchesPath(pattern, file)));
-      fs.writeFileSync(path.join(evidence, "protected.sha256"), protectedFiles.map(file => `${fileHash(path.join(root, file))}  ${path.join(root, file)}\n`).join(""), { flag: "wx" });
-      checkpoint("protected.sha256");
-      if (baselinePlan?.testSelection?.mode === "selected") checkpoint("baseline-selected.json");
+        command: noRegression ? [] : baselinePlan?.testSelection?.mode === "selected" ? [process.execPath,path.join(root,"automation/verification/selected-tests.cjs"),contractFile,configFile,root,evidence,JSON.stringify(baselinePlan),"baseline"] : ["./gradlew", ...(baselinePlan ? baselinePlan.tasks.fullUnitTestTasks : config.gradleVerification.fullUnitTestTasks), ...(process.env.AUTOMATION_WORKER_TOKEN ? ["--no-daemon"] : [])], unitTestsEnabled: true, exitCode: noRegression ? null : 0,
+        ...([2,3].includes(contract.verification.scope?.version) ? {testSelection: noRegression ? { mode: "not-required", targets: [], reasons: ["Approved regression targets run only at final verification"] } : baselinePlan.testSelection} : {}),
+        ...(boundedBaseline ? { mode: "execute", coverage: "approved-regression-targets", testsExecuted: !noRegression, outcome: noRegression ? null : "PASSED", state: noRegression ? "NOT_REQUIRED" : "PASSED" } : {}) }, true);
+      captureProtected();
+      if (selectedExecuted) checkpoint("baseline-selected.json");
     }
     checkpoint(`${stage}.json`); persist();
   }
   // Final baseline bytes match the full-test checkpoint used by the inventory
   // binding. Only successful complete capture publishes baseline.json.
-  fs.copyFileSync(path.join(evidence, "baseline-full.json"), path.join(evidence, "baseline.json"), fs.constants.COPYFILE_EXCL);
+  if (boundedBaseline) {
+    const full = read(path.join(evidence, "baseline-full.json"));
+    atomic(path.join(evidence, "baseline.json"), { ...full, finishedAt: new Date().toISOString(), state: "PASSED", testsExecuted: true, outcome: "PASSED",
+      exitCode: 0, command: [process.execPath, path.join(root, "automation/verification/inventory.cjs"), "baseline", contractFile, configFile, root, evidence],
+      regressionCommand: full.command,
+      coverage: "approved-targets-only", focusedTargets: contract.targetTests, regressionTargets: [],
+      baselineFullSha256: fileHash(path.join(evidence, "baseline-full.json")), baselineInventorySha256: fileHash(path.join(evidence, "baseline-inventory.json")) }, true);
+  } else fs.copyFileSync(path.join(evidence, "baseline-full.json"), path.join(evidence, "baseline.json"), fs.constants.COPYFILE_EXCL);
   checkpoint("baseline.json"); record.state = "COMPLETE"; record.nextRunAt = null; record.waitingReason = null; persist();
   return { ok: true, record };
 }
@@ -431,9 +477,14 @@ function runStage(phase, contractFile, configFile, root, evidence) {
 function verificationBinding(root, contractFile, configFile, contract, evidence) {
   const project = require("./project.cjs"), config = read(configFile);
   const buildRoot = project.gradleBuildRoot(config, root);
-  const runtime = project.inspectBuildRuntime(buildRoot);
+  // V3 binds to the actual RED build JVM and rechecks its files/environment.
+  // Each real test/build attests that runtime again. Read-only checkpoints do
+  // not start a fresh Gradle process merely to repeat `help`.
+  const runtime = contract.verification.scope?.version === 3
+    ? read(path.join(evidence, "test-manifest.json")).runtime : project.inspectBuildRuntime(buildRoot);
+  assert(runtime && runtime.version === 1, "Actual RED build runtime is missing");
   const selectedEvidence = {};
-  if (contract.verification.scope?.version === 2) {
+  if ([2, 3].includes(contract.verification.scope?.version)) {
     const baseline = read(path.join(evidence,"baseline.json"));
     const selectedFile = path.join(evidence,"baseline-selected.json");
     if (baseline.testSelection?.mode === "selected") {
@@ -441,6 +492,11 @@ function verificationBinding(root, contractFile, configFile, contract, evidence)
         "Selected baseline evidence changed");
       selectedEvidence["baseline-selected.json"] = baseline.baselineSelectedSha256;
     } else assert(!fs.existsSync(selectedFile), "Unexpected selected baseline evidence");
+  }
+  if (contract.verification.scope?.version === 3) {
+    const preparation = path.join(evidence, "build-preparation.json");
+    assert(read(preparation).state === "COMPLETE", "Build preparation is incomplete");
+    selectedEvidence["build-preparation.json"] = fileHash(preparation);
   }
   return { ...inputBinding(root, contractFile, configFile, contract, true),
     selectedEvidence,
@@ -528,12 +584,14 @@ function runImpactVerification(phase, contractFile, configFile, root, evidence, 
       record.manualRetriesUsed++; record.startedAt=Date.now();
     } else {
       assert(!["RUNNING","BLOCKED"].includes(record.state), "Interrupted or invalid verification cannot resume automatically");
-      record.checkpoints={}; delete record.reusedFrom;
+      const retain = contract.verification.scope.version === 3 && record.state === "PASSED" &&
+        digest(record.binding) === digest(binding) && digest(record.plan) === digest(plan);
+      if (!retain) { record.checkpoints={}; delete record.reusedFrom; }
     }
     record.binding=binding; record.plan=plan; record.state="IDLE"; record.queueRunId=process.env.AUTOMATION_QUEUE_RUN_ID;
     atomic(path.join(evidence,"verification-plan.json"),plan); save();
     process.stdout.write(`Impact verification: ${JSON.stringify(plan)}\n`);
-    if (contract.verification.scope.version === 2 && phase === "review") {
+    if ([2, 3].includes(contract.verification.scope.version) && phase === "review" && !record.checkpoints.focused) {
       const sourceFile=path.join(directory,"verification-green.json");
       if (fs.existsSync(sourceFile)) {
         const source=read(sourceFile),sourceSha=fileHash(sourceFile);
@@ -551,8 +609,11 @@ function runImpactVerification(phase, contractFile, configFile, root, evidence, 
         }
       }
     }
-    const phases = ["focused",...(plan.testSelection?.mode === "selected" ? ["selected"] : ["unit",...(contract.verification.scope.version === 2 && fs.existsSync(path.join(evidence,"baseline-selected.json")) ? ["baseline-regression"] : [])]),"assemble","lint","device","inventory-check"];
+    const phases = require("./bounded-execution.cjs").verificationPhases(contract, plan, phase, fs.existsSync(path.join(evidence,"baseline-selected.json")));
+    const deferred = contract.verification.scope.version === 3 && phase !== "integration"
+      ? { regressionTests: plan.testSelection.targets, tasks: plan.tasks, until: "fixed-candidate-integration" } : null;
     for (const part of phases) {
+      if (part === "selected" && !plan.testSelection.targets.length) continue;
       const group = {unit:"fullUnitTestTasks",assemble:"assembleTasks",lint:"lintTasks",device:"deviceTestTasks"}[part];
       if (group && !plan.tasks[group].length) continue;
       if (record.checkpoints[part]) {
@@ -617,9 +678,9 @@ function runImpactVerification(phase, contractFile, configFile, root, evidence, 
       }
     }
     record.state="PASSED";record.lastFailure=null;record.waitingReason=null;save();
-    atomic(path.join(evidence,"verification-result.json"),{phase,state:record.state,plan,testSelection:plan.testSelection,reusedFrom:record.reusedFrom,ledgerSha256:sealed,binding,attempts:record.attempts});
+    atomic(path.join(evidence,"verification-result.json"),{phase,state:record.state,plan,deferred,testSelection:plan.testSelection,reusedFrom:record.reusedFrom,ledgerSha256:sealed,binding,attempts:record.attempts});
     atomic(path.join(evidence,"full-test-verification.json"),{taskId:contract.id,runId:process.env.AUTOMATION_QUEUE_RUN_ID,
-      diffSha256:binding.diffSha256,fullTestsExecuted:false,affectedTestsExecuted:plan.testSelection?.mode !== "selected",selectedTestsExecuted:plan.testSelection?.mode === "selected",testSelection:plan.testSelection,phase,tasks:plan.tasks.fullUnitTestTasks,ledgerSha256:sealed});
+      diffSha256:binding.diffSha256,fullTestsExecuted:false,affectedTestsExecuted:plan.testSelection?.mode !== "selected",selectedTestsExecuted:!!record.checkpoints.selected,testSelection:plan.testSelection,deferred,phase,tasks:plan.tasks.fullUnitTestTasks,ledgerSha256:sealed});
     return 0;
   } catch(error){
     if(record && (!sealed || fileHash(file)===sealed)){record.state="BLOCKED";record.waitingReason=error.message;save();}

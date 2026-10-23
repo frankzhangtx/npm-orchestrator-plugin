@@ -1,0 +1,29 @@
+import groovy.json.JsonSlurper
+import org.gradle.api.tasks.testing.Test
+import org.gradle.api.tasks.Delete
+
+// Configuration dependencies are allowed. Additional test suites and cleanup
+// tasks are not: an unexpected dependency stops before any task executes.
+// Gradle 6.7.1 may not publish -D arguments to the daemon's System properties
+// when init scripts load. Read the invocation's properties first.
+def requestProperty = { name -> gradle.startParameter.systemPropertiesArgs[name] ?: System.getProperty(name, '[]') }
+def allowedTests = new JsonSlurper().parseText(requestProperty('orchestrator.allowedTests')) as Set
+def allowedClean = new JsonSlurper().parseText(requestProperty('orchestrator.allowedClean')) as Set
+def requestedVerification = new JsonSlurper().parseText(requestProperty('orchestrator.requestedVerification')) as Set
+def knownVerification = new JsonSlurper().parseText(requestProperty('orchestrator.knownVerification')) as Set
+gradle.taskGraph.whenReady { graph ->
+    if (gradle.startParameter.rerunTasks) {
+        throw new GradleException('Bounded verification forbids --rerun-tasks')
+    }
+    graph.allTasks.each { task ->
+        if (knownVerification.contains(task.path) && !requestedVerification.contains(task.path)) {
+            throw new GradleException('Verification task exceeds approved scope: ' + task.path)
+        }
+        if (task instanceof Test && !allowedTests.contains(task.path)) {
+            throw new GradleException('Test task exceeds approved verification scope: ' + task.path)
+        }
+        if ((task instanceof Delete || task.name.startsWith('clean')) && !allowedClean.contains(task.path)) {
+            throw new GradleException('Cleanup requires explicit approval: ' + task.path)
+        }
+    }
+}

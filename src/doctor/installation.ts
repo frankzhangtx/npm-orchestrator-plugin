@@ -45,7 +45,6 @@ import {
 } from "../installer/opencode-config.js";
 import type { DoctorCheck } from "./index.js";
 
-export const EXPECTED_MANAGED_FILE_COUNT = 58;
 
 interface ExpectedManagedFile {
   path: string;
@@ -113,6 +112,10 @@ const OTHER_TEMPLATE_PATHS = [
   "automation/verification/status.cjs",
   "automation/verification/worktree.cjs",
   "automation/verification/project.cjs",
+  "automation/verification/bounded-scope.cjs",
+  "automation/verification/bounded-execution.cjs",
+  "automation/verification/bounded.init.gradle",
+  "automation/verification/baseline-snapshot.cjs",
   "automation/verification/selected-tests.cjs",
   "automation/verification/test-selection.cjs",
   "automation/verification/verification-reuse.cjs",
@@ -163,6 +166,8 @@ const EXPECTED_FIXED_FILES: readonly ExpectedManagedFile[] = [
 ];
 
 const OPENCODE_CONFIG_SOURCE = "generated/opencode-config-merge";
+// Fixed resources plus the one merged OpenCode configuration file.
+export const EXPECTED_MANAGED_FILE_COUNT = EXPECTED_FIXED_FILES.length + 1;
 
 function filesystemErrorCode(error: unknown): string | null {
   if (

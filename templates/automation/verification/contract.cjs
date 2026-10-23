@@ -73,6 +73,12 @@ function validateContract(contract, config) {
     require("./project.cjs").validateVerificationScope(verification.scope);
     assert(config.androidProject?.capabilities, "Impact verification requires refreshed Gradle discovery");
   }
+  const bounded = verification.scope?.version === 3;
+  const baselineExecuted = !bounded || verification.scope.baseline === "execute";
+  if (bounded) {
+    require("./bounded-scope.cjs").validateTargets(contract.targetTests, "targetTests", false);
+    assert(!Object.hasOwn(verification, "supplementalTests"), "Bounded verification requires supplemental tests to be included in the approved targets; runtime scope expansion is not allowed");
+  }
   if (Object.hasOwn(verification, "supplementalTests")) assert(fields(verification.supplementalTests, ["mode", "maxRevisions"]) &&
     verification.supplementalTests.mode === "baselinePassingNewFiles" && verification.supplementalTests.maxRevisions === 1,
     "Supplemental tests require explicit baselinePassingNewFiles authorization and one revision");
@@ -90,7 +96,8 @@ function validateContract(contract, config) {
       item.test.target < contract.targetTests.length && text(item.test.className) && text(item.test.name), "Invalid exact test identity (include each parameter instance)");
     const key = identity({ taskPath: contract.targetTests[item.test.target].gradleTask, ...item.test });
     assert(!identities.has(key), "Behavior identities overlap across target filters"); identities.add(key);
-    if (item.intent === "preserve") assert(item.before === "pass" && ["existingTest", "baselineCapture", "measuredFact"].includes(item.source) && !Object.hasOwn(item, "expectedFailure"), "Preserved behavior must pass on a measured baseline");
+    if (item.intent === "preserve") assert(item.before === "pass" && (baselineExecuted ? ["existingTest", "baselineCapture", "measuredFact"].includes(item.source) : item.source === "existingTest") && !Object.hasOwn(item, "expectedFailure"),
+      baselineExecuted ? "Preserved behavior must pass on a measured baseline" : "Snapshot-only baseline requires existingTest preservation checked during RED; measured baseline claims are not allowed");
     else if (item.intent === "change") assert(item.before === "fail" && item.source === "userRequirement" && object(item.expectedFailure), "Changed behavior requires an approved expected failure");
     else assert(item.intent === "observe" && item.before === "observe" && ["userRequirement", "existingTest", "baselineCapture", "measuredFact"].includes(item.source), "Invalid observed behavior");
     if (Object.hasOwn(item, "expectedFailure")) {
@@ -123,6 +130,12 @@ function validateContract(contract, config) {
     }
   }
   assert(contract.acceptanceCriteria.every((_, index) => covered.has(index + 1)), "Every acceptance criterion requires an explicit behavior or verification evidence mapping");
+  if (bounded) {
+    const project = require("./project.cjs");
+    require("./bounded-scope.cjs").selectBoundedVerification(config, contract, [], true, {
+      concreteBuilds: project.concreteBuilds, sourceMatchesVariant: project.sourceMatchesVariant
+    });
+  }
   assert(!/replace with|TASK-EXAMPLE|\btodo\b|\btbd\b|placeholder/i.test(JSON.stringify(contract)), "Contract contains placeholders");
 }
 module.exports = { validateContract, identity, matchesPath, assert };

@@ -213,6 +213,25 @@
           }
         }
       ]
+    },
+    "boundedTestTarget": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "gradleTask",
+        "filter"
+      ],
+      "properties": {
+        "gradleTask": {
+          "type": "string",
+          "pattern": "^(?::[A-Za-z0-9_.-]+)+$"
+        },
+        "filter": {
+          "type": "string",
+          "minLength": 1,
+          "pattern": "^[A-Za-z0-9_.#$-]+$"
+        }
+      }
     }
   },
   "required": [
@@ -507,6 +526,90 @@
                   "type": "integer",
                   "minimum": 0,
                   "maximum": 3
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "version",
+                "mode",
+                "maxManualRetries",
+                "regressionTests",
+                "tasks"
+              ],
+              "properties": {
+                "version": {
+                  "const": 3
+                },
+                "mode": {
+                  "const": "bounded"
+                },
+                "maxManualRetries": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 3
+                },
+                "baseline": {
+                  "enum": [
+                    "snapshot",
+                    "execute"
+                  ],
+                  "default": "snapshot"
+                },
+                "buildMode": {
+                  "enum": [
+                    "incremental",
+                    "clean"
+                  ],
+                  "default": "incremental"
+                },
+                "regressionTests": {
+                  "type": "array",
+                  "maxItems": 128,
+                  "uniqueItems": true,
+                  "items": {
+                    "$ref": "#/$defs/boundedTestTarget"
+                  }
+                },
+                "tasks": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "assembleTasks",
+                    "lintTasks",
+                    "deviceTestTasks"
+                  ],
+                  "properties": {
+                    "assembleTasks": {
+                      "type": "array",
+                      "maxItems": 128,
+                      "uniqueItems": true,
+                      "items": {
+                        "type": "string",
+                        "pattern": "^(?::[A-Za-z0-9_.-]+)+$"
+                      }
+                    },
+                    "lintTasks": {
+                      "type": "array",
+                      "maxItems": 128,
+                      "uniqueItems": true,
+                      "items": {
+                        "type": "string",
+                        "pattern": "^(?::[A-Za-z0-9_.-]+)+$"
+                      }
+                    },
+                    "deviceTestTasks": {
+                      "type": "array",
+                      "maxItems": 128,
+                      "uniqueItems": true,
+                      "items": {
+                        "type": "string",
+                        "pattern": "^(?::[A-Za-z0-9_.-]+)+$"
+                      }
+                    }
+                  }
                 }
               }
             }
@@ -898,6 +1001,87 @@
         "properties": {
           "schemaVersion": {
             "const": 8
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "verification": {
+            "required": [
+              "scope"
+            ],
+            "properties": {
+              "scope": {
+                "required": [
+                  "version"
+                ],
+                "properties": {
+                  "version": {
+                    "const": 3
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "targetTests": {
+            "items": {
+              "$ref": "#/$defs/boundedTestTarget"
+            }
+          },
+          "verification": {
+            "not": {
+              "required": [
+                "supplementalTests"
+              ]
+            },
+            "allOf": [
+              {
+                "if": {
+                  "properties": {
+                    "scope": {
+                      "not": {
+                        "required": [
+                          "baseline"
+                        ],
+                        "properties": {
+                          "baseline": {
+                            "const": "execute"
+                          }
+                        }
+                      }
+                    }
+                  }
+                },
+                "then": {
+                  "properties": {
+                    "cases": {
+                      "items": {
+                        "if": {
+                          "properties": {
+                            "intent": {
+                              "const": "preserve"
+                            }
+                          }
+                        },
+                        "then": {
+                          "properties": {
+                            "source": {
+                              "const": "existingTest"
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            ]
           }
         }
       }

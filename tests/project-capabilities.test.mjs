@@ -7,7 +7,7 @@ import test from 'node:test';
 import { validateProjectCapabilities, capabilityVerification, detectionWithCapabilities, detectAndroidProject,
   planAdaptiveProjectTemplates, parseProjectCapabilities } from '../dist/index.js';
 import { createRequire } from 'node:module';
-const { validateConfigurationModel } = createRequire(import.meta.url)('../templates/automation/verification/project.cjs');
+const { validateConfigurationModel, selectVerification } = createRequire(import.meta.url)('../templates/automation/verification/project.cjs');
 const task = (module, name, kind, variant=null) => ({path:`:${module}:${name}`,kind,variant});
 function fixture() {
   const root=mkdtempSync(join(tmpdir(),'android-model-'));
@@ -33,11 +33,18 @@ test('custom sources, non-Debug tasks and reachable JVM dependencies drive confi
     assert.deepEqual(matrix.fullUnitTestTasks,[':handset:testDemoStagingUnitTest',':logic:test']);
     assert.deepEqual(matrix.assembleTasks,[':handset:assembleDemoStaging',':logic:assemble']);
     assert.deepEqual(matrix.deviceTestTasks,[]);assert.deepEqual(matrix.lintTasks,[]);
-    assert.deepEqual(plan.taskContractExample.allowedPaths,['handset/code/**','logic/code/**','handset/checks/**','logic/checks/**']);
+    assert.deepEqual(plan.taskContractExample.allowedPaths,['handset/code/**','handset/checks/**']);
+    assert.deepEqual(plan.taskContractExample.verification.scope,{version:3,mode:'bounded',maxManualRetries:1,baseline:'snapshot',buildMode:'incremental',regressionTests:[],tasks:{assembleTasks:[],lintTasks:[],deviceTestTasks:[]}});
+    const preview=selectVerification(plan.automationConfig,plan.taskContractExample,f.root,[],true);
+    assert.deepEqual(preview.buildDependencies,[':logic']);
+    assert.deepEqual(preview.tasks.assembleTasks,[]);
     assert.equal(plan.automationConfig.androidProject.primaryModule,':handset');
     validateConfigurationModel(plan.automationConfig,f.root);
     const primary=planAdaptiveProjectTemplates(f.root,{projectDetection:detection,moduleScope:'primary',primaryModule:':logic',gradleVerification:matrix});
     assert.deepEqual(primary.taskContractExample.allowedPaths,['logic/code/**','logic/checks/**']);
+    assert.equal(primary.taskContractExample.targetTests[0].gradleTask,':logic:test');
+    assert.equal(primary.taskContractExample.targetTests[0].filter,'example.ReplaceWithFocusedTest');
+    selectVerification(primary.automationConfig,primary.taskContractExample,f.root,[],true);
     assert.deepEqual(primary.automationConfig.gradleVerification.fullUnitTestTasks,matrix.fullUnitTestTasks);
     f.write('config.json',JSON.stringify(plan.automationConfig));
     const shell=spawnSync('node',['templates/automation/verification/project.cjs',join(f.root,'config.json'),f.root],{encoding:'utf8'});

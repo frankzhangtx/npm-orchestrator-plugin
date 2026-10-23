@@ -19,6 +19,7 @@ export async function queueCli(args: string[]): Promise<unknown> {
       list: "<planningHead> [prefix] [query] [cursor] [limit] List bounded stable file pages",
       read: "<planningHead> <path> Read a file at a fixed commit",
       "read-chunk": "<planningHead> <path> [cursor] Read a bounded exact file chunk",
+      preview: "<input.json> Read bounded verification at planningHead without approval, queue changes or Gradle",
       draft: "<input.json> Seal contract, plan, scheduling and commit policy in the inbox",
       enqueue: "<key> <digest> <approval> Approve a reviewed draft; new contracts resume the queue and start or wake its service",
       cancel: "<key> Cancel an unstarted contract", revoke: "<key> Revoke future commit authorization",
@@ -87,6 +88,10 @@ export async function queueCli(args: string[]): Promise<unknown> {
   if (action === "list") return queue.listSnapshot(values[0] ?? "", values[1], values[2], values[3], values[4] === undefined ? undefined : Number(values[4]));
   if (action === "read") return queue.readSnapshot(values[0] ?? "", values[1] ?? "");
   if (action === "read-chunk") return queue.readSnapshotChunk(values[0] ?? "", values[1] ?? "", values[2]);
+  if (action === "preview") {
+    invariant(values.length === 1, "preview requires an input JSON file containing contract and planningHead");
+    return queue.preview(JSON.parse(readFileSync(values[0]!, "utf8")) as DraftInput);
+  }
   if (action === "draft") {
     invariant(values.length === 1, "draft requires an input JSON file");
     const draft = queue.draft(JSON.parse(readFileSync(values[0]!, "utf8")) as DraftInput);

@@ -37,8 +37,10 @@ it with `./scripts/automation/block-task.sh <TASK-ID> <reason>` before stopping.
    - For `PENDING`, run `./scripts/automation/claim-task.sh <TASK-ID>`. It
      performs preflight, verifies that the only orchestration-visible initial
      changes are the two sealed, uncommitted planning artifacts, captures a
-     green unit-test baseline when `unitTestsEnabled` is true or records the
-     configured skip otherwise, and changes the task to `CODING`. The status
+     the approved baseline evidence, and changes the task to `CODING`. Scope
+     version 3 defaults to a source/configuration snapshot with no Gradle or
+     baseline tests. Only `scope.baseline: execute` authorizes baseline tests;
+     older contracts retain their original baseline behavior. The status
      JSON's `runtime.effectiveWorktreeAllowlist` contains human-owned local paths that
      are outside the task; do not edit, stage, report, or reason from those
      paths or from `.automation-worktree-allowlist`. Never edit, stage, or
@@ -91,6 +93,16 @@ it with `./scripts/automation/block-task.sh <TASK-ID> <reason>` before stopping.
    inside the contract's path and file-count limits. Do not refactor unrelated
    code.
 7. Run `./scripts/automation/quality-gate.sh <TASK-ID>`.
+   With scope version 3 this runs only the fixed target tests. Supplemental
+   regression filters and explicit build tasks are deferred to final verification
+   on the committed candidate. Do not run Gradle separately, add tests for
+   unrelated behavior, widen filters, enable baseline tests, run clean, delete
+   build outputs or use `--rerun-tasks`. Incremental compiler outputs and build
+   cache are retained while requested tests execute for real. An unknown impact
+   or insufficient approved scope requires a revised contract, never fallback
+   to module/all-variant verification. In snapshot mode, preserve existing test
+   definitions and fixtures; the collector supports appending ordinary tests
+   to an existing Java/Kotlin class and blocks edits it cannot safely classify.
 8. If the first gate attempt in the current coding cycle fails while state
    remains `CODING`, load
    `android-orchestrator-systematic-debugging`, diagnose the root cause, and make at most one fix

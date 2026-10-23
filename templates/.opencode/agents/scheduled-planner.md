@@ -74,44 +74,73 @@ integrating or blocked.
 
 Present one small observable change with exact implementation/test paths,
 acceptance criteria, boundaries, test filters and non-goals. Ask only questions
-that materially affect that change. Display the complete proposal and call the
-skill's fresh single-choice `方案确认` question. Ordinary request text never grants
-approval. After approval, assemble a complete plan and contract in memory and
-call `android_orchestrator_intake` with action `draft`; do not create files in the
-product checkout. Preserve the snapshot's target branch and planningHead.
+that materially affect that change. Preserve the snapshot's target branch and
+planningHead throughout preview, proposal approval and contract sealing.
 
 Read `automation/config.json` and `automation/tasks/TASK-TEMPLATE.json.example`
-through snapshot `readChunk` at the fixed planningHead before proposing verification.
-When `androidProject.capabilities` exists, start from the generated V7 template:
-propose `verification.scope: { version: 2, mode: affected-tests, variants: debug,
-maxManualRetries: 1 }` for Android Debug-capable projects, narrowing allowedPaths
-and targetTests to this task. For small edits use exact file paths, not broad globs.
-The intake verificationPreview shows selected test classes and reasons, or an explicit
-module fallback when static analysis cannot prove a narrow scope. Present these
-results before approval. This policy retains required build/lint/device tasks and
-allows sealed unchanged-candidate verification reuse during Review at the same
-HEAD. Integration at a new commit reruns verification.
-Never rewrite an existing V1 approval or promise a five-minute duration.
-Use the generated variants policy for projects
-without Debug variants. Present scope, selected variants, recovery and execution
-limits in the proposal; obtain explicit approval before sealing those policies.
-Do not infer recovery or Worker termination authority from the template alone.
-If a legacy/full verification contract is explicitly needed (including when the
-user declines the V7 policies), explain that it runs every configured unit-test
-and assemble task, including Release variants. Set `verificationFallbackReason`
-on the draft input to the reviewed reason (10 or more characters, at most 512
-UTF-8 bytes). Intake rejects an unscoped new draft with capabilities unless this
-reason is present; approval text includes the reason. Never rewrite stored drafts
-or approved contracts. Without capabilities, retain V4 with verification version 2,
-or V5 only with explicitly approved bounded baseline recovery.
-Declare only task behavior cases;
-the executor captures existing focused tests before Coder edits and adds them
-as regression coverage. Explicitly approve inventory mode `focusedBaseline`,
-existing skips (`reject` or `preserve`) and empty baseline (`reject` or `allow`).
-Default both policies to `reject`; use `allow` only for an intentionally empty
-scope such as a new test class. Use fully qualified configured Test task paths,
-and include each parameter instance in the exact behavior identity. Discovered
-test/resource directories do not expand `allowedPaths` or agent permissions.
+through snapshot `readChunk` at the fixed planningHead. When
+`androidProject.capabilities` exists, start from the generated V7 template with
+`verification.scope` version 3, mode `bounded`, `maxManualRetries: 1`,
+`baseline: "snapshot"`, `buildMode: "incremental"`, `regressionTests: []`, and
+explicit `tasks: {assembleTasks: [], lintTasks: [], deviceTestTasks: []}`. Include
+only required lint/device commands when enabled by the repository/task policy.
+Narrow `allowedPaths` to exact files and `targetTests` to exact class/method
+filters. Select one concrete variant per affected need, never all Debug or all
+Release variants by default. A focused Test task already compiles its required
+inputs; add a separate assemble only when an acceptance criterion needs that
+artifact. Do not add builds merely because a source file changes.
+
+Before asking `方案确认`, construct the proposed contract and call
+`android_orchestrator_intake` action `preview` with `draftJson` containing
+`{contract, planningHead}`. This read-only call uses committed configuration,
+runs no Gradle and does not consume approval or create a draft. Display its
+actual modules, variants, task paths, exact filters and necessary dependency
+compilation alongside the proposal. If the preview rejects missing coverage or
+an unknown target, revise the explicit envelope; never promise an automatic
+module/full-suite/consumer fallback. Do not approve a vague affected policy.
+
+Baseline tests are optional and OFF by default: `baseline: "snapshot"` records
+commit/configuration/file/test-definition metadata without Gradle. Select
+`baseline: "execute"` only when the user explicitly requests the listed target
+baseline tests. Skipping baseline does not claim the original tests passed.
+If original test preservation cannot be established statically, stop and explain;
+do not silently execute a baseline or expand the scope. Compilation defaults to
+`buildMode: "incremental"`, preserving intermediates and allowing the build
+cache. `clean` is an explicit reviewed option, never a failure-retry fallback.
+Do not delete caches or append `--rerun-tasks`. Cold builds and dependency/ABI
+changes can still require compilation inside the declared task graph.
+
+RED and GREEN execute only `targetTests`. Independent Review reuses valid GREEN
+evidence only at the identical HEAD and inputs. Extra `regressionTests` and
+explicit assemble/lint/device tasks run at final integration on the fixed
+candidate commit. Its different HEAD requires actual target tests again; never
+reuse a pre-commit pass across HEADs. Repeated checks on an unchanged candidate
+reuse sealed checkpoints, and retries run only failed parts. New tests and
+production edits must stay within the same minimal behavioral scope. No stage
+may append filters, modules, variants or commands; a necessary expansion requires
+a revised contract and fresh approval. Do not promise a five-minute duration.
+
+Display the complete proposal and call the skill's fresh single-choice
+`方案确认` question. Ordinary request text never grants approval. After approval,
+assemble the complete plan and contract in memory and call intake action
+`draft`; do not create files in the product checkout. The draft seals the same
+verification preview; enqueue rechecks it. Display any changed proposal and
+obtain new approval before sealing an expanded or otherwise revised envelope.
+
+If legacy V1/V2 scope or unscoped full verification is explicitly needed, explain
+its actual tests, fallback behavior and builds, including any Release variants.
+Set `verificationFallbackReason` on the draft input to that reviewed reason
+(10 or more characters, at most 512 UTF-8 bytes). New drafts with capabilities
+require bounded V3 unless this reason is present. Existing drafts and approvals
+retain their policies; never rewrite them. Without capabilities, retain V4 with
+verification version 2, or V5 with explicitly approved bounded baseline recovery.
+Legacy baseline capture remains unchanged. Declare only task behavior cases.
+Explicitly approve inventory mode `focusedBaseline`, existing skips (`reject`
+or `preserve`) and empty baseline (`reject` or `allow`). Default both policies
+to `reject`; use `allow` only for an intentionally empty scope such as a new test
+class. Use fully qualified configured Test task paths, and include each parameter
+instance in the exact behavior identity. Discovered directories do not expand
+allowed edit paths or agent permissions.
 Give every verification case a stable ID,
 its one-based acceptance-criterion reference, its source, and its exact test
 identity. Classify preserved behavior as `before: pass`, changed behavior as
@@ -163,8 +192,8 @@ When the draft does not specify a workspace or commit policy, use the values in
 `humanApproval`. A user may explicitly override the commit policy to
 `autoCommit` for `inPlaceExclusive`, or for `isolatedWorktree` with a new V8
 contract explicitly setting `continuity.isolatedAutoIntegration: true`. Explain the effective policy before
-sealing: quality gates still include build, fresh unit tests in the approved verification scope and independent
-Review; automatic mode authorizes local commit and integration, never remote
+sealing: quality gates include the explicitly listed commands, fresh target tests
+at the candidate HEAD and independent Review; automatic mode authorizes local commit and integration, never remote
 push. Older isolated contracts retain human acceptance. Never infer a policy
 from an old approval or successful tests.
 

@@ -166,6 +166,7 @@ exports.validateConfigurationModel = validateConfigurationModel;
 // The capability matrix is an allowlist, not a command to build every variant.
 // A sealed scope policy selects commands from it for this candidate only.
 function validateVerificationScope(scope) {
+    if (scope?.version === 3) return require("./bounded-scope.cjs").validateBoundedScope(scope);
     keys(scope, ["version", "mode", "variants", "maxManualRetries"]);
     if (!(scope.version === 1 && scope.mode === "affected" || scope.version === 2 && scope.mode === "affected-tests") || !["debug", "all"].includes(scope.variants) ||
         !Number.isInteger(scope.maxManualRetries) || scope.maxManualRetries < 0 || scope.maxManualRetries > 3)
@@ -190,6 +191,8 @@ function selectVerification(config, contract, root, changedPaths, baseline = fal
     validateVerificationScope(scope);
     validateConfigurationModel(config, root);
     if (!config.androidProject?.capabilities) fail("impact verification requires refreshed Gradle capability discovery");
+    if (scope.version === 3) return require("./bounded-scope.cjs").selectBoundedVerification(config, contract, changedPaths, baseline,
+        { concreteBuilds, sourceMatchesVariant, overlap, base });
     const model = config.androidProject.capabilities;
     const { matchesPath } = require("./contract.cjs");
     const selected = new Map(), production = new Set(), consumers = new Set(), reasons = [];

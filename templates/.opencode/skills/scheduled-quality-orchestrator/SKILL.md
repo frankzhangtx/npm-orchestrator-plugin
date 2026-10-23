@@ -31,7 +31,12 @@ question requirements below remain in force.
    results matter. Use legacy `action: read` only for known-small files. The live
    product checkout may be occupied.
 2. Describe one observable behavior change, exact allowed paths, acceptance,
-   test filters, file limit and non-goals. Ask a fresh single-choice `question`
+   test filters, file limit and non-goals. With capabilities, construct bounded
+   scope V3 and call intake action `preview` with `draftJson` containing
+   `{contract, planningHead}` before approval. Display its exact modules, variants,
+   tasks, filters and necessary dependency compilation. Preview is read-only and
+   runs no Gradle. Baseline tests default OFF (`baseline: "snapshot"`); build
+   mode defaults to `incremental` with caches retained. Ask a fresh single-choice `question`
    titled `方案确认`, with `批准方案，生成计划和任务合同。` and `调整方案。`.
    Initial request text and direct chat approval phrases are never approval.
 3. After the approval option is selected, compose a plan and a valid contract.
@@ -52,7 +57,8 @@ question requirements below remain in force.
    digest, target local branch/planningHead, allowed paths/file count, tests,
    acceptance/non-goals, dependencies/notBefore, workspace and commit policies.
    Human policy says “执行后等待人工确认提交”; automatic policy says
-   “通过构建、全量单测和独立 Review 后自动本地提交并集成，不推送远程”.
+   the exact returned `approvalText`, including the bounded verification envelope.
+   Do not replace it with full-suite or all-variant language.
 6. Immediately call `question` with the exact `question` arguments returned
    by `draft` (header `合同确认`). Only the selected approval may call intake `enqueue` with
    `{key, digest, approval}`. A new version requires a new approval.
@@ -70,7 +76,7 @@ reach `READY_TO_COMMIT` and are finalized by the executor with their sealed
 contract authorization. Never create a final human approval for autoCommit.
 
 `/acceptance <TASK-ID>` reads the current item and acceptance report. Present
-the candidate/diff hash, target branch, baseline, build, actual full-test results,
+the candidate/diff hash, target branch, baseline mode, approved build and actual test results,
 independent Review, scope and commit policy. If the local target has advanced
 for a human-approval isolated candidate, request `revalidate`. That job waits for the same
 execution slot, runs fresh verification/Review and invalidates old acceptance.
@@ -159,3 +165,33 @@ drift during automatic integration does not authorize rebase or automatic
 revalidation. Preserve the candidate; an existing commit transaction requires
 explicit `recover`, while a revised plan requires a new approval. Report the
 actual local commit and automatic authorization source after completion.
+
+
+## Bounded verification in 1.5.0
+
+New capable-project contracts use `verification.scope` version 3, mode `bounded`.
+Use exact `targetTests` for RED/GREEN, explicit `regressionTests` for final checks,
+and explicit `tasks` arrays for `assembleTasks`, `lintTasks`, `deviceTestTasks`.
+An empty array means no such extra task. Include repository-required lint/device
+coverage explicitly; missing coverage stops preview instead of appending tasks.
+No inferred consumer, module, variant, wildcard filter or full-suite fallback is
+authorized. Keep generated tests tied to the acceptance criteria and exact files.
+
+Baseline tests are optional, default `baseline: "snapshot"`; capture metadata and
+preserve existing test definitions without Gradle. This is not a passing baseline
+result. Uncertain preservation blocks for explanation rather than automatic
+baseline execution. Only explicit `baseline: "execute"` runs target baseline tests.
+Use `buildMode: "incremental"` by default. Retain build outputs and permit build
+cache hits; `clean` requires an explicit choice. Failures do not authorize cleaning,
+cache deletion, all-task reruns or wider validation.
+
+GREEN runs target tests, and independent Review can reuse its sealed verification
+at the same HEAD and inputs. Final integration runs actual target tests again on
+the fixed candidate commit, plus only the approved regression/build/lint/device
+tasks. Do not perform assemble at every phase. Repeated final checks reuse valid
+checkpoints for that exact candidate. Changes invalidate relevant evidence;
+never claim a cached Test result is a fresh execution or reuse across commits.
+
+Intake seals the displayed verification preview into the contract digest and
+checks it again at enqueue. New legacy scopes require an explicit reviewed
+`verificationFallbackReason`; old drafts and approvals retain their semantics.

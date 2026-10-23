@@ -542,20 +542,24 @@ export function planAdaptiveProjectTemplates(
   const taskTemplatePath =
     "automation/tasks/TASK-TEMPLATE.json.example";
   const taskTemplate = readObjectTemplate(taskTemplatePath);
-  const defaultFocusedTestTask = gradleVerification.focusedTestTasks[0];
+  const preferredTasks = detection.capabilities?.modules.find(module => module.gradlePath === primaryModule.gradlePath)?.tasks;
+  const defaultFocusedTestTask = gradleVerification.focusedTestTasks.find(path => preferredTasks?.some(task => task.path === path && task.kind === "unit"))
+    ?? gradleVerification.focusedTestTasks[0];
   if (defaultFocusedTestTask === undefined) {
     throw new AdaptiveProjectTemplateError(
       "TEMPLATE_INVALID",
       "Gradle verification configuration has no focused test task.",
     );
   }
-  const scopeVariants = detection.capabilities?.modules.some(m => m.tasks.some(t => t.kind === "assemble" && t.variant?.endsWith("Debug"))) ? "debug" : "all";
+  const focusedCapability = detection.capabilities?.modules.flatMap(module => module.tasks
+    .filter(task => task.path === defaultFocusedTestTask && task.kind === "unit").map(task => ({ module, task })))[0];
+  const focusedFilter = detection.capabilities ? taskTestFilter(primaryModule).replace(/^\*/, "example.") : taskTestFilter(primaryModule);
   const scopePaths = detection.capabilities ? (() => {
-    const { sourceMatchesVariant, concreteBuilds } = createRequire(import.meta.url)("../../templates/automation/verification/project.cjs");
-    const modules = detection.capabilities.modules.filter(m => moduleScope === "all" || m.gradlePath === primaryModule.gradlePath);
+    const { sourceMatchesVariant } = createRequire(import.meta.url)("../../templates/automation/verification/project.cjs");
+    const modules = focusedCapability ? [focusedCapability.module] : [];
     return unique(["production", "test"].flatMap(kind => modules.flatMap(m => m.sources
       .filter(s => s.kind === kind && !s.name.startsWith("androidTest") && (m.type === "jvm-library" ||
-        concreteBuilds(m).some((t: {variant: string}) => (scopeVariants === "all" || t.variant.endsWith("Debug")) && sourceMatchesVariant(s, t.variant))))
+        sourceMatchesVariant(s, focusedCapability!.task.variant)))
       .flatMap(s => s.paths))));
   })() : undefined;
   const taskContractExample = {
@@ -580,21 +584,25 @@ export function planAdaptiveProjectTemplates(
     targetTests: [
       {
         gradleTask: defaultFocusedTestTask,
-        filter: taskTestFilter(primaryModule),
+        filter: focusedFilter,
       },
     ],
     verification: {
       ...(taskTemplate.verification as Record<string, unknown>),
-      ...(detection.capabilities ? { scope: { version: 2, mode: "affected-tests", variants: scopeVariants, maxManualRetries: 1 } } : {}),
+      ...(detection.capabilities ? { scope: { version: 3, mode: "bounded", maxManualRetries: 1,
+        baseline: "snapshot", buildMode: "incremental", regressionTests: [],
+        tasks: { assembleTasks: [], lintTasks: lintEnabled ? focusedCapability?.module.tasks
+          .filter(task => task.kind === "lint" && task.variant === focusedCapability.task.variant && gradleVerification.lintTasks.includes(task.path))
+          .map(task => task.path) ?? [] : [], deviceTestTasks: [] } } } : {}),
       cases: [{
         ...((taskTemplate.verification as { cases: Record<string, unknown>[] }).cases[0] ?? {}),
         expectedFailure: {
           type: "java.lang.AssertionError",
-          origin: { className: taskTestFilter(primaryModule), methodName: "replace with observable behavior" },
+          origin: { className: focusedFilter, methodName: "replace with observable behavior" },
         },
         test: {
           target: 0,
-          className: taskTestFilter(primaryModule),
+          className: focusedFilter,
           name: "replace with observable behavior",
         },
       }],

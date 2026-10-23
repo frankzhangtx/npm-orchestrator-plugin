@@ -29,7 +29,7 @@ review_verification_exit_code="$(jq -er '.verificationExitCode' "$review_file")"
 structured_red=null
 verification_selection=null
 if [[ -f "$evidence_dir/verification-result.json" ]]; then
-    verification_selection="$(jq '{testSelection, reusedFrom, phase, state}' "$evidence_dir/verification-result.json")"
+    verification_selection="$(jq '{testSelection, reusedFrom, phase, state, deferred}' "$evidence_dir/verification-result.json")"
 fi
 inventory_verification=null
 if [[ "$(jq -er '.schemaVersion' "$contract")" -ge "4" ]]; then
@@ -122,6 +122,7 @@ jq -n \
     --argjson structuredRed "$structured_red" \
     --argjson inventoryVerification "$inventory_verification" \
     --argjson verificationSelection "$verification_selection" \
+    --argjson baselineTests "$(jq '{testsExecuted: (.testsExecuted // (.exitCode == 0)), outcome: (if .testsExecuted == false then null else .exitCode end), mode: (.mode // "execute")}' "$baseline_file")" \
     '{taskId: $taskId, title: $title, state: $state,
       generatedAt: $generatedAt, originalBranch: $originalBranch,
       originalHeadBeforeContract: $originalHeadBeforeContract,
@@ -140,6 +141,7 @@ jq -n \
       deviceTestsRequired: $deviceTestsRequired,
       evidence: {
         baselineRecorded: true,
+        baselineTests: $baselineTests,
         redRecorded: true,
         redExitCode: $redExitCode,
         structuredRed: $structuredRed,

@@ -14,6 +14,8 @@ const files = {
   ready: "ready.json", review: "review.json", modelContinuation: "model-continuation.json",
   redRecovery: "stage-recovery/red.json", greenRecovery: "stage-recovery/green.json",
   reviewRecovery: "stage-recovery/review.json",
+  buildPreparation: "build-preparation.json", verificationPlan: "verification-plan.json",
+  verificationResult: "verification-result.json",
 };
 function preview(value, depth = 3) {
   if (typeof value === "string") return value.length > 320 ? value.slice(0, 320) + "…" : value;

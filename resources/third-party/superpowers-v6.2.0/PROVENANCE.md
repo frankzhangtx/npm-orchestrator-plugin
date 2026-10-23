@@ -18,4 +18,8 @@ Intentional changes:
   Orchestrator contract/Coder/Reviewer workflow;
 - moved optional supporting documents under `references/` and scripts under
   `scripts/`;
-- rewrote cross-skill references to the bundled namespaced skill IDs.
+- rewrote cross-skill references to the bundled namespaced skill IDs;
+- constrained TDD and verification to sealed task/filter/variant scopes, optional
+  baseline execution, incremental compiler reuse and candidate-bound evidence
+  reuse; the managed gates determine execution rather than generic full-suite
+  examples or repeated builds.

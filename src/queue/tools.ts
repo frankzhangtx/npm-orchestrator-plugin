@@ -51,14 +51,15 @@ export function createQueueTools(worktree: string, approvals = new ApprovalLedge
       },
     }),
     android_orchestrator_intake: tool({
-      description: "Seal a proposal-approved contract and plan in the independent inbox, or enqueue its exact reviewed digest and explicit human-selected approvalText. A newly enqueued contract resumes the queue and starts or wakes its service. Approval returns immediately; only the background scheduler starts execution.",
+      description: "Preview bounded verification at a fixed planningHead before proposal approval without changing the inbox, consuming approval or running Gradle. Then seal a proposal-approved contract and plan, or enqueue its exact reviewed digest and human-selected approvalText. Only the background scheduler starts execution.",
       args: {
-        action: tool.schema.enum(["draft", "enqueue"]),
+        action: tool.schema.enum(["preview", "draft", "enqueue"]),
         draftJson: tool.schema.string().optional(), key: tool.schema.string().optional(),
         digest: tool.schema.string().optional(), approval: tool.schema.string().optional(),
       },
       async execute(args, context) {
-        const queue = bounded(context, true);
+        const queue = bounded(context, args.action !== "preview");
+        if (args.action === "preview") return queueResponse(queue.preview(JSON.parse(args.draftJson ?? "{}") as DraftInput));
         const delegated = delegation(queue, context);
         if (args.action === "draft") {
           const draft = queue.draft(JSON.parse(args.draftJson ?? "{}") as DraftInput,
@@ -67,11 +68,11 @@ export function createQueueTools(worktree: string, approvals = new ApprovalLedge
           queue.reviewDraft(draft);
           const approvalText = queue.approvalText(draft);
           if (delegated) return queueResponse({ ...compactTaskDetails(queue.details(draft.key)),
-            verificationPreview: queue.verificationPreview(draft.contract), approvalText, approvalSource: "delegatedApproval",
+            verificationPreview: draft.verificationPreview ?? queue.verificationPreview(draft.contract), approvalText, approvalSource: "delegatedApproval",
             delegationId: delegated.id, instruction: "Display the sealed contract, then enqueue this exact key and digest with approvalText. The trusted grant is consumed atomically; no question receipt is generated." });
           const question = approvals.prepare(context.sessionID, "enqueue", `${draft.key}:${draft.digest}`, "合同确认",
             `确认将 ${draft.key}（摘要 ${draft.digest.slice(0, 12)}，目标 ${draft.targetBranch}）按已展示的合同及提交策略入队？`, approvalText);
-          return queueResponse({ ...compactTaskDetails(queue.details(draft.key)), verificationPreview: queue.verificationPreview(draft.contract), approvalText, question });
+          return queueResponse({ ...compactTaskDetails(queue.details(draft.key)), verificationPreview: draft.verificationPreview ?? queue.verificationPreview(draft.contract), approvalText, question });
         }
         // An exact duplicate only returns the already authorized record; it
         // cannot recreate a cancelled task or widen its policy.
@@ -173,6 +174,8 @@ export function guardExecutorCommand(input: { tool: string }, output: { args: un
     const queue = new TaskQueue(directory);
     const document = queue.storage.read();
     const activeItem = document.items.find(item => item.key === document.active?.key);
+    invariant((activeItem?.contract.verification as {scope?: {version?: number}} | undefined)?.scope?.version !== 3,
+      "Bounded verification permits only managed scripts; direct Gradle cannot extend the approved tasks or filters");
     invariant(!(activeItem?.contract.verification as {scope?: unknown} | undefined)?.scope,
       "Affected verification requires the managed scripts to select and record tasks before execution");
     const config = queue.config();

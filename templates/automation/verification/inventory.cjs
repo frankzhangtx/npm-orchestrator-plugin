@@ -35,6 +35,7 @@ const recovery = (code, phase) => phase === "baseline"
   UNSUPPORTED_TEST_INPUT: "Use repository-local test source/resource directories separated from production and generated outputs, then retry with a corrected configuration.",
   INPUT_CHANGED_DURING_RUN: "Stop concurrent edits or input-generating side effects and rerun; this attempt was not sealed.",
   PREPARATION_BUDGET: "The preparation budget is exhausted; preserve attempts and approve a revised task.",
+  SNAPSHOT_TEST_DEFINITION_CHANGED: "The baseline was not executed. Preserve the listed existing test definitions and append approved cases, or discuss a revised test change; baseline tests will not start automatically.",
 }[code] ?? "Inspect inventory-status.json and the retained attempt before resuming.");
 function atomic(file, value, exclusive = false) {
   fs.mkdirSync(path.dirname(file), { recursive: true });
@@ -229,7 +230,61 @@ function unchangedProduction(root, contract, config, patterns, phase, evidence) 
   const invalid = changed.filter(file => !ignored.has(file) && (phase === "baseline" || !isTest(config, patterns, file)));
   requireThat(invalid.length === 0, "EVIDENCE_CHANGED", "Baseline/RED requires unchanged production and configuration", invalid.map(file => ({ path: file })));
 }
-function collectorHash() { return digest(["contract.cjs", "inventory.cjs", "project.cjs", "collect.init.gradle", "runtime.init.gradle"].map(file => [file, fileHash(path.join(__dirname, file))])); }
+function collectorHash() { return digest(["contract.cjs", "inventory.cjs", "project.cjs", "collect.init.gradle", "runtime.init.gradle", "baseline-snapshot.cjs", "bounded-execution.cjs", "bounded.init.gradle", "bounded-scope.cjs"].map(file => [file, fileHash(path.join(__dirname, file))])); }
+
+function captureSnapshotBaseline(contractFile, configFile, root, evidence) {
+  root = fs.realpathSync(root);
+  const contract = read(contractFile), config = read(configFile), policy = require("./baseline-snapshot.cjs");
+  validateContract(contract, config);
+  requireThat(policy.enabled(contract), "EVIDENCE_CHANGED", "Source snapshots require explicit bounded verification policy");
+  const excluded = humanOwnedPaths(contract, evidence), head = git(root, ["rev-parse", "HEAD"]).trim();
+  const patterns = sorted(config.androidProject.testPaths);
+  unchangedProduction(root, contract, config, patterns, "baseline", evidence);
+  const repositoryBefore = worktree(root, excluded), testSnapshot = snapshot(root, config, patterns, excluded);
+  const sourceDefinitions = testSnapshot.map(item => policy.describeTestSource(fs.readFileSync(path.join(root, item.path), "utf8"), item.path)).filter(Boolean);
+  const project = require("./project.cjs"), buildRoot = project.gradleBuildRoot(config, root);
+  const environmentSha256 = project.buildEnvironmentBinding(buildRoot);
+  const startedAt = new Date().toISOString();
+  const meta = { taskId: contract.id, head, worktree: root, cwd: buildRoot, startedAt, finishedAt: startedAt,
+    mode: "snapshot", state: "CAPTURED", testsExecuted: false, outcome: null, unitTestsEnabled: true,
+    command: [], exitCode: null, sourceSnapshotSha256: repositoryBefore };
+  const metaFile = path.join(evidence, "baseline.json"), inventoryFile = path.join(evidence, "baseline-inventory.json");
+  requireThat(!fs.existsSync(metaFile) && !fs.existsSync(inventoryFile), "EVIDENCE_CHANGED", "Baseline snapshot already exists");
+  const binding = { taskId: contract.id, contractSha256: fileHash(contractFile), configSha256: fileHash(configFile),
+    baselineHead: head, baselineEvidenceSha256: hash(JSON.stringify(meta, null, 2) + "\n"), collectorSha256: collectorHash(), excludedPathsSha256: digest(excluded) };
+  const attemptPath = `snapshot-attempts/${randomUUID()}`, attempt = path.join(evidence, attemptPath);
+  fs.mkdirSync(attempt, { recursive: true });
+  const report = { schemaVersion: 2, taskId: contract.id, phase: "baseline-snapshot", state: "CAPTURED", execution: "NOT_RUN",
+    testsExecuted: false, outcome: null, attemptPath, startedAt, finishedAt: new Date().toISOString(), binding,
+    testPatterns: patterns, testSnapshot, sourceDefinitions, sourceSnapshotSha256: repositoryBefore, environmentSha256,
+    approvedCaseIdentities: contract.verification.cases.map(item => ({ taskPath: contract.targetTests[item.test.target].gradleTask,
+      className: item.test.className, name: item.test.name })),
+    summary: { mode: "snapshot", testsExecuted: false, outcome: null, testFiles: testSnapshot.length, caseIdentities: "NOT_MEASURED" },
+    queueRunId: process.env.AUTOMATION_QUEUE_RUN_ID ?? null };
+  requireThat(repositoryBefore === worktree(root, excluded) && same(testSnapshot, snapshot(root, config, patterns, excluded)) &&
+    head === git(root, ["rev-parse", "HEAD"]).trim() && environmentSha256 === project.buildEnvironmentBinding(buildRoot),
+    "INPUT_CHANGED_DURING_RUN", "Source or environment changed during snapshot capture");
+  atomic(path.join(attempt, "snapshot.json"), report, true);
+  atomic(inventoryFile, { ...report, files: evidenceFiles(evidence, attempt) }, true);
+  // Publishing baseline.json signals completed capture, never successful tests.
+  atomic(metaFile, meta, true);
+  return { meta, inventory: report };
+}
+function checkSnapshotBaseline(evidence, baseline) {
+  requireThat(baseline.phase === "baseline-snapshot" && baseline.state === "CAPTURED" && baseline.execution === "NOT_RUN" &&
+    baseline.testsExecuted === false && baseline.outcome === null && !Object.hasOwn(baseline, "valid") && !Object.hasOwn(baseline, "cases") &&
+    /^snapshot-attempts\/[a-f0-9-]+$/.test(baseline.attemptPath), "EVIDENCE_CHANGED", "A source snapshot must not claim passing baseline tests");
+  const { files, ...report } = baseline;
+  checkFiles(evidence, files);
+  requireThat(same(report, read(path.join(evidence, baseline.attemptPath, "snapshot.json"))), "EVIDENCE_CHANGED", "Baseline source snapshot differs from its sealed capture");
+}
+function checkSnapshotDiscovery(root, config, patterns, tasks) {
+  for (const task of tasks) for (const directory of task.sourceRoots) {
+    const relative = localPath(root, directory);
+    requireThat(patterns.some(pattern => matchesPath(pattern, `${relative}/__orchestrator_source_probe__`)),
+      "UNSUPPORTED_TEST_INPUT", `Actual test source root was not covered by the approved source snapshot: ${relative}`);
+  }
+}
 function evidenceFiles(evidence, directory) {
   const result = [];
   function visit(folder) { for (const name of fs.readdirSync(folder).sort()) { const file = path.join(folder, name); const stat = fs.lstatSync(file);
@@ -262,7 +317,9 @@ function runGradle(root, config, contract, phase, directory, discovery) {
   const request = { runId: randomUUID(), phase, targets: contract.targetTests, output: path.join(directory, "events.jsonl") };
   const requestFile = path.join(directory, "request.json"); atomic(requestFile, request, true);
   fs.writeFileSync(request.output, "", { flag: "wx" });
-  const args = [...groupedTargets(contract).map(item => item.taskPath), "--no-configuration-cache", "--console=plain", ...(contract.verification.scope?.version === 2 ? [] : ["--no-build-cache"]),
+  const requestedTasks = groupedTargets(contract).map(item => item.taskPath);
+  const args = [...requestedTasks, "--no-configuration-cache", "--console=plain", ...([2, 3].includes(contract.verification.scope?.version) ? [] : ["--no-build-cache"]),
+    ...require("./bounded-execution.cjs").gradleArguments(contract, requestedTasks, config),
     "--init-script", path.join(__dirname, "runtime.init.gradle"), "--init-script", path.join(__dirname, "collect.init.gradle"), `-Dorchestrator.inventoryRequest=${requestFile}`, ...(discovery ? ["--dry-run"] : [])];
   const fd = fs.openSync(path.join(directory, "gradle.log"), "wx");
   let result;
@@ -310,10 +367,12 @@ function runPhaseInternal(phase, contractFile, configFile, root, evidence, verif
   root = fs.realpathSync(root);
   const contract = read(contractFile), config = read(configFile);
   validateContract(contract, config);
+  const snapshotPolicy = require("./baseline-snapshot.cjs"), snapshotBaseline = snapshotPolicy.enabled(contract);
   const excluded = humanOwnedPaths(contract, evidence);
   const head = git(root, ["rev-parse", "HEAD"]).trim();
   const baselineFile = path.join(evidence, "baseline-inventory.json"), manifestFile = path.join(evidence, "test-manifest.json"), redFile = path.join(evidence, "red.json");
-  const baselineMeta = path.join(evidence, contract.schemaVersion >= 5 && phase === "baseline" ? "baseline-full.json" : "baseline.json");
+  const boundedExecutedBaseline = contract.verification.scope?.version === 3 && !snapshotBaseline;
+  const baselineMeta = path.join(evidence, boundedExecutedBaseline || contract.schemaVersion >= 5 && phase === "baseline" ? "baseline-full.json" : "baseline.json");
   const binding = { taskId: contract.id, contractSha256: fileHash(contractFile), configSha256: fileHash(configFile),
     baselineHead: read(baselineMeta).head, baselineEvidenceSha256: fileHash(baselineMeta), collectorSha256: collectorHash(), excludedPathsSha256: digest(excluded) };
   const checkBinding = value => requireThat(same(value.binding, binding), "EVIDENCE_CHANGED", "Contract, baseline, configuration or collector binding changed");
@@ -322,9 +381,19 @@ function runPhaseInternal(phase, contractFile, configFile, root, evidence, verif
   let baseline, manifest, red, patterns, supplement;
   if (phase !== "baseline") {
     baseline = read(baselineFile); checkBinding(baseline); checkFiles(evidence, baseline.files);
-    checkEvaluation(evidence, baseline, "baseline");
-    requireThat(baseline.valid === true && baseline.phase === "baseline", "EVIDENCE_CHANGED", "A valid baseline inventory is required");
+    if (snapshotBaseline) checkSnapshotBaseline(evidence, baseline);
+    else {
+      checkEvaluation(evidence, baseline, "baseline");
+      requireThat(baseline.valid === true && baseline.phase === "baseline", "EVIDENCE_CHANGED", "A valid baseline inventory is required");
+    }
     bindInput(baselineFile);
+    if (boundedExecutedBaseline) {
+      const finalFile = path.join(evidence, "baseline.json"), final = read(finalFile);
+      requireThat(final.mode === "execute" && final.testsExecuted === true && final.outcome === "PASSED" && final.head === binding.baselineHead &&
+        final.baselineFullSha256 === fileHash(baselineMeta) && final.baselineInventorySha256 === fileHash(baselineFile),
+        "EVIDENCE_CHANGED", "Executed baseline summary differs from its actual scoped test evidence");
+      bindInput(finalFile);
+    }
     patterns = baseline.testPatterns;
     requireThat(baseline.environmentSha256 === require("./project.cjs").buildEnvironmentBinding(require("./project.cjs").gradleBuildRoot(config, root), baseline.runtime),
       "EVIDENCE_CHANGED", "Build environment or Gradle user/JVM configuration changed after baseline");
@@ -336,6 +405,11 @@ function runPhaseInternal(phase, contractFile, configFile, root, evidence, verif
       checkEvaluation(evidence, manifest, "red");
       requireThat(red.structuredCasesVerified === true && manifest.valid === true && manifest.phase === "red", "EVIDENCE_CHANGED", "Valid sealed RED evidence is required");
       for (const file of [redFile, manifestFile, path.join(evidence, "test-preflight.json")]) bindInput(file);
+      if (snapshotBaseline) {
+        requireThat(manifest.testIdentityOrigin === "RED_EXECUTION" && manifest.runtime, "EVIDENCE_CHANGED", "Snapshot tasks require actual RED test identities and runtime");
+        // These are observed passing RED regressions, not unexecuted baseline results.
+        baseline = { ...baseline, cases: manifest.cases.filter(item => item.classification === "regression").map(item => item.actual) };
+      }
       supplement = supplementalEvidence(phase, root, config, contract, evidence, binding, baseline, manifest, patterns, excluded);
       if (supplement) {
         bindInput(path.join(evidence, "test-supplement.json"));
@@ -360,6 +434,7 @@ function runPhaseInternal(phase, contractFile, configFile, root, evidence, verif
     return green;
   }
   requireThat(["baseline", "red", "green"].includes(phase), "EVIDENCE_CHANGED", "Unknown inventory phase");
+  requireThat(!(snapshotBaseline && phase === "baseline"), "EVIDENCE_CHANGED", "Snapshot policy does not authorize running baseline tests");
   if (phase === "baseline") requireThat(!fs.existsSync(baselineFile), "EVIDENCE_CHANGED", "Baseline inventory already exists");
   if (phase === "red") requireThat(!fs.existsSync(redFile), "EVIDENCE_CHANGED", "RED already exists");
   const attempts = path.join(evidence, "inventory-attempts"); fs.mkdirSync(attempts, { recursive: true });
@@ -394,12 +469,21 @@ function runPhaseInternal(phase, contractFile, configFile, root, evidence, verif
     }
     if (phase !== "green") unchangedProduction(root, contract, config, patterns, phase, evidence);
     const before = snapshot(root, config, patterns, excluded), repositoryBefore = worktree(root, excluded);
-    const environmentBefore = require("./project.cjs").buildEnvironmentBinding(require("./project.cjs").gradleBuildRoot(config, root), baseline?.runtime);
+    let sourceChanges;
+    if (snapshotBaseline && phase === "red") {
+      sourceChanges = snapshotPolicy.assertTestSnapshotPreserved(root, baseline, before);
+      const declaredNames = contract.verification.cases.map(item => ({ className: item.test.className, name: item.test.name.replace(/\[[^\]]*\]$/, "").replace(/\([^)]*\)$/, "") }));
+      requireThat(sourceChanges.every(change => (change.addedMethods ?? []).every(name => declaredNames.some(item => item.className === change.className && item.name === name))),
+        "COVERAGE_MISMATCH", "An appended test method is not declared by the approved contract", sourceChanges);
+    }
+    const expectedRuntime = snapshotBaseline ? manifest?.runtime : baseline?.runtime;
+    const environmentBefore = require("./project.cjs").buildEnvironmentBinding(require("./project.cjs").gradleBuildRoot(config, root), expectedRuntime);
     const collection = runGradle(root, config, contract, phase, path.join(attempt, "collection"), false);
-    requireThat(environmentBefore === require("./project.cjs").buildEnvironmentBinding(require("./project.cjs").gradleBuildRoot(config, root), baseline?.runtime),
+    requireThat(environmentBefore === require("./project.cjs").buildEnvironmentBinding(require("./project.cjs").gradleBuildRoot(config, root), expectedRuntime),
       "EVIDENCE_CHANGED", "Build environment changed during collection");
-    if (baseline) requireThat(same(collection.runtime, baseline.runtime), "EVIDENCE_CHANGED", "Actual Gradle, build JVM, plugins or test JVMs differ from baseline");
-    requireThat(same(patterns, testPatterns(root, config, collection.tasks)), "EVIDENCE_CHANGED", "Test source/resource discovery changed after baseline");
+    if (expectedRuntime) requireThat(same(collection.runtime, expectedRuntime), "EVIDENCE_CHANGED", "Actual Gradle, build JVM, plugins or test JVMs differ from sealed test evidence");
+    if (snapshotBaseline) checkSnapshotDiscovery(root, config, patterns, collection.tasks);
+    else requireThat(same(patterns, testPatterns(root, config, collection.tasks)), "EVIDENCE_CHANGED", "Test source/resource discovery changed after baseline");
     const after = snapshot(root, config, patterns, excluded);
     requireThat(same(before, after) && repositoryBefore === worktree(root, excluded) && head === git(root, ["rev-parse", "HEAD"]).trim(),
       "INPUT_CHANGED_DURING_RUN", "Repository or test inputs changed during Gradle execution");
@@ -409,12 +493,21 @@ function runPhaseInternal(phase, contractFile, configFile, root, evidence, verif
     for (const item of inputEvidence) requireThat(fileHash(item.file) === item.sha256, "EVIDENCE_CHANGED", `Evidence changed during collection: ${item.file}`);
     if (baseline) checkFiles(evidence, baseline.files);
     if (red) checkFiles(evidence, red.files);
+    if (snapshotBaseline && phase === "red") {
+      const declared = new Set(contract.verification.cases.map(item => identity({ ...item.test, taskPath: contract.targetTests[item.test.target].gradleTask })));
+      baseline = { ...baseline, cases: collection.cases.filter(item => !declared.has(identity(item))) };
+      requireThat(baseline.cases.every(item => baseline.sourceDefinitions.some(definition => definition.mapping === "ordinary-tests" &&
+        definition.className === item.className && definition.methods.includes(item.name.replace(/\[[^\]]*\]$/, "").replace(/\([^)]*\)$/, "")))),
+        "COVERAGE_MISMATCH", "A non-declared RED case does not match an existing test definition in the source snapshot; new or unknown cases cannot be called old regressions", baseline.cases);
+      requireThat(baseline.cases.every(item => item.result === "SUCCESS"), "CASE_EXPECTATION_MISMATCH", "Undeclared regression cases must actually pass during RED; snapshot capture did not establish prior outcomes", baseline.cases.filter(item => item.result !== "SUCCESS"));
+    }
     const evaluation = phase === "baseline" ? evaluateBaseline(contract, collection) : evaluateCoverage(contract, baseline, collection, phase, manifest);
     const report = { schemaVersion: 1, taskId: contract.id, phase, attempt: number, attemptPath, startedAt, finishedAt: new Date().toISOString(),
       valid: true, reasonCode: phase === "red" ? "VALID_RED" : "VALID_INVENTORY", binding, ...evaluation, testPatterns: patterns, testSnapshot: after,
       processExitCode: collection.processExitCode, runtime: collection.runtime,
       environmentSha256: require("./project.cjs").buildEnvironmentBinding(require("./project.cjs").gradleBuildRoot(config, root), collection.runtime),
       verifiedHead: head, worktreeSha256: repositoryBefore,
+      ...(snapshotBaseline ? { baselineTestsExecuted: false, testIdentityOrigin: "RED_EXECUTION", ...(sourceChanges ? { sourceChanges } : {}) } : {}),
       queueRunId: process.env.AUTOMATION_QUEUE_RUN_ID ?? null, ...(verificationRunId ? { verificationRunId } : {}) };
     atomic(path.join(attempt, "evaluation.json"), report, true);
     const files = evidenceFiles(evidence, attempt);
@@ -510,7 +603,7 @@ function supplementalEvidence(phase, root, config, contract, evidence, binding, 
     if (created) git(root, ["worktree", "remove", "--force", probe]);
   }
 }
-module.exports = { identity, validateCollection, evaluateBaseline, evaluateCoverage, matchesFailureOrigin, snapshot, testPatterns, isTest, runPhase, runGradle };
+module.exports = { identity, validateCollection, evaluateBaseline, evaluateCoverage, matchesFailureOrigin, snapshot, testPatterns, isTest, runPhase, runGradle, captureSnapshotBaseline };
 if (require.main === module) {
   const [phase, contractFile, configFile, root, evidence] = process.argv.slice(2);
   try {

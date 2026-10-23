@@ -40,6 +40,8 @@ export interface QueueConfiguration {
   gradleVerification: { fullUnitTestTasks: string[]; focusedTestTasks: string[]; assembleTasks: string[]; deviceTestTasks?: string[] };
 }
 export interface Draft {
+  verificationPreview?: unknown;
+  verificationConfigSha256?: string;
   verificationFallbackReason?: string;
   planningInputsSha256?: string;
   proposalApproval?: ApprovalProof;
@@ -441,10 +443,27 @@ export class TaskQueue {
     invariant((allowEmpty || path.length > 0) && !path.includes("\0") && !path.startsWith("/") && Buffer.byteLength(path, "utf8") <= 4096, "Snapshot path is invalid or too long");
     invariant(!path.split(/[\\/]/).some(part => part === ".." || part === ".git"), "Snapshot path is not allowed");
   }
-  verificationPreview(contract: Record<string, unknown>): unknown {
+  verificationPreview(contract: Record<string, unknown>, planningHead?: string): unknown {
     if (!(contract.verification as {scope?: unknown} | undefined)?.scope) return null;
     const project = createRequire(import.meta.url)("../../templates/automation/verification/project.cjs");
-    return project.selectVerification(this.config(), contract, this.storage.root, [], true);
+    const config = planningHead ? this.planningConfiguration(planningHead).config : this.config();
+    return project.selectVerification(config, contract, this.storage.root, [], true);
+  }
+  private planningConfiguration(planningHead: string): { config: QueueConfiguration; sha256: string } {
+    this.validateSnapshotHead(planningHead);
+    const bytes = gitBuffer(this.storage.root, ["show", `${planningHead}:automation/config.json`]);
+    const config = JSON.parse(bytes.toString("utf8")) as QueueConfiguration;
+    invariant(config.schemaVersion === 6 && config.enabled && config.mode === "orchestrated" && config.pushAfterAcceptance === false,
+      "Planning snapshot requires an enabled schema V6 installation");
+    return { config, sha256: sha256(bytes) };
+  }
+  preview(input: Pick<DraftInput, "contract" | "planningHead">): { planningHead: string; configSha256: string; verificationPreview: unknown } {
+    const scope = (input.contract.verification as {scope?: {version?: number}} | undefined)?.scope;
+    invariant(scope?.version === 3, "Read-only preview requires an explicit bounded verification.scope version 3");
+    const snapshot = this.planningConfiguration(input.planningHead);
+    validateContract(input.contract, snapshot.config);
+    return { planningHead: input.planningHead, configSha256: snapshot.sha256,
+      verificationPreview: this.verificationPreview(input.contract, input.planningHead) };
   }
   checkedDelegation(document: QueueDocument, id: string): DelegationRecord {
     const record = delegationRecord(document, id), grant = record.grant;
@@ -490,14 +509,18 @@ export class TaskQueue {
   draft(input: DraftInput, proposalApproval?: ApprovalProof, delegated?: DelegationContext): Draft {
     const config = this.config();
     validateContract(input.contract, config);
-    this.verificationPreview(input.contract);
-    const scoped = Boolean((input.contract.verification as {scope?: unknown} | undefined)?.scope);
+    const scope = (input.contract.verification as {scope?: {version?: number}} | undefined)?.scope;
+    const bounded = scope?.version === 3;
+    const preview = bounded ? this.preview(input) : undefined;
+    if (!bounded) this.verificationPreview(input.contract);
     const verificationFallbackReason = input.verificationFallbackReason;
-    if (verificationFallbackReason !== undefined) invariant(!scoped && typeof verificationFallbackReason === "string" &&
+    if (verificationFallbackReason !== undefined) invariant(!bounded && typeof verificationFallbackReason === "string" &&
       verificationFallbackReason.trim().length >= 10 && Buffer.byteLength(verificationFallbackReason) <= 512,
-      "Full verification requires a meaningful verificationFallbackReason of at most 512 UTF-8 bytes; scoped contracts must omit it");
-    invariant(!config.androidProject?.capabilities || scoped || verificationFallbackReason !== undefined,
-      "New drafts with project capabilities require V7/V8 verification.scope (affected-tests Debug by default), or an explicit verificationFallbackReason for full verification; existing approvals remain unchanged");
+      "Legacy verification requires a meaningful verificationFallbackReason of at most 512 UTF-8 bytes; bounded contracts must omit it");
+    invariant(!config.androidProject?.capabilities || bounded || verificationFallbackReason !== undefined,
+      "New drafts with project capabilities require bounded verification.scope version 3, or an explicit verificationFallbackReason for reviewed legacy verification; existing approvals remain unchanged");
+    if (preview) invariant(preview.configSha256 === sha256(readFileSync(join(this.storage.root, "automation/config.json"))),
+      "Verification configuration changed after the planning snapshot; obtain a fresh preview");
     invariant(input.plan.trim().length >= 20 && Buffer.byteLength(input.plan) <= 1024 * 1024, "A complete plan of at most 1 MiB is required");
     invariant(/^[a-f0-9]{40,64}$/.test(input.planningHead), "A fixed planning commit is required");
     git(this.storage.root, ["check-ref-format", `refs/heads/${input.targetBranch}`]);
@@ -533,7 +556,7 @@ export class TaskQueue {
       }
       const taskId = String(input.contract.id);
       const version = Math.max(0, ...document.drafts.filter(draft => draft.taskId === taskId).map(draft => draft.version)) + 1;
-      const sealed = { ...(verificationFallbackReason !== undefined ? { verificationFallbackReason } : {}), ...(proposalApproval ? { proposalApproval } : {}), ...(planningInputsSha256 ? { planningInputsSha256 } : {}), key: `${taskId}@${version}`, taskId, version, contract: input.contract, contractText,
+      const sealed = { ...(preview ? { verificationPreview: preview.verificationPreview, verificationConfigSha256: preview.configSha256 } : {}), ...(verificationFallbackReason !== undefined ? { verificationFallbackReason } : {}), ...(proposalApproval ? { proposalApproval } : {}), ...(planningInputsSha256 ? { planningInputsSha256 } : {}), key: `${taskId}@${version}`, taskId, version, contract: input.contract, contractText,
         plan: input.plan, contractSha256: sha256(contractText), planSha256: sha256(input.plan),
         planningHead: input.planningHead, targetBranch: input.targetBranch, sourceRoot: this.storage.root,
         workspaceStrategy, commitPolicy, notBefore, dependsOn: dependencies, priority, createdAt: now() };
@@ -562,13 +585,24 @@ export class TaskQueue {
     }
   }
   approvalText(draft: Draft): string {
+    const scope = (draft.contract.verification as {scope?: {version?: number; baseline?: string; buildMode?: string; regressionTests?: Array<{gradleTask: string; filter: string}>; tasks?: Record<string, string[]>}} | undefined)?.scope;
+    if (scope?.version === 3) {
+      const tests = [...draft.contract.targetTests as Array<{gradleTask: string; filter: string}>, ...(scope.regressionTests ?? [])];
+      const cleanTasks = (draft.verificationPreview as {cleanTasks?: string[]} | undefined)?.cleanTasks ?? [];
+      const commands = [...cleanTasks, ...new Set(tests.map(t => `${t.gradleTask} --tests ${t.filter}`)), ...Object.values(scope.tasks ?? {}).flat()];
+      let text = `批准入队 ${draft.key}：${scope.baseline === "execute" ? "运行已列出的目标基线测试" : "基线仅保存快照，不运行测试"}；${scope.buildMode === "clean" ? "明确授权所选模块干净构建" : "增量编译并允许构建缓存"}。验证上限：${commands.join("；")}。不得自动扩大测试、模块或变体。`;
+      text += draft.commitPolicy === "autoCommit" ? "独立 Review 及候选提交最终验证通过后自动本地集成，不推送远程。" : "执行后等待人工确认提交，不推送远程。";
+      const policy = continuityPolicy(draft.contract);
+      return policy ? text + (policy.isolatedAutoIntegration ? "隔离工作区自动集成已授权。" : "") +
+        (policy.planningRefresh === "completedQueueTasks" ? "仅允许已完成队列提交且声明的规划输入未变化时刷新基线。" : "规划基线变化须重新审批。") : text;
+    }
     const selected = (draft.contract.verification as {scope?: {mode?: string}} | undefined)?.scope?.mode === "affected-tests";
     const verification = selected ? "选定回归测试（无法确定影响时扩大至模块）及所需构建" : (draft.contract.verification as {scope?: unknown} | undefined)?.scope ? "影响范围内的编译、单测" : "构建、全量单测";
     let text = draft.commitPolicy === "autoCommit"
       ? `批准入队 ${draft.key}：通过${verification}和独立 Review 后自动本地提交并集成，不推送远程。`
       : `批准入队 ${draft.key}：执行后等待人工确认提交，不推送远程。`;
     if (selected) text += "按实际改动选择目标及调用方测试；允许复用同一冻结候选的通过证据，变化后重新验证。";
-    if (draft.verificationFallbackReason) text += `使用全量验证（包含配置中的全部构建变体）；原因：${draft.verificationFallbackReason}`;
+    if (draft.verificationFallbackReason) text += scope ? `使用已明确审阅的旧版影响范围验证；原因：${draft.verificationFallbackReason}` : `使用全量验证（包含配置中的全部构建变体）；原因：${draft.verificationFallbackReason}`;
     const policy = continuityPolicy(draft.contract);
     return policy ? text + (policy.isolatedAutoIntegration ? "隔离工作区自动集成已授权。" : "") +
       (policy.planningRefresh === "completedQueueTasks" ? "仅允许已完成队列提交且声明的规划输入未变化时刷新基线。" : "规划基线变化须重新审批。") : text;
@@ -587,6 +621,14 @@ export class TaskQueue {
       const draft = document.drafts.find(candidate => candidate.key === key);
       invariant(draft && draft.digest === digest && draftDigest(draft) === digest, "Draft changed; display a fresh contract review");
       invariant(this.approvalText(draft) === approval, "Explicit approval for this version and commit policy is required");
+      if (draft.verificationConfigSha256 !== undefined) {
+        const preview = this.preview(draft);
+        invariant(preview.configSha256 === draft.verificationConfigSha256 &&
+          sha256(readFileSync(join(this.storage.root, "automation/config.json"))) === draft.verificationConfigSha256 &&
+          JSON.stringify(preview.verificationPreview) === JSON.stringify(draft.verificationPreview) &&
+          JSON.stringify(this.verificationPreview(draft.contract)) === JSON.stringify(draft.verificationPreview),
+          "Sealed verification preview changed; obtain a fresh proposal and contract approval");
+      }
       invariant(!document.items.some(item => item.taskId === draft.taskId && item.state !== "CANCELLED" && item.state !== "SUPERSEDED"), "This task already has an approved execution; use a new task ID or cancel its unstarted version");
       for (const dependency of draft.dependsOn) invariant(document.items.some(item => item.taskId === dependency && item.state !== "CANCELLED"), `Approve dependency first: ${dependency}`);
       assertReadyForIntake(this.readiness(draft, document));

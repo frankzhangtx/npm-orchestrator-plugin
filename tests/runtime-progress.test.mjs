@@ -127,7 +127,7 @@ test('new unscoped drafts require a sealed and visible full-verification reason 
   } finally { f.cleanup(); }
 });
 
-test('capability defaults accept affected Debug V7 and do not rewrite older stored drafts', () => {
+test('explicit affected Debug V7 fallback does not rewrite older stored drafts', () => {
   const f = fixture({ inventoryMode: true });
   try {
     const legacy = f.queue.draft({ contract: taskContract(f, 'TASK-LEGACY'), plan: '# Previously reviewed legacy full verification\n', ...f.queue.snapshot() });
@@ -138,11 +138,12 @@ test('capability defaults accept affected Debug V7 and do not rewrite older stor
     const contract = { ...taskContract(f, 'TASK-SCOPED'), schemaVersion: 7, stageRecovery: policy, recovery: { ...policy, scope: 'baseline', maxManualRetries: 1 }, execution: { version: 1, maxRunMs: 600000, maxStageMs: 300000, terminationGraceMs: 1000 } };
     contract.verification.scope = { version: 1, mode: 'affected', variants: 'debug', maxManualRetries: 1 };
     const input = { contract, plan: '# Explicit approved affected Debug verification\n', ...f.queue.snapshot() };
-    const scoped = f.queue.draft(input);
+    assert.throws(() => f.queue.draft(input), /verificationFallbackReason/);
+    const scoped = f.queue.draft({ ...input, verificationFallbackReason: 'Explicit compatibility validation of the original affected Debug protocol.' });
     assert.equal(scoped.contract.verification.scope.variants, 'debug');
     const preview = f.queue.verificationPreview(contract);
     assert(!JSON.stringify(preview).includes('Release'));
-    assert.throws(() => f.queue.draft({ ...input, verificationFallbackReason: 'Unnecessary full verification reason' }), /scoped contracts must omit/);
+    assert.match(f.queue.approvalText(scoped), /旧版影响范围验证/);
     const stored = f.queue.storage.read().drafts.find(d => d.key === legacy.key);
     assert.deepEqual(stored, legacy); assert.equal(f.queue.approvalText(stored), approval);
     // Only intake is stricter: old approved schema and approval text stay valid.
@@ -154,6 +155,6 @@ test('capability defaults accept affected Debug V7 and do not rewrite older stor
 test('Planner reads generated capabilities/template and presents scoped policies before approval', () => {
   const planner = readFileSync(new URL('../templates/.opencode/agents/scheduled-planner.md', import.meta.url), 'utf8');
   assert.match(planner, /TASK-TEMPLATE\.json\.example/); assert.match(planner, /generated V7 template/);
-  assert.match(planner, /mode: affected-tests, variants: debug/); assert.match(planner, /verificationFallbackReason/);
+  assert.match(planner, /version 3, mode `bounded`/); assert.match(planner, /action `preview`/); assert.match(planner, /baseline: "snapshot"/); assert.match(planner, /verificationFallbackReason/);
   assert.doesNotMatch(planner, /Use schema V4 with verification version 2 unless/);
 });

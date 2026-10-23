@@ -534,7 +534,11 @@ automation_baseline_tasks_json() {
 automation_run_baseline_unit_tests() {
     local contract="$1" root="$2" json task plan
     local -a tasks=()
-    if [[ "$(jq -r '.verification.scope.version // 0' "$contract")" == 2 ]]; then
+    if [[ "$(jq -r '.verification.scope.version // 0' "$contract")" == 3 ]]; then
+        automation_info "bounded baseline uses only focused targets; supplemental regression remains deferred to final verification"
+        return 0
+    fi
+    if [[ "$(jq -r '.verification.scope.version // 0' "$contract")" -ge 2 ]]; then
         plan="$(node "$root/automation/verification/project.cjs" "$AUTOMATION_CONFIG" "$root" --select-baseline "$contract")" || return 41
         if [[ "$(jq -r '.testSelection.mode' <<< "$plan")" == selected ]]; then
             node "$root/automation/verification/selected-tests.cjs" "$contract" "$AUTOMATION_CONFIG" "$root" "$(automation_evidence_path "$(jq -er '.id' "$contract")")" "$plan" baseline
@@ -565,7 +569,9 @@ automation_run_impact_phase() {
     esac
     while IFS= read -r task; do automation_validate_gradle_task "$task" || return 41; tasks[${#tasks[@]}]="$task"; done < <(printf '%s' "$json" | jq -r '.[]')
     [[ "${#tasks[@]}" -gt 0 ]] || return 41
-    if [[ "$phase" == unit ]]; then
+    if [[ "$(jq -r '.verification.scope.version // 0' "$contract")" == 3 ]]; then
+        node "$root/automation/verification/bounded-execution.cjs" --run "$contract" "$AUTOMATION_CONFIG" "$root" "$(automation_evidence_path "$(jq -er '.id' "$contract")")" "$json"
+    elif [[ "$phase" == unit ]]; then
         automation_run_fresh_unit_tests "$root" "${tasks[@]}"
     else
         (cd "$(automation_gradle_build_root "$root")" && ./gradlew "${tasks[@]}" ${AUTOMATION_WORKER_TOKEN:+--no-daemon})

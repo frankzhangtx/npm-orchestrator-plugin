@@ -8,16 +8,20 @@ import { fileURLToPath } from "node:url";
 const templatesRoot = fileURLToPath(new URL("../templates/", import.meta.url));
 
 const expectedBaselineHashes = new Map([
+  ["automation/verification/baseline-snapshot.cjs", "6d71cdd0efc3622d450541faf165c28a1128e218f3cee5694d50ac02a125d687"],
+  ["automation/verification/bounded-scope.cjs", "bc1ade1a33c2f7f3128b79129845e4417fef326bff67d4bcf3e4bb0b0220d792"],
+  ["automation/verification/bounded-execution.cjs", "675aefb04efe559c8958b8b2879b0e411fe149d1196dcd81e3181ffed1b29dcd"],
+  ["automation/verification/bounded.init.gradle", "152e77c2148e5581656229b4d197cadbc90a32b8746d77d035c295b2ad451cca"],
   ["automation/verification/verification-reuse.cjs", "07d3bfd24b80ac69c942930d827f3068a1711bfa11a78d4d0860272c433efe4b"],
-  ["automation/verification/selected-tests.cjs", "6a28a66582f00d6687d342c55dbbe3594bbd9e5259a882615fef213f0a6c1b1c"],
+  ["automation/verification/selected-tests.cjs", "0ba7be4ce331394b0f6e467049f117d1a4333e02bc41b109553b038597225af6"],
   ["automation/verification/test-selection.cjs", "a44d49770d4f4d9249b39a6ac19aa3b00857e0bd3361549803eee85ab082b305"],
-  ["automation/verification/status.cjs", "996cd42c47b94e1ab8d1ac0de855649904ab4348b8ca16cca94f7ee1bf8e65fb"],
+  ["automation/verification/status.cjs", "3eb1ea2a4bbc50be4e6fa5dad1ef8d94ed73a952e04bae4f52b7133d41007ec1"],
   ["automation/verification/worktree.cjs", "2ad71c57580ca2fd97f0abdcc87e80f3081fefbd293f3379fabc699587b3ed8c"],
   ["automation/verification/runtime.init.gradle", "3d3645fdc4197ba5f1c7d04f0d475cca8242a258759f01a24dfd6c0757b1e4f8"],
-  ["automation/verification/project.cjs", "bf364ec6509171ca70b0e0f0df26a8c3667545ddac6e5be5e86dd43cb5c10ab6"],
-  ["automation/verification/recovery.cjs", "8ebafe36a911a9f0f89be9e1698a6d73249e3e5e385dc6c87de02646b0c2ed3a"],
-  ["automation/verification/contract.cjs", "ba364cf49dc2dad76c08449bb9a108f27b365637d3c3840a0f6d8687e1fa88c6"],
-  ["automation/verification/inventory.cjs", "b4993ea9e92e6e63fbeb15458948e5638c933e76bd7d10f55a19e7090507cdbb"],
+  ["automation/verification/project.cjs", "4352c058a4596fed5cd0231533fdbf0a90e99735692a721b95edcc9a848e679b"],
+  ["automation/verification/recovery.cjs", "94464ea4a057dea5fd62eb0c655b1d093142410ae5ed963bb1653d703ef3d2ff"],
+  ["automation/verification/contract.cjs", "ccb64928ecd78099dd21120432b90eaf3c0e834e301f2ec2389bdbb6d3d9370b"],
+  ["automation/verification/inventory.cjs", "48b6f11318723c08d4355673b792f0b6fe93ae9d9babf1f00a2a8b6ada36c4dc"],
   ["automation/verification/collect.init.gradle", "9c3d9095876c26f65537fdae4a6cf52d9226f28b9a4c61cb2b91ada65e70a743"],
   [
     "automation/config.json",
@@ -29,7 +33,7 @@ const expectedBaselineHashes = new Map([
   ],
   [
     "automation/task-contract.schema.json",
-    "bf9a63936173e18cc58d9867cbaa28f1661005efd42a923fb66729d140815ecc",
+    "56070e93c63cabfbda96fb8dff923d1ef76b758f122072915a02bc25252ad5d6",
   ],
   [
     "automation/tasks/TASK-TEMPLATE.json.example",

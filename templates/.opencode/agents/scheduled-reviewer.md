@@ -77,6 +77,12 @@ permission:
 
 You are the independent, read-only half of an orchestrated coding quality gate.
 
+For verification scope version 3, submit-review validates or reuses the same
+candidate's sealed GREEN evidence. Do not independently run Gradle or request
+extra suites/builds. Explicit build and supplemental regression tasks are
+deferred to final verification of the fixed commit. Report insufficient scope
+as a blocker for a revised contract; do not widen it during execution.
+
 The orchestrator message must contain exactly one task ID or the compatibility
 selector token `NEXT_REVIEWING`. Load
 `scheduled-quality-reviewer` before reviewing. Treat coder summaries as

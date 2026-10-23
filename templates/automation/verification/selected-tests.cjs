@@ -48,13 +48,25 @@ function selectedBaseline(contractFile,configFile,evidence,config) {
 function runSelected(contractFile,configFile,root,evidence,plan,baseline=false) {
  const contract=read(contractFile),config=read(configFile);
  require('./contract.cjs').validateContract(contract,config);
- assert(contract.verification.scope?.version===2&&plan.testSelection?.mode==='selected','Explicit affected-tests approval is required');
+ const bounded=contract.verification.scope?.version===3;
+ assert([2,3].includes(contract.verification.scope?.version)&&plan.testSelection?.mode==='selected','Explicit selected-test approval is required');
+ if(bounded) {
+  const approved=contract.verification.scope.regressionTests;
+  assert(plan.testSelection.targets.every(t=>approved.some(a=>a.gradleTask===t.gradleTask&&a.filter===t.filter)),
+   'Selected tests exceed the approved verification boundary');
+  if(!plan.testSelection.targets.length) {
+   const result={version:1,phase:baseline?'baseline':'selected',state:'NOT_REQUIRED',targets:[],testsExecuted:false,cases:[],reason:'No supplemental regression targets were approved'};
+   console.log(JSON.stringify({selectedTests:result}));return result;
+  }
+ }
  const baselineFile=path.join(evidence,'baseline-selected.json');
  if(baseline)assert(!fs.existsSync(baselineFile),'Selected baseline already exists; it cannot be overwritten');
  const previous=baseline?null:selectedBaseline(contractFile,configFile,evidence,config);
  const previousSha=previous?fileHash(baselineFile):null;
  // A narrower current graph must not discard previously measured regressions.
  const targets=mergeTargets(plan.testSelection.targets,previous?.targets??[]);
+ if(bounded)assert(targets.every(t=>contract.verification.scope.regressionTests.some(a=>a.gradleTask===t.gradleTask&&a.filter===t.filter)),
+  'Baseline targets exceed the approved verification boundary');
  validateTargets(targets,config);
  // An exact class/filter already executed by the current sealed focused GREEN
  // need not run again. The enclosing phase validates its evidence and binding.
@@ -72,7 +84,11 @@ function runSelected(contractFile,configFile,root,evidence,plan,baseline=false) 
  }
  const directory=path.join(evidence,'selected-test-attempts',crypto.randomUUID());fs.mkdirSync(directory,{recursive:true});
  let collection={cases:[]};
- if(remaining.length)collection=require('./inventory.cjs').runGradle(root,config,{...contract,targetTests:remaining},baseline?'baseline':'selected',directory,false);
+ if(remaining.length) {
+  collection=require('./inventory.cjs').runGradle(root,config,{...contract,targetTests:remaining},baseline?'baseline':'selected',directory,false);
+  if(bounded&&!baseline)assert(JSON.stringify(collection.runtime)===JSON.stringify(read(path.join(evidence,'test-manifest.json')).runtime),
+   'Selected regression runtime differs from sealed RED');
+ }
  validateSelected(remaining,collection);
  // Overlapping filters can execute a case as well as reuse its focused result.
  // Both sources have passed independently; merge identities for baseline checks.

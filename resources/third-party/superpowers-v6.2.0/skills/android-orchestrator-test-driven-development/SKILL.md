@@ -14,6 +14,16 @@ metadata:
 
 Write the test first. Watch it fail. Write minimal code to pass.
 
+In Android Orchestrator tasks, use the contract's managed RED/GREEN scripts and
+exact approved test identities. Add only cases needed for the acceptance criteria
+and directly affected preserved behavior. Do not turn TDD into extra module,
+variant or full-project testing. Baseline tests default off under scope version
+3; retain the snapshot and use real RED results. Unknown impact requires a
+revised contract, never a broader fallback or automatic baseline execution.
+The managed workflow retains incremental compilation/build caches and decides
+valid evidence reuse. Do not run clean, `--rerun-tasks`, independent build
+commands, or another RED/GREEN cycle after the original evidence is sealed.
+
 **Core principle:** If you didn't watch the test fail, you don't know if it tests the right thing.
 
 **Violating the letter of the rules is violating the spirit of the rules.**
@@ -180,12 +190,13 @@ npm test path/to/test.test.ts
 
 Confirm:
 - Test passes
-- Other tests still pass
+- Approved preserved-behavior tests still pass
 - Output pristine (no errors, warnings)
 
 **Test fails?** Fix code, not test.
 
-**Other tests fail?** Fix now.
+**Approved preserved tests fail?** Diagnose within the contract. Unrelated failures
+or unknown impact require a blocker report, not additional scope.
 
 ### REFACTOR - Clean Up
 
@@ -291,14 +302,14 @@ Extract validation for multiple fields if needed.
 
 Before marking work complete:
 
-- [ ] Every new function/method has a test
+- [ ] Each approved behavior change has the minimum meaningful test coverage
 - [ ] Watched each test fail before implementing
 - [ ] Each test failed for expected reason (feature missing, not typo)
 - [ ] Wrote minimal code to pass each test
-- [ ] All tests pass
+- [ ] All tests in the approved scope pass
 - [ ] Output pristine (no errors, warnings)
 - [ ] Tests use real code (mocks only if unavoidable)
-- [ ] Edge cases and errors covered
+- [ ] Relevant in-scope edge cases and errors covered
 
 Can't check all boxes? You skipped TDD. Start over.
 

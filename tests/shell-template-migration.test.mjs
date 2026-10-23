@@ -31,7 +31,7 @@ const expectedHashes = new Map([
   ],
   [
     "scripts/automation/acceptance-report.sh",
-    "5589cfc57a3a314e4212e34ddce23b94ae718a8dc579ce590e8e905bbb4c84cb",
+    "90588d7b808e306c1b971dee7bc4a30352cb101190427e25c90510afed718e66",
   ],
   [
     "scripts/automation/approve-and-run.sh",
@@ -55,7 +55,7 @@ const expectedHashes = new Map([
   ],
   [
     "scripts/automation/lib.sh",
-    "a0fbed2cff533f998d28a8a23adcfa45c4569fca48ac023ed1566d98ebaf92b6",
+    "cc697aee368d2a2df362f7df32fb2b59b9bd685cdfbc416a431d24e449fd7588",
   ],
   [
     "scripts/automation/orchestrate-task.sh",

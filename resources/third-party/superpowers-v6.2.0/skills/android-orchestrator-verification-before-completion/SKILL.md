@@ -1,6 +1,6 @@
 ---
 name: android-orchestrator-verification-before-completion
-description: Require fresh command evidence before an Android Orchestrator Coder or Reviewer reports completion or approval
+description: Require validated candidate-bound evidence before an Android Orchestrator Coder or Reviewer reports completion or approval
 license: MIT
 compatibility: opencode
 metadata:
@@ -22,7 +22,18 @@ metadata:
 NO COMPLETION CLAIMS WITHOUT FRESH VERIFICATION EVIDENCE
 ```
 
-If you haven't run the verification command in this message, you cannot claim it passes.
+For orchestrated work, the managed gate validates the approved command evidence.
+It may explicitly reuse results bound to the identical candidate HEAD, source,
+configuration, environment and test scope. Report that reuse accurately; do not
+run a second build merely to refresh the wording of a completion message.
+Only claim the tested scope. A passing focused test does not establish a whole
+module or repository pass.
+
+Scope version 3 forbids widening the sealed test filters, tasks or variants.
+Baseline tests are optional and default off; a snapshot is never a passing
+baseline. Incremental compilation and build caches may be reused while required
+tests actually execute. Clean and cache deletion require explicit contract
+authorization. Missing evidence or unknown impact blocks the task for replanning.
 
 ## The Gate Function
 
@@ -30,7 +41,8 @@ If you haven't run the verification command in this message, you cannot claim it
 BEFORE claiming any status or expressing satisfaction:
 
 1. IDENTIFY: What command proves this claim?
-2. RUN: Execute the FULL command (fresh, complete)
+2. RUN: Invoke the managed gate for the exact approved scope; inspect its
+   executed steps or validated candidate-bound reuse
 3. READ: Full output, check exit code, count failures
 4. VERIFY: Does output confirm the claim?
    - If NO: State actual status with evidence
@@ -44,7 +56,7 @@ Skip any step = lying, not verifying
 
 | Claim | Requires | Not Sufficient |
 |-------|----------|----------------|
-| Tests pass | Test command output: 0 failures | Previous run, "should pass" |
+| Selected tests pass | Bound gate evidence: 0 failures for approved filters | Unbound previous run, "should pass" |
 | Linter clean | Linter output: 0 errors | Partial check, extrapolation |
 | Build succeeds | Build command: exit 0 | Linter passing, logs look good |
 | Bug fixed | Test original symptom: passes | Code changed, assumed fixed |
@@ -61,7 +73,7 @@ Skip any step = lying, not verifying
 - Relying on partial verification
 - Thinking "just this once"
 - Tired and wanting work over
-- **ANY wording implying success without having run verification**
+- **ANY wording implying success without validated evidence for the claimed scope**
 
 ## Rationalization Prevention
 
@@ -73,14 +85,14 @@ Skip any step = lying, not verifying
 | "Linter passed" | Linter ≠ compiler |
 | "Agent said success" | Verify independently |
 | "I'm tired" | Exhaustion ≠ excuse |
-| "Partial check is enough" | Partial proves nothing |
+| "Focused tests prove the whole app" | Evidence proves only its approved scope |
 | "Different words so rule doesn't apply" | Spirit over letter |
 
 ## Key Patterns
 
 **Tests:**
 ```
-✅ [Run test command] [See: 34/34 pass] "All tests pass"
+✅ [Managed gate] [See: 34/34 approved cases pass] "The approved test scope passes"
 ❌ "Should pass now" / "Looks correct"
 ```
 
